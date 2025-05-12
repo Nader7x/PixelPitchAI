@@ -1,39 +1,73 @@
 using System.Text.Json.Serialization;
 using Application;
 using Infrastructure;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Sinks.PostgreSQL;
 
-var builder = WebApplication.CreateBuilder(args);
+// Initialize Serilog first
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Host.UseSerilog((context, configuration) =>
-    configuration.ReadFrom.Configuration(context.Configuration));
-builder.Services
-    .AddApplication()
-    .AddInfrastructure();
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Add services to the container.
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    // Configure Serilog
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services);
+
+        // Get column writers dictionary if configured in DI
+        if (services.GetService(typeof(IDictionary<string, ColumnWriterBase>)) is IDictionary<string, ColumnWriterBase> columnWriters)
+        {
+            // Apply custom column writers for PostgreSQL sink
+            var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
+            loggerConfiguration.WriteTo.PostgreSQL(
+                connectionString: connectionString,
+                tableName: "Logs",
+                columnOptions: columnWriters,
+                needAutoCreateTable: true);
+        }
     });
 
-var app = builder.Build();
+    // Add application and infrastructure services
+    builder.Services
+        .AddApplication()
+        .AddInfrastructure(builder.Configuration);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        });
+
+    var app = builder.Build();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseSerilogRequestLogging(); // Add request logging
+
+    app.Run();
 }
-
-
-app.UseHttpsRedirection();
-
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
