@@ -1,0 +1,71 @@
+using Domain.Interfaces;
+using Domain.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace Infrastructure.Repositories;
+
+public class ApplicationUserRepository(
+    FootballDbContext context,
+    UserManager<ApplicationUser> userManager)
+    : IApplicationUserRepository
+{
+    public async Task<ApplicationUser> GetByIdAsync(string userId)
+    {
+        return await userManager.FindByIdAsync(userId);
+    }
+
+    public async Task<ApplicationUser> GetByEmailAsync(string email)
+    {
+        return await userManager.FindByEmailAsync(email);
+    }
+
+    public async Task<ApplicationUser> GetByUsernameAsync(string username)
+    {
+        return await userManager.FindByNameAsync(username);
+    }
+
+    public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user)
+    {
+        return await userManager.GetRolesAsync(user);
+    }
+
+    public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
+    {
+        return await userManager.CheckPasswordAsync(user, password);
+    }
+
+    public async Task<bool> AddToRoleAsync(ApplicationUser user, string role)
+    {
+        var result = await userManager.AddToRoleAsync(user, role);
+        return result.Succeeded;
+    }
+
+    public async Task<RefreshToken> GetRefreshTokenAsync(string token)
+    {
+        return await context.RefreshTokens
+            .Include(r => r.User)
+            .SingleOrDefaultAsync(t => t.Token == token);
+    }
+
+    public async Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken refreshToken)
+    {
+        refreshToken.UserId = user.Id;
+        context.RefreshTokens.Add(refreshToken);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task RevokeRefreshTokenAsync(string token, string ipAddress)
+    {
+        var refreshToken = await context.RefreshTokens.SingleOrDefaultAsync(t => t.Token == token);
+
+        if (refreshToken != null)
+        {
+            refreshToken.Revoked = System.DateTime.UtcNow;
+            refreshToken.RevokedByIp = ipAddress;
+
+            context.RefreshTokens.Update(refreshToken);
+            await context.SaveChangesAsync();
+        }
+    }
+}

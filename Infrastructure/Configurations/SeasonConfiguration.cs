@@ -46,7 +46,7 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
         builder.HasIndex(s => new { s.IsActive, s.CurrentRound })
             .HasMethod("btree")
             .HasDatabaseName("IX_Season_CurrentRound")
-            .HasFilter("\"IsActive\" = true");
+            .HasFilter("\"IsActive\" = 'true'");
         // Relationships
         builder.HasMany(s => s.Matches)
             .WithOne(m => m.Season)

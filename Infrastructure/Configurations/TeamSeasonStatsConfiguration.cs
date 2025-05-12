@@ -56,7 +56,8 @@ public class TeamSeasonStatsConfiguration : IEntityTypeConfiguration<TeamSeasonS
         builder.HasOne(t => t.Team)
             .WithMany()
             .HasForeignKey(t => t.TeamId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .HasConstraintName("FK_TeamSeasonStats_Team");
             
         builder.HasOne(t => t.Season)
             .WithMany(s => s.TeamSeasonStats)

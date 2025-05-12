@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -81,7 +77,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
             .Include(p => p.Team)
             .Where(p => p.SeasonId == seasonId)
             .OrderByDescending(p => p.Goals)
-            .ThenByDescending(p => p.Goals/90)
+            .ThenByDescending(p => p.Goals / 90)
             .Take(count)
             .ToListAsync();
     }
@@ -93,7 +89,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
             .Include(p => p.Team)
             .Where(p => p.SeasonId == seasonId)
             .OrderByDescending(p => p.Assists)
-            .ThenByDescending(p => p.Assists/90)
+            .ThenByDescending(p => p.Assists / 90)
             .Take(count)
             .ToListAsync();
     }

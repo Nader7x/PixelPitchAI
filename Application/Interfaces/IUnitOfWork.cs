@@ -1,3 +1,4 @@
+using Domain.Interfaces;
 using Domain.Repositories;
 
 namespace Application.Interfaces;
@@ -11,10 +12,10 @@ public interface IUnitOfWork : IDisposable
     IPlayerSeasonStatsRepository PlayerSeasonStats { get; }
     ITeamSeasonStatsRepository TeamSeasonStats { get; }
     IMatchEventsRepository MatchEvents { get; }
-    
+    IApplicationUserRepository ApplicationUserRepository { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
-    
 }

@@ -68,12 +68,14 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasOne(m => m.HomeTeam)
             .WithMany()
             .HasForeignKey(m => m.HomeTeamId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_Match_HomeTeam");
             
         builder.HasOne(m => m.AwayTeam)
             .WithMany()
             .HasForeignKey(m => m.AwayTeamId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_Match_AwayTeam");
             
         builder.HasOne(m => m.Season)
             .WithMany(s => s.Matches)
