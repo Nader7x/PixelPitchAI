@@ -38,7 +38,6 @@ public class StadiumConfiguration : IEntityTypeConfiguration<Stadium>
         // Add JSONB path operation index for facilities searches
         builder.HasIndex(s => s.Facilities)
             .HasMethod("gin")
-            .HasOperators("jsonb_path_ops")
             .HasDatabaseName("IX_Stadium_Facilities");
             
         // Set table comment for documentation

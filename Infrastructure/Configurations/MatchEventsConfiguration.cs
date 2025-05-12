@@ -18,7 +18,6 @@ public class MatchEventsConfiguration : IEntityTypeConfiguration<MatchEvents>
         // Add GIN index for efficient JSON searching with appropriate operator class
         builder.HasIndex(e => e.EventsJson)
             .HasMethod("gin")
-            .HasOperators("jsonb_path_ops")
             .HasDatabaseName("IX_MatchEvents_EventsJson");
             
         // Unique constraint - one event record per match

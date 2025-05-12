@@ -1,3 +1,5 @@
+using Application.Services;
+using Domain.Interfaces;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,8 +12,14 @@ public static class DependencyInjection
         // Add your application services here
         // Example: services.AddTransient<IMyService, MyService>();
         var assembly = typeof(DependencyInjection).Assembly;
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
+        services.AddMediatR(config =>
+        {
+            config.RegisterServicesFromAssemblyContaining<ApplicationAssemblyReference>();
+        });
         services.AddValidatorsFromAssembly(assembly);
+
+        // Note: ITokenService is now registered in Infrastructure
+        services.AddScoped<ITokenService, TokenService>();
 
         return services;
     }

@@ -1,16 +1,14 @@
 using Domain.Models;
-using Infrastructure.Configurations;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace Infrastructure;
 
-public class FootballDbContext : DbContext
+public class FootballDbContext(DbContextOptions<FootballDbContext> options)
+    : IdentityDbContext<ApplicationUser>(options)
 {
-    public FootballDbContext(DbContextOptions<FootballDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<Match> Matches { get; set; }
     public DbSet<MatchEvents> MatchEvents { get; set; }
     public DbSet<Team> Teams { get; set; }
@@ -20,6 +18,7 @@ public class FootballDbContext : DbContext
     public DbSet<Season> Seasons { get; set; }
     public DbSet<TeamSeasonStats> TeamSeasonStats { get; set; }
     public DbSet<PlayerSeasonStats> PlayerSeasonStats { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,5 +26,15 @@ public class FootballDbContext : DbContext
 
         // Apply all configurations from the Configurations namespace
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        // Configure identity tables - customize table names
+        modelBuilder.Entity<ApplicationUser>().ToTable("Users");
+        modelBuilder.Entity<IdentityRole>().ToTable("Roles");
+        modelBuilder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
+        modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
+        modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
+        modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
+        modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
+
     }
+    
 }

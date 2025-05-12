@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Application.Interfaces;
 
-public interface IRepository <T> where T : class
+public interface IRepository<T> where T : class
 {
     Task<IEnumerable<T>> GetAllAsync();
     Task<T?> GetByIdAsync(int id);

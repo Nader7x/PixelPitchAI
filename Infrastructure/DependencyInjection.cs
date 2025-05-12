@@ -1,23 +1,26 @@
+using Application.Interfaces;
+using Domain.Interfaces;
+using Domain.Repositories;
+using Infrastructure.Identity;
+using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog.Sinks.PostgreSQL;
 
-using Domain.Repositories;
-using Infrastructure.Repositories;
-using IUnitOfWork = Application.Interfaces.IUnitOfWork;
-
 namespace Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection
+        AddInfrastructure(this IServiceCollection services,
+            IConfiguration configuration)
     {
         // Register DbContext with PostgreSQL
         services.AddDbContext<FootballDbContext>(options =>
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection")));
-                
+
         // Register repositories
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<ISeasonRepository, SeasonRepository>();
@@ -26,7 +29,11 @@ public static class DependencyInjection
         services.AddScoped<IPlayerSeasonStatsRepository, PlayerSeasonStatsRepository>();
         services.AddScoped<ITeamSeasonStatsRepository, TeamSeasonStatsRepository>();
         services.AddScoped<IMatchEventsRepository, MatchEventsRepository>();
-        
+        services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
+
+        // Register identity services
+        services.AddScoped<IIdentityService, IdentityService>();
+
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -44,11 +51,11 @@ public static class DependencyInjection
                 { "properties", new PropertiesColumnWriter() },
                 { "source_context", new SinglePropertyColumnWriter("SourceContext") }
             };
-            
+
             // Register the column writers for use in Program.cs
             services.AddSingleton(columnWriters);
         }
-        
+
         return services;
     }
 }

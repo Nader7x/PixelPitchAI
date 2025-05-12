@@ -1,39 +1,56 @@
-using Application.Interfaces;
+using Domain.Interfaces;
+using Domain.Models;
 using Domain.Repositories;
+using Infrastructure.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Storage;
+using IUnitOfWork = Application.Interfaces.IUnitOfWork;
 
 namespace Infrastructure;
 
-public sealed class UnitOfWork(
-    FootballDbContext context,
-    IPlayerRepository playerRepository,
-    ISeasonRepository seasonRepository,
-    IMatchRepository matchRepository,
-    ITeamRepository teamRepository,
-    IPlayerSeasonStatsRepository playerSeasonStatsRepository,
-    ITeamSeasonStatsRepository teamSeasonStatsRepository,
-    IMatchEventsRepository matchEventsRepository)
-    : IUnitOfWork
+public sealed class UnitOfWork : IUnitOfWork
 {
     private IDbContextTransaction? _transaction;
+    private readonly FootballDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
     private bool _disposed;
 
-    public IPlayerRepository Players { get; } = playerRepository;
-    public ISeasonRepository Seasons { get; } = seasonRepository;
-    public IMatchRepository Matches { get; } = matchRepository;
-    public ITeamRepository Teams { get; } = teamRepository;
-    public IPlayerSeasonStatsRepository PlayerSeasonStats { get; } = playerSeasonStatsRepository;
-    public ITeamSeasonStatsRepository TeamSeasonStats { get; } = teamSeasonStatsRepository;
-    public IMatchEventsRepository MatchEvents { get; } = matchEventsRepository;
 
+    public UnitOfWork(FootballDbContext context, UserManager<ApplicationUser> userManager)
+    {
+        _context = context;
+        _userManager = userManager;
+        _disposed = false;
+        
+        // Initialize repositories
+        Players = new PlayerRepository(_context);
+        Seasons = new SeasonRepository(_context);
+        Matches = new MatchRepository(_context);
+        Teams = new TeamRepository(_context);
+        PlayerSeasonStats = new PlayerSeasonStatsRepository(_context);
+        TeamSeasonStats = new TeamSeasonStatsRepository(_context);
+        MatchEvents = new MatchEventsRepository(_context);
+        ApplicationUserRepository = new ApplicationUserRepository(_context, _userManager);
+    }
+
+    public IPlayerRepository Players { get; private set; }
+    public ISeasonRepository Seasons { get; private set; }
+    public IMatchRepository Matches { get; private set; }
+    public ITeamRepository Teams { get; private set; }
+    public IPlayerSeasonStatsRepository PlayerSeasonStats { get; private set; }
+    public ITeamSeasonStatsRepository TeamSeasonStats { get; private set; }
+    public IMatchEventsRepository MatchEvents { get; private set; }
+    public IApplicationUserRepository ApplicationUserRepository { get; private set; }
+
+    
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        return await context.SaveChangesAsync(cancellationToken);
+        return await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task BeginTransactionAsync()
     {
-        _transaction = await context.Database.BeginTransactionAsync();
+        _transaction = await _context.Database.BeginTransactionAsync();
     }
 
     public async Task CommitTransactionAsync()
@@ -78,7 +95,7 @@ public sealed class UnitOfWork(
         if (!_disposed && disposing)
         {
             _transaction?.Dispose();
-            context.Dispose();
+            _context.Dispose();
         }
         _disposed = true;
     }

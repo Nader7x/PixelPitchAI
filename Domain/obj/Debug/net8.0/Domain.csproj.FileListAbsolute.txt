@@ -10,3 +10,4 @@ D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.dll
 D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\refint\Domain.dll
 D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.pdb
 D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\ref\Domain.dll
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.csproj.AssemblyReference.cache

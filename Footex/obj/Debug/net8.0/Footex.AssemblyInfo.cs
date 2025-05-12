@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Footex")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+554d7eba1c5cfeb33b6da424e1bbd8d42a95a773")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e6a5943a1d4d98d37099b69da76dfdae93473a31")]
 [assembly: System.Reflection.AssemblyProductAttribute("Footex")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Footex")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

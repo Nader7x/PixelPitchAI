@@ -9,6 +9,8 @@
 
     <ItemGroup>
         <PackageReference Include="MediatR" Version="12.5.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.15" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.15" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
           <PrivateAssets>all</PrivateAssets>
@@ -37,7 +39,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controllers\" />
       <Folder Include="Logs\" />
     </ItemGroup>
 
