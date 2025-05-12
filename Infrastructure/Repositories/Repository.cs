@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Infrastructure.Repositories;
 
-public class Repository<T>(ApplicationDbContext dbContext) : IRepository<T>
+public class Repository<T>(FootballDbContext dbContext) : IRepository<T>
     where T : class
 {
-    private readonly ApplicationDbContext _dbContext = dbContext;
+    private readonly FootballDbContext _dbContext = dbContext;
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {

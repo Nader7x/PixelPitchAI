@@ -1,0 +1,12 @@
+D:\programming\GitHub\Footex\Domain\bin\Debug\net8.0\Domain.deps.json
+D:\programming\GitHub\Footex\Domain\bin\Debug\net8.0\Domain.dll
+D:\programming\GitHub\Footex\Domain\bin\Debug\net8.0\Domain.pdb
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.AssemblyInfoInputs.cache
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.AssemblyInfo.cs
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.csproj.CoreCompileInputs.cache
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.sourcelink.json
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.dll
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\refint\Domain.dll
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\Domain.pdb
+D:\programming\GitHub\Footex\Domain\obj\Debug\net8.0\ref\Domain.dll

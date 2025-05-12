@@ -1,0 +1,16 @@
+D:\programming\GitHub\Footex\Application\bin\Debug\net8.0\Application.deps.json
+D:\programming\GitHub\Footex\Application\bin\Debug\net8.0\Application.dll
+D:\programming\GitHub\Footex\Application\bin\Debug\net8.0\Application.pdb
+D:\programming\GitHub\Footex\Application\bin\Debug\net8.0\Domain.dll
+D:\programming\GitHub\Footex\Application\bin\Debug\net8.0\Domain.pdb
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.csproj.AssemblyReference.cache
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.AssemblyInfoInputs.cache
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.AssemblyInfo.cs
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.csproj.CoreCompileInputs.cache
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.sourcelink.json
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Applicat.44B5EDA2.Up2Date
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.dll
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\refint\Application.dll
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\Application.pdb
+D:\programming\GitHub\Footex\Application\obj\Debug\net8.0\ref\Application.dll
