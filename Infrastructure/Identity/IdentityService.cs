@@ -13,6 +13,7 @@ public class IdentityService(
     public async Task<(bool Succeeded, string UserId)> CreateUserAsync(ApplicationUser user, string password)
     {
         var result = await userManager.CreateAsync(user, password);
+        Console.WriteLine(result);
         return (result.Succeeded, user.Id);
     }
 

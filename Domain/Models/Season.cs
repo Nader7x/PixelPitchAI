@@ -11,8 +11,8 @@ public class Season
     public bool IsCompleted { get; set; }
     public string LeagueName { get; set; }  // e.g., "La Liga", "Premier League"
     public string Country { get; set; }  // e.g., "Spain", "England"
-    public int? TotalRounds { get; set; }  // Total number of rounds in the league
-    public int? CurrentRound { get; set; }  // Current active round
+    public int TotalRounds { get; set; }  // Total number of rounds in the league
+    public int CurrentRound { get; set; }  // Current active round
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     

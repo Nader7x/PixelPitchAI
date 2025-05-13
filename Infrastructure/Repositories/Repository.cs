@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Application.Interfaces;
+using Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -27,7 +27,7 @@ public class Repository<T>(FootballDbContext dbContext) : IRepository<T>
 
     public EntityEntry<T> UpdateAsync(T entity)
     {
-        return _dbContext.Update(entity);
+        return _dbContext.Set<T>().Update(entity);
     }
 
     public EntityEntry<T> DeleteAsync(T entity)
@@ -38,6 +38,11 @@ public class Repository<T>(FootballDbContext dbContext) : IRepository<T>
     public async Task<T?> FindAsync(T entity)
     {
         return await _dbContext.Set<T>().FindAsync(entity);
+    }
+
+    public async Task<T?> FindAsync(Func<T, bool> predicate)
+    {
+        return await Task.FromResult(_dbContext.Set<T>().FirstOrDefault(predicate));
     }
 
     public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate)

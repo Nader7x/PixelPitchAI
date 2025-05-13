@@ -1,4 +1,3 @@
-using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -58,7 +57,6 @@ public class LoginUserCommandHandler(
 
             // Update last login time
             user.LastLogin = DateTime.UtcNow;
-
             // Generate JWT token and refresh token
             var (accessToken, refreshToken) = await tokenService.GenerateTokensAsync(user, request.IpAddress);
             await unitOfWork.SaveChangesAsync(cancellationToken);

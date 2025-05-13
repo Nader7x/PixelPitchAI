@@ -4,29 +4,56 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class TeamRepository(FootballDbContext context) : ITeamRepository
+public class TeamRepository(FootballDbContext context) : Repository<Team>(context), ITeamRepository
 {
-    public async Task<Team?> GetByIdAsync(int id)
-    {
-        return await context.Teams.FindAsync(id);
-    }
+    private readonly FootballDbContext _context = context;
 
     public async Task<Team?> GetByNameAsync(string name)
     {
-        return await context.Teams
+        return await _context.Teams
             .FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower());
     }
 
-    public async Task<IReadOnlyList<Team>> GetAllAsync()
+    public async Task<IReadOnlyList<Team>> GetTeamsByCriteriaAsync(Func<Team, bool> predicate)
     {
-        return await context.Teams
+        var result = _context.Teams
+            .AsEnumerable()
+            .Where(predicate)
+            .OrderBy(t => t.Name)
+            .ToList();
+
+        return await Task.FromResult(result);
+    }
+    
+    async Task<List<Team>> ITeamRepository.GetByLeagueAsync(string league)
+    {
+        return await _context.Teams
+            .Where(t => t.League.ToLower() == league.ToLower())
+            .OrderBy(t => t.Name)
+            .ToListAsync();
+    }
+
+    async Task<List<Team>> ITeamRepository.GetByCountryAsync(string country)
+    {
+        return await _context.Teams
+            .Where(t => t.Country.ToLower() == country.ToLower())
+            .OrderBy(t => t.Name)
+            .ToListAsync();
+    }
+
+    public async Task<List<Team>> GetWithStatsForSeasonAsync(int seasonId)
+    {
+        return await _context.Teams
+            .Include(t => t.PlayerSeasonStats)
+            .ThenInclude(ps => ps.Season)
+            .Where(t => t.PlayerSeasonStats.Any(ps => ps.SeasonId == seasonId))
             .OrderBy(t => t.Name)
             .ToListAsync();
     }
 
     public async Task<IReadOnlyList<Team>> GetByCountryAsync(string country)
     {
-        return await context.Teams
+        return await _context.Teams
             .Where(t => t.Country.ToLower() == country.ToLower())
             .OrderBy(t => t.Name)
             .ToListAsync();
@@ -34,26 +61,10 @@ public class TeamRepository(FootballDbContext context) : ITeamRepository
 
     public async Task<IReadOnlyList<Team>> GetByLeagueAsync(string league)
     {
-        return await context.Teams
+        return await _context.Teams
             .Where(t => t.League.ToLower() == league.ToLower())
             .OrderBy(t => t.Name)
             .ToListAsync();
     }
-
-    public async Task<Team> AddAsync(Team team)
-    {
-        await context.Teams.AddAsync(team);
-        return team;
-    }
-
-    public void Update(Team team)
-    {
-        context.Teams.Attach(team);
-        context.Entry(team).State = EntityState.Modified;
-    }
-
-    public void Remove(Team team)
-    {
-        context.Teams.Remove(team);
-    }
+    
 }

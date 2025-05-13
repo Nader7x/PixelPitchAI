@@ -1,4 +1,3 @@
-using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Repositories;
 using Infrastructure.Identity;
@@ -30,7 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ITeamSeasonStatsRepository, TeamSeasonStatsRepository>();
         services.AddScoped<IMatchEventsRepository, MatchEventsRepository>();
         services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
-
+        services.AddScoped<ICoachRepository,CoachRepository>();
         // Register identity services
         services.AddScoped<IIdentityService, IdentityService>();
 

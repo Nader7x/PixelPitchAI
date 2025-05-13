@@ -42,8 +42,9 @@ public class PlayerSeasonStatsConfiguration : IEntityTypeConfiguration<PlayerSea
             .HasFilter("\"Rating\" IS NOT NULL"); // Partial index to exclude NULL ratings
             
         // Relationships
+// In PlayerSeasonStatsConfiguration.cs
         builder.HasOne(p => p.Player)
-            .WithMany()
+            .WithMany(player => player.PlayerSeasonStats)  // Specify the collection in Player class
             .HasForeignKey(p => p.PlayerId)
             .OnDelete(DeleteBehavior.Cascade);
             
@@ -53,7 +54,7 @@ public class PlayerSeasonStatsConfiguration : IEntityTypeConfiguration<PlayerSea
             .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(p => p.Team)
-            .WithMany()
+            .WithMany(t => t.PlayerSeasonStats)
             .HasForeignKey(p => p.TeamId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);

@@ -65,14 +65,15 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .HasDatabaseName("IX_Match_Teams_Season");
             
         // Relationships
+
         builder.HasOne(m => m.HomeTeam)
-            .WithMany()
+            .WithMany(t => t.HomeMatches)  // Make sure to specify the correct collection property
             .HasForeignKey(m => m.HomeTeamId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("FK_Match_HomeTeam");
-            
+    
         builder.HasOne(m => m.AwayTeam)
-            .WithMany()
+            .WithMany(t => t.AwayMatches)  // Make sure to specify the correct collection property
             .HasForeignKey(m => m.AwayTeamId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("FK_Match_AwayTeam");

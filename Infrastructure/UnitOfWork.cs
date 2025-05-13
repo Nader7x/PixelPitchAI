@@ -4,7 +4,6 @@ using Domain.Repositories;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Storage;
-using IUnitOfWork = Application.Interfaces.IUnitOfWork;
 
 namespace Infrastructure;
 
@@ -12,14 +11,13 @@ public sealed class UnitOfWork : IUnitOfWork
 {
     private IDbContextTransaction? _transaction;
     private readonly FootballDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
     private bool _disposed;
 
 
-    public UnitOfWork(FootballDbContext context, UserManager<ApplicationUser> userManager)
+    public UnitOfWork(FootballDbContext context, UserManager<ApplicationUser> userManager, IStadiumsRepository stadiums)
     {
         _context = context;
-        _userManager = userManager;
+        Stadiums = stadiums;
         _disposed = false;
         
         // Initialize repositories
@@ -30,7 +28,8 @@ public sealed class UnitOfWork : IUnitOfWork
         PlayerSeasonStats = new PlayerSeasonStatsRepository(_context);
         TeamSeasonStats = new TeamSeasonStatsRepository(_context);
         MatchEvents = new MatchEventsRepository(_context);
-        ApplicationUserRepository = new ApplicationUserRepository(_context, _userManager);
+        ApplicationUserRepository = new ApplicationUserRepository(_context, userManager);
+        Coaches = new CoachRepository(_context);
     }
 
     public IPlayerRepository Players { get; private set; }
@@ -41,8 +40,10 @@ public sealed class UnitOfWork : IUnitOfWork
     public ITeamSeasonStatsRepository TeamSeasonStats { get; private set; }
     public IMatchEventsRepository MatchEvents { get; private set; }
     public IApplicationUserRepository ApplicationUserRepository { get; private set; }
+    public ICoachRepository Coaches { get; private set; }
+    public IStadiumsRepository Stadiums { get; }
 
-    
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);

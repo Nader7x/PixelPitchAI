@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-namespace Application.Interfaces;
+namespace Domain.Interfaces;
 
 public interface IRepository<T> where T : class
 {
@@ -11,5 +11,7 @@ public interface IRepository<T> where T : class
     EntityEntry<T> UpdateAsync(T entity);
     EntityEntry<T> DeleteAsync(T entity);
     Task<T?> FindAsync(T entity);
+    Task<T?> FindAsync(Func<T, bool> predicate);
+
     Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate);
 }

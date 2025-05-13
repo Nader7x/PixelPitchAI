@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Identity;
@@ -8,8 +9,10 @@ namespace Infrastructure.Repositories;
 public class ApplicationUserRepository(
     FootballDbContext context,
     UserManager<ApplicationUser> userManager)
-    : IApplicationUserRepository
+    : Repository<ApplicationUser>(context), IApplicationUserRepository
 {
+    private readonly FootballDbContext _context = context;
+
     public async Task<ApplicationUser> GetByIdAsync(string userId)
     {
         return await userManager.FindByIdAsync(userId);
@@ -41,31 +44,49 @@ public class ApplicationUserRepository(
         return result.Succeeded;
     }
 
-    public async Task<RefreshToken> GetRefreshTokenAsync(string token)
+    public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
     {
-        return await context.RefreshTokens
+        return await _context.RefreshTokens
             .Include(r => r.User)
             .SingleOrDefaultAsync(t => t.Token == token);
     }
 
-    public async Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken refreshToken)
+    public async Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken? refreshToken)
     {
-        refreshToken.UserId = user.Id;
-        context.RefreshTokens.Add(refreshToken);
-        await context.SaveChangesAsync();
+        if (refreshToken != null)
+        {
+            refreshToken.UserId = user.Id;
+            refreshToken.User = user;
+            refreshToken.Created = System.DateTime.UtcNow;
+            refreshToken.Expires = System.DateTime.UtcNow.AddDays(7);
+            refreshToken.JwtId= await userManager.GetClaimsAsync(user)
+                .ContinueWith(t => t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value);
+            _context.RefreshTokens.Add(refreshToken);
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task RevokeRefreshTokenAsync(string token, string ipAddress)
     {
-        var refreshToken = await context.RefreshTokens.SingleOrDefaultAsync(t => t.Token == token);
+        var refreshToken = await _context.RefreshTokens.SingleOrDefaultAsync(t => t.Token == token);
 
         if (refreshToken != null)
         {
             refreshToken.Revoked = System.DateTime.UtcNow;
             refreshToken.RevokedByIp = ipAddress;
 
-            context.RefreshTokens.Update(refreshToken);
-            await context.SaveChangesAsync();
+            _context.RefreshTokens.Update(refreshToken);
+            await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<bool> HasRefreshTokensAsync(string userId)
+    {
+        var refreshTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == userId)
+            .ToListAsync();
+        
+        return refreshTokens.Any();
     }
 }
