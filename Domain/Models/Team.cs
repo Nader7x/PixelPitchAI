@@ -22,6 +22,7 @@ public class Team
     public virtual ICollection<Player> Players { get; set; }
     public virtual ICollection<Coach> Coaches { get; set; }
     public virtual ICollection<TeamSeasonStats> TeamSeasonStats { get; set; }
+    public virtual ICollection<PlayerSeasonStats> PlayerSeasonStats { get; set; }
     public virtual ICollection<Match> HomeMatches { get; set; }
     public virtual ICollection<Match> AwayMatches { get; set; }
 }

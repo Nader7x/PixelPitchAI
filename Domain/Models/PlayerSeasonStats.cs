@@ -1,6 +1,6 @@
 namespace Domain.Models;
 
-public class PlayerSeasonStats
+public sealed class PlayerSeasonStats
 {
     public int Id { get; set; }
     public int PlayerId { get; set; }
@@ -28,7 +28,7 @@ public class PlayerSeasonStats
     public int? Rating { get; set; }  // Average rating out of 10
     
     // Navigation properties
-    public virtual Player Player { get; set; }
-    public virtual Season Season { get; set; }
-    public virtual Team Team { get; set; }
+    public Player Player { get; set; }
+    public Season Season { get; set; }
+    public Team Team { get; set; }
 }

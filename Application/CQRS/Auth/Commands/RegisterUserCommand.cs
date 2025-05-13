@@ -1,4 +1,3 @@
-using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -37,7 +36,7 @@ public class RegisterUserCommandHandler(
             // Create application user
             var user = new ApplicationUser
             {
-                UserName = request.Username ?? request.Email,
+                UserName = request.Username,
                 Email = request.Email,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
@@ -45,6 +44,7 @@ public class RegisterUserCommandHandler(
                 Created = DateTime.UtcNow,
                 EmailConfirmed = true // In a real app, you'd likely set this to false and confirm email
             };
+            Console.WriteLine(user);
 
             // Register user
             var (succeeded, userId) = await identityService.CreateUserAsync(user, request.Password);

@@ -1,7 +1,6 @@
-using Domain.Interfaces;
 using Domain.Repositories;
 
-namespace Application.Interfaces;
+namespace Domain.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {
@@ -13,6 +12,8 @@ public interface IUnitOfWork : IDisposable
     ITeamSeasonStatsRepository TeamSeasonStats { get; }
     IMatchEventsRepository MatchEvents { get; }
     IApplicationUserRepository ApplicationUserRepository { get; }
+    ICoachRepository Coaches { get; }
+    IStadiumsRepository Stadiums { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();

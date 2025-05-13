@@ -9,7 +9,7 @@ namespace Infrastructure;
 public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
-    public DbSet<Match> Matches { get; set; }
+    public DbSet<Match?> Matches { get; set; }
     public DbSet<MatchEvents> MatchEvents { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<Player> Players { get; set; }

@@ -53,6 +53,12 @@ public class TeamConfiguration : IEntityTypeConfiguration<Team>
             .HasForeignKey(c => c.TeamId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
+        builder.HasMany(t => t.HomeMatches)
+            .WithOne(m => m.HomeTeam)
+            .HasForeignKey(m => m.HomeTeamId);
+        builder.HasMany(t => t.AwayMatches)
+            .WithOne(m => m.AwayTeam)
+            .HasForeignKey(m => m.AwayTeamId);
             
         // Add table comments
         builder.ToTable("Teams", tb => tb.HasComment("Football teams information"));

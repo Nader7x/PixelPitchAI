@@ -1,5 +1,6 @@
 using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
+using Application.Dtos;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,103 +15,110 @@ public class AuthController(IMediator mediator) : ControllerBase
     public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromBody] RegisterUserCommand command)
     {
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         return Ok(result);
     }
-    
+
     [HttpPost("login")]
-    public async Task<ActionResult<LoginUserCommandResponse>> Login([FromBody] LoginUserCommand command)
+    public async Task<ActionResult<LoginUserCommandResponse>> Login([FromBody] UserLoginDto loginDto)
     {
+        var command = new LoginUserCommand
+        {
+            Email = loginDto.Email,
+            Password = loginDto.Password
+        };
+
         // Get client IP address
         command.IpAddress = GetIpAddress();
-        
+
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         // Set refresh token in cookie
         SetRefreshTokenCookie(result.RefreshToken);
-            
+
         return Ok(result);
     }
-    
+
     [HttpPost("refresh-token")]
+    [Authorize]
     public async Task<ActionResult<RefreshTokenCommandResponse>> RefreshToken()
     {
         var refreshToken = Request.Cookies["refreshToken"];
-        
+
         if (string.IsNullOrEmpty(refreshToken))
             return BadRequest(new { message = "Refresh token is required" });
-            
+
         var command = new RefreshTokenCommand
         {
             RefreshToken = refreshToken,
             IpAddress = GetIpAddress()
         };
-        
+
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         // Set refresh token in cookie
         SetRefreshTokenCookie(result.RefreshToken);
-            
+
         return Ok(result);
     }
-    
+
     [HttpPost("revoke-token")]
     [Authorize]
     public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenCommand command)
     {
         // Accept refresh token from request body or cookie
         var refreshToken = command.RefreshToken ?? Request.Cookies["refreshToken"];
-        
+
         if (string.IsNullOrEmpty(refreshToken))
             return BadRequest(new { message = "Refresh token is required" });
-            
+
         command.RefreshToken = refreshToken;
         command.IpAddress = GetIpAddress();
-        
+
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         return Ok(result);
     }
-    
+
     [HttpGet("profile")]
     [Authorize]
     public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfile()
     {
         var userId = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-        
+
         if (string.IsNullOrEmpty(userId))
             return BadRequest(new { message = "User ID not found in token" });
-            
+
         var query = new GetUserProfileQuery { UserId = userId };
         var result = await mediator.Send(query);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         return Ok(result);
     }
-    
+
     // Helper methods
     private string GetIpAddress()
     {
         if (Request.Headers.ContainsKey("X-Forwarded-For"))
             return Request.Headers["X-Forwarded-For"];
-            
+
         return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "unknown";
     }
-    
+
     private void SetRefreshTokenCookie(string token)
     {
         var cookieOptions = new CookieOptions
@@ -120,7 +128,43 @@ public class AuthController(IMediator mediator) : ControllerBase
             SameSite = SameSiteMode.Strict,
             Secure = true // Set to true in production
         };
-        
+
         Response.Cookies.Append("refreshToken", token, cookieOptions);
+    }
+
+    /// <summary>
+    /// Public endpoints don't need the [Authorize] attribute
+    /// </summary>
+    /// <summary>
+    /// Manual refresh token endpoint for Swagger testing
+    /// </summary>
+    /// <remarks>
+    /// This endpoint allows manual entry of a refresh token for testing in Swagger UI
+    /// </remarks>
+    /// <param name="token">The refresh token string</param>
+    /// <returns>New access token and refresh token</returns>
+    [HttpPost("manual-refresh")]
+    [ProducesResponseType(typeof(RefreshTokenCommandResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<RefreshTokenCommandResponse>> ManualRefreshToken([FromBody] string token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return BadRequest(new { message = "Refresh token is required" });
+
+        var command = new RefreshTokenCommand
+        {
+            RefreshToken = token,
+            IpAddress = GetIpAddress()
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Succeeded)
+            return BadRequest(result);
+
+        // Set refresh token in cookie
+        SetRefreshTokenCookie(result.RefreshToken);
+
+        return Ok(result);
     }
 }

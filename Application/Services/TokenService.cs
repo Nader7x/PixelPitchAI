@@ -21,7 +21,8 @@ public class TokenService(
         var signingCredentials = GetSigningCredentials();
         var claims = await GetClaims(user);
         var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
-        
+        await userManager.AddClaimsAsync(user, 
+            claims);
         return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
     }
 
@@ -40,10 +41,12 @@ public class TokenService(
         };
     }
 
-    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokensAsync(ApplicationUser user, string ipAddress)
+    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokensAsync(ApplicationUser user,
+        string ipAddress)
     {
         var token = await CreateTokenAsync(user);
         var refreshToken = GenerateRefreshToken(ipAddress);
+
         
         // Add refresh token to user
         await userRepository.AddRefreshTokenAsync(user, refreshToken);
@@ -54,7 +57,8 @@ public class TokenService(
     public async Task<(string Token, RefreshToken RefreshToken)> RefreshTokenAsync(string token, string ipAddress)
     {
         var refreshToken = await userRepository.GetRefreshTokenAsync(token);
-        if (refreshToken == null || !refreshToken.IsActive)
+        Console.WriteLine(refreshToken);
+        if (refreshToken is not  { IsActive: true })
             throw new SecurityTokenException("Invalid refresh token");
             
         var user = refreshToken.User;

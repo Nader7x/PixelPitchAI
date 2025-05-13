@@ -2,14 +2,16 @@ using System.Text.Json.Serialization;
 using Application;
 using Domain.Models;
 using Infrastructure;
+using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Sinks.PostgreSQL;
 using System.Text;
+using System.IO;
 using Footex.Extensions;
+using Swashbuckle.AspNetCore.Annotations;
 
 // Initialize Serilog first
 Log.Logger = new LoggerConfiguration()

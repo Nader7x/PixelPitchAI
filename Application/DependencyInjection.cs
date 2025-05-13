@@ -1,3 +1,4 @@
+using Application.Mappers;
 using Application.Services;
 using Domain.Interfaces;
 using FluentValidation;
@@ -20,6 +21,7 @@ public static class DependencyInjection
 
         // Note: ITokenService is now registered in Infrastructure
         services.AddScoped<ITokenService, TokenService>();
+        services.AddSingleton<SeasonMapper>();
 
         return services;
     }

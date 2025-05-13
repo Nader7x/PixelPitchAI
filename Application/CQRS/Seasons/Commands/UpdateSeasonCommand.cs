@@ -1,0 +1,159 @@
+using MediatR;
+using System;
+using System.ComponentModel.DataAnnotations;
+using Domain.Interfaces;
+
+namespace Application.CQRS.Seasons.Commands;
+
+public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
+{
+    [Required]
+    public int Id { get; set; }
+    
+    [Required]
+    [StringLength(100, MinimumLength = 2)]
+    public string Name { get; set; }
+    
+    [Required]
+    [StringLength(100, MinimumLength = 2)]
+    public string LeagueName { get; set; }
+    
+    [Required]
+    [StringLength(50)]
+    public string Country { get; set; }
+    
+    public int? CurrentRound { get; set; }
+    
+    public int TotalRounds { get; set; }
+    
+    public bool IsActive { get; set; }
+    
+    public bool IsCompleted { get; set; }
+    
+    [Required]
+    public DateTime StartDate { get; set; }
+    
+    [Required]
+    public DateTime EndDate { get; set; }
+}
+
+public class UpdateSeasonCommandResponse
+{
+    public bool Succeeded { get; set; }
+    public bool NotFound { get; set; }
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Error { get; set; }
+}
+
+public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    
+    public UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
+    {
+        _unitOfWork = unitOfWork;
+    }
+    
+    public async Task<UpdateSeasonCommandResponse> Handle(UpdateSeasonCommand request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check if season exists
+            var season = await _unitOfWork.Seasons.GetByIdAsync(request.Id);
+            if (season == null)
+            {
+                return new UpdateSeasonCommandResponse
+                {
+                    Succeeded = false,
+                    NotFound = true,
+                    Error = $"Season with ID {request.Id} not found"
+                };
+            }
+            
+            // Validate date range
+            if (request.EndDate <= request.StartDate)
+            {
+                return new UpdateSeasonCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "End date must be after start date"
+                };
+            }
+            
+            // Check if name is already used by another season
+            if (season.Name != request.Name)
+            {
+                var existingSeason = await _unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
+                if (existingSeason!= null && existingSeason.Id != request.Id)
+                {
+                    return new UpdateSeasonCommandResponse
+                    {
+                        Succeeded = false,
+                        Error = $"Season with name '{request.Name}' already exists"
+                    };
+                }
+            }
+            
+            // Check if active season already exists for the same league (if this one is being set to active)
+            if (request.IsActive && !season.IsActive)
+            {
+                var activeSeasons = await _unitOfWork.Seasons.GetAllAsync(s => 
+                    s.LeagueName == request.LeagueName && 
+                    s.Country == request.Country && 
+                    s.IsActive);
+                    
+                if (activeSeasons.Any(s => s.Id != request.Id))
+                {
+                    return new UpdateSeasonCommandResponse
+                    {
+                        Succeeded = false,
+                        Error = $"An active season for {request.LeagueName} in {request.Country} already exists"
+                    };
+                }
+            }
+            
+            // Validate current round against total rounds
+            if (request.CurrentRound.HasValue && request.CurrentRound.Value > request.TotalRounds)
+            {
+                return new UpdateSeasonCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Current round cannot be greater than total rounds"
+                };
+            }
+            
+            // Update season properties
+            season.Name = request.Name;
+            season.LeagueName = request.LeagueName;
+            season.Country = request.Country;
+            
+            if (request.CurrentRound.HasValue)
+            {
+                season.CurrentRound = request.CurrentRound.Value;
+            }
+            
+            season.TotalRounds = request.TotalRounds;
+            season.IsActive = request.IsActive;
+            season.IsCompleted = request.IsCompleted;
+            
+            _unitOfWork.Seasons.UpdateAsync(season);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            return new UpdateSeasonCommandResponse
+            {
+                Succeeded = true,
+                Id = season.Id,
+                Name = season.Name
+            };
+        }
+        catch (Exception ex)
+        {
+            return new UpdateSeasonCommandResponse
+            {
+                Succeeded = false,
+                Error = ex.Message
+            };
+        }
+    }
+}

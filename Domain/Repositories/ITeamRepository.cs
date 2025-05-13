@@ -1,19 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
+using Domain.Interfaces;
 using Domain.Models;
 
 namespace Domain.Repositories;
 
-public interface ITeamRepository
+public interface ITeamRepository : IRepository<Team>
 {
-    Task<Team?> GetByIdAsync(int id);
     Task<Team?> GetByNameAsync(string name);
-    Task<IReadOnlyList<Team>> GetAllAsync();
-    Task<IReadOnlyList<Team>> GetByCountryAsync(string country);
-    Task<IReadOnlyList<Team>> GetByLeagueAsync(string league);
+    Task<IReadOnlyList<Team>> GetTeamsByCriteriaAsync(Func<Team, bool> predicate);
     
-    Task<Team> AddAsync(Team team);
-    void Update(Team team);
-    void Remove(Team team);
+    
+    // Additional methods
+    Task<List<Team>> GetByLeagueAsync(string league);
+    Task<List<Team>> GetByCountryAsync(string country);
+    Task<List<Team>> GetWithStatsForSeasonAsync(int seasonId);
 }

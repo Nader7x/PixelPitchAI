@@ -4,30 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class MatchRepository(FootballDbContext context) : IMatchRepository
+public class MatchRepository(FootballDbContext context) : Repository<Match>(context), IMatchRepository
 {
-    public async Task<Match?> GetByIdAsync(int id)
-    {
-        return await context.Matches
-            .Include(m => m.HomeTeam)
-            .Include(m => m.AwayTeam)
-            .Include(m => m.Season)
-            .FirstOrDefaultAsync(m => m.Id == id);
-    }
+    private readonly FootballDbContext _context = context;
 
-    public async Task<IReadOnlyList<Match>> GetAllAsync()
-    {
-        return await context.Matches
-            .Include(m => m.HomeTeam)
-            .Include(m => m.AwayTeam)
-            .Include(m => m.Season)
-            .OrderByDescending(m => m.ScheduledDateTimeUTC)
-            .ToListAsync();
-    }
 
     public async Task<IReadOnlyList<Match>> GetBySeasonIdAsync(int seasonId)
     {
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Where(m => m.SeasonId == seasonId)
@@ -37,7 +21,7 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
 
     public async Task<IReadOnlyList<Match>> GetByTeamIdAsync(int teamId)
     {
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
@@ -48,7 +32,7 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
 
     public async Task<IReadOnlyList<Match>> GetByDateRangeAsync(DateTime start, DateTime end)
     {
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
@@ -60,7 +44,7 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
     public async Task<IReadOnlyList<Match>> GetUpcomingMatchesAsync(int count)
     {
         var now = DateTime.UtcNow;
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
@@ -73,7 +57,7 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
     public async Task<IReadOnlyList<Match>> GetRecentMatchesAsync(int count)
     {
         var now = DateTime.UtcNow;
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
@@ -85,7 +69,7 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
 
     public async Task<IReadOnlyList<Match>> GetByStatusAsync(string status)
     {
-        return await context.Matches
+        return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
@@ -94,20 +78,23 @@ public class MatchRepository(FootballDbContext context) : IMatchRepository
             .ToListAsync();
     }
 
-    public async Task<Match> AddAsync(Match match)
+    public async Task<IReadOnlyList<Match>> GetAllWithDetailsAsync()
     {
-        await context.Matches.AddAsync(match);
-        return match;
+        return await _context.Matches
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
+            .Include(m => m.Season)
+            .Include(m => m.Stadium)
+            .ToListAsync();
     }
 
-    public void Update(Match match)
+    public async Task<Match?> GetByIdWithDetailsAsync(int matchId)
     {
-        context.Matches.Attach(match);
-        context.Entry(match).State = EntityState.Modified;
-    }
-
-    public void Remove(Match match)
-    {
-        context.Matches.Remove(match);
+        return await _context.Matches
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
+            .Include(m => m.Season)
+            .Include(m => m.Stadium)
+            .FirstOrDefaultAsync(m => m.Id == matchId);
     }
 }

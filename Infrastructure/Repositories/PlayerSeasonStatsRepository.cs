@@ -4,20 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSeasonStatsRepository
+public class PlayerSeasonStatsRepository(FootballDbContext context) : Repository<PlayerSeasonStats>(context), IPlayerSeasonStatsRepository
 {
-    public async Task<PlayerSeasonStats?> GetByIdAsync(int id)
-    {
-        return await context.PlayerSeasonStats
-            .Include(p => p.Player)
-            .Include(p => p.Season)
-            .Include(p => p.Team)
-            .FirstOrDefaultAsync(p => p.Id == id);
-    }
+    private readonly FootballDbContext _context = context;
+
+
 
     public async Task<PlayerSeasonStats?> GetPlayerStatsBySeasonAsync(int playerId, int seasonId, int? teamId = null)
     {
-        var query = context.PlayerSeasonStats
+        var query = _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Season)
             .Include(p => p.Team)
@@ -31,18 +26,11 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
         return await query.FirstOrDefaultAsync();
     }
 
-    public async Task<IReadOnlyList<PlayerSeasonStats>> GetAllAsync()
-    {
-        return await context.PlayerSeasonStats
-            .Include(p => p.Player)
-            .Include(p => p.Season)
-            .Include(p => p.Team)
-            .ToListAsync();
-    }
+
 
     public async Task<IReadOnlyList<PlayerSeasonStats>> GetByPlayerIdAsync(int playerId)
     {
-        return await context.PlayerSeasonStats
+        return await _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Season)
             .Include(p => p.Team)
@@ -52,7 +40,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
 
     public async Task<IReadOnlyList<PlayerSeasonStats>> GetBySeasonIdAsync(int seasonId)
     {
-        return await context.PlayerSeasonStats
+        return await _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Season)
             .Include(p => p.Team)
@@ -62,7 +50,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
 
     public async Task<IReadOnlyList<PlayerSeasonStats>> GetByTeamIdAsync(int teamId)
     {
-        return await context.PlayerSeasonStats
+        return await _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Season)
             .Include(p => p.Team)
@@ -72,7 +60,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
 
     public async Task<IReadOnlyList<PlayerSeasonStats>> GetTopScorersAsync(int seasonId, int count)
     {
-        return await context.PlayerSeasonStats
+        return await _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Team)
             .Where(p => p.SeasonId == seasonId)
@@ -84,7 +72,7 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
 
     public async Task<IReadOnlyList<PlayerSeasonStats>> GetTopAssistsAsync(int seasonId, int count)
     {
-        return await context.PlayerSeasonStats
+        return await _context.PlayerSeasonStats
             .Include(p => p.Player)
             .Include(p => p.Team)
             .Where(p => p.SeasonId == seasonId)
@@ -93,21 +81,5 @@ public class PlayerSeasonStatsRepository(FootballDbContext context) : IPlayerSea
             .Take(count)
             .ToListAsync();
     }
-
-    public async Task<PlayerSeasonStats> AddAsync(PlayerSeasonStats stats)
-    {
-        await context.PlayerSeasonStats.AddAsync(stats);
-        return stats;
-    }
-
-    public void Update(PlayerSeasonStats stats)
-    {
-        context.PlayerSeasonStats.Attach(stats);
-        context.Entry(stats).State = EntityState.Modified;
-    }
-
-    public void Remove(PlayerSeasonStats stats)
-    {
-        context.PlayerSeasonStats.Remove(stats);
-    }
+    
 }

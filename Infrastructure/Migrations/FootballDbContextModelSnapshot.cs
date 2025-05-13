@@ -297,12 +297,6 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("StadiumId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TeamId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TeamId1")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -338,10 +332,6 @@ namespace Infrastructure.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ScheduledDateTimeUTC"), "btree");
 
                     b.HasIndex("StadiumId");
-
-                    b.HasIndex("TeamId");
-
-                    b.HasIndex("TeamId1");
 
                     b.HasIndex("SeasonId", "MatchWeek")
                         .HasDatabaseName("IX_Match_SeasonRound");
@@ -554,9 +544,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("PlayerId1")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("Rating")
                         .HasPrecision(3, 1)
                         .HasColumnType("integer");
@@ -586,8 +573,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PlayerId1");
 
                     b.HasIndex("TeamId");
 
@@ -635,7 +620,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedByIp")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
@@ -648,14 +632,12 @@ namespace Infrastructure.Migrations
                         .HasColumnType("varchar(128)");
 
                     b.Property<string>("ReplacedByToken")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("Revoked")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("RevokedByIp")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
@@ -1045,9 +1027,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TeamId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("TeamId1")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1060,8 +1039,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TeamId1");
 
                     b.HasIndex("SeasonId", "Position")
                         .HasDatabaseName("IX_TeamSeasonStats_Position");
@@ -1254,7 +1231,7 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("AwayCoachId");
 
                     b.HasOne("Domain.Models.Team", "AwayTeam")
-                        .WithMany()
+                        .WithMany("AwayMatches")
                         .HasForeignKey("AwayTeamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
@@ -1265,7 +1242,7 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("HomeCoachId");
 
                     b.HasOne("Domain.Models.Team", "HomeTeam")
-                        .WithMany()
+                        .WithMany("HomeMatches")
                         .HasForeignKey("HomeTeamId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
@@ -1281,14 +1258,6 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("StadiumId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Domain.Models.Team", null)
-                        .WithMany("AwayMatches")
-                        .HasForeignKey("TeamId");
-
-                    b.HasOne("Domain.Models.Team", null)
-                        .WithMany("HomeMatches")
-                        .HasForeignKey("TeamId1");
 
                     b.Navigation("AwayCoach");
 
@@ -1327,14 +1296,10 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Models.PlayerSeasonStats", b =>
                 {
                     b.HasOne("Domain.Models.Player", "Player")
-                        .WithMany()
+                        .WithMany("PlayerSeasonStats")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Domain.Models.Player", null)
-                        .WithMany("PlayerSeasonStats")
-                        .HasForeignKey("PlayerId1");
 
                     b.HasOne("Domain.Models.Season", "Season")
                         .WithMany("PlayerSeasonStats")
@@ -1343,7 +1308,7 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Domain.Models.Team", "Team")
-                        .WithMany()
+                        .WithMany("PlayerSeasonStats")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1388,15 +1353,11 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Domain.Models.Team", "Team")
-                        .WithMany()
+                        .WithMany("TeamSeasonStats")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_TeamSeasonStats_Team");
-
-                    b.HasOne("Domain.Models.Team", null)
-                        .WithMany("TeamSeasonStats")
-                        .HasForeignKey("TeamId1");
 
                     b.Navigation("Season");
 
@@ -1491,6 +1452,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Coaches");
 
                     b.Navigation("HomeMatches");
+
+                    b.Navigation("PlayerSeasonStats");
 
                     b.Navigation("Players");
 
