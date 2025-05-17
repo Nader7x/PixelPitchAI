@@ -2,7 +2,9 @@ using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Infrastructure.Repositories;
+
 
 public class MatchRepository(FootballDbContext context) : Repository<Match>(context), IMatchRepository
 {
@@ -96,5 +98,16 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.Season)
             .Include(m => m.Stadium)
             .FirstOrDefaultAsync(m => m.Id == matchId);
+    }
+
+    public async Task<IEnumerable<Match>> SearchAsync(string query)
+    {
+        return await _context.Matches
+            .Where(m =>
+                m.HomeTeam.Name.ToLower().Contains(query) ||
+                m.AwayTeam.Name.ToLower().Contains(query))
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
+            .ToListAsync();
     }
 }

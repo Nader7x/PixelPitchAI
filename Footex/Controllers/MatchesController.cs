@@ -24,7 +24,7 @@ public class MatchesController : ControllerBase
     public async Task<ActionResult<GetAllMatchesQueryResponse>> GetAllMatches(
         [FromQuery] int? seasonId,
         [FromQuery] int? teamId,
-        [FromQuery] string status,
+        [FromQuery] string? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
         [FromQuery] int? matchWeek)

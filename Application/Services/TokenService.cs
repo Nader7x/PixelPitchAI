@@ -21,8 +21,13 @@ public class TokenService(
         var signingCredentials = GetSigningCredentials();
         var claims = await GetClaims(user);
         var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
-        await userManager.AddClaimsAsync(user, 
-            claims);
+        var HasClaims = userManager.GetClaimsAsync(user).Result.Any();
+        if (!HasClaims)
+        {
+            // Add claims to user
+            var claimsIdentity = new ClaimsIdentity(claims);
+            await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
+        }
         return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
     }
 

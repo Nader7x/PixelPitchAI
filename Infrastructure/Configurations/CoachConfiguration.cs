@@ -15,9 +15,6 @@ public class CoachConfiguration : IEntityTypeConfiguration<Coach>
         builder.Property(c => c.LastName).IsRequired().HasMaxLength(100).HasColumnType("varchar(100)");
         builder.Property(c => c.Nationality).HasMaxLength(50).HasColumnType("varchar(50)");
         builder.Property(c => c.Role).HasMaxLength(50).HasColumnType("varchar(50)");
-        builder.Property(c => c.PhotoUrl).HasMaxLength(500).HasColumnType("varchar(500)");
-        builder.Property(c => c.PreferredFormation).HasMaxLength(20).HasColumnType("varchar(20)");
-        builder.Property(c => c.CoachingStyle).HasMaxLength(50).HasColumnType("varchar(50)");
         
         // Ensure date fields use timestamp
         if (builder.Metadata.FindProperty("DateOfBirth") != null)

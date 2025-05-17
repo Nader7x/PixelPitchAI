@@ -1,6 +1,8 @@
 using Application.CQRS.Coaches.Commands;
 using Application.CQRS.Coaches.Queries;
 using Application.Dtos;
+using Application.Interfaces;
+using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,20 +11,20 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CoachesController : ControllerBase
+public class CoachesController(IMediator mediator, IFileStorageService fileStorageService, CoachMapper coachMapper)
+    : ControllerBase
 {
-    private readonly IMediator _mediator;
-    
-    public CoachesController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-    
-    [HttpGet]
+    private readonly IFileStorageService _fileStorageService = fileStorageService;
+    private readonly IMediator _mediator = mediator;
+    private readonly CoachMapper _coachMapper = coachMapper;
+    private string CONTAINER_NAME = "coaches";
+
+
+    [HttpGet("filter")]
     [ProducesResponseType(typeof(GetAllCoachesQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetAllCoachesQueryResponse>> GetAllCoaches(
-        [FromQuery] string nationality,
+        [FromQuery] string? nationality,
         [FromQuery] int? teamId)
     {
         var query = new GetAllCoachesQuery
@@ -30,15 +32,15 @@ public class CoachesController : ControllerBase
             Nationality = nationality,
             TeamId = teamId
         };
-        
+
         var result = await _mediator.Send(query);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         return Ok(result);
     }
-    
+
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(GetCoachByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -47,86 +49,92 @@ public class CoachesController : ControllerBase
     {
         var query = new GetCoachByIdQuery { Id = id };
         var result = await _mediator.Send(query);
-        
+
         if (!result.Succeeded)
         {
             if (result.NotFound)
                 return NotFound(result);
-                
+
             return BadRequest(result);
         }
-        
+
         return Ok(result);
     }
-    
+
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateCoachCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateCoachCommandResponse>> CreateCoach([FromBody] CreateCoachDto coachDto)
+    public async Task<ActionResult<CreateCoachCommandResponse>> CreateCoach([FromForm] CreateCoachDto coachDto)
     {
-        var command = new CreateCoachCommand
+
+        // Handle file upload if present
+        string photoUrl = coachDto.PhotoUrl;
+        if (coachDto.Photo != null)
         {
-            FirstName = coachDto.FirstName,
-            LastName = coachDto.LastName,
-            DateOfBirth = coachDto.DateOfBirth,
-            Nationality = coachDto.Nationality,
-            Role = coachDto.Role,
-            TeamId = coachDto.TeamId,
-            ContractStartDate = coachDto.ContractStartDate,
-            ContractEndDate = coachDto.ContractEndDate,
-            PhotoUrl = coachDto.PhotoUrl,
-            PreferredFormation = coachDto.PreferredFormation,
-            CoachingStyle = coachDto.CoachingStyle
-        };
-        
+            photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
+        }
+
+        coachDto.PhotoUrl = photoUrl;
+        var command = _coachMapper.ToCreateCommand(coachDto);
+
         var result = await _mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         return CreatedAtAction(nameof(GetCoachById), new { id = result.Id }, result);
     }
-    
+
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(UpdateCoachCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateCoachCommandResponse>> UpdateCoach(int id, [FromBody] UpdateCoachDto coachDto)
+    public async Task<ActionResult<UpdateCoachCommandResponse>> UpdateCoach(int id, [FromForm] UpdateCoachDto coachDto)
     {
         if (id != coachDto.Id)
             return BadRequest(new { error = "ID in URL does not match ID in request body" });
-            
-        var command = new UpdateCoachCommand
+
+
+        // Get existing coach
+        var getQuery = new GetCoachByIdQuery { Id = id };
+        var existingResult = await _mediator.Send(getQuery);
+
+        if (!existingResult.Succeeded || existingResult.NotFound)
+            return NotFound(existingResult);
+
+        // Handle file upload if present
+        string photoUrl = coachDto.PhotoUrl;
+        if (coachDto.Photo != null)
         {
-            Id = coachDto.Id,
-            FirstName = coachDto.FirstName,
-            LastName = coachDto.LastName,
-            DateOfBirth = coachDto.DateOfBirth,
-            Nationality = coachDto.Nationality,
-            Role = coachDto.Role,
-            TeamId = coachDto.TeamId,
-            ContractStartDate = coachDto.ContractStartDate,
-            ContractEndDate = coachDto.ContractEndDate,
-            PhotoUrl = coachDto.PhotoUrl,
-            PreferredFormation = coachDto.PreferredFormation,
-            CoachingStyle = coachDto.CoachingStyle
-        };
-        
+            // Delete old photo if it exists
+            if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
+            {
+                await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
+            }
+
+            // Upload new photo
+            photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
+        }
+
+        coachDto.PhotoUrl = photoUrl;
+
+        var command = _coachMapper.ToUpdateCommand(coachDto);
+
         var result = await _mediator.Send(command);
-        
+
         if (!result.Succeeded)
         {
             if (result.NotFound)
                 return NotFound(result);
-                
+
             return BadRequest(result);
         }
-        
+
         return Ok(result);
     }
-    
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DeleteCoachCommandResponse), StatusCodes.Status200OK)]
@@ -134,17 +142,31 @@ public class CoachesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DeleteCoachCommandResponse>> DeleteCoach(int id)
     {
+    
+        // Get existing coach to delete the image
+        var getQuery = new GetCoachByIdQuery { Id = id };
+        var existingResult = await _mediator.Send(getQuery);
+
+        if (!existingResult.Succeeded || existingResult.NotFound)
+            return NotFound(existingResult);
+
+        // Delete photo if it exists
+        if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
+        {
+            await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
+        }
+
         var command = new DeleteCoachCommand { Id = id };
         var result = await _mediator.Send(command);
-        
+
         if (!result.Succeeded)
         {
             if (result.NotFound)
                 return NotFound(result);
-                
+
             return BadRequest(result);
         }
-        
+
         return Ok(result);
     }
 }

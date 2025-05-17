@@ -14,4 +14,6 @@ public interface IRepository<T> where T : class
     Task<T?> FindAsync(Func<T, bool> predicate);
 
     Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate);
+    Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate);
+    Task<int> CountAsync(Expression<Func<T, bool>> predicate);
 }

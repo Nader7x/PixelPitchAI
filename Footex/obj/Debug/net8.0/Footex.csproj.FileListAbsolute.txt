@@ -175,3 +175,15 @@ D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Microsoft.IdentityModel.Pro
 D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
 D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Footex.xml
+D:\programming\GitHub\Footex\Footex\obj\Debug\net8.0\Footex.xml
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\FluentEmail.Core.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\FluentEmail.Smtp.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Azure.Core.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Azure.Storage.Blobs.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Azure.Storage.Blobs.Batch.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\Azure.Storage.Common.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\System.ClientModel.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\System.IO.Hashing.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\System.Memory.Data.dll
+D:\programming\GitHub\Footex\Footex\bin\Debug\net8.0\RabbitMQ.Client.dll

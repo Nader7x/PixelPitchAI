@@ -12,37 +12,37 @@ public class UpdateStadiumCommand : IRequest<UpdateStadiumCommandResponse>
     
     [Required]
     [StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; }
+    public string? Name { get; set; }
     
     [Required]
     [StringLength(100)]
-    public string City { get; set; }
+    public string? City { get; set; }
     
     [Required]
     [StringLength(50)]
-    public string Country { get; set; }
+    public string? Country { get; set; }
     
     [Required]
     public int Capacity { get; set; }
     
     [StringLength(50)]
-    public string SurfaceType { get; set; }
+    public string? SurfaceType { get; set; }
     
     [StringLength(200)]
-    public string Address { get; set; }
+    public string? Address { get; set; }
     
     public decimal? Latitude { get; set; }
     
     public decimal? Longitude { get; set; }
     
     [StringLength(500)]
-    public string ImageUrl { get; set; }
+    public string? ImageUrl { get; set; }
     
     [StringLength(2000)]
-    public string Description { get; set; }
+    public string? Description { get; set; }
     
     [StringLength(1000)]
-    public string Facilities { get; set; }
+    public string? Facilities { get; set; }
     
     public DateTime BuiltDate { get; set; }
 }
@@ -52,7 +52,7 @@ public class UpdateStadiumCommandResponse
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
     public int Id { get; set; }
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public string Error { get; set; }
 }
 

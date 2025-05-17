@@ -1,7 +1,9 @@
+using Application.Services;
 using Domain.Interfaces;
 using Domain.Repositories;
 using Infrastructure.Identity;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,8 +32,12 @@ public static class DependencyInjection
         services.AddScoped<IMatchEventsRepository, MatchEventsRepository>();
         services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
         services.AddScoped<ICoachRepository,CoachRepository>();
+        services.AddScoped<IStadiumsRepository, StadiumsRepository>();
         // Register identity services
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ISearchService, SearchService>();
+            
 
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

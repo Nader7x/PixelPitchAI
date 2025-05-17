@@ -2,7 +2,10 @@ using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Infrastructure.Repositories;
+
+
 
 public class PlayerRepository(FootballDbContext context) : Repository<Player>(context), IPlayerRepository
 {
@@ -34,7 +37,7 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<Player>> GetByPreferredFootAsync(string preferredFoot)
+    public async Task<IReadOnlyList<Player>> GetByPreferredFootAsync(string? preferredFoot)
     {
         return await _context.Players
             .Where(p => p.PreferredFoot.ToLower() == preferredFoot.ToLower())
@@ -51,6 +54,19 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
             .ToList();
 
         return Task.FromResult((IReadOnlyList<Player>)result);
+    }
+    public async Task<IEnumerable<Player>> SearchAsync(string query)
+    {
+        return await _context.Players
+            .Where(p => 
+                p.FullName.ToLower().Contains(query) ||
+                p.KnownName.ToLower().Contains(query) ||
+                p.FullName.ToLower().Contains(query) ||
+                p.Nationality.ToLower().Contains(query) ||
+                p.Team.Name.ToLower().Contains(query))
+            .Include(p => p.Team)
+            .Include(p => p.PlayerSeasonStats)
+            .ToListAsync();
     }
     
 }

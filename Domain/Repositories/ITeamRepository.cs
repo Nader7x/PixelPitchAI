@@ -6,7 +6,7 @@ namespace Domain.Repositories;
 
 public interface ITeamRepository : IRepository<Team>
 {
-    Task<Team?> GetByNameAsync(string name);
+    Task<Team?> GetByNameAsync(string? name);
     Task<IReadOnlyList<Team>> GetTeamsByCriteriaAsync(Func<Team, bool> predicate);
     
     
@@ -14,4 +14,7 @@ public interface ITeamRepository : IRepository<Team>
     Task<List<Team>> GetByLeagueAsync(string league);
     Task<List<Team>> GetByCountryAsync(string country);
     Task<List<Team>> GetWithStatsForSeasonAsync(int seasonId);
+    Task<IEnumerable<Team>> SearchAsync(string query);
+    Task<Team?> GetByIdAsyncWithStadium(int id);
+
 }

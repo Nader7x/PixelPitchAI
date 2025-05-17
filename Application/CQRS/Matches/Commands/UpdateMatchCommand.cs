@@ -67,8 +67,8 @@ public class UpdateMatchCommandResponse
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
     public int Id { get; set; }
-    public string HomeTeamName { get; set; }
-    public string AwayTeamName { get; set; }
+    public string? HomeTeamName { get; set; }
+    public string? AwayTeamName { get; set; }
     public DateTime ScheduledDateTime { get; set; }
     public string Error { get; set; }
 }

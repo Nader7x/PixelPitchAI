@@ -1,4 +1,5 @@
 using Application.Dtos;
+using Application.Mappers;
 using MediatR;
 using Domain.Interfaces;
 
@@ -20,10 +21,12 @@ public class GetStadiumByIdQueryResponse
 public class GetStadiumByIdQueryHandler : IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly StadiumMapper _stadiumMapper;
     
-    public GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork)
+    public GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
     {
         _unitOfWork = unitOfWork;
+        _stadiumMapper = stadiumMapper;
     }
     
     public async Task<GetStadiumByIdQueryResponse> Handle(GetStadiumByIdQuery request, CancellationToken cancellationToken)
@@ -41,22 +44,7 @@ public class GetStadiumByIdQueryHandler : IRequestHandler<GetStadiumByIdQuery, G
                 };
             }
             
-            var stadiumDto = new StadiumDto
-            {
-                Id = stadium.Id,
-                Name = stadium.Name,
-                City = stadium.City,
-                Country = stadium.Country,
-                Capacity = stadium.Capacity,
-                SurfaceType = stadium.SurfaceType,
-                Address = stadium.Address,
-                Latitude = stadium.Latitude,
-                Longitude = stadium.Longitude,
-                ImageUrl = stadium.ImageUrl,
-                Description = stadium.Description,
-                Facilities = stadium.Facilities,
-                BuiltDate = stadium.BuiltDate
-            };
+            var stadiumDto = _stadiumMapper.ToDto(stadium);
             
             return new GetStadiumByIdQueryResponse
             {

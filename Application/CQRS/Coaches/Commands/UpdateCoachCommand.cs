@@ -33,7 +33,7 @@ public class UpdateCoachCommand : IRequest<UpdateCoachCommandResponse>
     public DateTime? ContractEndDate { get; set; }
     
     [StringLength(500)]
-    public string PhotoUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     
     [StringLength(50)]
     public string PreferredFormation { get; set; }
@@ -99,11 +99,6 @@ public class UpdateCoachCommandHandler : IRequestHandler<UpdateCoachCommand, Upd
             coach.Nationality = request.Nationality;
             coach.Role = request.Role;
             coach.TeamId = request.TeamId;
-            coach.ContractStartDate = request.ContractStartDate;
-            coach.ContractEndDate = request.ContractEndDate;
-            coach.PhotoUrl = request.PhotoUrl;
-            coach.PreferredFormation = request.PreferredFormation;
-            coach.CoachingStyle = request.CoachingStyle;
             
             _unitOfWork.Coaches.UpdateAsync(coach);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

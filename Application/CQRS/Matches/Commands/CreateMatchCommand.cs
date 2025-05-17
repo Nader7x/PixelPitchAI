@@ -2,6 +2,7 @@ using Domain.Models;
 using MediatR;
 using System;
 using System.ComponentModel.DataAnnotations;
+using Application.Mappers;
 using Domain.Interfaces;
 
 namespace Application.CQRS.Matches.Commands;
@@ -36,8 +37,8 @@ public class CreateMatchCommandResponse
 {
     public bool Succeeded { get; set; }
     public int Id { get; set; }
-    public string HomeTeamName { get; set; }
-    public string AwayTeamName { get; set; }
+    public string? HomeTeamName { get; set; }
+    public string? AwayTeamName { get; set; }
     public DateTime ScheduledDateTime { get; set; }
     public string Error { get; set; }
 }
@@ -45,10 +46,12 @@ public class CreateMatchCommandResponse
 public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly MatchMapper _matchMapper;
     
-    public CreateMatchCommandHandler(IUnitOfWork unitOfWork)
+    public CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
     {
         _unitOfWork = unitOfWork;
+        _matchMapper = matchMapper;
     }
     
     public async Task<CreateMatchCommandResponse> Handle(CreateMatchCommand request, CancellationToken cancellationToken)
@@ -157,18 +160,7 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             }
             
             // Create new match
-            var match = new Match
-            {
-                SeasonId = request.SeasonId,
-                HomeTeamId = request.HomeTeamId,
-                AwayTeamId = request.AwayTeamId,
-                ScheduledDateTimeUTC = request.ScheduledDateTimeUTC,
-                StadiumId = request.StadiumId,
-                MatchWeek = request.MatchWeek,
-                HomeCoachId = request.HomeCoachId,
-                AwayCoachId = request.AwayCoachId,
-                MatchStatus = request.MatchStatus
-            };
+            var match = _matchMapper.ToMatchFromCreate(request);
             
             await _unitOfWork.Matches.AddAsync(match);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -1,5 +1,6 @@
 using Application.CQRS.Teams.Commands;
 using Application.CQRS.Teams.Queries;
+using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,14 +9,9 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TeamsController : ControllerBase
+public class TeamsController(IMediator mediator, TeamMapper teamMapper) : ControllerBase
 {
-    private readonly IMediator _mediator;
-
-    public TeamsController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly TeamMapper _teamMapper = teamMapper;
 
     /// <summary>
     /// Get all teams
@@ -26,7 +22,7 @@ public class TeamsController : ControllerBase
     public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll()
     {
         var query = new GetAllTeamsQuery();
-        var result = await _mediator.Send(query);
+        var result = await mediator.Send(query);
         return Ok(result);
     }
 
@@ -41,7 +37,7 @@ public class TeamsController : ControllerBase
     public async Task<ActionResult<GetTeamByIdQueryResponse>> GetById(int id)
     {
         var query = new GetTeamByIdQuery { Id = id };
-        var result = await _mediator.Send(query);
+        var result = await mediator.Send(query);
         
         if (result == null)
             return NotFound();
@@ -60,7 +56,7 @@ public class TeamsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateTeamCommandResponse>> Create([FromBody] CreateTeamCommand command)
     {
-        var result = await _mediator.Send(command);
+        var result = await mediator.Send(command);
         
         if (!result.Succeeded)
             return BadRequest(result);
@@ -84,7 +80,7 @@ public class TeamsController : ControllerBase
         if (id != command.Id)
             return BadRequest("ID mismatch");
             
-        var result = await _mediator.Send(command);
+        var result = await mediator.Send(command);
         
         if (!result.Succeeded)
             return result.NotFound ? NotFound() : BadRequest(result);
@@ -104,7 +100,7 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var command = new DeleteTeamCommand { Id = id };
-        var result = await _mediator.Send(command);
+        var result = await mediator.Send(command);
         
         if (!result.Succeeded)
             return NotFound();

@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Footex</name>
+    </assembly>
+    <members>
+        <member name="M:Footex.Controllers.AuthController.ManualRefreshToken(System.String)">
+            <summary>
+            Public endpoints don't need the [Authorize] attribute
+            </summary>
+            <summary>
+            Manual refresh token endpoint for Swagger testing
+            </summary>
+            <remarks>
+            This endpoint allows manual entry of a refresh token for testing in Swagger UI
+            </remarks>
+            <param name="token">The refresh token string</param>
+            <returns>New access token and refresh token</returns>
+        </member>
+        <member name="M:Footex.Controllers.SearchController.Search(System.String,System.Int32,System.Int32)">
+            <summary>
+            Search across teams, matches, players, and coaches
+            </summary>
+            <param name="query">Search term (minimum 2 characters)</param>
+            <param name="page">Page number (1-based)</param>
+            <param name="pageSize">Number of results per page</param>
+            <returns>Search results with pagination information</returns>
+        </member>
+        <member name="M:Footex.Controllers.TeamsController.GetAll">
+            <summary>
+            Get all teams
+            </summary>
+            <returns>List of teams</returns>
+        </member>
+        <member name="M:Footex.Controllers.TeamsController.GetById(System.Int32)">
+            <summary>
+            Get team by ID
+            </summary>
+            <param name="id">Team ID</param>
+            <returns>Team details</returns>
+        </member>
+        <member name="M:Footex.Controllers.TeamsController.Create(Application.CQRS.Teams.Commands.CreateTeamCommand)">
+            <summary>
+            Create a new team
+            </summary>
+            <param name="command">Team creation data</param>
+            <returns>Created team</returns>
+        </member>
+        <member name="M:Footex.Controllers.TeamsController.Update(System.Int32,Application.CQRS.Teams.Commands.UpdateTeamCommand)">
+            <summary>
+            Update an existing team
+            </summary>
+            <param name="id">Team ID</param>
+            <param name="command">Team update data</param>
+            <returns>Updated team</returns>
+        </member>
+        <member name="M:Footex.Controllers.TeamsController.Delete(System.Int32)">
+            <summary>
+            Delete a team
+            </summary>
+            <param name="id">Team ID</param>
+            <returns>Operation result</returns>
+        </member>
+    </members>
+</doc>

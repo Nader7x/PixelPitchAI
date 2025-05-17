@@ -1,4 +1,5 @@
 using Application.Dtos;
+using Application.Mappers;
 using MediatR;
 using Domain.Interfaces;
 using Domain.Models;
@@ -8,9 +9,9 @@ namespace Application.CQRS.Players.Queries;
 public class GetAllPlayersQuery : IRequest<GetAllPlayersQueryResponse>
 {
     // Optional parameters for filtering
-    public string Nationality { get; set; }
-    public string Position { get; set; }
-    public string PreferredFoot { get; set; }
+    public string? Nationality { get; set; }
+    
+    public string? PreferredFoot { get; set; }
     public int? TeamId { get; set; }
 }
 
@@ -21,9 +22,11 @@ public class GetAllPlayersQueryResponse
     public string Error { get; set; }
 }
 
-public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork)
+public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
     : IRequestHandler<GetAllPlayersQuery, GetAllPlayersQueryResponse>
 {
+    private readonly PlayerMapper _playerMapper = playerMapper;
+
     public async Task<GetAllPlayersQueryResponse> Handle(GetAllPlayersQuery request, CancellationToken cancellationToken)
     {
         try
@@ -48,18 +51,7 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork)
                 players = (IReadOnlyList<Player>)await unitOfWork.Players.GetAllAsync();
             }
             
-            var playerDtos = players.Select(p => new PlayerDto
-            {
-                Id = p.Id,
-                FullName = p.FullName,
-                Nationality = p.Nationality,
-                PreferredFoot = p.PreferredFoot,
-                PhotoUrl = p.PhotoUrl,
-                TeamId = p.TeamId,
-                TeamName = p.Team?.Name,
-                ShirtNumber = p.ShirtNumber,
-                StatsBombPlayerId = p.StatsBombPlayerId
-            }).ToList();
+            var playerDtos = _playerMapper.ToDtoList(players);
             
             return new GetAllPlayersQueryResponse
             {
