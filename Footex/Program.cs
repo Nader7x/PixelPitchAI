@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Sinks.PostgreSQL;
 using System.Text;
+using Application.Services;
 using Footex.Extensions;
 
 // Initialize Serilog first
@@ -163,6 +164,7 @@ try
     // Add authentication and authorization middleware
     app.UseAuthentication();
     app.UseAuthorization();
+    app.MapHub<MatchHub>("/match_event");
 
     app.MapControllers();
 

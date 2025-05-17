@@ -37,7 +37,7 @@ public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<Applic
     {
         try
         {
-            var user = await unitOfWork.ApplicationUserRepository.GetByIdAsync(request.Id);
+            var user = await unitOfWork.ApplicationUser.GetByIdAsync(request.Id);
             if (user == null)
             {
                 return new UpdateUserCommandResponse
@@ -60,7 +60,7 @@ public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<Applic
             user.ImageUrl = request.ImageUrl;
             
 
-            unitOfWork.ApplicationUserRepository.UpdateAsync(user);
+            unitOfWork.ApplicationUser.UpdateAsync(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateUserCommandResponse
