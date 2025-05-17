@@ -11,7 +11,7 @@ public interface IUnitOfWork : IDisposable
     IPlayerSeasonStatsRepository PlayerSeasonStats { get; }
     ITeamSeasonStatsRepository TeamSeasonStats { get; }
     IMatchEventsRepository MatchEvents { get; }
-    IApplicationUserRepository ApplicationUserRepository { get; }
+    IApplicationUserRepository ApplicationUser { get; }
     ICoachRepository Coaches { get; }
     IStadiumsRepository Stadiums { get; }
 

@@ -28,7 +28,7 @@ public sealed class UnitOfWork : IUnitOfWork
         PlayerSeasonStats = new PlayerSeasonStatsRepository(_context);
         TeamSeasonStats = new TeamSeasonStatsRepository(_context);
         MatchEvents = new MatchEventsRepository(_context);
-        ApplicationUserRepository = new ApplicationUserRepository(_context, userManager);
+        ApplicationUser = new ApplicationUserRepository(_context, userManager);
         Coaches = new CoachRepository(_context);
     }
 
@@ -39,7 +39,7 @@ public sealed class UnitOfWork : IUnitOfWork
     public IPlayerSeasonStatsRepository PlayerSeasonStats { get; private set; }
     public ITeamSeasonStatsRepository TeamSeasonStats { get; private set; }
     public IMatchEventsRepository MatchEvents { get; private set; }
-    public IApplicationUserRepository ApplicationUserRepository { get; private set; }
+    public IApplicationUserRepository ApplicationUser { get; private set; }
     public ICoachRepository Coaches { get; private set; }
     public IStadiumsRepository Stadiums { get; }
 

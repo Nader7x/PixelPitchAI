@@ -1,3 +1,4 @@
+using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
 using Domain.Repositories;
@@ -7,6 +8,7 @@ using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RabbitMQ.Client;
 using Serilog.Sinks.PostgreSQL;
 
 namespace Infrastructure;
@@ -37,6 +39,22 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISearchService, SearchService>();
+        
+        // Register RabbitMQ connection and client
+        services.AddSingleton<IConnection>(sp => 
+        {
+            var factory = new ConnectionFactory
+            {
+                HostName = configuration["RabbitMQ:HostName"] ?? "localhost",
+                UserName = configuration["RabbitMQ:UserName"],
+                Password = configuration["RabbitMQ:Password"],
+                VirtualHost = configuration["RabbitMQ:VirtualHost"] ?? "/"
+            };
+            var connection = factory.CreateConnectionAsync();
+        
+            return connection.Result;
+        });
+
             
 
         // Register Unit of Work
@@ -60,6 +78,8 @@ public static class DependencyInjection
             // Register the column writers for use in Program.cs
             services.AddSingleton(columnWriters);
         }
+        // Register EventAnalysis service
+        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();
 
         return services;
     }
