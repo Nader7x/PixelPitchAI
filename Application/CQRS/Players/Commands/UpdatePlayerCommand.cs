@@ -17,7 +17,7 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     public DateTime DateOfBirth { get; set; }
     
     [StringLength(50)]
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     
     [StringLength(50)]
     public string Position { get; set; }

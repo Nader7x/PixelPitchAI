@@ -2,6 +2,7 @@ using Application.Dtos;
 using MediatR;
 using Domain.Interfaces;
 using System.Collections.Generic;
+using Application.Mappers;
 using Domain.Models;
 
 namespace Application.CQRS.Coaches.Queries;
@@ -9,7 +10,7 @@ namespace Application.CQRS.Coaches.Queries;
 public class GetAllCoachesQuery : IRequest<GetAllCoachesQueryResponse>
 {
     // Optional parameters for filtering
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     public int? TeamId { get; set; }
 }
 
@@ -23,10 +24,12 @@ public class GetAllCoachesQueryResponse
 public class GetAllCoachesQueryHandler : IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly CoachMapper _coachMapper;
     
-    public GetAllCoachesQueryHandler(IUnitOfWork unitOfWork)
+    public GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
     {
         _unitOfWork = unitOfWork;
+        _coachMapper = coachMapper;
     }
     
     public async Task<GetAllCoachesQueryResponse> Handle(GetAllCoachesQuery request, CancellationToken cancellationToken)
@@ -55,24 +58,8 @@ public class GetAllCoachesQueryHandler : IRequestHandler<GetAllCoachesQuery, Get
             {
                 coaches = await _unitOfWork.Coaches.GetAllAsync();
             }
-            
-            var coachDtos = coaches.Select(c => new CoachDto
-            {
-                Id = c.Id,
-                FirstName = c.FirstName,
-                LastName = c.LastName,
-                DateOfBirth = c.DateOfBirth,
-                Nationality = c.Nationality,
-                Role = c.Role,
-                TeamId = c.TeamId,
-                TeamName = c.Team?.Name,
-                ContractStartDate = c.ContractStartDate,
-                ContractEndDate = c.ContractEndDate,
-                PhotoUrl = c.PhotoUrl,
-                PreferredFormation = c.PreferredFormation,
-                CoachingStyle = c.CoachingStyle
-            }).ToList();
-            
+
+            var coachDtos = _coachMapper.ToDtoList(coaches);
             return new GetAllCoachesQueryResponse
             {
                 Succeeded = true,

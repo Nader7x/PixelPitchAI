@@ -2,6 +2,7 @@ using Domain.Models;
 using MediatR;
 using System;
 using System.ComponentModel.DataAnnotations;
+using Application.Mappers;
 using Domain.Interfaces;
 
 namespace Application.CQRS.Coaches.Commands;
@@ -51,10 +52,12 @@ public class CreateCoachCommandResponse
 public class CreateCoachCommandHandler : IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly CoachMapper _coachMapper;
     
-    public CreateCoachCommandHandler(IUnitOfWork unitOfWork)
+    public CreateCoachCommandHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
     {
         _unitOfWork = unitOfWork;
+        _coachMapper = coachMapper;
     }
     
     public async Task<CreateCoachCommandResponse> Handle(CreateCoachCommand request, CancellationToken cancellationToken)
@@ -77,20 +80,7 @@ public class CreateCoachCommandHandler : IRequestHandler<CreateCoachCommand, Cre
             }
             
             // Create new coach
-            var coach = new Coach
-            {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                DateOfBirth = request.DateOfBirth,
-                Nationality = request.Nationality,
-                Role = request.Role,
-                TeamId = request.TeamId,
-                ContractStartDate = request.ContractStartDate,
-                ContractEndDate = request.ContractEndDate,
-                PhotoUrl = request.PhotoUrl,
-                PreferredFormation = request.PreferredFormation,
-                CoachingStyle = request.CoachingStyle
-            };
+            var coach = _coachMapper.ToCoachFromCreate(request);
             
             await _unitOfWork.Coaches.AddAsync(coach);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

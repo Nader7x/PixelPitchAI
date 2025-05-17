@@ -48,7 +48,7 @@ public class UpdateSeasonDto
 public class TeamStandingDto
 {
     public int TeamId { get; set; }
-    public string TeamName { get; set; }
+    public string? TeamName { get; set; }
     public int Position { get; set; }
     public int Played { get; set; }
     public int Won { get; set; }

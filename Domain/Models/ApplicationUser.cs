@@ -16,6 +16,10 @@ public sealed class ApplicationUser : IdentityUser
     // Football-specific preferences
     public int? FavoriteTeamId { get; set; }
     public Team FavoriteTeam { get; set; }
+    // Add this property to the ApplicationUser class
+    public string? Gender { get; set; }
+    public int Age { get; set; }
+    public string? ImageUrl { get; set; }
     
     // Navigation properties
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

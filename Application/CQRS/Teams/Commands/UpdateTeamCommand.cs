@@ -1,6 +1,7 @@
 
 using MediatR;
 using System.ComponentModel.DataAnnotations;
+using Application.Mappers;
 using Domain.Interfaces;
 
 namespace Application.CQRS.Teams.Commands;
@@ -12,34 +13,34 @@ public class UpdateTeamCommand : IRequest<UpdateTeamCommandResponse>
     
     [Required]
     [StringLength(100, MinimumLength = 3)]
-    public string Name { get; set; }
+    public string? Name { get; set; }
     
     [Required]
     [StringLength(10, MinimumLength = 2)]
-    public string ShortName { get; set; }
+    public string? ShortName { get; set; }
     
     [StringLength(500)]
-    public string Logo { get; set; }
+    public string? Logo { get; set; }
     
     [Required]
     [StringLength(50)]
-    public string Country { get; set; }
+    public string? Country { get; set; }
     
     [Required]
     [StringLength(100)]
-    public string City { get; set; }
+    public string? City { get; set; }
     
     [Required]
     [StringLength(50)]
-    public string League { get; set; }
+    public string? League { get; set; }
     
     public DateTime FoundationDate { get; set; }
     
     [StringLength(20)]
-    public string PrimaryColor { get; set; }
+    public string? PrimaryColor { get; set; }
     
     [StringLength(20)]
-    public string SecondaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
     
     public int? StadiumId { get; set; }
 }
@@ -49,17 +50,19 @@ public class UpdateTeamCommandResponse
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
     public int Id { get; set; }
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public string Error { get; set; }
 }
 
 public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, UpdateTeamCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly TeamMapper _teamMapper;
     
-    public UpdateTeamCommandHandler(IUnitOfWork unitOfWork)
+    public UpdateTeamCommandHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
     {
         _unitOfWork = unitOfWork;
+        _teamMapper = teamMapper;
     }
     
     public async Task<UpdateTeamCommandResponse> Handle(UpdateTeamCommand request, CancellationToken cancellationToken)

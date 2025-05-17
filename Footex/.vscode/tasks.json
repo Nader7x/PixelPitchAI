@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start-PaperCut",
+      "type": "shell",
+      "command": "echo 'Please ensure PaperCut is running to capture emails!'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

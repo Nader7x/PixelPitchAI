@@ -1,3 +1,4 @@
+using Application.Interfaces;
 using Application.Mappers;
 using Application.Services;
 using Domain.Interfaces;
@@ -22,6 +23,14 @@ public static class DependencyInjection
         // Note: ITokenService is now registered in Infrastructure
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<SeasonMapper>();
+        services.AddSingleton<TeamMapper>();
+        services.AddSingleton<MatchMapper>();
+        services.AddSingleton<StadiumMapper>();
+        services.AddSingleton<UserMapper>();
+        services.AddSingleton<PlayerMapper>();
+        services.AddSingleton<CoachMapper>();
+        services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+        
 
         return services;
     }

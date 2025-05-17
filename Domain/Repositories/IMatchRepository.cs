@@ -15,4 +15,6 @@ public interface IMatchRepository : IRepository<Match>
     Task<IReadOnlyList<Match>> GetAllWithDetailsAsync();
 
     Task<Match?> GetByIdWithDetailsAsync(int matchId);
+    Task<IEnumerable<Match>> SearchAsync(string query);
+
 }

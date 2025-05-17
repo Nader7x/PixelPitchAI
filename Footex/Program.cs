@@ -9,9 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Sinks.PostgreSQL;
 using System.Text;
-using System.IO;
 using Footex.Extensions;
-using Swashbuckle.AspNetCore.Annotations;
 
 // Initialize Serilog first
 Log.Logger = new LoggerConfiguration()
@@ -42,7 +40,7 @@ try
                 "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
             Name = "Authorization",
             In = ParameterLocation.Header,
-            Type = SecuritySchemeType.ApiKey,
+            Type = SecuritySchemeType.Http,
             Scheme = "Bearer"
         });
 

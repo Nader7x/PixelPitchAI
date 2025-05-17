@@ -13,4 +13,6 @@ public interface IApplicationUserRepository : IRepository<ApplicationUser>
     Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken? refreshToken);
     Task RevokeRefreshTokenAsync(string token, string ipAddress);
     Task<bool> HasRefreshTokensAsync(string userid);
+    Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId);
+
 }

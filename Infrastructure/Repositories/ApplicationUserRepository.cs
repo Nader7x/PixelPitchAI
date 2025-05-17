@@ -89,4 +89,11 @@ public class ApplicationUserRepository(
         
         return refreshTokens.Any();
     }
+
+    public async Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId)
+    {
+        return await _context.Users
+            .Include(u => u.FavoriteTeam)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+    }
 }

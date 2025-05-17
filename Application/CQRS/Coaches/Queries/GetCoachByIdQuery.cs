@@ -1,4 +1,5 @@
 using Application.Dtos;
+using Application.Mappers;
 using MediatR;
 using Domain.Interfaces;
 
@@ -20,10 +21,12 @@ public class GetCoachByIdQueryResponse
 public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly CoachMapper _coachMapper;
     
-    public GetCoachByIdQueryHandler(IUnitOfWork unitOfWork)
+    public GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
     {
         _unitOfWork = unitOfWork;
+        _coachMapper = coachMapper;
     }
     
     public async Task<GetCoachByIdQueryResponse> Handle(GetCoachByIdQuery request, CancellationToken cancellationToken)
@@ -41,22 +44,7 @@ public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCo
                 };
             }
             
-            var coachDto = new CoachDto
-            {
-                Id = coach.Id,
-                FirstName = coach.FirstName,
-                LastName = coach.LastName,
-                DateOfBirth = coach.DateOfBirth,
-                Nationality = coach.Nationality,
-                Role = coach.Role,
-                TeamId = coach.TeamId,
-                TeamName = coach.Team?.Name,
-                ContractStartDate = coach.ContractStartDate,
-                ContractEndDate = coach.ContractEndDate,
-                PhotoUrl = coach.PhotoUrl,
-                PreferredFormation = coach.PreferredFormation,
-                CoachingStyle = coach.CoachingStyle
-            };
+            var coachDto = _coachMapper.ToDto(coach);
             
             return new GetCoachByIdQueryResponse
             {

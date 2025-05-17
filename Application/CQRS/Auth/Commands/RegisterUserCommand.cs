@@ -1,3 +1,4 @@
+using Application.Mappers;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -9,9 +10,13 @@ public class RegisterUserCommand : IRequest<RegisterUserCommandResponse>
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string Email { get; set; }
-    public string Username { get; set; }
+    public string UserName { get; set; }
     public string Password { get; set; }
+    public string? Gender { get; set; }
+    public int Age { get; set; }
     public int? FavoriteTeamId { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? ImageUrl { get; set; }
 }
 
 public class RegisterUserCommandResponse
@@ -23,10 +28,12 @@ public class RegisterUserCommandResponse
 
 public class RegisterUserCommandHandler(
     IIdentityService identityService,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    UserMapper userMapper)
     : IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly UserMapper _userMapper = userMapper;
 
     public async Task<RegisterUserCommandResponse> Handle(RegisterUserCommand request,
         CancellationToken cancellationToken)
@@ -34,16 +41,7 @@ public class RegisterUserCommandHandler(
         try
         {
             // Create application user
-            var user = new ApplicationUser
-            {
-                UserName = request.Username,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                FavoriteTeamId = request.FavoriteTeamId,
-                Created = DateTime.UtcNow,
-                EmailConfirmed = true // In a real app, you'd likely set this to false and confirm email
-            };
+            var user = _userMapper.ToUserFromRegister(request);
             Console.WriteLine(user);
 
             // Register user

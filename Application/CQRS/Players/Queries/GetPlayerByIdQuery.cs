@@ -1,4 +1,5 @@
 using Application.Dtos;
+using Application.Mappers;
 using MediatR;
 using Domain.Interfaces;
 
@@ -20,10 +21,12 @@ public class GetPlayerByIdQueryResponse
 public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly PlayerMapper _playerMapper;
     
-    public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork)
+    public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
     {
         _unitOfWork = unitOfWork;
+        _playerMapper = playerMapper;
     }
     
     public async Task<GetPlayerByIdQueryResponse> Handle(GetPlayerByIdQuery request, CancellationToken cancellationToken)
@@ -41,18 +44,7 @@ public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, Get
                 };
             }
             
-            var playerDto = new PlayerDto
-            {
-                Id = player.Id,
-                FullName = player.FullName,
-                Nationality = player.Nationality,
-                PreferredFoot = player.PreferredFoot,
-                PhotoUrl = player.PhotoUrl,
-                TeamId = player.TeamId,
-                TeamName = player.Team?.Name,
-                ShirtNumber = player.ShirtNumber,
-                StatsBombPlayerId = player.StatsBombPlayerId
-            };
+            var playerDto = _playerMapper.ToDto(player);
             
             return new GetPlayerByIdQueryResponse
             {

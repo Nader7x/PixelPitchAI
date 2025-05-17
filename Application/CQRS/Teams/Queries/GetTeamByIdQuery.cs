@@ -1,4 +1,5 @@
 
+using Application.Mappers;
 using Domain.Interfaces;
 using MediatR;
 
@@ -12,49 +13,33 @@ public class GetTeamByIdQuery : IRequest<GetTeamByIdQueryResponse>
 public class GetTeamByIdQueryResponse
 {
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string ShortName { get; set; }
-    public string Logo { get; set; }
-    public string Country { get; set; }
-    public string City { get; set; }
-    public string League { get; set; }
+    public string? Name { get; set; }
+    public string? ShortName { get; set; }
+    public string? Logo { get; set; }
+    public string? Country { get; set; }
+    public string? City { get; set; }
+    public string? League { get; set; }
     public DateTime FoundationDate { get; set; }
-    public string PrimaryColor { get; set; }
-    public string SecondaryColor { get; set; }
+    public string? PrimaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
     public int? StadiumId { get; set; }
-    public string StadiumName { get; set; }
+    public string? StadiumName { get; set; }
 }
 
-public class GetTeamByIdQueryHandler : IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse>
+public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
+    : IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    
-    public GetTeamByIdQueryHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-    
+    private readonly TeamMapper _teamMapper = teamMapper;
+
+
     public async Task<GetTeamByIdQueryResponse> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)
     {
-        var team = await _unitOfWork.Teams.GetByIdAsync(request.Id);
+        var team = await unitOfWork.Teams.GetByIdAsyncWithStadium(request.Id);
         
         if (team == null)
             return null;
+        var teamResponse = _teamMapper.ToTeamByIdQueryResponse(team);
             
-        return new GetTeamByIdQueryResponse
-        {
-            Id = team.Id,
-            Name = team.Name,
-            ShortName = team.ShortName,
-            Logo = team.Logo,
-            Country = team.Country,
-            City = team.City,
-            League = team.League,
-            FoundationDate = team.FoundationDate,
-            PrimaryColor = team.PrimaryColor,
-            SecondaryColor = team.SecondaryColor,
-            StadiumId = team.StadiumId,
-            StadiumName = team.Stadium?.Name
-        };
+        return teamResponse;
     }
 }

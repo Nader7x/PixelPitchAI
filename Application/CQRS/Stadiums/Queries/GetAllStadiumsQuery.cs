@@ -2,14 +2,15 @@ using Application.Dtos;
 using MediatR;
 using Domain.Interfaces;
 using System.Collections.Generic;
+using Application.Mappers;
 
 namespace Application.CQRS.Stadiums.Queries;
 
 public class GetAllStadiumsQuery : IRequest<GetAllStadiumsQueryResponse>
 {
     // Optional parameters for filtering
-    public string Country { get; set; }
-    public string City { get; set; }
+    public string? Country { get; set; }
+    public string? City { get; set; }
 }
 
 public class GetAllStadiumsQueryResponse
@@ -22,10 +23,12 @@ public class GetAllStadiumsQueryResponse
 public class GetAllStadiumsQueryHandler : IRequestHandler<GetAllStadiumsQuery, GetAllStadiumsQueryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly StadiumMapper _stadiumMapper;
     
-    public GetAllStadiumsQueryHandler(IUnitOfWork unitOfWork)
+    public GetAllStadiumsQueryHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
     {
         _unitOfWork = unitOfWork;
+        _stadiumMapper = stadiumMapper;
     }
     
     public async Task<GetAllStadiumsQueryResponse> Handle(GetAllStadiumsQuery request, CancellationToken cancellationToken)
@@ -56,22 +59,7 @@ public class GetAllStadiumsQueryHandler : IRequestHandler<GetAllStadiumsQuery, G
                 stadiums = await _unitOfWork.Stadiums.GetAllAsync();
             }
             
-            var stadiumDtos = stadiums.Select(s => new StadiumDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                City = s.City,
-                Country = s.Country,
-                Capacity = s.Capacity,
-                SurfaceType = s.SurfaceType,
-                Address = s.Address,
-                Latitude = s.Latitude,
-                Longitude = s.Longitude,
-                ImageUrl = s.ImageUrl,
-                Description = s.Description,
-                Facilities = s.Facilities,
-                BuiltDate = s.BuiltDate
-            }).ToList();
+            var stadiumDtos = _stadiumMapper.ToDtoList(stadiums);
             
             return new GetAllStadiumsQueryResponse
             {

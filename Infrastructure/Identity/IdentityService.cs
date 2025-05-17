@@ -1,7 +1,6 @@
 using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Identity;
 
