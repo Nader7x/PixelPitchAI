@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Domain.Models;
 
 
 
-public class Player
+public sealed class Player
 {
     public int Id { get; set; }
     public string FullName { get; set; }
@@ -19,14 +12,12 @@ public class Player
     public string? PreferredFoot { get; set; }
     public int? TeamId { get; set; }
     public string? PhotoUrl { get; set; }
-    public int? StatsBombPlayerId { get; set; }  // External ID for mapping to original StatsBomb data
-    
+    public  string? Position { get; set; }
     
     // Audit fields
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
     // Navigation properties
-    public virtual Team Team { get; set; }
-    public virtual ICollection<PlayerSeasonStats> PlayerSeasonStats { get; set; }
+    public Team? Team { get; set; }
 }

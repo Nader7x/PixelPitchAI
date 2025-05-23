@@ -42,8 +42,6 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
             .HasMethod("btree")
             .HasDatabaseName("IX_Player_Nationality");
         builder.HasIndex(p => p.FullName);
-        builder.HasIndex(p => p.StatsBombPlayerId).IsUnique().HasFilter("\"StatsBombPlayerId\" IS NOT NULL");
-        
             
         // Add team index for filtering players by team
         builder.HasIndex(p => p.TeamId)
@@ -57,11 +55,6 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
             .HasForeignKey(p => p.TeamId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
-        builder.HasMany(p => p.PlayerSeasonStats)
-            .WithOne(s => s.Player)
-            .HasForeignKey(s => s.PlayerId)
-            .OnDelete(DeleteBehavior.Cascade);
-            
         // Table comment
         builder.ToTable("Players", tb => tb.HasComment("Football players information"));
         

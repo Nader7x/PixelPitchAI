@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Application.Dtos;
 
 public class TeamDto
@@ -11,15 +13,21 @@ public class TeamDto
     public string? League { get; set; }
     public string? PrimaryColor { get; set; }
     public string? SecondaryColor { get; set; }
+    public DateTime? FoundationDate { get; set; }
+    
 }
 
 public class CreateTeamDto
 {
     public string? Name { get; set; } = string.Empty;
     public string? Country { get; set; } = string.Empty;
-    public string LeagueName { get; set; } = string.Empty;
+    public string League { get; set; } = string.Empty;
+    public string? ShortName { get; set; } = string.Empty;
+    public IFormFile? Image { get; set; }
+    public string? Logo { get; set; } = string.Empty;
     public int? StadiumId { get; set; }
-    public DateTime Founded { get; set; }
+    public DateTime FoundationDate { get; set; }
+    public int? CoachId { get; set; }
 }
 
 public class UpdateTeamDto
@@ -27,7 +35,14 @@ public class UpdateTeamDto
     public int Id { get; set; }
     public string? Name { get; set; } = string.Empty;
     public string? Country { get; set; } = string.Empty;
-    public string LeagueName { get; set; } = string.Empty;
+    public string League { get; set; } = string.Empty;
     public int? StadiumId { get; set; }
-    public DateTime Founded { get; set; }
+    public string? City { get; set; } = string.Empty;
+    public DateTime FoundationDate { get; set; }
+    public IFormFile? Image { get; set; }
+    public string? Logo { get; set; } = string.Empty;
+    public string? ShortName { get; set; } = string.Empty;
+    public string? PrimaryColor { get; set; } = string.Empty;
+    public string? SecondaryColor { get; set; } = string.Empty;
+    public int? CoachId { get; set; }
 }

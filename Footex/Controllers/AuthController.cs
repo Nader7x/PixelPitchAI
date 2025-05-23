@@ -2,8 +2,8 @@ using System.Web;
 using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Application.Mappers;
-using Application.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,15 +12,15 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IMediator mediator, UserMapper usermapper, AzureBlobStorageService blobStorageService) : ControllerBase
+public class AuthController(IMediator mediator, UserMapper usermapper,IFileStorageService blobStorageService) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
     private readonly UserMapper _usermapper = usermapper;
-    private readonly AzureBlobStorageService _blobStorageService = blobStorageService;
+    private readonly IFileStorageService _blobStorageService = blobStorageService;
     private readonly string CONTAINER_NAME = "users";
 
     [HttpPost("register")]
-    public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromBody] RegisterUserDto dto)
+    public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromForm] RegisterUserDto dto)
     {
         var command = _usermapper.ToRegisterCommandFromDto(dto);
         command.ImageUrl = dto.Image != null ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME) : null;
@@ -197,6 +197,22 @@ public class AuthController(IMediator mediator, UserMapper usermapper, AzureBlob
 
         return Ok(result);
     }
+    [HttpGet("profile/{id}")]
+    [Authorize]
+    public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfileById(string id)
+    {
+
+        if (string.IsNullOrEmpty(id))
+            return BadRequest(new { message = "User ID not found in token" });
+
+        var query = new GetUserProfileQuery { UserId = id };
+        var result = await _mediator.Send(query);
+
+        if (!result.Succeeded)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 
     // Helper methods
     private string GetIpAddress()
@@ -260,19 +276,14 @@ public class AuthController(IMediator mediator, UserMapper usermapper, AzureBlob
     [Authorize]
     [ProducesResponseType(typeof(UpdateUserCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser([FromBody] UpdateUserDto dto)
+    public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser([FromForm] UpdateUserDto dto)
     {
-        var userId = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-
-        if (string.IsNullOrEmpty(userId))
-            return BadRequest(new { message = "User ID not found in token" });
 
         var command = _usermapper.ToUpdateCommand(dto);
-        command.Id = userId;
         if (dto.Image !=null)
         {
              // delete old image if it exists
-            var existingUser = await _mediator.Send(new GetUserProfileQuery { UserId = userId });
+            var existingUser = await _mediator.Send(new GetUserProfileQuery { UserId = dto.Id });
             if (!existingUser.Succeeded == false && !string.IsNullOrEmpty(existingUser.ImageUrl))
             {
                 await _blobStorageService.DeleteImageAsync(existingUser.ImageUrl, CONTAINER_NAME);

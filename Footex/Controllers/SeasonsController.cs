@@ -80,10 +80,8 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateSeasonCommandResponse>> UpdateSeason(int id, [FromBody] UpdateSeasonDto seasonDto)
     {
-        if (id != seasonDto.Id)
-            return BadRequest(new { error = "ID in URL does not match ID in request body" });
-
         var command = _seasonMapper.ToUpdateCommand(seasonDto);
+        command.Id = id;
         
         var result = await mediator.Send(command);
         
@@ -117,5 +115,19 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
         }
         
         return Ok(result);
+    }
+    [HttpGet("SeasonTeams/{id}")]
+    [ProducesResponseType(typeof(GetSeasonTeamsQueryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetSeasonTeamsQueryResponse>> GetSeasonTeams(int id)
+    {
+        var query = new GetSeasonTeamsQuery { SeasonId = id };
+        var result = await mediator.Send(query);
+
+        if (result.Succeeded) return Ok(result);
+                
+        return BadRequest(result);
+
     }
 }

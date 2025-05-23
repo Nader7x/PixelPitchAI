@@ -18,8 +18,8 @@ public class GetAllPlayersQuery : IRequest<GetAllPlayersQueryResponse>
 public class GetAllPlayersQueryResponse
 {
     public bool Succeeded { get; set; }
-    public List<PlayerDto> Players { get; set; }
-    public string Error { get; set; }
+    public List<PlayerDto>? Players { get; set; }
+    public string? Error { get; set; }
 }
 
 public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
@@ -31,7 +31,7 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper play
     {
         try
         {
-            IReadOnlyList<Player> players;
+            IEnumerable<Player> players;
             
             // Apply filters if provided
             if (!string.IsNullOrEmpty(request.Nationality))
@@ -48,11 +48,9 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper play
             }
             else
             {
-                players = (IReadOnlyList<Player>)await unitOfWork.Players.GetAllAsync();
+                players = await unitOfWork.Players.GetAllAsync();
             }
-            
             var playerDtos = _playerMapper.ToDtoList(players);
-            
             return new GetAllPlayersQueryResponse
             {
                 Succeeded = true,

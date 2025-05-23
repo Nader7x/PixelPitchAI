@@ -140,12 +140,14 @@ namespace Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Biography")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("CoachingStyle")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -162,8 +164,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("ProfileImageUrl")
-                        .IsRequired()
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreferredFormation")
                         .HasColumnType("text");
 
                     b.Property<string>("Role")
@@ -174,7 +178,7 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("TeamId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("YearsOfExperience")
+                    b.Property<int?>("YearsOfExperience")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -206,28 +210,86 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AwayAccurateLongBalls")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("AwayCoachId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayLongBalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamClearances")
                         .HasColumnType("integer");
 
                     b.Property<int?>("AwayTeamCorners")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("AwayTeamDribbles")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamDuels")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamDuelsWon")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("AwayTeamFouls")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamFreeKicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamGoalKicks")
                         .HasColumnType("integer");
 
                     b.Property<int>("AwayTeamId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AwayTeamInMatchName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<double?>("AwayTeamLongBallsAccuracy")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("AwayTeamOffsides")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("AwayTeamPassAccuracy")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("AwayTeamPasses")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamPassesCompleted")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("AwayTeamPossession")
                         .HasColumnType("integer");
 
+                    b.Property<long?>("AwayTeamPossessionDurationSeconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("AwayTeamPossessionWon")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamRecoveries")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("AwayTeamRedCards")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamSaves")
                         .HasColumnType("integer");
 
                     b.Property<short?>("AwayTeamScore")
                         .HasColumnType("smallint");
 
                     b.Property<int?>("AwayTeamShots")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AwayTeamShotsOffTarget")
                         .HasColumnType("integer");
 
                     b.Property<int?>("AwayTeamShotsOnTarget")
@@ -241,22 +303,82 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("CreatorId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("HomeAccurateLongBalls")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HomeCoachId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeLongBalls")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamClearances")
                         .HasColumnType("integer");
 
                     b.Property<int?>("HomeTeamCorners")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("HomeTeamDribbles")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamDuels")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamDuelsWon")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HomeTeamFouls")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamFreeKicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamGoalKicks")
                         .HasColumnType("integer");
 
                     b.Property<int>("HomeTeamId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("HomeTeamInMatchName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<double?>("HomeTeamLongBallsAccuracy")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("HomeTeamOffsides")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("HomeTeamPassAccuracy")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("HomeTeamPasses")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamPassesCompleted")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HomeTeamPossession")
                         .HasColumnType("integer");
 
+                    b.Property<long?>("HomeTeamPossessionDurationSeconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("HomeTeamPossessionWon")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamRecoveries")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HomeTeamRedCards")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HomeTeamSaves")
                         .HasColumnType("integer");
 
                     b.Property<short?>("HomeTeamScore")
@@ -265,14 +387,24 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("HomeTeamShots")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("HomeTeamShotsOffTarget")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HomeTeamShotsOnTarget")
                         .HasColumnType("integer");
 
                     b.Property<int?>("HomeTeamYellowCards")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("IsDraw")
+                    b.Property<bool?>("IsDraw")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LastEventPossessingTeamName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("LastEventTimestampSeconds")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LosingTeamId")
                         .HasColumnType("integer");
@@ -285,10 +417,10 @@ namespace Infrastructure.Migrations
                     b.Property<short?>("MatchWeek")
                         .HasColumnType("smallint");
 
-                    b.Property<DateTime?>("ModelSimulationStartTimeUTC")
+                    b.Property<DateTime?>("ModelSimulationStartTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("ScheduledDateTimeUTC")
+                    b.Property<DateTime>("ScheduledDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("SeasonId")
@@ -314,6 +446,11 @@ namespace Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AwayTeamId"), "btree");
 
+                    b.HasIndex("CreatorId")
+                        .HasDatabaseName("IX_Match_CreatorId");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("CreatorId"), "btree");
+
                     b.HasIndex("HomeCoachId");
 
                     b.HasIndex("HomeTeamId")
@@ -326,12 +463,15 @@ namespace Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("MatchStatus"), "btree");
 
-                    b.HasIndex("ScheduledDateTimeUTC")
+                    b.HasIndex("ScheduledDateTimeUtc")
                         .HasDatabaseName("IX_Match_KickoffTime");
 
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ScheduledDateTimeUTC"), "btree");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ScheduledDateTimeUtc"), "btree");
 
-                    b.HasIndex("StadiumId");
+                    b.HasIndex("StadiumId")
+                        .HasDatabaseName("IX_Match_StadiumId");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("StadiumId"), "btree");
 
                     b.HasIndex("SeasonId", "MatchWeek")
                         .HasDatabaseName("IX_Match_SeasonRound");
@@ -373,10 +513,25 @@ namespace Infrastructure.Migrations
                     b.Property<int>("MatchId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TotalBlocks")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TotalCards")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TotalClearances")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TotalCorners")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalDribbles")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalDuels")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalErrors")
                         .HasColumnType("integer");
 
                     b.Property<int>("TotalEvents")
@@ -385,10 +540,52 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TotalFouls")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TotalFreeKicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalGoalKicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalGoalkeeperSaves")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalGoals")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalInjuries")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalInterceptions")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalOffsides")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalOuts")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TotalPasses")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TotalPenalties")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalPossessionWon")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalRedCards")
+                        .HasColumnType("integer");
+
                     b.Property<int>("TotalShots")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalSubstitutions")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalThrowIns")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalYellowCards")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -397,6 +594,11 @@ namespace Infrastructure.Migrations
                         .HasDatabaseName("IX_MatchEvents_EventsJson");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("EventsJson"), "gin");
+
+                    b.HasIndex("LastUpdated")
+                        .HasDatabaseName("IX_MatchEvents_LastUpdated");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("LastUpdated"), "btree");
 
                     b.HasIndex("MatchId")
                         .IsUnique()
@@ -442,15 +644,15 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<string>("Position")
+                        .HasColumnType("text");
+
                     b.Property<string>("PreferredFoot")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
                     b.Property<short?>("ShirtNumber")
                         .HasColumnType("smallint");
-
-                    b.Property<int?>("StatsBombPlayerId")
-                        .HasColumnType("integer");
 
                     b.Property<int?>("TeamId")
                         .HasColumnType("integer");
@@ -469,10 +671,6 @@ namespace Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Nationality"), "btree");
 
-                    b.HasIndex("StatsBombPlayerId")
-                        .IsUnique()
-                        .HasFilter("\"StatsBombPlayerId\" IS NOT NULL");
-
                     b.HasIndex("TeamId")
                         .HasDatabaseName("IX_Player_TeamId");
 
@@ -486,118 +684,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Players", null, t =>
                         {
                             t.HasComment("Football players information");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Models.PlayerSeasonStats", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Appearances")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Assists")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("BlockedShots")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChancesCreated")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CleanSheets")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Clearances")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Goals")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Interceptions")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("KeyPasses")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MinutesPlayed")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("PassCompletionRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("PassesAttempted")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PassesCompleted")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("Rating")
-                        .HasPrecision(3, 1)
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RedCards")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Saves")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SeasonId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ShotsOffTarget")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ShotsOnTarget")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Tackles")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TeamId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("YellowCards")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TeamId");
-
-                    b.HasIndex("SeasonId", "Assists")
-                        .HasDatabaseName("IX_PlayerSeasonStats_Assists");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "Assists"), "btree");
-
-                    b.HasIndex("SeasonId", "Goals")
-                        .HasDatabaseName("IX_PlayerSeasonStats_Goals");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "Goals"), "btree");
-
-                    b.HasIndex("SeasonId", "Rating")
-                        .HasDatabaseName("IX_PlayerSeasonStats_Rating")
-                        .HasFilter("\"Rating\" IS NOT NULL");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "Rating"), "btree");
-
-                    b.HasIndex("PlayerId", "SeasonId", "TeamId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_PlayerSeasonStats_PlayerSeason")
-                        .HasFilter("\"TeamId\" IS NOT NULL");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("PlayerId", "SeasonId", "TeamId"), "btree");
-
-                    b.ToTable("PlayerSeasonStats", null, t =>
-                        {
-                            t.HasComment("Player statistics by season");
                         });
                 });
 
@@ -689,6 +775,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("CurrentRound")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -708,6 +797,9 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
 
                     b.Property<int>("TotalRounds")
                         .HasColumnType("integer");
@@ -755,7 +847,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("varchar(200)");
 
                     b.Property<DateTime?>("BuiltDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
@@ -783,7 +875,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<DateTime?>("LastRenovation")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<decimal?>("Latitude")
                         .HasPrecision(9, 6)
@@ -842,7 +934,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<DateTime>("FoundationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<string>("League")
                         .HasColumnType("text");
@@ -898,7 +990,7 @@ namespace Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Domain.Models.TeamSeasonStats", b =>
+            modelBuilder.Entity("Domain.Models.TeamSeasons", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -906,104 +998,7 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AveragePossession")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("AwayDraws")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AwayGoalsConceded")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AwayGoalsScored")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AwayLosses")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AwayWins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CleanSheets")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("ConversionRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("Corners")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Draws")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("ExpectedGoals")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("numeric(6,2)");
-
-                    b.Property<decimal>("ExpectedGoalsAgainst")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("numeric(6,2)");
-
-                    b.Property<string>("Form")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<int>("Fouls")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GoalDifference")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GoalsConceded")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GoalsScored")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("HomeDraws")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("HomeGoalsConceded")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("HomeGoalsScored")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("HomeLosses")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("HomeWins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Losses")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MatchesPlayed")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("PassAccuracy")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RedCards")
-                        .HasColumnType("integer");
-
                     b.Property<int>("SeasonId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Shots")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ShotsOnTarget")
                         .HasColumnType("integer");
 
                     b.Property<int>("TeamId")
@@ -1014,43 +1009,19 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int>("Wins")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("YellowCards")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("SeasonId", "Position")
-                        .HasDatabaseName("IX_TeamSeasonStats_Position");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "Position"), "btree");
+                    b.HasIndex("SeasonId");
 
                     b.HasIndex("TeamId", "SeasonId")
                         .IsUnique()
-                        .HasDatabaseName("IX_TeamSeasonStats_TeamSeason");
+                        .HasDatabaseName("IX_TeamSeasons_TeamSeason");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("TeamId", "SeasonId"), "btree");
 
-                    b.HasIndex("SeasonId", "AwayWins", "AwayDraws", "AwayLosses")
-                        .HasDatabaseName("IX_TeamSeasonStats_AwayPerformance");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "AwayWins", "AwayDraws", "AwayLosses"), "btree");
-
-                    b.HasIndex("SeasonId", "HomeWins", "HomeDraws", "HomeLosses")
-                        .HasDatabaseName("IX_TeamSeasonStats_HomePerformance");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "HomeWins", "HomeDraws", "HomeLosses"), "btree");
-
-                    b.HasIndex("SeasonId", "Points", "GoalDifference", "GoalsScored")
-                        .HasDatabaseName("IX_TeamSeasonStats_Standings");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SeasonId", "Points", "GoalDifference", "GoalsScored"), "btree");
-
-                    b.ToTable("TeamSeasonStats", null, t =>
+                    b.ToTable("TeamSeasons", null, t =>
                         {
-                            t.HasComment("Team statistics by season");
+                            t.HasComment("Team seasons table");
                         });
                 });
 
@@ -1219,6 +1190,12 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Match_AwayTeam");
 
+                    b.HasOne("Domain.Models.ApplicationUser", "Creator")
+                        .WithMany("Matches")
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Domain.Models.Coach", "HomeCoach")
                         .WithMany()
                         .HasForeignKey("HomeCoachId");
@@ -1244,6 +1221,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("AwayCoach");
 
                     b.Navigation("AwayTeam");
+
+                    b.Navigation("Creator");
 
                     b.Navigation("HomeCoach");
 
@@ -1275,32 +1254,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("Domain.Models.PlayerSeasonStats", b =>
-                {
-                    b.HasOne("Domain.Models.Player", "Player")
-                        .WithMany("PlayerSeasonStats")
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Models.Season", "Season")
-                        .WithMany("PlayerSeasonStats")
-                        .HasForeignKey("SeasonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Models.Team", "Team")
-                        .WithMany("PlayerSeasonStats")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Player");
-
-                    b.Navigation("Season");
-
-                    b.Navigation("Team");
-                });
-
             modelBuilder.Entity("Domain.Models.RefreshToken", b =>
                 {
                     b.HasOne("Domain.Models.ApplicationUser", null)
@@ -1326,20 +1279,20 @@ namespace Infrastructure.Migrations
                     b.Navigation("Stadium");
                 });
 
-            modelBuilder.Entity("Domain.Models.TeamSeasonStats", b =>
+            modelBuilder.Entity("Domain.Models.TeamSeasons", b =>
                 {
                     b.HasOne("Domain.Models.Season", "Season")
-                        .WithMany("TeamSeasonStats")
+                        .WithMany("SeasonTeams")
                         .HasForeignKey("SeasonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Domain.Models.Team", "Team")
-                        .WithMany("TeamSeasonStats")
+                        .WithMany("TeamSeasons")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_TeamSeasonStats_Team");
+                        .HasConstraintName("FK_TeamSeasons_Team");
 
                     b.Navigation("Season");
 
@@ -1399,27 +1352,21 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Matches");
+
                     b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Domain.Models.Match", b =>
                 {
-                    b.Navigation("MatchEvents")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Models.Player", b =>
-                {
-                    b.Navigation("PlayerSeasonStats");
+                    b.Navigation("MatchEvents");
                 });
 
             modelBuilder.Entity("Domain.Models.Season", b =>
                 {
                     b.Navigation("Matches");
 
-                    b.Navigation("PlayerSeasonStats");
-
-                    b.Navigation("TeamSeasonStats");
+                    b.Navigation("SeasonTeams");
                 });
 
             modelBuilder.Entity("Domain.Models.Stadium", b =>
@@ -1435,11 +1382,9 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("HomeMatches");
 
-                    b.Navigation("PlayerSeasonStats");
-
                     b.Navigation("Players");
 
-                    b.Navigation("TeamSeasonStats");
+                    b.Navigation("TeamSeasons");
                 });
 #pragma warning restore 612, 618
         }

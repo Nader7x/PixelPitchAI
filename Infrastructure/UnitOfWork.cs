@@ -25,8 +25,7 @@ public sealed class UnitOfWork : IUnitOfWork
         Seasons = new SeasonRepository(_context);
         Matches = new MatchRepository(_context);
         Teams = new TeamRepository(_context);
-        PlayerSeasonStats = new PlayerSeasonStatsRepository(_context);
-        TeamSeasonStats = new TeamSeasonStatsRepository(_context);
+        TeamSeasons = new TeamSeasonsRepository(_context);
         MatchEvents = new MatchEventsRepository(_context);
         ApplicationUser = new ApplicationUserRepository(_context, userManager);
         Coaches = new CoachRepository(_context);
@@ -36,8 +35,7 @@ public sealed class UnitOfWork : IUnitOfWork
     public ISeasonRepository Seasons { get; private set; }
     public IMatchRepository Matches { get; private set; }
     public ITeamRepository Teams { get; private set; }
-    public IPlayerSeasonStatsRepository PlayerSeasonStats { get; private set; }
-    public ITeamSeasonStatsRepository TeamSeasonStats { get; private set; }
+    public ITeamSeasonsRepository TeamSeasons { get; private set; }
     public IMatchEventsRepository MatchEvents { get; private set; }
     public IApplicationUserRepository ApplicationUser { get; private set; }
     public ICoachRepository Coaches { get; private set; }

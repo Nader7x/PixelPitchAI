@@ -1,6 +1,4 @@
-using Domain.Models;
 using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Application.Mappers;
 using Domain.Interfaces;
@@ -27,18 +25,16 @@ public class CreateCoachCommand : IRequest<CreateCoachCommandResponse>
     
     public int? TeamId { get; set; }
     
-    public DateTime? ContractStartDate { get; set; }
-    
-    public DateTime? ContractEndDate { get; set; }
-    
     [StringLength(500)]
-    public string PhotoUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     
     [StringLength(50)]
     public string PreferredFormation { get; set; }
     
     [StringLength(100)]
     public string CoachingStyle { get; set; }
+    public string Biography { get; set; }
+    public int? YearsOfExperience { get; set; }
 }
 
 public class CreateCoachCommandResponse
@@ -49,17 +45,9 @@ public class CreateCoachCommandResponse
     public string Error { get; set; }
 }
 
-public class CreateCoachCommandHandler : IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>
+public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
+    : IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly CoachMapper _coachMapper;
-    
-    public CreateCoachCommandHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _coachMapper = coachMapper;
-    }
-    
     public async Task<CreateCoachCommandResponse> Handle(CreateCoachCommand request, CancellationToken cancellationToken)
     {
         try
@@ -68,7 +56,7 @@ public class CreateCoachCommandHandler : IRequestHandler<CreateCoachCommand, Cre
             string fullName = $"{request.FirstName} {request.LastName}";
             
             // Check if coach with the same name already exists
-            var existingCoach = await _unitOfWork.Coaches.FindAsync(c => c.FirstName == request.FirstName && c.LastName == request.LastName);
+            var existingCoach = await unitOfWork.Coaches.FindAsync(c => c.FirstName == request.FirstName && c.LastName == request.LastName);
                 
             if (existingCoach != null)
             {
@@ -80,10 +68,10 @@ public class CreateCoachCommandHandler : IRequestHandler<CreateCoachCommand, Cre
             }
             
             // Create new coach
-            var coach = _coachMapper.ToCoachFromCreate(request);
+            var coach = coachMapper.ToCoachFromCreate(request);
             
-            await _unitOfWork.Coaches.AddAsync(coach);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Coaches.AddAsync(coach);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return new CreateCoachCommandResponse
             {

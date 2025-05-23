@@ -105,9 +105,6 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateStadiumCommandResponse>> UpdateStadium(int id, [FromForm] UpdateStadiumDto stadiumDto)
     {
-        if (id != stadiumDto.Id)
-            return BadRequest(new { error = "ID in URL does not match ID in request body" });
-            
         // Get existing stadium to check if we need to replace the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
         var existingResult = await _mediator.Send(getQuery);
@@ -128,23 +125,9 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
             // Upload new image
             imageUrl = await _fileStorageService.UploadImageAsync(stadiumDto.Image, CONTAINER_NAME);
         }
-        
-        var command = new UpdateStadiumCommand
-        {
-            Id = stadiumDto.Id,
-            Name = stadiumDto.Name,
-            City = stadiumDto.City,
-            Country = stadiumDto.Country,
-            Capacity = stadiumDto.Capacity,
-            SurfaceType = stadiumDto.SurfaceType,
-            Address = stadiumDto.Address,
-            Latitude = stadiumDto.Latitude,
-            Longitude = stadiumDto.Longitude,
-            ImageUrl = imageUrl,
-            Description = stadiumDto.Description,
-            Facilities = stadiumDto.Facilities,
-            BuiltDate = stadiumDto.BuiltDate
-        };
+        stadiumDto.ImageUrl = imageUrl;
+        var command = _stadiumMapper.ToUpdateCommand(stadiumDto);
+        command.Id = id;
         
         var result = await _mediator.Send(command);
         

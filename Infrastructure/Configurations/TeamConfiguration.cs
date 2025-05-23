@@ -19,6 +19,9 @@ public class TeamConfiguration : IEntityTypeConfiguration<Team>
         builder.Property(t => t.PrimaryColor).HasMaxLength(20).HasColumnType("varchar(20)");
         builder.Property(t => t.SecondaryColor).HasMaxLength(20).HasColumnType("varchar(20)");
         
+        
+        builder.Property(t => t.FoundationDate).HasColumnType("date");
+        
         // Optimized indexes - specify methods for PostgreSQL
         builder.HasIndex(t => t.Name)
             .IsUnique()

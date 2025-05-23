@@ -1,4 +1,3 @@
-
 using Domain.Interfaces;
 using MediatR;
 
@@ -12,7 +11,7 @@ public class DeleteTeamCommand : IRequest<DeleteTeamCommandResponse>
 public class DeleteTeamCommandResponse
 {
     public bool Succeeded { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; } // Nullable to avoid warnings
 }
 
 public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
@@ -44,8 +43,13 @@ public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, Delet
             
             try
             {
+                // Set TeamId to null for all related coaches
+                var coaches = await _unitOfWork.Coaches.GetAllAsync(c => c.TeamId == team.Id);
+                coaches.ToList().ForEach(c => c.TeamId = null);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
                 // Delete team
-                 _unitOfWork.Teams.DeleteAsync(team);
+                _unitOfWork.Teams.DeleteAsync(team);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 
                 // Commit transaction

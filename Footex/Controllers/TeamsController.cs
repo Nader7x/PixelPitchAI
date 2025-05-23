@@ -1,5 +1,7 @@
 using Application.CQRS.Teams.Commands;
 using Application.CQRS.Teams.Queries;
+using Application.Dtos;
+using Application.Interfaces;
 using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -9,9 +11,11 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TeamsController(IMediator mediator, TeamMapper teamMapper) : ControllerBase
+public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileStorageService azureBlobStorageService) : ControllerBase
 {
     private readonly TeamMapper _teamMapper = teamMapper;
+    private readonly IFileStorageService _azureBlobStorageService = azureBlobStorageService;
+    private readonly string CONTAINER_NAME = "teams";
 
     /// <summary>
     /// Get all teams
@@ -31,31 +35,34 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper) : Contro
     /// </summary>
     /// <param name="id">Team ID</param>
     /// <returns>Team details</returns>
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(GetTeamByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetTeamByIdQueryResponse>> GetById(int id)
     {
         var query = new GetTeamByIdQuery { Id = id };
         var result = await mediator.Send(query);
-        
-        if (result == null)
-            return NotFound();
-            
+
         return Ok(result);
     }
 
     /// <summary>
     /// Create a new team
     /// </summary>
-    /// <param name="command">Team creation data</param>
+    /// <param name="dto"></param>
     /// <returns>Created team</returns>
     [HttpPost]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateTeamCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateTeamCommandResponse>> Create([FromBody] CreateTeamCommand command)
+    public async Task<ActionResult<CreateTeamCommandResponse>> Create([FromForm] CreateTeamDto dto)
     {
+        if (dto.Image != null)
+        {
+            var imageUrl = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
+            dto.Logo = imageUrl;
+        }
+        var command = _teamMapper.ToCreateCommand(dto);
         var result = await mediator.Send(command);
         
         if (!result.Succeeded)
@@ -68,15 +75,26 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper) : Contro
     /// Update an existing team
     /// </summary>
     /// <param name="id">Team ID</param>
-    /// <param name="command">Team update data</param>
+    /// <param name="dto">Team update data</param>
     /// <returns>Updated team</returns>
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(UpdateTeamCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UpdateTeamCommandResponse>> Update(int id, [FromBody] UpdateTeamCommand command)
+    public async Task<ActionResult<UpdateTeamCommandResponse>> Update(int id, [FromForm] UpdateTeamDto dto)
     {
+        dto.Id = id;
+        if (dto.Image != null)
+        {
+            var existingTeam = await mediator.Send(new GetTeamByIdQuery { Id = id });
+            if (existingTeam is { Succeeded: true, Team: not null } && !string.IsNullOrEmpty(existingTeam.Team.Logo))
+            {
+                await _azureBlobStorageService.DeleteImageAsync(existingTeam.Team.Logo, CONTAINER_NAME);
+            }
+            dto.Logo = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
+        }
+        var command = _teamMapper.ToUpdateCommand(dto);
         if (id != command.Id)
             return BadRequest("ID mismatch");
             
@@ -93,7 +111,7 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper) : Contro
     /// </summary>
     /// <param name="id">Team ID</param>
     /// <returns>Operation result</returns>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -106,5 +124,16 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper) : Contro
             return NotFound();
             
         return NoContent();
+    }
+    [HttpGet("Seasons/{id:int}")]
+    [ProducesResponseType(typeof(GetTeamSeasonsQueryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetTeamSeasonsQueryResponse>> GetTeamSeasons(int id)
+    {
+        var query = new GetTeamSeasonsQuery { TeamId = id };
+        var result = await mediator.Send(query);
+        if (!result.Succeeded)
+            return NotFound(result);
+        return Ok(result);
     }
 }

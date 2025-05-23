@@ -185,14 +185,14 @@ public class UpdateMatchCommandHandler : IRequestHandler<UpdateMatchCommand, Upd
             
             // Check if match already exists for these teams on the same date (excluding current match)
             if (match.HomeTeamId != request.HomeTeamId || match.AwayTeamId != request.AwayTeamId || 
-                match.ScheduledDateTimeUTC.Date != request.ScheduledDateTimeUTC.Date)
+                match.ScheduledDateTimeUtc.Date != request.ScheduledDateTimeUTC.Date)
             {
                 var existingMatches = await _unitOfWork.Matches.FindAsync(m => 
                     m.Id != request.Id &&
                     m.SeasonId == request.SeasonId &&
                     ((m.HomeTeamId == request.HomeTeamId && m.AwayTeamId == request.AwayTeamId) ||
                     (m.HomeTeamId == request.AwayTeamId && m.AwayTeamId == request.HomeTeamId)) &&
-                    m.ScheduledDateTimeUTC.Date == request.ScheduledDateTimeUTC.Date);
+                    m.ScheduledDateTimeUtc.Date == request.ScheduledDateTimeUTC.Date);
                     
                 if (existingMatches != null)
                 {
@@ -221,7 +221,7 @@ public class UpdateMatchCommandHandler : IRequestHandler<UpdateMatchCommand, Upd
             match.SeasonId = request.SeasonId;
             match.HomeTeamId = request.HomeTeamId;
             match.AwayTeamId = request.AwayTeamId;
-            match.ScheduledDateTimeUTC = request.ScheduledDateTimeUTC;
+            match.ScheduledDateTimeUtc = request.ScheduledDateTimeUTC;
             match.StadiumId = request.StadiumId;
             match.MatchWeek = request.MatchWeek;
             match.HomeCoachId = request.HomeCoachId;
@@ -256,7 +256,7 @@ public class UpdateMatchCommandHandler : IRequestHandler<UpdateMatchCommand, Upd
                 Id = match.Id,
                 HomeTeamName = homeTeam.Name,
                 AwayTeamName = awayTeam.Name,
-                ScheduledDateTime = match.ScheduledDateTimeUTC
+                ScheduledDateTime = match.ScheduledDateTimeUtc
             };
         }
         catch (Exception ex)

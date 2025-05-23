@@ -98,9 +98,10 @@ public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, C
                 LeagueName = request.LeagueName,
                 Country = request.Country,
                 CurrentRound = 1, // Default to first round
-                TotalRounds = request.TotalRounds,
                 IsActive = request.IsActive,
                 IsCompleted = false, // A new season is not completed
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
             };
             
             await _unitOfWork.Seasons.AddAsync(season);

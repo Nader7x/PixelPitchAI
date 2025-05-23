@@ -31,4 +31,5 @@ public partial class MatchMapper
     public partial DeleteMatchCommand ToDeleteCommand(int id);
 
     public partial Match ToMatchFromCreate(CreateMatchCommand request);
+    public partial MatchDetailsDto ToDetailsFromMatch(Match match);
 }

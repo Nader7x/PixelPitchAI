@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+
 
 namespace Domain.Models;
 
 
-public class Team
+public sealed class Team
 {
     public int Id { get; set; }
     public string? Name { get; set; }
@@ -23,11 +18,10 @@ public class Team
     public string? SecondaryColor { get; set; }
     
     // Navigation properties
-    public virtual Stadium? Stadium { get; set; }
-    public virtual ICollection<Player>? Players { get; set; }
-    public virtual ICollection<Coach>? Coaches { get; set; }
-    public virtual ICollection<TeamSeasonStats>? TeamSeasonStats { get; set; }
-    public virtual ICollection<PlayerSeasonStats>? PlayerSeasonStats { get; set; }
-    public virtual ICollection<Match>? HomeMatches { get; set; }
-    public virtual ICollection<Match>? AwayMatches { get; set; }
+    public Stadium? Stadium { get; set; }
+    public ICollection<Player>? Players { get; set; }
+    public ICollection<Coach>? Coaches { get; set; }
+    public ICollection<TeamSeasons>? TeamSeasons { get; set; }
+    public ICollection<Match>? HomeMatches { get; set; }
+    public ICollection<Match>? AwayMatches { get; set; }
 }

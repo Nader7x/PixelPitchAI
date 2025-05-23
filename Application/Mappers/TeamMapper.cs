@@ -29,6 +29,5 @@ public partial class TeamMapper
     public partial DeleteTeamCommand ToDeleteCommand(int id);
     // map from createcommand to a team 
     public partial Team ToTeamfromCreate(CreateTeamCommand command);
-    // map from team to teambyidqueryresponse
-    public partial GetTeamByIdQueryResponse? ToTeamByIdQueryResponse(Team team);
+    public partial TeamDto ToTeamDto (Team team);
 }

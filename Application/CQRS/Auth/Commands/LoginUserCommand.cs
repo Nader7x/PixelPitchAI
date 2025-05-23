@@ -20,6 +20,7 @@ public class LoginUserCommandResponse
     public string Email { get; set; }
     public string AccessToken { get; set; }
     public string RefreshToken { get; set; }
+    public IEnumerable<string> Roles { get; set; }
     public DateTime? TokenExpires { get; set; }
     public string Error { get; set; }
 }
@@ -63,6 +64,8 @@ public class LoginUserCommandHandler(
             // Generate JWT token and refresh token
             var (accessToken, refreshToken) = await tokenService.GenerateTokensAsync(user, request.IpAddress);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            // get usr roles
+            var roles = await userRepository.GetUserRolesAsync(user);
             // Return successful response
             return new LoginUserCommandResponse
             {
@@ -72,6 +75,7 @@ public class LoginUserCommandHandler(
                 Email = user.Email,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
+                Roles = roles,
                 TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")) // Should match JWT expiration
             };
         }

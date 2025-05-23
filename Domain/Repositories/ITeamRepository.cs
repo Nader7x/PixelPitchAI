@@ -13,7 +13,6 @@ public interface ITeamRepository : IRepository<Team>
     // Additional methods
     Task<List<Team>> GetByLeagueAsync(string league);
     Task<List<Team>> GetByCountryAsync(string country);
-    Task<List<Team>> GetWithStatsForSeasonAsync(int seasonId);
     Task<IEnumerable<Team>> SearchAsync(string query);
     Task<Team?> GetByIdAsyncWithStadium(int id);
 

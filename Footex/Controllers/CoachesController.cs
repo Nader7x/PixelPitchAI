@@ -69,12 +69,12 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
     {
 
         // Handle file upload if present
-        string photoUrl = coachDto.PhotoUrl;
+        string? photoUrl = coachDto.PhotoUrl;
         if (coachDto.Photo != null)
         {
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
         }
-
+        Console.WriteLine("Photo URL: " + photoUrl);
         coachDto.PhotoUrl = photoUrl;
         var command = _coachMapper.ToCreateCommand(coachDto);
 
@@ -83,7 +83,7 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
         if (!result.Succeeded)
             return BadRequest(result);
 
-        return CreatedAtAction(nameof(GetCoachById), new { id = result.Id }, result);
+        return Ok(result);
     }
 
     [HttpPut("{id}")]
@@ -93,8 +93,7 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateCoachCommandResponse>> UpdateCoach(int id, [FromForm] UpdateCoachDto coachDto)
     {
-        if (id != coachDto.Id)
-            return BadRequest(new { error = "ID in URL does not match ID in request body" });
+
 
 
         // Get existing coach
@@ -105,7 +104,7 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
             return NotFound(existingResult);
 
         // Handle file upload if present
-        string photoUrl = coachDto.PhotoUrl;
+        string? photoUrl = coachDto.PhotoUrl;
         if (coachDto.Photo != null)
         {
             // Delete old photo if it exists
@@ -121,18 +120,14 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
         coachDto.PhotoUrl = photoUrl;
 
         var command = _coachMapper.ToUpdateCommand(coachDto);
+        command.Id = id;
 
         var result = await _mediator.Send(command);
 
-        if (!result.Succeeded)
-        {
-            if (result.NotFound)
-                return NotFound(result);
-
-            return BadRequest(result);
-        }
-
-        return Ok(result);
+        if (result.Succeeded) return Ok(result);
+        if (result.NotFound)
+            return NotFound(result);
+        return BadRequest(result);
     }
 
     [HttpDelete("{id}")]

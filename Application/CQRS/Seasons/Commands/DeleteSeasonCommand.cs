@@ -51,7 +51,7 @@ public class DeleteSeasonCommandHandler : IRequestHandler<DeleteSeasonCommand, D
             }
             
             // Check if there are team statistics associated with this season
-            var teamStats = await _unitOfWork.TeamSeasonStats.FindAsync(ts => ts.SeasonId == request.Id);
+            var teamStats = await _unitOfWork.TeamSeasons.FindAsync(ts => ts.SeasonId == request.Id);
             if (teamStats != null)
             {
                 return new DeleteSeasonCommandResponse

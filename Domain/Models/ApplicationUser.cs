@@ -20,6 +20,7 @@ public sealed class ApplicationUser : IdentityUser
     public string? Gender { get; set; }
     public int Age { get; set; }
     public string? ImageUrl { get; set; }
+    public ICollection<Match> Matches { get; set; } = [];
     
     // Navigation properties
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

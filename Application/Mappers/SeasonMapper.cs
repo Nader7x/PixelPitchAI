@@ -20,9 +20,4 @@ public partial class SeasonMapper
     // Map from UpdateSeasonDto to UpdateSeasonCommand
     public partial UpdateSeasonCommand ToUpdateCommand(UpdateSeasonDto dto);
     
-    // Map from TeamStatistic to TeamStandingDto
-    public partial TeamStandingDto ToTeamStandingDto(TeamSeasonStats teamStatistic);
-    
-    // Map from list of TeamStatistic to list of TeamStandingDto
-    public partial List<TeamStandingDto> ToTeamStandingDtoList(IEnumerable<TeamSeasonStats> teamStatistics);
 }

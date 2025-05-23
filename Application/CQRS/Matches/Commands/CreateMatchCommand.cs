@@ -1,6 +1,4 @@
-using Domain.Models;
 using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Application.Mappers;
 using Domain.Interfaces;
@@ -17,9 +15,11 @@ public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
     
     [Required]
     public int AwayTeamId { get; set; }
+    public string? HomeTeamInMatchName { get; set; }
+    public string? AwayTeamInMatchName { get; set; }
     
     [Required]
-    public DateTime ScheduledDateTimeUTC { get; set; }
+    public DateTime ScheduledDateTimeUtc { get; set; }
     
     public int? StadiumId { get; set; }
     
@@ -31,6 +31,9 @@ public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
     
     [StringLength(50)]
     public string MatchStatus { get; set; } = "Scheduled";
+    public required string CreatorId { get; set; }
+    public DateTime? ModelSimulationStartTimeUtc { get; set; }
+
 }
 
 public class CreateMatchCommandResponse
@@ -39,8 +42,7 @@ public class CreateMatchCommandResponse
     public int Id { get; set; }
     public string? HomeTeamName { get; set; }
     public string? AwayTeamName { get; set; }
-    public DateTime ScheduledDateTime { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
 public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>
@@ -148,14 +150,14 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
                 m.SeasonId == request.SeasonId &&
                 ((m.HomeTeamId == request.HomeTeamId && m.AwayTeamId == request.AwayTeamId) ||
                 (m.HomeTeamId == request.AwayTeamId && m.AwayTeamId == request.HomeTeamId)) &&
-                m.ScheduledDateTimeUTC.Date == request.ScheduledDateTimeUTC.Date);
+                m.ScheduledDateTimeUtc.Date == request.ScheduledDateTimeUtc.Date);
                 
             if (existingMatches!=null)
             {
                 return new CreateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"A match between {homeTeam.Name} and {awayTeam.Name} already exists on {request.ScheduledDateTimeUTC.ToShortDateString()}"
+                    Error = $"A match between {homeTeam.Name} and {awayTeam.Name} already exists on {request.ScheduledDateTimeUtc.ToShortDateString()}"
                 };
             }
             
@@ -171,7 +173,6 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
                 Id = match.Id,
                 HomeTeamName = homeTeam.Name,
                 AwayTeamName = awayTeam.Name,
-                ScheduledDateTime = match.ScheduledDateTimeUTC
             };
         }
         catch (Exception ex)

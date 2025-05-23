@@ -18,18 +18,9 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
         return await _context.Players
             .FirstOrDefaultAsync(p => p.FullName.ToLower() == fullName.ToLower());
     }
-
-    public async Task<Player?> GetByStatsBombIdAsync(int? statsBombId)
-    {
-        if (!statsBombId.HasValue) return null;
-
-        return await _context.Players
-            .FirstOrDefaultAsync(p => p.StatsBombPlayerId == statsBombId.Value);
-    }
-
-
-
-    public async Task<IReadOnlyList<Player>> GetByNationalityAsync(string nationality)
+    
+    
+    public async Task<IEnumerable<Player>> GetByNationalityAsync(string nationality)
     {
         return await _context.Players
             .Where(p => p.Nationality.ToLower() == nationality.ToLower())
@@ -37,7 +28,7 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<Player>> GetByPreferredFootAsync(string? preferredFoot)
+    public async Task<IEnumerable<Player>> GetByPreferredFootAsync(string? preferredFoot)
     {
         return await _context.Players
             .Where(p => p.PreferredFoot.ToLower() == preferredFoot.ToLower())
@@ -45,15 +36,15 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
             .ToListAsync();
     }
 
-    public Task<IReadOnlyList<Player>> FindAsync(Func<Player, bool> predicate)
+    public new Task<IEnumerable<Player>> FindAsync(Func<Player, bool> predicate)
     {
-        var result = _context.Players
+        var result =  _context.Players
             .AsEnumerable()
             .Where(predicate)
             .OrderBy(p => p.FullName)
             .ToList();
 
-        return Task.FromResult((IReadOnlyList<Player>)result);
+        return Task.FromResult<IEnumerable<Player>>(result) ;
     }
     public async Task<IEnumerable<Player>> SearchAsync(string query)
     {
@@ -65,7 +56,6 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
                 p.Nationality.ToLower().Contains(query) ||
                 p.Team.Name.ToLower().Contains(query))
             .Include(p => p.Team)
-            .Include(p => p.PlayerSeasonStats)
             .ToListAsync();
     }
     

@@ -1,7 +1,6 @@
 using Application.Dtos;
 using MediatR;
 using Domain.Interfaces;
-using System.Collections.Generic;
 using Application.Mappers;
 using Domain.Models;
 
@@ -17,21 +16,13 @@ public class GetAllCoachesQuery : IRequest<GetAllCoachesQueryResponse>
 public class GetAllCoachesQueryResponse
 {
     public bool Succeeded { get; set; }
-    public List<CoachDto> Coaches { get; set; }
+    public List<CoachDto>? Coaches { get; set; }
     public string Error { get; set; }
 }
 
-public class GetAllCoachesQueryHandler : IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>
+public class GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
+    : IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly CoachMapper _coachMapper;
-    
-    public GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _coachMapper = coachMapper;
-    }
-    
     public async Task<GetAllCoachesQueryResponse> Handle(GetAllCoachesQuery request, CancellationToken cancellationToken)
     {
         try
@@ -41,25 +32,25 @@ public class GetAllCoachesQueryHandler : IRequestHandler<GetAllCoachesQuery, Get
             // Apply filters if provided
             if (!string.IsNullOrEmpty(request.Nationality) && request.TeamId.HasValue)
             {
-                coaches = await _unitOfWork.Coaches.GetAllAsync(c => 
+                coaches = await unitOfWork.Coaches.GetAllAsync(c => 
                     c.Nationality.ToLower() == request.Nationality.ToLower() && 
                     c.TeamId == request.TeamId.Value);
             }
             else if (!string.IsNullOrEmpty(request.Nationality))
             {
-                coaches = await _unitOfWork.Coaches.GetAllAsync(c => 
+                coaches = await unitOfWork.Coaches.GetAllAsync(c => 
                     c.Nationality.ToLower() == request.Nationality.ToLower());
             }
             else if (request.TeamId.HasValue)
             {
-                coaches = await _unitOfWork.Coaches.GetAllAsync(c => c.TeamId == request.TeamId.Value);
+                coaches = await unitOfWork.Coaches.GetAllAsync(c => c.TeamId == request.TeamId.Value);
             }
             else
             {
-                coaches = await _unitOfWork.Coaches.GetAllAsync();
+                coaches = await unitOfWork.Coaches.GetAllAsync();
             }
 
-            var coachDtos = _coachMapper.ToDtoList(coaches);
+            var coachDtos = coachMapper.ToDtoList(coaches);
             return new GetAllCoachesQueryResponse
             {
                 Succeeded = true,

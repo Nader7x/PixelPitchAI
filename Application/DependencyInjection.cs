@@ -35,6 +35,7 @@ public static class DependencyInjection
             options.EnableDetailedErrors = true;
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
         });
+        services.AddHttpClient();
 
         return services;
     }

@@ -17,7 +17,7 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Where(m => m.SeasonId == seasonId)
-            .OrderByDescending(m => m.ScheduledDateTimeUTC)
+            .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .ToListAsync();
     }
 
@@ -28,7 +28,7 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
             .Where(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId)
-            .OrderByDescending(m => m.ScheduledDateTimeUTC)
+            .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .ToListAsync();
     }
 
@@ -38,8 +38,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
-            .Where(m => m.ScheduledDateTimeUTC >= start && m.ScheduledDateTimeUTC <= end)
-            .OrderBy(m => m.ScheduledDateTimeUTC)
+            .Where(m => m.ScheduledDateTimeUtc >= start && m.ScheduledDateTimeUtc <= end)
+            .OrderBy(m => m.ScheduledDateTimeUtc)
             .ToListAsync();
     }
 
@@ -50,8 +50,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
-            .Where(m => m.ScheduledDateTimeUTC > now)
-            .OrderBy(m => m.ScheduledDateTimeUTC)
+            .Where(m => m.ScheduledDateTimeUtc > now)
+            .OrderBy(m => m.ScheduledDateTimeUtc)
             .Take(count)
             .ToListAsync();
     }
@@ -63,8 +63,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
-            .Where(m => m.ScheduledDateTimeUTC <= now && m.MatchStatus == "Completed")
-            .OrderByDescending(m => m.ScheduledDateTimeUTC)
+            .Where(m => m.ScheduledDateTimeUtc <= now && m.MatchStatus == "Completed")
+            .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .Take(count)
             .ToListAsync();
     }
@@ -76,7 +76,7 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
             .Where(m => m.MatchStatus.ToLower() == status.ToLower())
-            .OrderByDescending(m => m.ScheduledDateTimeUTC)
+            .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .ToListAsync();
     }
 
@@ -97,7 +97,9 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Include(m => m.AwayTeam)
             .Include(m => m.Season)
             .Include(m => m.Stadium)
-            .FirstOrDefaultAsync(m => m.Id == matchId);
+            .Include(m => m.Creator)
+            .Include(m => m.MatchEvents)
+            .FirstOrDefaultAsync(m => m != null && m.Id == matchId);
     }
 
     public async Task<IEnumerable<Match>> SearchAsync(string query)

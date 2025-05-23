@@ -1,6 +1,4 @@
-using Domain.Models;
 using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Application.Mappers;
 using Domain.Interfaces;
@@ -12,6 +10,7 @@ public class CreatePlayerCommand : IRequest<CreatePlayerCommandResponse>
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string FullName { get; set; }
+    public string KnownName { get; set; }
     
     [StringLength(50)]
     public string? Nationality { get; set; }
@@ -26,8 +25,8 @@ public class CreatePlayerCommand : IRequest<CreatePlayerCommandResponse>
     public int? TeamId { get; set; }
     
     public int? ShirtNumber { get; set; }
+    public string? Position { get; set; }
     
-    public int? StatsBombPlayerId { get; set; }
 }
 
 public class CreatePlayerCommandResponse
@@ -38,23 +37,15 @@ public class CreatePlayerCommandResponse
     public string Error { get; set; }
 }
 
-public class CreatePlayerCommandHandler : IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse>
+public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
+    : IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly PlayerMapper _playerMapper;
-    
-    public CreatePlayerCommandHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _playerMapper = playerMapper;
-    }
-    
     public async Task<CreatePlayerCommandResponse> Handle(CreatePlayerCommand request, CancellationToken cancellationToken)
     {
         try
         {
             // Check if player with the same name already exists
-            var existingPlayer = await _unitOfWork.Players.GetByFullNameAsync(request.FullName);
+            var existingPlayer = await unitOfWork.Players.GetByFullNameAsync(request.FullName);
             if (existingPlayer != null)
             {
                 return new CreatePlayerCommandResponse
@@ -65,10 +56,10 @@ public class CreatePlayerCommandHandler : IRequestHandler<CreatePlayerCommand, C
             }
             
             // Create new player
-            var player = _playerMapper.ToPlayerFromCreate(request);
+            var player = playerMapper.ToPlayerFromCreate(request);
             
-            await _unitOfWork.Players.AddAsync(player);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Players.AddAsync(player);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return new CreatePlayerCommandResponse
             {

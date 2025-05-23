@@ -29,6 +29,8 @@ public class CoachConfiguration : IEntityTypeConfiguration<Coach>
         builder.HasIndex(c => c.Nationality)
             .HasMethod("btree")
             .HasDatabaseName("IX_Coach_Nationality");
+        builder.Property(c => c.DateOfBirth)
+            .HasColumnType("date");
             
         // If TeamId exists in the entity
         if (builder.Metadata.FindProperty("TeamId") != null)

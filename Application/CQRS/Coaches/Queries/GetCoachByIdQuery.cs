@@ -14,8 +14,8 @@ public class GetCoachByIdQueryResponse
 {
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
-    public CoachDto Coach { get; set; }
-    public string Error { get; set; }
+    public CoachDto? Coach { get; set; }
+    public string? Error { get; set; }
 }
 
 public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
@@ -40,10 +40,9 @@ public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCo
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Coach with ID {request.Id} not found"
+                    Error = "Coach not found"
                 };
             }
-            
             var coachDto = _coachMapper.ToDto(coach);
             
             return new GetCoachByIdQueryResponse

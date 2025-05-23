@@ -18,9 +18,18 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.Property(m => m.HomeTeamScore).HasColumnType("smallint");
         builder.Property(m => m.AwayTeamScore).HasColumnType("smallint");
         builder.Property(m => m.MatchStatus).HasMaxLength(20).HasColumnType("varchar(20)");
+
+        builder.Property(m => m.HomeTeamInMatchName).HasMaxLength(500); 
+        builder.Property(m => m.AwayTeamInMatchName).HasMaxLength(500); 
         
+        // New property configurations for possession
+        builder.Property(m => m.HomeTeamPossessionDurationSeconds).HasColumnType("bigint");
+        builder.Property(m => m.AwayTeamPossessionDurationSeconds).HasColumnType("bigint");
+        builder.Property(m => m.LastEventTimestampSeconds).HasColumnType("integer");
+        builder.Property(m => m.LastEventPossessingTeamName).HasMaxLength(500); // MaxLength already defined in model, this reinforces it.
+
         // Use timestamp for date fields
-        builder.Property(m => m.ScheduledDateTimeUTC)
+        builder.Property(m => m.ScheduledDateTimeUtc)
             .HasColumnType("timestamp with time zone");
             
         builder.Property(m => m.CreatedAt)
@@ -41,7 +50,7 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .HasDatabaseName("IX_Match_SeasonRound");
             
         // Find matches by date
-        builder.HasIndex(m => m.ScheduledDateTimeUTC)
+        builder.HasIndex(m => m.ScheduledDateTimeUtc)
             .HasMethod("btree")
             .HasDatabaseName("IX_Match_KickoffTime");
             
@@ -63,6 +72,16 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasIndex(m => new { m.HomeTeamId, m.AwayTeamId, m.SeasonId })
             .HasMethod("btree")
             .HasDatabaseName("IX_Match_Teams_Season");
+
+        // Add index for CreatorId
+        builder.HasIndex(m => m.CreatorId)
+            .HasMethod("btree")
+            .HasDatabaseName("IX_Match_CreatorId");
+
+        // Add index for StadiumId
+        builder.HasIndex(m => m.StadiumId)
+            .HasMethod("btree")
+            .HasDatabaseName("IX_Match_StadiumId");
             
         // Relationships
 

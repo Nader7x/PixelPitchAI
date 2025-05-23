@@ -29,8 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ISeasonRepository, SeasonRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<ITeamRepository, TeamRepository>();
-        services.AddScoped<IPlayerSeasonStatsRepository, PlayerSeasonStatsRepository>();
-        services.AddScoped<ITeamSeasonStatsRepository, TeamSeasonStatsRepository>();
+        services.AddScoped<ITeamSeasonsRepository, TeamSeasonsRepository>();
         services.AddScoped<IMatchEventsRepository, MatchEventsRepository>();
         services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
         services.AddScoped<ICoachRepository,CoachRepository>();
@@ -39,24 +38,11 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISearchService, SearchService>();
+        // Register EventAnalysis service
+        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();
         
         // Register RabbitMQ connection and client
-        services.AddSingleton<IConnection>(sp => 
-        {
-            var factory = new ConnectionFactory
-            {
-                HostName = configuration["RabbitMQ:HostName"] ?? "localhost",
-                UserName = configuration["RabbitMQ:UserName"],
-                Password = configuration["RabbitMQ:Password"],
-                VirtualHost = configuration["RabbitMQ:VirtualHost"] ?? "/"
-            };
-            var connection = factory.CreateConnectionAsync();
-        
-            return connection.Result;
-        });
-
-            
-
+        services.AddHostedService<MatchEventRabbitMqClient>();
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -78,8 +64,7 @@ public static class DependencyInjection
             // Register the column writers for use in Program.cs
             services.AddSingleton(columnWriters);
         }
-        // Register EventAnalysis service
-        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();
+   
 
         return services;
     }

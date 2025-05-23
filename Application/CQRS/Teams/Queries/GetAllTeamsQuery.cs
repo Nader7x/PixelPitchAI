@@ -15,7 +15,9 @@ public class GetAllTeamsQuery : IRequest<GetAllTeamsQueryResponse>
 
 public class GetAllTeamsQueryResponse
 {
-    public List<TeamDto> Teams { get; set; } = new();
+    public bool Succeeded { get; set; }
+    public string? error { get; set; }
+    public List<TeamDto> Teams { get; set; }
 }
 
 

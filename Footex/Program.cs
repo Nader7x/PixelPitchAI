@@ -23,6 +23,20 @@ try
 
     // Add services to the container.
     builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAllOrigins",
+            corsbuilder =>
+            {
+                corsbuilder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+    });
+    builder.Services.Configure<RouteOptions>(options =>
+    {
+        options.LowercaseUrls = true;
+    });
 
     // Configure Swagger with JWT support
     builder.Services.AddSwaggerGen(c =>
@@ -163,6 +177,7 @@ try
 
     // Add authentication and authorization middleware
     app.UseAuthentication();
+    app.UseCors("AllowAllOrigins");
     app.UseAuthorization();
     app.MapHub<MatchHub>("/match_event");
 

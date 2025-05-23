@@ -26,6 +26,12 @@ public class StadiumConfiguration : IEntityTypeConfiguration<Stadium>
         builder.Property(s => s.Latitude).HasPrecision(9, 6);
         builder.Property(s => s.Longitude).HasPrecision(9, 6);
         
+        // Use 'date' type for BuiltDate and LastRenovation
+        builder.Property(s => s.BuiltDate)
+            .HasColumnType("date");
+        builder.Property(s => s.LastRenovation)
+            .HasColumnType("date");
+        
         // Use B-tree indexes for exact matches
         builder.HasIndex(s => s.Name)
             .HasMethod("btree")

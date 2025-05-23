@@ -18,22 +18,14 @@ public class GetMatchByIdQueryResponse
     public string Error { get; set; }
 }
 
-public class GetMatchByIdQueryHandler : IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>
+public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+    : IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly MatchMapper _matchMapper;
-    
-    public GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _matchMapper = matchMapper;
-    }
-    
     public async Task<GetMatchByIdQueryResponse> Handle(GetMatchByIdQuery request, CancellationToken cancellationToken)
     {
         try
         {
-            var match = await _unitOfWork.Matches.GetByIdWithDetailsAsync(request.Id);
+            var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(request.Id);
             if (match == null)
             {
                 return new GetMatchByIdQueryResponse
@@ -44,7 +36,7 @@ public class GetMatchByIdQueryHandler : IRequestHandler<GetMatchByIdQuery, GetMa
                 };
             }
             
-            var matchDto = _matchMapper.ToDto(match);
+            var matchDto = matchMapper.ToDto(match);
             return new GetMatchByIdQueryResponse
             {
                 Succeeded = true,

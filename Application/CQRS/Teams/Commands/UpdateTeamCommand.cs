@@ -1,6 +1,8 @@
 
 using MediatR;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Runtime.InteropServices.JavaScript;
 using Application.Mappers;
 using Domain.Interfaces;
 
@@ -43,6 +45,7 @@ public class UpdateTeamCommand : IRequest<UpdateTeamCommandResponse>
     public string? SecondaryColor { get; set; }
     
     public int? StadiumId { get; set; }
+    public int? CoachId { get; set; }
 }
 
 public class UpdateTeamCommandResponse
@@ -71,6 +74,20 @@ public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, Updat
         {
             // Check if team exists
             var team = await _unitOfWork.Teams.GetByIdAsync(request.Id);
+            if (request.CoachId != null)
+            {
+                var teamCoach = await _unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
+                if (teamCoach.TeamId.HasValue && teamCoach.TeamId != request.Id)
+                {
+                    return new UpdateTeamCommandResponse()
+                    {
+                        Succeeded = false,
+                        Error = $"Coach with ID {request.CoachId} is already assigned to another team."
+                    };
+                }
+                teamCoach.TeamId = request.Id;
+            }
+
             if (team == null)
             {
                 return new UpdateTeamCommandResponse
@@ -98,14 +115,23 @@ public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, Updat
             // Update team properties
             team.Name = request.Name;
             team.ShortName = request.ShortName;
-            team.Logo = request.Logo;
+            if (!string.IsNullOrEmpty(request.Logo))
+            {
+                team.Logo = request.Logo;
+            }
             team.Country = request.Country;
-            team.City = request.City;
-            team.League = request.League;
-            team.FoundationDate = request.FoundationDate;
+            if (!string.IsNullOrEmpty(request.City))
+            {
+                team.League = request.League;
+            }
+            if (!string.IsNullOrEmpty(request.FoundationDate.ToString(CultureInfo.InvariantCulture)))
+            {
+                team.FoundationDate = request.FoundationDate;
+            }
             team.PrimaryColor = request.PrimaryColor;
             team.SecondaryColor = request.SecondaryColor;
             team.StadiumId = request.StadiumId;
+            team.City = request.City;
             
              _unitOfWork.Teams.UpdateAsync(team);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

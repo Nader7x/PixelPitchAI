@@ -28,6 +28,10 @@ public class MatchEventsConfiguration : IEntityTypeConfiguration<MatchEvents>
         // Add additional indexes for frequently queried fields
         builder.HasIndex(e => new { e.GoalsHomeTeam, e.GoalsAwayTeam })
             .HasDatabaseName("IX_MatchEvents_Goals");
+
+        builder.HasIndex(e => e.LastUpdated)
+            .HasMethod("btree")
+            .HasDatabaseName("IX_MatchEvents_LastUpdated");
             
         // Set storage parameters for the large table
         builder.ToTable("MatchEvents", tb => tb.HasComment("Contains event data for matches"));

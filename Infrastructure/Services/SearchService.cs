@@ -112,12 +112,12 @@ public class SearchService : ISearchService
             Id = match.Id.ToString(),
             Type = "Match",
             Name = $"{match.HomeTeam?.Name} vs {match.AwayTeam?.Name}",
-            Description = $"Match on {match.ScheduledDateTimeUTC:d} at {match.Stadium.Name}",
+            Description = $"Match on {match.ScheduledDateTimeUtc:d} at {match.Stadium.Name}",
             ThumbnailUrl = "/images/default-match.png", // Default image
             Url = $"/matches/{match.Id}",
             AdditionalData = new Dictionary<string, string?>
             {
-                { "Date", match.ScheduledDateTimeUTC.ToString("yyyy-MM-dd") },
+                { "Date", match.ScheduledDateTimeUtc.ToString("yyyy-MM-dd") },
                 { "Venue", match.Stadium.Name },
                 { "Status", match.MatchStatus.ToString() }
             }
@@ -152,7 +152,7 @@ public class SearchService : ISearchService
             Type = "Coach",
             Name = coach.FullName,
             Description = $"{coach.Role} - {coach.Team?.Name ?? "Unattached"}",
-            ThumbnailUrl = coach.ProfileImageUrl ?? "/images/default-coach.png",
+            ThumbnailUrl = coach.PhotoUrl ?? "/images/default-coach.png",
             Url = $"/coaches/{coach.Id}",
             AdditionalData = new Dictionary<string, string>
             {

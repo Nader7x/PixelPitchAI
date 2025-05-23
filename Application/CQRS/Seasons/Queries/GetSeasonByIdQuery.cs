@@ -37,14 +37,10 @@ public class GetSeasonByIdQueryHandler(IUnitOfWork unitOfWork, SeasonMapper seas
             }
             
             // Get team standings summary for the season
-            var teamStats = await unitOfWork.TeamSeasonStats.GetAllAsync(ts => ts.SeasonId == request.Id);
-            var standings = seasonMapper.ToTeamStandingDtoList(teamStats).OrderBy(s => s.Position).ToList();
+            var teamStats = await unitOfWork.TeamSeasons.GetAllAsync(ts => ts.SeasonId == request.Id);
             
             // Count the matches for this season
-            var matches = await unitOfWork.Matches.GetAllAsync(m => m.SeasonId == request.Id);
             var seasonDto = seasonMapper.ToDto(season);
-            seasonDto.MatchCount = matches.Count();
-            seasonDto.TeamStandings = standings;
             
             return new GetSeasonByIdQueryResponse
             {

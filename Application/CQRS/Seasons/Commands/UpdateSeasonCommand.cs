@@ -136,6 +136,8 @@ public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, U
             season.TotalRounds = request.TotalRounds;
             season.IsActive = request.IsActive;
             season.IsCompleted = request.IsCompleted;
+            season.StartDate = request.StartDate;
+            season.EndDate = request.EndDate;
             
             _unitOfWork.Seasons.UpdateAsync(season);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

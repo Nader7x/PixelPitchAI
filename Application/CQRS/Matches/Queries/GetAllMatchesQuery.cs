@@ -51,8 +51,8 @@ public class GetAllMatchesQueryHandler : IRequestHandler<GetAllMatchesQuery, Get
                     (!request.SeasonId.HasValue || m.SeasonId == request.SeasonId.Value) &&
                     (!request.TeamId.HasValue || m.HomeTeamId == request.TeamId.Value || m.AwayTeamId == request.TeamId.Value) &&
                     (string.IsNullOrEmpty(request.Status) || m.MatchStatus == request.Status) &&
-                    (!request.FromDate.HasValue || m.ScheduledDateTimeUTC >= request.FromDate.Value) &&
-                    (!request.ToDate.HasValue || m.ScheduledDateTimeUTC <= request.ToDate.Value) &&
+                    (!request.FromDate.HasValue || m.ScheduledDateTimeUtc >= request.FromDate.Value) &&
+                    (!request.ToDate.HasValue || m.ScheduledDateTimeUtc <= request.ToDate.Value) &&
                     (!request.MatchWeek.HasValue || m.MatchWeek == request.MatchWeek.Value)
                 );
             }

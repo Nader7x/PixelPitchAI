@@ -8,8 +8,7 @@ public interface IUnitOfWork : IDisposable
     ISeasonRepository Seasons { get; }
     IMatchRepository Matches { get; }
     ITeamRepository Teams { get; }
-    IPlayerSeasonStatsRepository PlayerSeasonStats { get; }
-    ITeamSeasonStatsRepository TeamSeasonStats { get; }
+    ITeamSeasonsRepository TeamSeasons { get; }
     IMatchEventsRepository MatchEvents { get; }
     IApplicationUserRepository ApplicationUser { get; }
     ICoachRepository Coaches { get; }

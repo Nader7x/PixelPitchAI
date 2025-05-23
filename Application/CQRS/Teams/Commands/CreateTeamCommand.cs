@@ -41,6 +41,7 @@ public class CreateTeamCommand : IRequest<CreateTeamCommandResponse>
     public string? SecondaryColor { get; set; }
     
     public int? StadiumId { get; set; }
+    public int? CoachId { get; set; }
 }
 
 public class CreateTeamCommandResponse
@@ -51,23 +52,28 @@ public class CreateTeamCommandResponse
     public string Error { get; set; }
 }
 
-public class CreateTeamCommandHandler : IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse>
+public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
+    : IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly TeamMapper _teamMapper;
-    
-    public CreateTeamCommandHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _teamMapper = teamMapper;
-    }
-    
     public async Task<CreateTeamCommandResponse> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            Coach? teamCoach = null;
             // Check if team with the same name already exists
-            var existingTeam = await _unitOfWork.Teams.GetByNameAsync(request.Name);
+            var existingTeam = await unitOfWork.Teams.GetByNameAsync(request.Name);
+            if (request.CoachId != null)
+            {
+                teamCoach = await unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
+                if (teamCoach == null)
+                {
+                    return new CreateTeamCommandResponse
+                    {
+                        Succeeded = false,
+                        Error = $"Coach with ID '{request.CoachId}' does not exist"
+                    };
+                }
+            }
             if (existingTeam != null)
             {
                 return new CreateTeamCommandResponse
@@ -78,10 +84,12 @@ public class CreateTeamCommandHandler : IRequestHandler<CreateTeamCommand, Creat
             }
             
             // Create new team
-            var team = _teamMapper.ToTeamfromCreate(request);
+            var team = teamMapper.ToTeamfromCreate(request);
             
-            await _unitOfWork.Teams.AddAsync(team);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Teams.AddAsync(team);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            if (teamCoach != null) teamCoach.TeamId = team.Id;
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return new CreateTeamCommandResponse
             {

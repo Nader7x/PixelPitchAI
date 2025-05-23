@@ -1,4 +1,5 @@
 
+using Application.Dtos;
 using Application.Mappers;
 using Domain.Interfaces;
 using MediatR;
@@ -12,18 +13,9 @@ public class GetTeamByIdQuery : IRequest<GetTeamByIdQueryResponse>
 
 public class GetTeamByIdQueryResponse
 {
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? ShortName { get; set; }
-    public string? Logo { get; set; }
-    public string? Country { get; set; }
-    public string? City { get; set; }
-    public string? League { get; set; }
-    public DateTime FoundationDate { get; set; }
-    public string? PrimaryColor { get; set; }
-    public string? SecondaryColor { get; set; }
-    public int? StadiumId { get; set; }
-    public string? StadiumName { get; set; }
+    public bool Succeeded { get; set; }
+    public string? error { get; set; }
+    public TeamDto? Team { get; set; }
 }
 
 public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
@@ -37,9 +29,17 @@ public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapp
         var team = await unitOfWork.Teams.GetByIdAsyncWithStadium(request.Id);
         
         if (team == null)
-            return null;
-        var teamResponse = _teamMapper.ToTeamByIdQueryResponse(team);
+            return new GetTeamByIdQueryResponse
+            {
+                Succeeded = false,
+                error = "Team not found"
+            };
+        var teamDto = _teamMapper.ToTeamDto(team);
             
-        return teamResponse;
+        return new GetTeamByIdQueryResponse
+        {
+            Succeeded = true,
+            Team = teamDto
+        };
     }
 }

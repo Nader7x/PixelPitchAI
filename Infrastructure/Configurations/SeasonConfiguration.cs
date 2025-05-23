@@ -18,6 +18,8 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
         // Use boolean type for flags
         builder.Property(s => s.IsActive).HasColumnType("boolean").HasDefaultValue(false);
         builder.Property(s => s.IsCompleted).HasColumnType("boolean").HasDefaultValue(false);
+        builder.Property(s => s.StartDate).HasColumnType("date");
+        builder.Property(s => s.EndDate).HasColumnType("date");
         
         
         // Set timestamp for audit fields
@@ -53,14 +55,9 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
             .HasForeignKey(m => m.SeasonId)
             .OnDelete(DeleteBehavior.Cascade);
             
-        builder.HasMany(s => s.TeamSeasonStats)
+        builder.HasMany(s => s.SeasonTeams)
             .WithOne(t => t.Season)
             .HasForeignKey(t => t.SeasonId)
-            .OnDelete(DeleteBehavior.Cascade);
-            
-        builder.HasMany(s => s.PlayerSeasonStats)
-            .WithOne(p => p.Season)
-            .HasForeignKey(p => p.SeasonId)
             .OnDelete(DeleteBehavior.Cascade);
             
         // Table comment

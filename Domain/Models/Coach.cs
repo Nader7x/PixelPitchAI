@@ -1,11 +1,9 @@
-using System;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Models;
 
-public class Coach
+public sealed class Coach
 {
     public int Id { get; set; }
     
@@ -28,18 +26,20 @@ public class Coach
     
     [Required]
     [StringLength(50)]
-    public string Role { get; set; }
+    public string? Role { get; set; }
     
-    public int YearsOfExperience { get; set; }
+    public int? YearsOfExperience { get; set; }
     
-    public string ProfileImageUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     
     [StringLength(500)]
-    public string Biography { get; set; }
+    public string? Biography { get; set; }
+    public string? PreferredFormation { get; set; }
+    public string? CoachingStyle { get; set; }
     
     // Foreign keys
     public int? TeamId { get; set; }
     
     // Navigation properties
-    public virtual Team Team { get; set; }
+    public Team? Team { get; set; }
 }

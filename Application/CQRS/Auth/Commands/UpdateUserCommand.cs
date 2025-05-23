@@ -10,15 +10,17 @@ using Domain.Interfaces;
 public class UpdateUserCommand : IRequest<UpdateUserCommandResponse>
 {
     public string Id { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string PhoneNumber { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? PhoneNumber { get; set; }
     public string? CurrentPassword { get; set; }
     public string? NewPassword { get; set; }
     public string? ImageUrl { get; set; }
 
-    public int Age { get; set; }
+    public int? Age { get; set; }
+    public string? Gender { get; set; }
+
 }
 
 public class UpdateUserCommandResponse
@@ -26,6 +28,8 @@ public class UpdateUserCommandResponse
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
     public string Error { get; set; }
+    public string? ImageUrl { get; set; }
+    
 }
 
 public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<ApplicationUser> usermanager)
@@ -52,17 +56,44 @@ public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<Applic
                 await _usermanager.ChangePasswordAsync(user,request.CurrentPassword, request.NewPassword);
             }
 
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-            user.Email = request.Email;
-            user.PhoneNumber = request.PhoneNumber;
-            user.Age = request.Age;
-            user.ImageUrl = request.ImageUrl;
+            if (!string.IsNullOrEmpty(request.FirstName))
+            {
+                user.FirstName = request.FirstName;
+            }
+            if (!string.IsNullOrEmpty(request.LastName))
+            {
+                user.LastName = request.LastName;
+            }
+            if (!string.IsNullOrEmpty(request.Email))
+            {
+                user.Email = request.Email;
+            }
+            if (request.Age != 0)
+                if (request.Age != null)
+                    user.Age = request.Age.Value;
+            if (!string.IsNullOrEmpty(request.PhoneNumber))
+            {
+                user.PhoneNumber = request.PhoneNumber;
+            }
+            if (!string.IsNullOrEmpty(request.Gender))
+            {
+                user.Gender = request.Gender;
+            }
+            if (!string.IsNullOrEmpty(request.ImageUrl))
+            {
+                user.ImageUrl = request.ImageUrl;
+            }
             
-
-            unitOfWork.ApplicationUser.UpdateAsync(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-
+            
+            if(user.ImageUrl!=null)
+            {
+                return new UpdateUserCommandResponse
+                {
+                    Succeeded = true,
+                    ImageUrl = user.ImageUrl
+                };
+            }
             return new UpdateUserCommandResponse
             {
                 Succeeded = true

@@ -39,16 +39,7 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
             .OrderBy(t => t.Name)
             .ToListAsync();
     }
-
-    public async Task<List<Team>> GetWithStatsForSeasonAsync(int seasonId)
-    {
-        return await _context.Teams
-            .Include(t => t.PlayerSeasonStats)
-            .ThenInclude(ps => ps.Season)
-            .Where(t => t.PlayerSeasonStats.Any(ps => ps.SeasonId == seasonId))
-            .OrderBy(t => t.Name)
-            .ToListAsync();
-    }
+    
 
     public async Task<IReadOnlyList<Team>> GetByCountryAsync(string country)
     {

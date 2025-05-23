@@ -1,0 +1,46 @@
+using Application.Dtos;
+using Application.Mappers;
+using Domain.Interfaces;
+using MediatR;
+
+namespace Application.CQRS.Matches.Queries;
+
+public class GetUserMatchesQuery : IRequest<GetUserMatchesQueryResponse>
+{
+    public required string UserId { get; set; }
+}
+public class GetUserMatchesQueryResponse
+{
+    public List<MatchDto>? Matches { get; set; }
+    public bool Succeeded { get; set; }
+    public string? Error { get; set; }
+}
+
+public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+    : IRequestHandler<GetUserMatchesQuery, GetUserMatchesQueryResponse>
+{
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly MatchMapper _matchMapper = matchMapper;
+
+    public async Task<GetUserMatchesQueryResponse> Handle(GetUserMatchesQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userMatches = await _unitOfWork.Matches.GetAllAsync(m => m.CreatorId == request.UserId);
+            var matchesDtos = _matchMapper.ToDtoList(userMatches);
+            return new GetUserMatchesQueryResponse()
+            {
+                Succeeded = true,
+                Matches = matchesDtos,
+            };
+        }
+        catch (Exception ex)
+        {
+            return new GetUserMatchesQueryResponse()
+            {
+                Succeeded = false,
+                Error = ex.Message
+            };
+        }
+    }
+}

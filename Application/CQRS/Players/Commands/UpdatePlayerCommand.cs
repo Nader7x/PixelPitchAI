@@ -1,5 +1,4 @@
 using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Domain.Interfaces;
 
@@ -13,8 +12,7 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string FullName { get; set; }
-    
-    public DateTime DateOfBirth { get; set; }
+    public string KnownName { get; set; }
     
     [StringLength(50)]
     public string? Nationality { get; set; }
@@ -24,11 +22,7 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     
     [StringLength(20)]
     public string PreferredFoot { get; set; }
-    
-    public int? Height { get; set; }
-    
-    public int? Weight { get; set; }
-    
+
     [StringLength(500)]
     public string PhotoUrl { get; set; }
     
@@ -36,14 +30,6 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     
     public int? ShirtNumber { get; set; }
     
-    public decimal? MarketValue { get; set; }
-    
-    [StringLength(50)]
-    public string ContractStatus { get; set; }
-    
-    public DateTime? ContractExpiryDate { get; set; }
-    
-    public int? StatsBombPlayerId { get; set; }
 }
 
 public class UpdatePlayerCommandResponse
@@ -55,21 +41,15 @@ public class UpdatePlayerCommandResponse
     public string Error { get; set; }
 }
 
-public class UpdatePlayerCommandHandler : IRequestHandler<UpdatePlayerCommand, UpdatePlayerCommandResponse>
+public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<UpdatePlayerCommand, UpdatePlayerCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    
-    public UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-    
     public async Task<UpdatePlayerCommandResponse> Handle(UpdatePlayerCommand request, CancellationToken cancellationToken)
     {
         try
         {
             // Check if player exists
-            var player = await _unitOfWork.Players.GetByIdAsync(request.Id);
+            var player = await unitOfWork.Players.GetByIdAsync(request.Id);
             if (player == null)
             {
                 return new UpdatePlayerCommandResponse
@@ -83,7 +63,7 @@ public class UpdatePlayerCommandHandler : IRequestHandler<UpdatePlayerCommand, U
             // Check for name conflicts
             if (player.FullName != request.FullName)
             {
-                var existingPlayer = await _unitOfWork.Players.GetByFullNameAsync(request.FullName);
+                var existingPlayer = await unitOfWork.Players.GetByFullNameAsync(request.FullName);
                 if (existingPlayer != null && existingPlayer.Id != request.Id)
                 {
                     return new UpdatePlayerCommandResponse
@@ -98,13 +78,16 @@ public class UpdatePlayerCommandHandler : IRequestHandler<UpdatePlayerCommand, U
             player.FullName = request.FullName;
             player.Nationality = request.Nationality;
             player.PreferredFoot = request.PreferredFoot;
-            player.PhotoUrl = request.PhotoUrl;
+            player.Position = request.Position;
+            if (!string.IsNullOrEmpty(request.PhotoUrl))
+            {
+                player.PhotoUrl = request.PhotoUrl;
+            }
             player.TeamId = request.TeamId;
             player.ShirtNumber = request.ShirtNumber;
-            player.StatsBombPlayerId = request.StatsBombPlayerId;
             
-            _unitOfWork.Players.UpdateAsync(player);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Players.UpdateAsync(player);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             
             return new UpdatePlayerCommandResponse
             {

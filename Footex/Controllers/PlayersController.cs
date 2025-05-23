@@ -96,9 +96,6 @@ public class PlayersController(IMediator mediator, IFileStorageService fileStora
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdatePlayerCommandResponse>> UpdatePlayer(int id, [FromForm] UpdatePlayerDto playerDto)
     {
-        if (id != playerDto.Id)
-            return BadRequest(new { error = "ID in URL does not match ID in request body" });
-        
         // Get existing player
         var getQuery = new GetPlayerByIdQuery { Id = id };
         var existingResult = await _mediator.Send(getQuery);
@@ -107,7 +104,6 @@ public class PlayersController(IMediator mediator, IFileStorageService fileStora
             return NotFound(existingResult);
 
         // Handle file upload if present
-        string photoUrl = playerDto.PhotoUrl;
         if (playerDto.Photo != null)
         {
             // Delete old photo if it exists
@@ -117,11 +113,11 @@ public class PlayersController(IMediator mediator, IFileStorageService fileStora
             }
 
             // Upload new photo
-            photoUrl = await _fileStorageService.UploadImageAsync(playerDto.Photo, CONTAINER_NAME);
+            playerDto.PhotoUrl = await _fileStorageService.UploadImageAsync(playerDto.Photo, CONTAINER_NAME);
         }
-        playerDto.PhotoUrl = photoUrl;
 
         var command = _playermapper.ToUpdateCommand(playerDto);
+        command.Id = id;
 
         var result = await _mediator.Send(command);
 
