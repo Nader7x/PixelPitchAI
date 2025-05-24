@@ -1,0 +1,32 @@
+# Development Dockerfile with hot reload support
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS development
+WORKDIR /app
+
+# Install dotnet tools
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Copy project files
+COPY ["Footex/Footex.csproj", "Footex/"]
+COPY ["Application/Application.csproj", "Application/"]
+COPY ["Domain/Domain.csproj", "Domain/"]
+COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
+
+# Restore dependencies
+RUN dotnet restore "Footex/Footex.csproj"
+
+# Copy source code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p /app/Logs
+
+# Set working directory
+WORKDIR /app/Footex
+
+# Expose ports
+EXPOSE 8080
+EXPOSE 8081
+
+# Entry point for development with watch
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8080"]

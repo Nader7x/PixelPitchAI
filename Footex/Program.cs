@@ -11,6 +11,20 @@ using Serilog.Sinks.PostgreSQL;
 using System.Text;
 using Application.Services;
 using Footex.Extensions;
+using Footex.Configuration;
+using DotNetEnv;
+
+// Load environment variables from .env file
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+if (File.Exists(envPath))
+{
+    Env.Load(envPath);
+}
+else
+{
+    // Try loading from current directory
+    Env.Load();
+}
 
 // Initialize Serilog first
 Log.Logger = new LoggerConfiguration()
@@ -20,6 +34,16 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // Override configuration with environment variables
+    builder.Configuration.AddEnvironmentVariables();
+    
+    // Bind simulation service configuration
+    builder.Services.Configure<SimulationServiceOptions>(options =>
+    {
+        options.BaseUrl = builder.Configuration["SimulationService:BaseUrl"] ?? Environment.GetEnvironmentVariable("SIMULATION_SERVICE_URL") ?? "http://localhost:8000";
+        options.ApiKey = Environment.GetEnvironmentVariable("SIMULATION_API_KEY") ?? builder.Configuration["SimulationService:ApiKey"] ?? "";
+    });
 
     // Add services to the container.
     builder.Services.AddEndpointsApiExplorer();

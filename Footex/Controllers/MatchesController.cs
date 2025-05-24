@@ -8,14 +8,17 @@ using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Footex.Configuration;
 
 namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MatchesController(IMediator mediator, IHttpClientFactory httpClientFactory, MatchMapper matchmapper) : ControllerBase
+public class MatchesController(IMediator mediator, IHttpClientFactory httpClientFactory, MatchMapper matchmapper, IOptions<SimulationServiceOptions> simulationOptions) : ControllerBase
 {
     private readonly MatchMapper _matchmapper = matchmapper;
+    private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
     [HttpGet]
     [ProducesResponseType(typeof(GetAllMatchesQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -220,24 +223,31 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
             CreatorId = userId,
             ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
             IsLive = true
-        };
-        var result = await mediator.Send(command);
+        };        var result = await mediator.Send(command);
         if (!result.Succeeded)
             return BadRequest(result);
-        var health = await httpClient.GetAsync("http://localhost:8000/health");
+            
+        var health = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/health");
         if (!health.IsSuccessStatusCode)
             return StatusCode((int)health.StatusCode, "Simulation service is not available");
-        var response = await httpClient.PostAsync("http://localhost:8000/startMatch",
-            new StringContent(JsonSerializer.Serialize(new
-            {
-                match_id = result.Id,
-                home_team_id = simulationDto.HomeTeamId,
-                away_team_id = simulationDto.AwayTeamId,
-                home_team_name = simulationDto.HomeTeamName,
-                away_team_name = simulationDto.AwayTeamName,
-                home_team_season = simulationDto.HomeTeamSeason,
-                away_team_season = simulationDto.AwayTeamSeason,
-            }), Encoding.UTF8, "application/json"));
+        
+        var content = new StringContent(JsonSerializer.Serialize(new
+        {
+            match_id = result.Id,
+            home_team_id = simulationDto.HomeTeamId,
+            away_team_id = simulationDto.AwayTeamId,
+            home_team_name = simulationDto.HomeTeamName,
+            away_team_name = simulationDto.AwayTeamName,
+            home_team_season = simulationDto.HomeTeamSeason,
+            away_team_season = simulationDto.AwayTeamSeason,
+        }), Encoding.UTF8, "application/json");
+        
+        if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+        {
+            httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+        }
+        
+        var response = await httpClient.PostAsync($"{_simulationOptions.BaseUrl}/startMatch", content);
         if (response.IsSuccessStatusCode)
         {
             var statusCommand = new UpdateMatchStatusCommand()
@@ -280,17 +290,13 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
     }
     
     
-    
-    
-    // Helper method to check if the user has a live match
+        // Helper method to check if the user has a live match
     [NonAction]
     private async Task<bool> HasLiveMatch(string userId)
     {
         var query = new GetLiveMatchQuery() { UserId = userId };
         var result = await mediator.Send(query);
-        return result.Succeeded && result.MatchId != 0 && result.MatchId != null;
+        return result.Succeeded && result.MatchId != 0;
     }
-
-    
 
 }

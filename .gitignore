@@ -14,3 +14,8 @@
 /dataSources/
 /dataSources.local.xml
 /Footex/Logs
+
+# Environment variables
+.env
+.env.*
+/scripts/

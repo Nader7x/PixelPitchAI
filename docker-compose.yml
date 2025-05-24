@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: footex-postgres
+    environment:
+      POSTGRES_DB: Footex_Api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: footex_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - footex-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: footex-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: footex
+      RABBITMQ_DEFAULT_PASS: footex_password
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - footex-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Footex API Application
+  footex-api:
+    build:
+      context: .
+      dockerfile: Footex/Dockerfile
+    container_name: footex-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=footex_password;
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=footex
+      - RabbitMQ__Password=footex_password
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__Port=5672
+      - RabbitMQ__QueueName=match_events_queue
+      - SIMULATION_API_KEY=${SIMULATION_API_KEY}
+      - SIMULATION_SERVICE_URL=http://host.docker.internal:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - footex-network
+    volumes:
+      - ./Footex/Logs:/app/Logs
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  footex-network:
+    driver: bridge

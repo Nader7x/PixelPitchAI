@@ -23,3 +23,12 @@
 **/values.dev.yaml
 LICENSE
 README.md
+
+# Additional exclusions for Footex
+**/Logs/
+**/TestResults/
+**/*.tmp
+**/*.temp
+**/*.log
+**/coverage/
+documentation.md
