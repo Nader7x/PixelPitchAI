@@ -6,7 +6,7 @@ namespace Domain.Repositories;
 
 public interface IPlayerRepository : IRepository<Player>
 {
-    Task<Player?> GetByFullNameAsync(string fullName);
+    Task<Player?> GetByFullNameAsync(string? fullName);
     Task<IEnumerable<Player>> GetByNationalityAsync(string nationality);
     Task<IEnumerable<Player>> GetByPreferredFootAsync(string? preferredFoot);
     new Task<IEnumerable<Player>> FindAsync(Func<Player, bool> predicate);

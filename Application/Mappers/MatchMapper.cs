@@ -6,14 +6,14 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(UseDeepCloning = true)] // Added UseDeepCloning for potentially complex object graphs
 public partial class MatchMapper
 {
     // Map from Match to MatchDto
     public partial MatchDto ToDto(Match match);
     
     // Map from list of Match to list of MatchDto
-    public partial List<MatchDto> ToDtoList(IEnumerable<Match> matches);
+    public partial List<MatchDto?> ToDtoList(IEnumerable<Match> matches);
     
     // Map from CreateMatchDto to CreateMatchCommand
     public partial CreateMatchCommand ToCreateCommand(CreateMatchDto dto);
@@ -31,5 +31,21 @@ public partial class MatchMapper
     public partial DeleteMatchCommand ToDeleteCommand(int id);
 
     public partial Match ToMatchFromCreate(CreateMatchCommand request);
+
+    // Ensure this mapping correctly handles the new structure of MatchDetailsDto
+    // Mapperly will attempt to map properties by name.
+    // For example, Match.Season (type Season) to MatchDetailsDto.Season (type SeasonDto)
+    // will require a mapping from Season to SeasonDto. This should be defined
+    // in a SeasonMapper or handled by Mapperly if the structures are compatible.
+    // The same applies to Team, Stadium, Coach.
+    // If SeasonMapper, TeamMapper, etc. are in the same assembly and also marked with [Mapper],
+    // Mapperly should be able to use them.
+    [MapProperty(nameof(Match.HomeTeamSeason), nameof(MatchDetailsDto.HomeTeamSeason))]
+    [MapProperty(nameof(Match.AwayTeamSeason), nameof(MatchDetailsDto.AwayTeamSeason))]
+    [MapProperty(nameof(Match.HomeTeam), nameof(MatchDetailsDto.HomeTeam))]
+    [MapProperty(nameof(Match.AwayTeam), nameof(MatchDetailsDto.AwayTeam))]
+    [MapProperty(nameof(Match.Stadium), nameof(MatchDetailsDto.Stadium))]
+    [MapProperty(nameof(Match.HomeCoach), nameof(MatchDetailsDto.HomeCoach))]
+    [MapProperty(nameof(Match.AwayCoach), nameof(MatchDetailsDto.AwayCoach))]
     public partial MatchDetailsDto ToDetailsFromMatch(Match match);
 }

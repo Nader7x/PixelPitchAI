@@ -31,6 +31,7 @@ public class StadiumConfiguration : IEntityTypeConfiguration<Stadium>
             .HasColumnType("date");
         builder.Property(s => s.LastRenovation)
             .HasColumnType("date");
+        builder.Property(s => s.CostMillionsEuros).HasPrecision(10, 2);
         
         // Use B-tree indexes for exact matches
         builder.HasIndex(s => s.Name)

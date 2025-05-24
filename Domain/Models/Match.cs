@@ -4,10 +4,21 @@ namespace Domain.Models;
 
 public sealed class Match
 {
-    public int Id { get; set; }
-    public int SeasonId { get; set; }
+    public int Id { get; init; }
+
+    // Renamed from MatchSeasonId - represents the primary season of the match event itself (e.g., a tournament season)
+    // Can be nullable if a match doesn't belong to an overarching season.
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
+
+    // Season the Home Team is associated with for this match context (e.g., their league season)
+    public int? HomeTeamSeasonId { get; set; }
+    public Season? HomeTeamSeason { get; init; }
+
+    // Season the Away Team is associated with for this match context (e.g., their league season)
+    public int? AwayTeamSeasonId { get; set; }
+    public Season? AwayTeamSeason { get; init; }
+
     public string? HomeTeamInMatchName { get; set; }
     public string? AwayTeamInMatchName { get; set; }
     public DateTime ScheduledDateTimeUtc { get; set; }
@@ -24,7 +35,7 @@ public sealed class Match
     public bool? IsDraw { get; set; }
 
     // Match status and simulation tracking
-    public string MatchStatus { get; set; } =
+    public string? MatchStatus { get; set; } =
         "Scheduled"; // Scheduled, PendingSimulation, SimulatingInProgress, Completed, Postponed, Cancelled
 
     public DateTime? ModelSimulationStartTimeUtc { get; set; }
@@ -88,6 +99,9 @@ public sealed class Match
     public int? AwayTeamFreeKicks { get; set; }
     public int? AwayTeamShotsOffTarget { get; set; }
     public int? HomeTeamShotsOffTarget { get; set; }
+    
+    // Monitoring Field
+    public bool IsLive { get; set; } = false; // Indicates if the match is currently live or not
 
 
     // Audit fields
@@ -95,7 +109,6 @@ public sealed class Match
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public Season? Season { get; init; }
     public Team? HomeTeam { get; init; }
     public Team? AwayTeam { get; init; }
     public Stadium? Stadium { get; init; }
@@ -107,9 +120,10 @@ public sealed class Match
     /// </summary>
 
     [MaxLength(255)]
-    public required string CreatorId { get; set; }
+    public required string CreatorId { get; init; }
 
-    public ApplicationUser? Creator { get; set; }
+    public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
 }
+
 

@@ -9,11 +9,10 @@ public class IdentityService(
     RoleManager<IdentityRole> roleManager)
     : IIdentityService
 {
-    public async Task<(bool Succeeded, string UserId)> CreateUserAsync(ApplicationUser user, string password)
+    public async Task<(bool Succeeded, string UserId, IdentityResult result)> CreateUserAsync(ApplicationUser user, string password)
     {
         var result = await userManager.CreateAsync(user, password);
-        Console.WriteLine(result);
-        return (result.Succeeded, user.Id);
+        return (result.Succeeded, user.Id , result);
     }
 
     public async Task<bool> DeleteUserAsync(string userId)

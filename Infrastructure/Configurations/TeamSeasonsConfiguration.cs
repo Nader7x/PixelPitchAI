@@ -12,7 +12,6 @@ public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeasons>
         
         // Set timestamp for UpdatedAt
         builder.Property(t => t.UpdatedAt)
-            .IsRequired()
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
         

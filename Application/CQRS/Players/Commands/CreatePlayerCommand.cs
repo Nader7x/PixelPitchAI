@@ -9,8 +9,8 @@ public class CreatePlayerCommand : IRequest<CreatePlayerCommandResponse>
 {
     [Required]
     [StringLength(100, MinimumLength = 2)]
-    public string FullName { get; set; }
-    public string KnownName { get; set; }
+    public string? FullName { get; set; }
+    public string? KnownName { get; set; }
     
     [StringLength(50)]
     public string? Nationality { get; set; }
@@ -33,7 +33,7 @@ public class CreatePlayerCommandResponse
 {
     public bool Succeeded { get; set; }
     public int Id { get; set; }
-    public string FullName { get; set; }
+    public string? FullName { get; set; }
     public string Error { get; set; }
 }
 

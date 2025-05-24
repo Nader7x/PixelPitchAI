@@ -1,11 +1,12 @@
 using Domain.Models;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Interfaces;
 
 public interface IIdentityService
 {
-    Task<(bool Succeeded, string UserId)> CreateUserAsync(ApplicationUser user, string password);
+    Task<(bool Succeeded, string UserId, IdentityResult result)> CreateUserAsync(ApplicationUser user, string password);
     Task<bool> DeleteUserAsync(string userId);
     Task<ApplicationUser> GetUserByIdAsync(string userId);
     Task<ApplicationUser> GetUserByEmailAsync(string email);

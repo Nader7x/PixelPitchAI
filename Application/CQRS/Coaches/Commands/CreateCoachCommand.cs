@@ -9,16 +9,16 @@ public class CreateCoachCommand : IRequest<CreateCoachCommandResponse>
 {
     [Required]
     [StringLength(50, MinimumLength = 2)]
-    public string FirstName { get; set; }
+    public string? FirstName { get; set; }
     
     [Required]
     [StringLength(50, MinimumLength = 2)]
-    public string LastName { get; set; }
+    public string? LastName { get; set; }
     
     public DateTime DateOfBirth { get; set; }
     
     [StringLength(50)]
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     
     [StringLength(50)]
     public string Role { get; set; }

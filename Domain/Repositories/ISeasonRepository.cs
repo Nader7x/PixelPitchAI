@@ -10,4 +10,5 @@ public interface ISeasonRepository : IRepository<Season>
     Task<IReadOnlyList<Season>> GetActiveSeasons();
     Task<IReadOnlyList<Season>> GetSeasonsByCountry(string country);
     Task<IReadOnlyList<Season>> GetSeasonsByLeagueName(string leagueName);
+    Task<IReadOnlyList<Season>> GetSeasonMatches(int homeTeamSeasonId, int awayTeamSeasonId);
 }

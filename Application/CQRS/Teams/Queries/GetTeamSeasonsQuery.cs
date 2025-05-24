@@ -1,3 +1,4 @@
+using Application.Dtos;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -13,7 +14,7 @@ public class GetTeamSeasonsQueryResponse
     public bool Succeeded { get; set; }
     public int? TeamId { get; set; }
     public string? TeamName { get; set; }
-    public IReadOnlyList<TeamSeasons>? Seasons { get; set; }
+    public IReadOnlyList<TeamSeasonsDto>? Seasons { get; set; }
     public string? Error { get; set; }
 }
 public class GetTeamSeasonsQueryResponseHandler(IUnitOfWork unitOfWork)
@@ -32,13 +33,18 @@ public class GetTeamSeasonsQueryResponseHandler(IUnitOfWork unitOfWork)
         }
 
         var seasons = await unitOfWork.TeamSeasons.GetSeasonsByTeamIdAsync(team.Id);
+        var teamSeasonsDtos = seasons.Select(ts => new TeamSeasonsDto
+        {
+            SeasonId = ts.SeasonId,
+            SeasonName = ts.Season.Name
+        });
 
         return new GetTeamSeasonsQueryResponse
         {
             TeamId = team.Id,
             TeamName = team.Name,
             Succeeded = true,
-            Seasons = seasons
+            Seasons = teamSeasonsDtos.ToList()
         };
     }
 }

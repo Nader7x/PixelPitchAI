@@ -12,10 +12,10 @@ public class GetMatchByIdQuery : IRequest<GetMatchByIdQueryResponse>
 
 public class GetMatchByIdQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public MatchDto Match { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public MatchDto? Match { get; set; }
+    public string? Error { get; set; }
 }
 
 public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)

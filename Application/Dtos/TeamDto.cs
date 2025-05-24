@@ -46,3 +46,8 @@ public class UpdateTeamDto
     public string? SecondaryColor { get; set; } = string.Empty;
     public int? CoachId { get; set; }
 }
+public class TeamSeasonsDto
+{
+    public int SeasonId { get; set; }
+    public string? SeasonName { get; set; }
+}

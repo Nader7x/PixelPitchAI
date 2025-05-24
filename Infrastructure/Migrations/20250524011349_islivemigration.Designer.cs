@@ -3,6 +3,7 @@ using System;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(FootballDbContext))]
-    partial class FootballDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250524011349_islivemigration")]
+    partial class islivemigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -199,39 +202,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Coaches", null, t =>
                         {
                             t.HasComment("Football coaches information");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Models.Competition", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<string>("Logo")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Competitions", null, t =>
-                        {
-                            t.HasComment("Football competitions information");
                         });
                 });
 
@@ -799,10 +769,8 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CompetitionId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Country")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
@@ -811,7 +779,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int?>("CurrentRound")
+                    b.Property<int>("CurrentRound")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("EndDate")
@@ -822,12 +790,13 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<bool?>("IsCompleted")
+                    b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
                     b.Property<string>("LeagueName")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
@@ -839,7 +808,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("date");
 
-                    b.Property<int?>("TotalRounds")
+                    b.Property<int>("TotalRounds")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -848,8 +817,6 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CompetitionId");
 
                     b.HasIndex("IsActive")
                         .HasDatabaseName("IX_Season_Active");
@@ -886,9 +853,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<string>("Architect")
-                        .HasColumnType("text");
-
                     b.Property<DateTime?>("BuiltDate")
                         .HasColumnType("date");
 
@@ -898,10 +862,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
-
-                    b.Property<double?>("CostMillionsEuros")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("double precision");
 
                     b.Property<string>("Country")
                         .HasMaxLength(50)
@@ -936,9 +896,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
-
-                    b.Property<string>("Nickname")
-                        .HasColumnType("text");
 
                     b.Property<string>("SurfaceType")
                         .HasMaxLength(50)
@@ -1329,16 +1286,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Models.Season", b =>
-                {
-                    b.HasOne("Domain.Models.Competition", "Competition")
-                        .WithMany("Seasons")
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Competition");
-                });
-
             modelBuilder.Entity("Domain.Models.Team", b =>
                 {
                     b.HasOne("Domain.Models.Stadium", "Stadium")
@@ -1425,11 +1372,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Matches");
 
                     b.Navigation("RefreshTokens");
-                });
-
-            modelBuilder.Entity("Domain.Models.Competition", b =>
-                {
-                    b.Navigation("Seasons");
                 });
 
             modelBuilder.Entity("Domain.Models.Match", b =>

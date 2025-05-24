@@ -11,7 +11,7 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     
     [Required]
     [StringLength(100, MinimumLength = 2)]
-    public string FullName { get; set; }
+    public string? FullName { get; set; }
     public string KnownName { get; set; }
     
     [StringLength(50)]
@@ -37,7 +37,7 @@ public class UpdatePlayerCommandResponse
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
     public int Id { get; set; }
-    public string FullName { get; set; }
+    public string? FullName { get; set; }
     public string Error { get; set; }
 }
 

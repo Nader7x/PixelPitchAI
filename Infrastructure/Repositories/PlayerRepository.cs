@@ -13,7 +13,7 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
 
 
 
-    public async Task<Player?> GetByFullNameAsync(string fullName)
+    public async Task<Player?> GetByFullNameAsync(string? fullName)
     {
         return await _context.Players
             .FirstOrDefaultAsync(p => p.FullName.ToLower() == fullName.ToLower());

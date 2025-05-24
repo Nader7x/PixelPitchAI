@@ -24,12 +24,10 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
         
         // Set timestamp for audit fields
         builder.Property(s => s.CreatedAt)
-            .IsRequired()
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
             
         builder.Property(s => s.UpdatedAt)
-            .IsRequired()
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
         
@@ -50,16 +48,17 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
             .HasDatabaseName("IX_Season_CurrentRound")
             .HasFilter("\"IsActive\" = 'true'");
         // Relationships
-        builder.HasMany(s => s.Matches)
-            .WithOne(m => m.Season)
-            .HasForeignKey(m => m.SeasonId)
-            .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasMany(s => s.SeasonTeams)
             .WithOne(t => t.Season)
             .HasForeignKey(t => t.SeasonId)
             .OnDelete(DeleteBehavior.Cascade);
-            
+        
+        builder.HasOne(s => s.Competition)
+            .WithMany(c => c.Seasons)
+            .HasForeignKey(s => s.CompetitionId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
         // Table comment
         builder.ToTable("Seasons", tb => tb.HasComment("Football competition seasons"));
     }

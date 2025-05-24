@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Domain.Models;
 
-public class Stadium
+public sealed class Stadium
 {
     public int Id { get; set; }
     public string? Name { get; set; }
@@ -20,7 +20,10 @@ public class Stadium
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public string? Facilities { get; set; }  // JSON string containing available facilities
+    public double? CostMillionsEuros { get; set; }  // Cost of the stadium in millions of euros
+    public string? Nickname { get; set; }  // Nickname of the stadium, if any
+    public string? Architect { get; set; }  // Architect or firm that designed the stadium
     
     // Navigation properties
-    public virtual ICollection<Team> Teams { get; set; }
+    public ICollection<Team> Teams { get; set; }
 }

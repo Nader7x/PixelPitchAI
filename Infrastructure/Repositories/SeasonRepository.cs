@@ -40,4 +40,16 @@ public class SeasonRepository(FootballDbContext context) : Repository<Season>(co
             .OrderByDescending(s => s.CurrentRound)
             .ToListAsync();
     }
+
+    public async Task<IReadOnlyList<Season>> GetSeasonMatches(int homeTeamSeasonId, int awayTeamSeasonId)
+    {
+        return await _context.Seasons
+            .Include(s => s.Matches)!
+            .ThenInclude(m => m.HomeTeam)
+            .Include(s => s.Matches)
+            .ThenInclude(m => m.AwayTeam)
+            .Where(s => s.Id == homeTeamSeasonId || s.Id == awayTeamSeasonId)
+            .OrderByDescending(s => s.CurrentRound)
+            .ToListAsync();
+    }
 }

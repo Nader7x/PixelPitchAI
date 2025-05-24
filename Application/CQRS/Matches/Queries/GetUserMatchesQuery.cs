@@ -7,13 +7,13 @@ namespace Application.CQRS.Matches.Queries;
 
 public class GetUserMatchesQuery : IRequest<GetUserMatchesQueryResponse>
 {
-    public required string UserId { get; set; }
+    public required string UserId { get; init; }
 }
 public class GetUserMatchesQueryResponse
 {
-    public List<MatchDto>? Matches { get; set; }
-    public bool Succeeded { get; set; }
-    public string? Error { get; set; }
+    public List<MatchDto?>? Matches { get; init; }
+    public bool Succeeded { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
@@ -31,7 +31,7 @@ public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matc
             return new GetUserMatchesQueryResponse()
             {
                 Succeeded = true,
-                Matches = matchesDtos,
+                Matches = matchesDtos.OrderByDescending(md => md?.ScheduledDateTimeUtc ?? default).ToList(),
             };
         }
         catch (Exception ex)

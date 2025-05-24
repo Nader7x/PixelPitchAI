@@ -1,17 +1,16 @@
 using Application.Mappers;
 using Domain.Interfaces;
-using Domain.Models;
 using MediatR;
 
 namespace Application.CQRS.Auth.Commands;
 
 public class RegisterUserCommand : IRequest<RegisterUserCommandResponse>
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string UserName { get; set; }
-    public string Password { get; set; }
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
+    public required string UserName { get; set; }
+    public required string Email { get; set; }
+    public required string Password { get; set; }
     public string? Gender { get; set; }
     public int Age { get; set; }
     public int? FavoriteTeamId { get; set; }
@@ -22,8 +21,8 @@ public class RegisterUserCommand : IRequest<RegisterUserCommandResponse>
 public class RegisterUserCommandResponse
 {
     public bool Succeeded { get; set; }
-    public string UserId { get; set; }
-    public string Error { get; set; }
+    public string? UserId { get; set; }
+    public string? Error { get; set; }
 }
 
 public class RegisterUserCommandHandler(
@@ -42,17 +41,16 @@ public class RegisterUserCommandHandler(
         {
             // Create application user
             var user = _userMapper.ToUserFromRegister(request);
-            Console.WriteLine(user);
 
             // Register user
-            var (succeeded, userId) = await identityService.CreateUserAsync(user, request.Password);
+            var (succeeded, userId, result) = await identityService.CreateUserAsync(user, request.Password);
 
             if (!succeeded)
             {
                 return new RegisterUserCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Failed to create user"
+                    Error = result.ToString()
                 };
             }
 

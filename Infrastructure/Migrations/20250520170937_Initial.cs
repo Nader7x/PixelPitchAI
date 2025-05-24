@@ -516,7 +516,7 @@ namespace Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Match_SeasonRound",
                 table: "Matches",
-                columns: new[] { "SeasonId", "MatchWeek" })
+                columns: new[] { "HomeSeasonId", "MatchWeek" })
                 .Annotation("Npgsql:IndexMethod", "btree");
 
             migrationBuilder.CreateIndex(
@@ -528,7 +528,7 @@ namespace Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Match_Teams_Season",
                 table: "Matches",
-                columns: new[] { "HomeTeamId", "AwayTeamId", "SeasonId" })
+                columns: new[] { "HomeTeamId", "AwayTeamId", "HomeSeasonId" })
                 .Annotation("Npgsql:IndexMethod", "btree");
 
             migrationBuilder.CreateIndex(
@@ -689,12 +689,12 @@ namespace Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_TeamSeasons_SeasonId",
                 table: "TeamSeasons",
-                column: "SeasonId");
+                column: "HomeSeasonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TeamSeasons_TeamSeason",
                 table: "TeamSeasons",
-                columns: new[] { "TeamId", "SeasonId" },
+                columns: new[] { "TeamId", "HomeSeasonId" },
                 unique: true)
                 .Annotation("Npgsql:IndexMethod", "btree");
 

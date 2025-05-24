@@ -8,15 +8,16 @@ namespace Application.CQRS.Matches.Commands;
 public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
 {
     [Required]
-    public int SeasonId { get; set; }
-    
+    public int HomeSeasonId { get; set; }
+    public int AwaySeasonId { get; set; }
+
     [Required]
     public int HomeTeamId { get; set; }
     
     [Required]
     public int AwayTeamId { get; set; }
-    public string? HomeTeamInMatchName { get; set; }
-    public string? AwayTeamInMatchName { get; set; }
+    public string? HomeTeamInMatchName { get; init; }
+    public string? AwayTeamInMatchName { get; init; }
     
     [Required]
     public DateTime ScheduledDateTimeUtc { get; set; }
@@ -30,49 +31,43 @@ public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
     public int? AwayCoachId { get; set; }
     
     [StringLength(50)]
-    public string MatchStatus { get; set; } = "Scheduled";
-    public required string CreatorId { get; set; }
-    public DateTime? ModelSimulationStartTimeUtc { get; set; }
+    public string? MatchStatus { get; set; } = "Scheduled";
+    public required string CreatorId { get; init; }
+    public DateTime? ModelSimulationStartTimeUtc { get; init; }
+    public bool IsLive { get; init; } = false;
 
 }
 
 public class CreateMatchCommandResponse
 {
     public bool Succeeded { get; set; }
-    public int Id { get; set; }
-    public string? HomeTeamName { get; set; }
-    public string? AwayTeamName { get; set; }
+    public int Id { get; init; }
+    public string? HomeTeamName { get; init; }
+    public string? AwayTeamName { get; init; }
     public string? Error { get; set; }
+    public StartMatchResponse? ApiResponse { get; set; }
 }
 
-public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>
+public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+    : IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly MatchMapper _matchMapper;
-    
-    public CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _matchMapper = matchMapper;
-    }
-    
     public async Task<CreateMatchCommandResponse> Handle(CreateMatchCommand request, CancellationToken cancellationToken)
     {
         try
         {
             // Validate Season exists
-            var season = await _unitOfWork.Seasons.GetByIdAsync(request.SeasonId);
+            var season = await unitOfWork.Seasons.GetByIdAsync(request.HomeSeasonId);
             if (season == null)
             {
                 return new CreateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Season with ID {request.SeasonId} not found"
+                    Error = $"Season with ID {request.HomeSeasonId} not found"
                 };
             }
             
             // Validate HomeTeam exists
-            var homeTeam = await _unitOfWork.Teams.GetByIdAsync(request.HomeTeamId);
+            var homeTeam = await unitOfWork.Teams.GetByIdAsync(request.HomeTeamId);
             if (homeTeam == null)
             {
                 return new CreateMatchCommandResponse
@@ -83,7 +78,7 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             }
             
             // Validate AwayTeam exists
-            var awayTeam = await _unitOfWork.Teams.GetByIdAsync(request.AwayTeamId);
+            var awayTeam = await unitOfWork.Teams.GetByIdAsync(request.AwayTeamId);
             if (awayTeam == null)
             {
                 return new CreateMatchCommandResponse
@@ -96,7 +91,7 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             // Validate Stadium if provided
             if (request.StadiumId.HasValue)
             {
-                var stadium = await _unitOfWork.Stadiums.GetByIdAsync(request.StadiumId.Value);
+                var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.StadiumId.Value);
                 if (stadium == null)
                 {
                     return new CreateMatchCommandResponse
@@ -110,7 +105,7 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             // Validate HomeCoach if provided
             if (request.HomeCoachId.HasValue)
             {
-                var homeCoach = await _unitOfWork.Coaches.GetByIdAsync(request.HomeCoachId.Value);
+                var homeCoach = await unitOfWork.Coaches.GetByIdAsync(request.HomeCoachId.Value);
                 if (homeCoach == null)
                 {
                     return new CreateMatchCommandResponse
@@ -124,7 +119,7 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             // Validate AwayCoach if provided
             if (request.AwayCoachId.HasValue)
             {
-                var awayCoach = await _unitOfWork.Coaches.GetByIdAsync(request.AwayCoachId.Value);
+                var awayCoach = await unitOfWork.Coaches.GetByIdAsync(request.AwayCoachId.Value);
                 if (awayCoach == null)
                 {
                     return new CreateMatchCommandResponse
@@ -146,12 +141,13 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             }
             
             // Check if match already exists for these teams on the same date
-            var existingMatches = await _unitOfWork.Matches.FindAsync(m => 
-                m.SeasonId == request.SeasonId &&
+            var existingMatches = await unitOfWork.Matches.FindAsync(m =>
+                m.HomeTeamSeasonId == request.HomeSeasonId &&
+                m.AwayTeamSeasonId == request.AwaySeasonId &&
                 ((m.HomeTeamId == request.HomeTeamId && m.AwayTeamId == request.AwayTeamId) ||
                 (m.HomeTeamId == request.AwayTeamId && m.AwayTeamId == request.HomeTeamId)) &&
                 m.ScheduledDateTimeUtc.Date == request.ScheduledDateTimeUtc.Date);
-                
+
             if (existingMatches!=null)
             {
                 return new CreateMatchCommandResponse
@@ -162,11 +158,11 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             }
             
             // Create new match
-            var match = _matchMapper.ToMatchFromCreate(request);
-            
-            await _unitOfWork.Matches.AddAsync(match);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            
+            var match = matchMapper.ToMatchFromCreate(request);
+
+            await unitOfWork.Matches.AddAsync(match);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
             return new CreateMatchCommandResponse
             {
                 Succeeded = true,
@@ -184,4 +180,18 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Cre
             };
         }
     }
+}
+
+public abstract class StartMatchResponse
+{
+    public int MatchId { get; init; }
+    public string? HomeTeamName { get; init; }
+    public string? AwayTeamName { get; init; }
+    public string? HomeTeamSeason { get; init; }
+    public string? AwayTeamSeason { get; init; }
+    public int? EventsCount { get; init; }
+    public double? ExecutionTime { get; init; } 
+    public string? Preview { get; init; }
+    public string? SimulationId { get; init; }
+    public string? Status { get; init; }
 }

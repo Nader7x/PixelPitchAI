@@ -5,10 +5,10 @@ namespace Application.Dtos;
 public class CoachDto
 {
     public int Id { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public DateTime DateOfBirth { get; set; }
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     public string Role { get; set; }
     public int? TeamId { get; set; }
     public string? TeamName { get; set; }
@@ -22,10 +22,10 @@ public class CoachDto
 
 public class CreateCoachDto
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public DateTime DateOfBirth { get; set; }
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     public int? TeamId { get; set; }
     public string? PhotoUrl { get; set; }
     public IFormFile? Photo { get; set; }

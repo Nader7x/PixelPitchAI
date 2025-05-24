@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using System.Text.Json;
 using Application.CQRS.Matches.Commands;
@@ -28,7 +29,7 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
     {
         var query = new GetAllMatchesQuery
         {
-            SeasonId = seasonId,
+            HomeSeasonId = seasonId,
             TeamId = teamId,
             Status = status,
             FromDate = fromDate,
@@ -65,7 +66,7 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
     }
 
     [HttpGet("Details/{matchId:int}")]
-    // get match by id with details 
+    // get match by id with details
     [ProducesResponseType(typeof(GetMatchByIdWithDetailsQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -118,10 +119,10 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
         var command = new UpdateMatchCommand
         {
             Id = matchDto.Id,
-            SeasonId = matchDto.SeasonId,
+            HomeSeasonId = matchDto.SeasonId,
             HomeTeamId = matchDto.HomeTeamId,
             AwayTeamId = matchDto.AwayTeamId,
-            ScheduledDateTimeUTC = matchDto.ScheduledDateTimeUTC,
+            ScheduledDateTimeUtc = matchDto.ScheduledDateTimeUTC,
             StadiumId = matchDto.StadiumId,
             MatchWeek = matchDto.MatchWeek,
             HomeCoachId = matchDto.HomeCoachId,
@@ -195,12 +196,15 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
 
         return Ok(result);
     }
+    
 
     [HttpPost("/simulateMatch/{userId}")]
     [Authorize]
     public async Task<ActionResult<CreateMatchCommandResponse>> SimulateMatch(string userId,
         [FromBody] SimulateMatchDto simulationDto)
     {
+        if(HasLiveMatch(userId).Result) 
+            return BadRequest(new { error = "You Can Not Simulate Two Matches At The Same Time" });
         var httpClient = httpClientFactory.CreateClient();
         var seasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
         var homeInMatchName = $"{simulationDto.HomeTeamName.Replace(" ", "_")}_{seasonYear}";
@@ -215,6 +219,7 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
             MatchStatus = "SimulatingInProgress",
             CreatorId = userId,
             ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
+            IsLive = true
         };
         var result = await mediator.Send(command);
         if (!result.Succeeded)
@@ -241,13 +246,51 @@ public class MatchesController(IMediator mediator, IHttpClientFactory httpClient
             };
             var statusResult = await mediator.Send(statusCommand);
             if (!statusResult.Succeeded)
-                return BadRequest(statusResult);
+            {
+                result.Succeeded = false;
+                result.Error = statusResult.Error;
+                return BadRequest(result);
+            }
+
         }
         else
         {
             var error = await response.Content.ReadAsStringAsync();
             return StatusCode((int)response.StatusCode, error);
         }
-        return Ok(response);
+        result.ApiResponse = await response.Content.ReadFromJsonAsync<StartMatchResponse>(CancellationToken.None);
+        return Ok(result);
     }
+    [HttpGet("LiveMatch/{userId}")]
+    [Authorize]
+    [ProducesResponseType(typeof(GetLiveMatchQueryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetLiveMatchQueryResponse>> GetLiveMatch(string userId)
+    {
+        var query = new GetLiveMatchQuery() { UserId = userId };
+        var result = await mediator.Send(query);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+    
+    
+    
+    
+    // Helper method to check if the user has a live match
+    [NonAction]
+    private async Task<bool> HasLiveMatch(string userId)
+    {
+        var query = new GetLiveMatchQuery() { UserId = userId };
+        var result = await mediator.Send(query);
+        return result.Succeeded && result.MatchId != 0 && result.MatchId != null;
+    }
+
+    
+
 }

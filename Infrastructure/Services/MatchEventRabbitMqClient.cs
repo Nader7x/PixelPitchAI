@@ -278,6 +278,8 @@ namespace Infrastructure.Services
                         match.HomeTeamLongBallsAccuracy = match.HomeAccurateLongBalls / match.HomeLongBalls;
                         match.AwayTeamLongBallsAccuracy = match.AwayAccurateLongBalls / match.AwayLongBalls;
                         match.LastEventTimestampSeconds = events.Max(e => e.time_seconds);
+                        match.IsLive = false;
+                        match.MatchStatus = "Completed";
                     }
 
                     await unitOfWork.SaveChangesAsync();

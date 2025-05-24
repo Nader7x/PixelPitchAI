@@ -9,11 +9,11 @@ public sealed class Coach
     
     [Required]
     [StringLength(50)]
-    public string FirstName { get; set; }
+    public string? FirstName { get; set; }
     
     [Required]
     [StringLength(50)]
-    public string LastName { get; set; }
+    public string? LastName { get; set; }
     
     [NotMapped]
     public string FullName => $"{FirstName} {LastName}";
@@ -22,7 +22,7 @@ public sealed class Coach
     
     [Required]
     [StringLength(50)]
-    public string Nationality { get; set; }
+    public string? Nationality { get; set; }
     
     [Required]
     [StringLength(50)]

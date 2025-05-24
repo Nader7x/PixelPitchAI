@@ -44,11 +44,6 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             
         // Create indexes for common queries
         
-        // Find matches by season and round
-        builder.HasIndex(m => new { m.SeasonId, m.MatchWeek })
-            .HasMethod("btree")
-            .HasDatabaseName("IX_Match_SeasonRound");
-            
         // Find matches by date
         builder.HasIndex(m => m.ScheduledDateTimeUtc)
             .HasMethod("btree")
@@ -67,11 +62,7 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasIndex(m => m.MatchStatus)
             .HasMethod("btree")
             .HasDatabaseName("IX_Match_Status");
-            
-        // Combined index for teams and season
-        builder.HasIndex(m => new { m.HomeTeamId, m.AwayTeamId, m.SeasonId })
-            .HasMethod("btree")
-            .HasDatabaseName("IX_Match_Teams_Season");
+        
 
         // Add index for CreatorId
         builder.HasIndex(m => m.CreatorId)
@@ -97,9 +88,13 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("FK_Match_AwayTeam");
             
-        builder.HasOne(m => m.Season)
-            .WithMany(s => s.Matches)
-            .HasForeignKey(m => m.SeasonId)
+        builder.HasOne(m => m.HomeTeamSeason)
+            .WithMany()
+            .HasForeignKey(m => m.HomeTeamSeasonId)
+            .OnDelete(DeleteBehavior.Cascade);      
+        builder.HasOne(m => m.AwayTeamSeason)
+            .WithMany()
+            .HasForeignKey(m => m.AwayTeamSeasonId)
             .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(m => m.Stadium)

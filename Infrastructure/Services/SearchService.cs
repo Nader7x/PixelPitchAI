@@ -154,7 +154,7 @@ public class SearchService : ISearchService
             Description = $"{coach.Role} - {coach.Team?.Name ?? "Unattached"}",
             ThumbnailUrl = coach.PhotoUrl ?? "/images/default-coach.png",
             Url = $"/coaches/{coach.Id}",
-            AdditionalData = new Dictionary<string, string>
+            AdditionalData = new Dictionary<string, string?>
             {
                 { "Role", coach.Role },
                 { "Nationality", coach.Nationality },
