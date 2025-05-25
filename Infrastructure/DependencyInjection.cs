@@ -37,12 +37,17 @@ public static class DependencyInjection
         // Register identity services
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<ISearchService, SearchService>();
-        // Register EventAnalysis service
-        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();
+        services.AddScoped<ISearchService, SearchService>();        // Register EventAnalysis service
+        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();        // Register the MatchEventRabbitMqClient as a hosted service
+        services.AddSingleton<MatchEventRabbitMqClient>();
+        services.AddHostedService(provider => provider.GetRequiredService<MatchEventRabbitMqClient>());
         
-        // Register RabbitMQ connection and client
-        services.AddHostedService<MatchEventRabbitMqClient>();
+        // Register performance monitoring service
+        services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+        
+        // Register live match statistics service
+        services.AddSingleton<ILiveMatchStatisticsService, LiveMatchStatisticsService>();
+        
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

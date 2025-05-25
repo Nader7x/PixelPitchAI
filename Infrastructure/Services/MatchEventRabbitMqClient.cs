@@ -15,28 +15,27 @@ using RabbitMQ.Client.Events;
 namespace Infrastructure.Services
 {
     public class MatchEventRabbitMqClient : BackgroundService
-    {
-        private readonly ILogger<MatchEventRabbitMqClient> _logger;
+    {        private readonly ILogger<MatchEventRabbitMqClient> _logger;
         private readonly IHubContext<MatchHub> _hubContext;
         private int _eventSequence;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private IConnection _connection;
-        private IChannel _channel;
+        private readonly IPerformanceMonitoringService _performanceMonitoringService;
+        private IConnection? _connection;
+        private IChannel? _channel;
 
         private readonly Dictionary<string, List<FootballMatchEvent>?> _matchEventsCache = new();
 
         // Timer for periodic flushing of events to database as a safety mechanism
-        private Timer _flushTimer;
-
-
-        public MatchEventRabbitMqClient(
+        private Timer? _flushTimer;public MatchEventRabbitMqClient(
             ILogger<MatchEventRabbitMqClient> logger,
             IHubContext<MatchHub> hubContext,
-            IServiceScopeFactory serviceScopeFactory)
+            IServiceScopeFactory serviceScopeFactory,
+            IPerformanceMonitoringService performanceMonitoringService)
         {
             _logger = logger;
             _hubContext = hubContext;
             _serviceScopeFactory = serviceScopeFactory;
+            _performanceMonitoringService = performanceMonitoringService;
         }
 
         private async Task InitializeRabbitMq(CancellationToken stoppingToken)
@@ -105,10 +104,14 @@ namespace Infrastructure.Services
                 _logger.LogError(ex, "Failed to start MatchEventRabbitMqClient.");
                 // Consider how to handle startup failure (e.g., stopping the application host)
             }
-        }
-
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        }        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            if (_channel == null)
+            {
+                _logger.LogError("Channel is not initialized. Cannot start consuming events.");
+                return Task.CompletedTask;
+            }
+
             _flushTimer = new Timer(FlushEventsToDatabase, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
             var consumer = new AsyncEventingBasicConsumer(_channel);
@@ -122,9 +125,7 @@ namespace Infrastructure.Services
                     _logger.LogInformation("Received match event: {Message}", message);
 
                     // Deserialize directly from JSON
-                    var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(message);
-
-                    if (matchEvent != null)
+                    var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(message);                    if (matchEvent != null)
                     {
                         await CacheMatchEvent(matchEvent);
                         // If this is a match_end event, save all cached events to the database
@@ -181,13 +182,12 @@ namespace Infrastructure.Services
                 .SendAsync("ReceiveMatchEvent", matchEvent);
 
             _logger.LogInformation("Broadcasted match event {FootballMatchEvent} to clients", matchEvent);
-        }
-
-        private Task CacheMatchEvent(FootballMatchEvent matchEvent)
+        }        private Task CacheMatchEvent(FootballMatchEvent matchEvent)
         {
             try
             {
                 var matchId = matchEvent.match_id;
+                bool isFirstEvent = false;
 
                 // Add to in-memory cache
                 lock (_matchEventsCache)
@@ -196,12 +196,32 @@ namespace Infrastructure.Services
                     {
                         value = [];
                         _matchEventsCache[matchId] = value;
+                        isFirstEvent = true;
                     }
 
                     value?.Add(matchEvent);
 
                     // Update the event sequence for tracking
                     _eventSequence = Math.Max(_eventSequence, matchEvent.event_index + 1);
+                }
+
+                // Preload match for live statistics when first event is received
+                if (isFirstEvent)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var scope = _serviceScopeFactory.CreateScope();
+                            var liveMatchService = scope.ServiceProvider.GetRequiredService<ILiveMatchStatisticsService>();
+                            await liveMatchService.PreloadMatchForLiveStatistics(matchId);
+                            _logger.LogInformation("Auto-preloaded match {MatchId} for live statistics on first event", matchId);
+                        }
+                        catch (Exception preloadEx)
+                        {
+                            _logger.LogWarning(preloadEx, "Failed to auto-preload match {MatchId} for live statistics", matchId);
+                        }
+                    });
                 }
 
                 _logger.LogInformation("Cached match event {EventIndex} for match {MatchId}",
@@ -214,10 +234,10 @@ namespace Infrastructure.Services
             }
 
             return Task.CompletedTask;
-        }
-
-        private async Task SaveMatchEventsToDatabase(string matchId)
+        }private async Task SaveMatchEventsToDatabase(string matchId)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
             try
             {
                 List<FootballMatchEvent>? events;
@@ -230,14 +250,20 @@ namespace Infrastructure.Services
                         _logger.LogWarning("No cached events found for match {MatchId}", matchId);
                         return;
                     }
-                }
-
-                using var scope = _serviceScopeFactory.CreateScope();
+                }                using var scope = _serviceScopeFactory.CreateScope();
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
+                var liveMatchService = scope.ServiceProvider.GetRequiredService<ILiveMatchStatisticsService>();
 
+                // Record database call for performance monitoring
+                var dbStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                
                 // Fetch the Match object once, including details needed for analysis
                 var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
+                
+                dbStopwatch.Stop();
+                _performanceMonitoringService.RecordDatabaseCall("GetMatchWithDetails", dbStopwatch.Elapsed.TotalMilliseconds);
+                
                 if (match == null)
                 {
                     _logger.LogWarning("Match with ID {MatchId} not found when trying to save events.", matchId);
@@ -265,9 +291,7 @@ namespace Infrastructure.Services
                     foreach (var matchEvent in events)
                     {
                         await eventAnalysis.UpdateMatchStatistics(matchEvent, matchEventsEntity, match);
-                    }
-
-                    // Save all events at once
+                    }                    // Save all events at once
                     matchEventsEntity.SetEvents(events);
                     matchEventsEntity.TotalEvents = events.Count;
                     matchEventsEntity.LastUpdated = DateTime.UtcNow;
@@ -280,16 +304,39 @@ namespace Infrastructure.Services
                         match.LastEventTimestampSeconds = events.Max(e => e.time_seconds);
                         match.IsLive = false;
                         match.MatchStatus = "Completed";
+                        
+                        // Update cached match in LiveMatchStatisticsService for real-time access
+                        try
+                        {
+                            if (liveMatchService is LiveMatchStatisticsService liveService)
+                            {
+                                liveService.UpdateCachedMatch(matchId, match);
+                                _logger.LogDebug("Updated cached match {MatchId} in LiveMatchStatisticsService", matchId);
+                            }
+                        }
+                        catch (Exception cacheEx)
+                        {
+                            _logger.LogWarning(cacheEx, "Failed to update cached match {MatchId} in LiveMatchStatisticsService", matchId);
+                        }
                     }
 
+                    // Record database save operation
+                    var saveStopwatch = System.Diagnostics.Stopwatch.StartNew();
                     await unitOfWork.SaveChangesAsync();
-                    _logger.LogInformation("Saved {Count} events for match {MatchId} to database",
-                        events.Count, matchId);
+                    saveStopwatch.Stop();
+                    _performanceMonitoringService.RecordDatabaseCall("SaveMatchEvents", saveStopwatch.Elapsed.TotalMilliseconds);
+                    
+                    _logger.LogInformation("Saved {Count} events for match {MatchId} to database in {Duration}ms",
+                        events.Count, matchId, stopwatch.Elapsed.TotalMilliseconds);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving match events for match {MatchId} to database", matchId);
+            }
+            finally
+            {
+                stopwatch.Stop();
             }
         }
 
