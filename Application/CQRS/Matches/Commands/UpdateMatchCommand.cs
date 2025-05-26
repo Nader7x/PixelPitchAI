@@ -180,27 +180,6 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 };
             }
 
-            // Check if match already exists for these teams on the same date (excluding current match)
-            if (match.HomeTeamId != request.HomeTeamId || match.AwayTeamId != request.AwayTeamId ||
-                match.ScheduledDateTimeUtc.Date != request.ScheduledDateTimeUtc.Date)
-            {
-                var existingMatches = await unitOfWork.Matches.FindAsync(m =>
-                    m.Id != request.Id &&
-                    m.HomeTeamSeasonId == request.HomeSeasonId &&
-                    m.AwayTeamSeasonId == request.HomeSeasonId &&
-                    ((m.HomeTeamId == request.HomeTeamId && m.AwayTeamId == request.AwayTeamId) ||
-                    (m.HomeTeamId == request.AwayTeamId && m.AwayTeamId == request.HomeTeamId)) &&
-                    m.ScheduledDateTimeUtc.Date == request.ScheduledDateTimeUtc.Date);
-
-                if (existingMatches != null)
-                {
-                    return new UpdateMatchCommandResponse
-                    {
-                        Succeeded = false,
-                        Error = $"A match between {homeTeam.Name} and {awayTeam.Name} already exists on {request.ScheduledDateTimeUtc.ToShortDateString()}"
-                    };
-                }
-            }
 
             // Validate match statistics
             if (request.HomeTeamPossession.HasValue && request.AwayTeamPossession.HasValue)

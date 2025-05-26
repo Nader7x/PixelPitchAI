@@ -13,33 +13,35 @@ public class ApplicationUserRepository(
 {
     private readonly FootballDbContext _context = context;
 
-    public async Task<ApplicationUser> GetByIdAsync(string userId)
+    public async Task<ApplicationUser?> GetByIdAsync(string userId)
     {
         return await userManager.FindByIdAsync(userId);
     }
 
-    public async Task<ApplicationUser> GetByEmailAsync(string email)
+    public async Task<ApplicationUser?> GetByEmailAsync(string email)
     {
         return await userManager.FindByEmailAsync(email);
     }
 
-    public async Task<ApplicationUser> GetByUsernameAsync(string username)
+    public async Task<ApplicationUser?> GetByUsernameAsync(string username)
     {
         return await userManager.FindByNameAsync(username);
     }
 
-    public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser user)
+    public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser? user)
     {
-        return await userManager.GetRolesAsync(user);
+        if (user != null) return await userManager.GetRolesAsync(user);
+        return [];
     }
 
-    public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
+    public async Task<bool> CheckPasswordAsync(ApplicationUser? user, string password)
     {
-        return await userManager.CheckPasswordAsync(user, password);
+        return user != null && await userManager.CheckPasswordAsync(user, password);
     }
 
-    public async Task<bool> AddToRoleAsync(ApplicationUser user, string role)
+    public async Task<bool> AddToRoleAsync(ApplicationUser? user, string role)
     {
+        if (user == null) return false;
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded;
     }
@@ -51,16 +53,17 @@ public class ApplicationUserRepository(
             .SingleOrDefaultAsync(t => t.Token == token);
     }
 
-    public async Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken? refreshToken)
+    public async Task AddRefreshTokenAsync(ApplicationUser? user, RefreshToken? refreshToken)
     {
         if (refreshToken != null)
         {
-            refreshToken.UserId = user.Id;
+            refreshToken.UserId = user?.Id;
             refreshToken.User = user;
             refreshToken.Created = System.DateTime.UtcNow;
             refreshToken.Expires = System.DateTime.UtcNow.AddDays(7);
-            refreshToken.JwtId= await userManager.GetClaimsAsync(user)
-                .ContinueWith(t => t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value);
+            if (user != null)
+                refreshToken.JwtId = await userManager.GetClaimsAsync(user)
+                    .ContinueWith(t => t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value);
             _context.RefreshTokens.Add(refreshToken);
         }
 
@@ -86,14 +89,15 @@ public class ApplicationUserRepository(
         var refreshTokens = await _context.RefreshTokens
             .Where(t => t.UserId == userId)
             .ToListAsync();
-        
-        return refreshTokens.Any();
+
+        return refreshTokens.Count != 0;
     }
 
     public async Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId)
     {
         return await _context.Users
             .Include(u => u.FavoriteTeam)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 }

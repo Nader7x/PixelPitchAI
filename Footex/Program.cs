@@ -37,30 +37,30 @@ try
 
     // Override configuration with environment variables
     builder.Configuration.AddEnvironmentVariables();
-    
+
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
     {
-        options.BaseUrl = builder.Configuration["SimulationService:BaseUrl"] ?? Environment.GetEnvironmentVariable("SIMULATION_SERVICE_URL") ?? "http://localhost:8000";
-        options.ApiKey = Environment.GetEnvironmentVariable("SIMULATION_API_KEY") ?? builder.Configuration["SimulationService:ApiKey"] ?? "";
+        options.BaseUrl = builder.Configuration["SimulationService:BaseUrl"] ??
+                          Environment.GetEnvironmentVariable("SIMULATION_SERVICE_URL") ?? "http://localhost:8000";
+        options.ApiKey = Environment.GetEnvironmentVariable("SIMULATION_API_KEY") ??
+                         builder.Configuration["SimulationService:ApiKey"] ?? "";
     });
 
     // Add services to the container.
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowAllOrigins",
-            corsbuilder =>
+        options.AddPolicy("AllowSomeOrigins",
+            corsBuilder =>
             {
-                corsbuilder.AllowAnyOrigin()
+                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000" ,"https://localhost:80","https://localhost:433")
+                    .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowAnyHeader();
+                    .AllowCredentials();
             });
     });
-    builder.Services.Configure<RouteOptions>(options =>
-    {
-        options.LowercaseUrls = true;
-    });
+    builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 
     // Configure Swagger with JWT support
     builder.Services.AddSwaggerGen(c =>
@@ -106,18 +106,17 @@ try
             .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services);
 
-        // Get column writers dictionary if configured in DI
-        if (services.GetService(typeof(IDictionary<string, ColumnWriterBase>)) is IDictionary<string, ColumnWriterBase>
-            columnWriters)
-        {
-            // Apply custom column writers for PostgreSQL sink
-            var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
-            loggerConfiguration.WriteTo.PostgreSQL(
-                connectionString: connectionString,
-                tableName: "Logs",
-                columnOptions: columnWriters,
-                needAutoCreateTable: true);
-        }
+        // Get a column writers dictionary if configured in DI
+        if (services.GetService(typeof(IDictionary<string, ColumnWriterBase>)) is not
+            IDictionary<string, ColumnWriterBase>
+            columnWriters) return;
+        // Apply custom column writers for PostgresSQL sink
+        var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
+        loggerConfiguration.WriteTo.PostgreSQL(
+            connectionString: connectionString,
+            tableName: "Logs",
+            columnOptions: columnWriters,
+            needAutoCreateTable: true);
     });
 
     // Add application and infrastructure services
@@ -133,7 +132,7 @@ try
             options.Password.RequireUppercase = true;
             options.Password.RequireNonAlphanumeric = true;
             options.Password.RequiredLength = 8;
-            
+
             // User settings
             options.User.AllowedUserNameCharacters =
                 "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
@@ -150,13 +149,16 @@ try
 
     // Add JWT Authentication
     var jwtSettings = builder.Configuration.GetSection("JWT");
-    var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
+    var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? string.Empty);
 
     builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer(options =>
         {
@@ -173,14 +175,33 @@ try
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ClockSkew = TimeSpan.Zero
             };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/Notify") ||
+                                                               path.StartsWithSegments("/matchSimulationHub")))
+                    {
+                        // Read the token out of the query string
+                        context.Token = accessToken;
+                        
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
+            options.IncludeErrorDetails = true;
+            options.SaveToken = true;
         });
 
     // Add Authorization Policies
-    builder.Services.AddAuthorization(options =>
-    {
-        options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-        options.AddPolicy("PremiumUser", policy => policy.RequireRole("Premium"));
-    });
+    builder.Services.AddAuthorizationBuilder()
+        // Add Authorization Policies
+        .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
+        // Add Authorization Policies
+        .AddPolicy("PremiumUser", policy => policy.RequireRole("Premium"));
 
 
     builder.Services.AddControllers()
@@ -189,6 +210,14 @@ try
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
+    builder.Services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = true;
+            options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
+            options.ClientTimeoutInterval = TimeSpan.FromMinutes(3);
+            options.KeepAliveInterval = TimeSpan.FromSeconds(9000); 
+        })
+        .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
     var app = builder.Build();
 
@@ -205,10 +234,9 @@ try
 
     // Add authentication and authorization middleware
     app.UseAuthentication();
+    app.UseWebSockets();
     app.UseCors("AllowAllOrigins");
     app.UseAuthorization();
-    app.MapHub<MatchHub>("/match_event");
-
     app.MapControllers();
 
     // Seed roles and admin user on startup
@@ -246,7 +274,8 @@ try
                         EmailConfirmed = true
                     };
 
-                    var result = await userManager.CreateAsync(admin, builder.Configuration["AdminUser:Password"]);
+                    var result = await userManager.CreateAsync(admin,
+                        builder.Configuration["AdminUser:Password"] ?? string.Empty);
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(admin, "Admin");
@@ -260,7 +289,13 @@ try
             logger.LogError(ex, "An error occurred while seeding the database.");
         }
     }
-
+    app.MapHub<NotificationService>("/Notify",
+        options => { options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets; });
+    app.MapHub<MatchHub>("/matchSimulationHub",
+        options =>
+        {
+            options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+        });
     app.Run();
 }
 catch (Exception ex)

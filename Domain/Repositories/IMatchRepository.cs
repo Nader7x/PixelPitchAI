@@ -19,4 +19,5 @@ public interface IMatchRepository : IRepository<Match>
     Task<IReadOnlyList<Match>> GetMatchesBySeasonIdAsync(int seasonId);
 
     Task<int> GetLiveMatchAsync(string requestUserId);
+    Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId ,CancellationToken cancellationToken);
 }

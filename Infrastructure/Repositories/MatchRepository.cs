@@ -134,4 +134,18 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Select(m => m.Id)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId , CancellationToken cancellationToken)
+    {
+        var match = await _context.Matches.FindAsync([matchId, cancellationToken], cancellationToken: cancellationToken);
+        if (match == null)
+        {
+            return null;
+        }
+        match.SimulationId = simulationId;
+        _context.Matches.Update(match);
+        await _context.SaveChangesAsync(cancellationToken);
+        
+        return match;
+    }
 }

@@ -6,6 +6,7 @@ namespace Application.CQRS.Matches.Commands;
 public class UpdateMatchStatusCommand : IRequest<UpdateMatchStatusCommandResponse>
 {
     public int MatchId { get; set; }
+    public string NewStatus { get; set; } = string.Empty; // New property to hold the new status
 }
 
 public class UpdateMatchStatusCommandResponse 
@@ -31,9 +32,15 @@ public class UpdateMatchStatusCommandHandler(IUnitOfWork unitOfWork)
                 Error = "Match not found",
             };
         }
-
-        // Update the match status
-        match.MatchStatus = "Completed"; // Example status update
+        if (string.IsNullOrEmpty(request.NewStatus))
+        {
+                // Update the match status
+               match.MatchStatus = "Completed"; // Example status update
+        }
+        else
+        {
+            match.MatchStatus = request.NewStatus; // Update to the new status provided
+        }
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new UpdateMatchStatusCommandResponse

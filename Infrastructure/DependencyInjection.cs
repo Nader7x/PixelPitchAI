@@ -34,11 +34,13 @@ public static class DependencyInjection
         services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
         services.AddScoped<ICoachRepository,CoachRepository>();
         services.AddScoped<IStadiumsRepository, StadiumsRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<ICompetitionRepository, CompetitionRepository>();
         // Register identity services
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISearchService, SearchService>();        // Register EventAnalysis service
-        services.AddScoped<IEventAnalysisService ,EventAnalysisService>();        // Register the MatchEventRabbitMqClient as a hosted service
+        services.AddSingleton<IEventAnalysisService ,EventAnalysisService>();        // Register the MatchEventRabbitMqClient as a hosted service
         services.AddSingleton<MatchEventRabbitMqClient>();
         services.AddHostedService(provider => provider.GetRequiredService<MatchEventRabbitMqClient>());
         

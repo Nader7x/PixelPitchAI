@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,29 +15,21 @@ using RabbitMQ.Client.Events;
 
 namespace Infrastructure.Services
 {
-    public class MatchEventRabbitMqClient : BackgroundService
-    {        private readonly ILogger<MatchEventRabbitMqClient> _logger;
-        private readonly IHubContext<MatchHub> _hubContext;
+    public class MatchEventRabbitMqClient(
+        ILogger<MatchEventRabbitMqClient> logger,
+        IHubContext<MatchHub> hubContext,
+        IServiceScopeFactory serviceScopeFactory,
+        IPerformanceMonitoringService performanceMonitoringService)
+        : BackgroundService
+    {
         private int _eventSequence;
-        private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly IPerformanceMonitoringService _performanceMonitoringService;
         private IConnection? _connection;
         private IChannel? _channel;
 
         private readonly Dictionary<string, List<FootballMatchEvent>?> _matchEventsCache = new();
-
+        
         // Timer for periodic flushing of events to database as a safety mechanism
-        private Timer? _flushTimer;public MatchEventRabbitMqClient(
-            ILogger<MatchEventRabbitMqClient> logger,
-            IHubContext<MatchHub> hubContext,
-            IServiceScopeFactory serviceScopeFactory,
-            IPerformanceMonitoringService performanceMonitoringService)
-        {
-            _logger = logger;
-            _hubContext = hubContext;
-            _serviceScopeFactory = serviceScopeFactory;
-            _performanceMonitoringService = performanceMonitoringService;
-        }
+        private Timer? _flushTimer;
 
         private async Task InitializeRabbitMq(CancellationToken stoppingToken)
         {
@@ -77,14 +70,14 @@ namespace Infrastructure.Services
                     routingKey: "match.events", cancellationToken: stoppingToken);
 
                 await _channel.BasicQosAsync(0, 1, false, cancellationToken: stoppingToken);
-                _logger.LogInformation(
+                logger.LogInformation(
                     "RabbitMQ connected to {SettingsHostName}:{SettingsPort}/{SettingsVirtualHost}",
                     RabbitMqSettings.HostName,
                     RabbitMqSettings.Port, RabbitMqSettings.VirtualHost);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Could not initialize RabbitMQ connection");
+                logger.LogError(ex, "Could not initialize RabbitMQ connection");
                 throw;
             }
         }
@@ -97,18 +90,20 @@ namespace Infrastructure.Services
                 _flushTimer = new Timer(FlushEventsToDatabase, null, TimeSpan.FromMinutes(1),
                     TimeSpan.FromMinutes(1)); // Example: flush every minute
                 await base.StartAsync(cancellationToken);
-                _logger.LogInformation("MatchEventRabbitMqClient started successfully.");
+                logger.LogInformation("MatchEventRabbitMqClient started successfully.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to start MatchEventRabbitMqClient.");
+                logger.LogError(ex, "Failed to start MatchEventRabbitMqClient.");
                 // Consider how to handle startup failure (e.g., stopping the application host)
             }
-        }        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        }
+
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (_channel == null)
             {
-                _logger.LogError("Channel is not initialized. Cannot start consuming events.");
+                logger.LogError("Channel is not initialized. Cannot start consuming events.");
                 return Task.CompletedTask;
             }
 
@@ -122,10 +117,11 @@ namespace Infrastructure.Services
                 {
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-                    _logger.LogInformation("Received match event: {Message}", message);
+                    logger.LogInformation("Received match event: {Message}", message);
 
                     // Deserialize directly from JSON
-                    var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(message);                    if (matchEvent != null)
+                    var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(message);
+                    if (matchEvent != null)
                     {
                         await CacheMatchEvent(matchEvent);
                         // If this is a match_end event, save all cached events to the database
@@ -146,13 +142,13 @@ namespace Infrastructure.Services
                     }
                     else
                     {
-                        _logger.LogWarning("Channel closed before acknowledgment. Trying to recover connection.");
+                        logger.LogWarning("Channel closed before acknowledgment. Trying to recover connection.");
                         // Don't try to re-acknowledge after recovery as the delivery tag won't be valid
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing match event");
+                    logger.LogError(ex, "Error processing match event");
                     try
                     {
                         if (_channel.IsOpen)
@@ -162,7 +158,7 @@ namespace Infrastructure.Services
                     }
                     catch (Exception nackEx)
                     {
-                        _logger.LogError(nackEx, "Error sending NACK");
+                        logger.LogError(nackEx, "Error sending NACK");
                     }
                 }
             };
@@ -178,16 +174,18 @@ namespace Infrastructure.Services
 
         private async Task BroadcastEventToClients(FootballMatchEvent matchEvent)
         {
-            await _hubContext.Clients.Group(matchEvent.match_id)
+            await hubContext.Clients.Group(matchEvent.match_id)
                 .SendAsync("ReceiveMatchEvent", matchEvent);
 
-            _logger.LogInformation("Broadcasted match event {FootballMatchEvent} to clients", matchEvent);
-        }        private Task CacheMatchEvent(FootballMatchEvent matchEvent)
+            logger.LogInformation("Broadcasted match event {FootballMatchEvent} to clients", matchEvent);
+        }
+
+        private Task CacheMatchEvent(FootballMatchEvent matchEvent)
         {
             try
             {
                 var matchId = matchEvent.match_id;
-                bool isFirstEvent = false;
+                var isFirstEvent = false;
 
                 // Add to in-memory cache
                 lock (_matchEventsCache)
@@ -212,32 +210,37 @@ namespace Infrastructure.Services
                     {
                         try
                         {
-                            using var scope = _serviceScopeFactory.CreateScope();
-                            var liveMatchService = scope.ServiceProvider.GetRequiredService<ILiveMatchStatisticsService>();
+                            using var scope = serviceScopeFactory.CreateScope();
+                            var liveMatchService =
+                                scope.ServiceProvider.GetRequiredService<ILiveMatchStatisticsService>();
                             await liveMatchService.PreloadMatchForLiveStatistics(matchId);
-                            _logger.LogInformation("Auto-preloaded match {MatchId} for live statistics on first event", matchId);
+                            logger.LogInformation("Auto-preloaded match {MatchId} for live statistics on first event",
+                                matchId);
                         }
                         catch (Exception preloadEx)
                         {
-                            _logger.LogWarning(preloadEx, "Failed to auto-preload match {MatchId} for live statistics", matchId);
+                            logger.LogWarning(preloadEx, "Failed to auto-preload match {MatchId} for live statistics",
+                                matchId);
                         }
                     });
                 }
 
-                _logger.LogInformation("Cached match event {EventIndex} for match {MatchId}",
+                logger.LogInformation("Cached match event {EventIndex} for match {MatchId}",
                     matchEvent.event_index, matchEvent.match_id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error caching match event {EventIndex} for match {MatchId}",
+                logger.LogError(ex, "Error caching match event {EventIndex} for match {MatchId}",
                     matchEvent.event_index, matchEvent.match_id);
             }
 
             return Task.CompletedTask;
-        }private async Task SaveMatchEventsToDatabase(string matchId)
+        }
+
+        private async Task SaveMatchEventsToDatabase(string matchId)
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
+            var stopwatch = Stopwatch.StartNew();
+
             try
             {
                 List<FootballMatchEvent>? events;
@@ -247,26 +250,29 @@ namespace Infrastructure.Services
                 {
                     if (!_matchEventsCache.Remove(matchId, out events))
                     {
-                        _logger.LogWarning("No cached events found for match {MatchId}", matchId);
+                        logger.LogWarning("No cached events found for match {MatchId}", matchId);
                         return;
                     }
-                }                using var scope = _serviceScopeFactory.CreateScope();
+                }
+
+                using var scope = serviceScopeFactory.CreateScope();
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                 var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
                 var liveMatchService = scope.ServiceProvider.GetRequiredService<ILiveMatchStatisticsService>();
 
                 // Record database call for performance monitoring
-                var dbStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                
+                var dbStopwatch = Stopwatch.StartNew();
+
                 // Fetch the Match object once, including details needed for analysis
                 var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
-                
+
                 dbStopwatch.Stop();
-                _performanceMonitoringService.RecordDatabaseCall("GetMatchWithDetails", dbStopwatch.Elapsed.TotalMilliseconds);
-                
+                performanceMonitoringService.RecordDatabaseCall("GetMatchWithDetails",
+                    dbStopwatch.Elapsed.TotalMilliseconds);
+
                 if (match == null)
                 {
-                    _logger.LogWarning("Match with ID {MatchId} not found when trying to save events.", matchId);
+                    logger.LogWarning("Match with ID {MatchId} not found when trying to save events.", matchId);
                     return;
                 }
 
@@ -291,7 +297,8 @@ namespace Infrastructure.Services
                     foreach (var matchEvent in events)
                     {
                         await eventAnalysis.UpdateMatchStatistics(matchEvent, matchEventsEntity, match);
-                    }                    // Save all events at once
+                    } // Save all events at once
+
                     matchEventsEntity.SetEvents(events);
                     matchEventsEntity.TotalEvents = events.Count;
                     matchEventsEntity.LastUpdated = DateTime.UtcNow;
@@ -304,35 +311,38 @@ namespace Infrastructure.Services
                         match.LastEventTimestampSeconds = events.Max(e => e.time_seconds);
                         match.IsLive = false;
                         match.MatchStatus = "Completed";
-                        
+
                         // Update cached match in LiveMatchStatisticsService for real-time access
                         try
                         {
                             if (liveMatchService is LiveMatchStatisticsService liveService)
                             {
                                 liveService.UpdateCachedMatch(matchId, match);
-                                _logger.LogDebug("Updated cached match {MatchId} in LiveMatchStatisticsService", matchId);
+                                logger.LogDebug("Updated cached match {MatchId} in LiveMatchStatisticsService",
+                                    matchId);
                             }
                         }
                         catch (Exception cacheEx)
                         {
-                            _logger.LogWarning(cacheEx, "Failed to update cached match {MatchId} in LiveMatchStatisticsService", matchId);
+                            logger.LogWarning(cacheEx,
+                                "Failed to update cached match {MatchId} in LiveMatchStatisticsService", matchId);
                         }
                     }
 
                     // Record database save operation
-                    var saveStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    var saveStopwatch = Stopwatch.StartNew();
                     await unitOfWork.SaveChangesAsync();
                     saveStopwatch.Stop();
-                    _performanceMonitoringService.RecordDatabaseCall("SaveMatchEvents", saveStopwatch.Elapsed.TotalMilliseconds);
-                    
-                    _logger.LogInformation("Saved {Count} events for match {MatchId} to database in {Duration}ms",
+                    performanceMonitoringService.RecordDatabaseCall("SaveMatchEvents",
+                        saveStopwatch.Elapsed.TotalMilliseconds);
+
+                    logger.LogInformation("Saved {Count} events for match {MatchId} to database in {Duration}ms",
                         events.Count, matchId, stopwatch.Elapsed.TotalMilliseconds);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving match events for match {MatchId} to database", matchId);
+                logger.LogError(ex, "Error saving match events for match {MatchId} to database", matchId);
             }
             finally
             {
@@ -357,7 +367,7 @@ namespace Infrastructure.Services
                     {
                         if (t.IsFaulted)
                         {
-                            _logger.LogError(t.Exception, "Failed to flush events for match {MatchId}", matchId);
+                            logger.LogError(t.Exception, "Failed to flush events for match {MatchId}", matchId);
                         }
                     });
             }

@@ -19,16 +19,18 @@ public sealed class UnitOfWork : IUnitOfWork
         _context = context;
         Stadiums = stadiums;
         _disposed = false;
-        
+
         // Initialize repositories
+        Teams = new TeamRepository(_context);
+        Coaches = new CoachRepository(_context);
+        Matches = new MatchRepository(_context);
         Players = new PlayerRepository(_context);
         Seasons = new SeasonRepository(_context);
-        Matches = new MatchRepository(_context);
-        Teams = new TeamRepository(_context);
         TeamSeasons = new TeamSeasonsRepository(_context);
         MatchEvents = new MatchEventsRepository(_context);
+        Competitions = new CompetitionRepository(_context);
+        Notifications = new NotificationRepository(_context);
         ApplicationUser = new ApplicationUserRepository(_context, userManager);
-        Coaches = new CoachRepository(_context);
     }
 
     public IPlayerRepository Players { get; private set; }
@@ -40,6 +42,8 @@ public sealed class UnitOfWork : IUnitOfWork
     public IApplicationUserRepository ApplicationUser { get; private set; }
     public ICoachRepository Coaches { get; private set; }
     public IStadiumsRepository Stadiums { get; }
+    public ICompetitionRepository Competitions { get; }
+    public INotificationRepository Notifications { get; }
 
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -56,16 +60,16 @@ public sealed class UnitOfWork : IUnitOfWork
     {
         try
         {
-            await _transaction.CommitAsync();
+            if (_transaction != null) await _transaction.CommitAsync();
         }
         catch
         {
-            await _transaction.RollbackAsync();
+            if (_transaction != null) await _transaction.RollbackAsync();
             throw;
         }
         finally
         {
-            _transaction.Dispose();
+            _transaction?.Dispose();
             _transaction = null;
         }
     }
@@ -74,11 +78,11 @@ public sealed class UnitOfWork : IUnitOfWork
     {
         try
         {
-            await _transaction.RollbackAsync();
+            if (_transaction != null) await _transaction.RollbackAsync();
         }
         finally
         {
-            _transaction.Dispose();
+            _transaction?.Dispose();
             _transaction = null;
         }
     }
@@ -96,6 +100,11 @@ public sealed class UnitOfWork : IUnitOfWork
             _transaction?.Dispose();
             _context.Dispose();
         }
+
         _disposed = true;
+    }
+    ~UnitOfWork()
+    {
+        Dispose(false);
     }
 }

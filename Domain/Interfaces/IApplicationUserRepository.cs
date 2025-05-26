@@ -10,7 +10,7 @@ public interface IApplicationUserRepository : IRepository<ApplicationUser>
     Task<bool> CheckPasswordAsync(ApplicationUser? user, string password);
     Task<bool> AddToRoleAsync(ApplicationUser? user, string role);
     Task<RefreshToken?> GetRefreshTokenAsync(string token);
-    Task AddRefreshTokenAsync(ApplicationUser user, RefreshToken? refreshToken);
+    Task AddRefreshTokenAsync(ApplicationUser? user, RefreshToken? refreshToken);
     Task RevokeRefreshTokenAsync(string token, string ipAddress);
     Task<bool> HasRefreshTokensAsync(string userid);
     Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId);

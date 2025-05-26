@@ -13,6 +13,8 @@ public class GetAllPlayersQuery : IRequest<GetAllPlayersQueryResponse>
     
     public string? PreferredFoot { get; set; }
     public int? TeamId { get; set; }
+    public int? PageNumber { get; set; }
+    public int? PageSize { get; set; }
 }
 
 public class GetAllPlayersQueryResponse
@@ -48,7 +50,7 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper play
             }
             else
             {
-                players = await unitOfWork.Players.GetAllAsync();
+                players = await unitOfWork.Players.GetAllAsync(request.PageNumber, request.PageSize);
             }
             var playerDtos = _playerMapper.ToDtoList(players);
             return new GetAllPlayersQueryResponse

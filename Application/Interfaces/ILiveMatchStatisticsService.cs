@@ -21,7 +21,9 @@ public interface ILiveMatchStatisticsService
     /// </summary>
     /// <param name="matchIds">Collection of match IDs to preload</param>
     /// <returns>Number of successfully preloaded matches</returns>
-    Task<int> PreloadMultipleMatchesForLiveStatistics(IEnumerable<string> matchIds);    /// <summary>
+    Task<int> PreloadMultipleMatchesForLiveStatistics(IEnumerable<string> matchIds);
+
+    /// <summary>
     /// Gets cached live match statistics without triggering database calls.
     /// Returns null if the match is not currently cached.
     /// </summary>

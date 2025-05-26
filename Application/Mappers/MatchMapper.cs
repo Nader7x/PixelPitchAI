@@ -13,6 +13,8 @@ public partial class MatchMapper
     public partial MatchDto ToDto(Match match);
     
     // Map from list of Match to list of MatchDto
+    [MapProperty(nameof(Match.HomeTeamInMatchName), nameof(MatchDto.HomeTeamName))]
+    [MapProperty(nameof(Match.AwayTeamInMatchName), nameof(MatchDto.AwayTeamName))]
     public partial List<MatchDto?> ToDtoList(IEnumerable<Match> matches);
     
     // Map from CreateMatchDto to CreateMatchCommand

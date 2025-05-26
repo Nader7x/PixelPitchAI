@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
@@ -12,7 +13,8 @@ namespace Infrastructure.Services;
 /// Reduces database calls during real-time event processing.
 /// </summary>
 public class LiveMatchStatisticsService : ILiveMatchStatisticsService
-{    private readonly ILogger<LiveMatchStatisticsService> _logger;
+{
+    private readonly ILogger<LiveMatchStatisticsService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IPerformanceMonitoringService _performanceMonitoringService;
     private readonly IEventAnalysisService _eventAnalysisService;
@@ -37,12 +39,14 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
     /// <inheritdoc/>
     public async Task<Match?> PreloadMatchForLiveStatistics(string matchId)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();            // Record database call for performance monitoring
+            var unitOfWork =
+                scope.ServiceProvider
+                    .GetRequiredService<IUnitOfWork>(); // Record database call for performance monitoring
             _performanceMonitoringService.RecordDatabaseCall("PreloadMatch", stopwatch.Elapsed.TotalMilliseconds);
 
             var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
@@ -73,7 +77,8 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
     public async Task<int> PreloadMultipleMatchesForLiveStatistics(IEnumerable<string> matchIds)
     {
         var loadedCount = 0;
-        var tasks = matchIds.Select(async matchId =>
+        var idsList = matchIds.ToList();
+        var tasks = idsList.Select(async matchId =>
         {
             var match = await PreloadMatchForLiveStatistics(matchId);
             if (match != null)
@@ -85,7 +90,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         await Task.WhenAll(tasks);
 
         _logger.LogInformation("Preloaded {LoadedCount} out of {RequestedCount} matches for live statistics",
-            loadedCount, matchIds.Count());
+            loadedCount, idsList.Count);
 
         return loadedCount;
     }
@@ -138,6 +143,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         {
             _logger.LogInformation("Removed match {MatchId} from live cache", matchId);
         }
+
         return removed;
     }
 

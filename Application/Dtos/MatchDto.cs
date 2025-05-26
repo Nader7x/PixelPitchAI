@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Dtos;
@@ -49,14 +50,15 @@ public class MatchDto
 
 public class CreateMatchDto
 {
-    public int SeasonId { get; set; }
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
-    public DateTime ScheduledDateTimeUtc { get; set; }
+    [JsonIgnore]
+    public DateTime ScheduledDateTimeUtc { get; set; } = DateTime.UtcNow;
     public int? StadiumId { get; set; }
-    public int? MatchWeek { get; set; }
-    public int? HomeCoachId { get; set; }
-    public int? AwayCoachId { get; set; }
+    public int? HomeSeasonId { get; set; }
+    public int? AwaySeasonId { get; set; }
+    
+    [JsonIgnore]
     public string? MatchStatus { get; set; } = "Scheduled";
     public string? CreatorId { get; set; }
 }
@@ -171,6 +173,7 @@ public class MatchDetailsDto
     public int? HomeTeamFreeKicks { get; set; }
     public int? AwayTeamFreeKicks { get; set; }
     public string? CreatorId { get; set; }
+    public bool? IsLive { get; set; }
 
 }
 

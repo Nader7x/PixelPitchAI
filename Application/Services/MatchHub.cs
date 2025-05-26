@@ -1,9 +1,17 @@
+using Application.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Application.Services;
-
-public class MatchHub : Hub
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+public class MatchHub : Hub<IMatchHub>
 {
+    public override Task OnConnectedAsync()
+    {
+        return base.OnConnectedAsync();
+    }
+
     public async Task JoinMatchGroup(int matchId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, matchId.ToString());

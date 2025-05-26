@@ -1,6 +1,7 @@
 using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 
 namespace Infrastructure.Repositories;
@@ -24,12 +25,20 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
     {
         return await _context.Players
             .Where(p => p.Nationality.ToLower() == nationality.ToLower())
-            .OrderBy(p => p.FullName)
+            .OrderBy(p => p.FullName).Skip(40).Take(20)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Player>> GetByPreferredFootAsync(string? preferredFoot)
     {
+        if (!preferredFoot.IsNullOrEmpty() && preferredFoot.ToLower() == "right")
+        {
+            return await _context.Players.Where(p => p.PreferredFoot.ToLower() == "right")
+                .OrderBy(p => p.FullName)
+                .Skip(40)
+                .Take(20)
+                .ToListAsync();
+        }
         return await _context.Players
             .Where(p => p.PreferredFoot.ToLower() == preferredFoot.ToLower())
             .OrderBy(p => p.FullName)
@@ -42,6 +51,8 @@ public class PlayerRepository(FootballDbContext context) : Repository<Player>(co
             .AsEnumerable()
             .Where(predicate)
             .OrderBy(p => p.FullName)
+            .Skip(40)
+            .Take(20)
             .ToList();
 
         return Task.FromResult<IEnumerable<Player>>(result) ;

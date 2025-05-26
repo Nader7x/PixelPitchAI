@@ -19,6 +19,7 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     public DbSet<Season> Seasons { get; set; }
     public DbSet<TeamSeasons> TeamSeasons { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

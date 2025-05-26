@@ -25,13 +25,18 @@ public class PlayersController(IMediator mediator, IFileStorageService fileStora
     public async Task<ActionResult<GetAllPlayersQueryResponse>> GetAllPlayers(
         [FromQuery] string? nationality,
         [FromQuery] string? preferredFoot,
-        [FromQuery] int? teamId)
+        [FromQuery] int? teamId, 
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? pageSize
+        )
     {
         var query = new GetAllPlayersQuery
         {
             Nationality = nationality,
             PreferredFoot = preferredFoot,
-            TeamId = teamId
+            TeamId = teamId,
+            PageNumber = pageNumber ,
+            PageSize = pageSize
         };
         
         var result = await _mediator.Send(query);

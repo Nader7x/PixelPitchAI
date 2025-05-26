@@ -2,6 +2,7 @@ using MediatR;
 using System.ComponentModel.DataAnnotations;
 using Application.Mappers;
 using Domain.Interfaces;
+using System.Text.Json.Serialization;
 
 namespace Application.CQRS.Matches.Commands;
 
@@ -16,8 +17,8 @@ public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
     
     [Required]
     public int AwayTeamId { get; set; }
-    public string? HomeTeamInMatchName { get; init; }
-    public string? AwayTeamInMatchName { get; init; }
+    public string? HomeTeamInMatchName { get; set; }
+    public string? AwayTeamInMatchName { get; set; }
     
     [Required]
     public DateTime ScheduledDateTimeUtc { get; set; }
@@ -56,13 +57,22 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper match
         try
         {
             // Validate Season exists
-            var season = await unitOfWork.Seasons.GetByIdAsync(request.HomeSeasonId);
-            if (season == null)
+            var homeSeason = await unitOfWork.Seasons.GetByIdAsync(request.HomeSeasonId);
+            if (homeSeason == null)
             {
                 return new CreateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Season with ID {request.HomeSeasonId} not found"
+                };
+            }
+            var awaySeason = await unitOfWork.Seasons.GetByIdAsync(request.AwaySeasonId);
+            if (awaySeason == null)
+            {
+                return new CreateMatchCommandResponse
+                {
+                    Succeeded = false,
+                    Error = $"Season with ID {request.AwaySeasonId} not found"
                 };
             }
             
@@ -129,33 +139,16 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper match
                     };
                 }
             }
-            
-            // Validate teams are different
-            if (request.HomeTeamId == request.AwayTeamId)
-            {
-                return new CreateMatchCommandResponse
-                {
-                    Succeeded = false,
-                    Error = "Home team and away team must be different"
-                };
-            }
-            
-            // Check if match already exists for these teams on the same date
-            var existingMatches = await unitOfWork.Matches.FindAsync(m =>
-                m.HomeTeamSeasonId == request.HomeSeasonId &&
-                m.AwayTeamSeasonId == request.AwaySeasonId &&
-                ((m.HomeTeamId == request.HomeTeamId && m.AwayTeamId == request.AwayTeamId) ||
-                (m.HomeTeamId == request.AwayTeamId && m.AwayTeamId == request.HomeTeamId)) &&
-                m.ScheduledDateTimeUtc.Date == request.ScheduledDateTimeUtc.Date);
 
-            if (existingMatches!=null)
+            if (string.IsNullOrEmpty(request.HomeTeamInMatchName))
             {
-                return new CreateMatchCommandResponse
-                {
-                    Succeeded = false,
-                    Error = $"A match between {homeTeam.Name} and {awayTeam.Name} already exists on {request.ScheduledDateTimeUtc.ToShortDateString()}"
-                };
+                request.HomeTeamInMatchName = $"{homeTeam.Name?.Replace(" ","_")}_{homeSeason.Name.Split("/")[1]}";
             }
+            if (string.IsNullOrEmpty(request.AwayTeamInMatchName))
+            {
+                request.AwayTeamInMatchName = $"{awayTeam.Name?.Replace(" ","_")}_{awaySeason.Name.Split("/")[1]}";
+            }
+            
             
             // Create new match
             var match = matchMapper.ToMatchFromCreate(request);
@@ -182,16 +175,36 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper match
     }
 }
 
+
 public abstract class StartMatchResponse
 {
+    [JsonPropertyName("match_id")]
     public int MatchId { get; init; }
-    public string? HomeTeamName { get; init; }
-    public string? AwayTeamName { get; init; }
-    public string? HomeTeamSeason { get; init; }
-    public string? AwayTeamSeason { get; init; }
-    public int? EventsCount { get; init; }
-    public double? ExecutionTime { get; init; } 
-    public string? Preview { get; init; }
-    public string? SimulationId { get; init; }
-    public string? Status { get; init; }
+    
+    [JsonPropertyName("home_team_name")]
+    public string HomeTeamName { get; init; } = string.Empty;
+    
+    [JsonPropertyName("away_team_name")]
+    public string AwayTeamName { get; init; } = string.Empty;
+    
+    [JsonPropertyName("home_team_season")]
+    public string HomeTeamSeason { get; init; } = string.Empty;
+    
+    [JsonPropertyName("away_team_season")]
+    public string AwayTeamSeason { get; init; } = string.Empty;
+    
+    [JsonPropertyName("events_count")]
+    public int EventsCount { get; init; } = 0;
+    
+    [JsonPropertyName("execution_time")]
+    public double ExecutionTime { get; init; } = 0.0;
+    
+    [JsonPropertyName("preview")]
+    public string Preview { get; init; } = "";
+    
+    [JsonPropertyName("simulation_id")]
+    public string SimulationId { get; init; } = "";
+    
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "pending";
 }

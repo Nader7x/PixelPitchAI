@@ -30,11 +30,8 @@ public static class DependencyInjection
         services.AddSingleton<PlayerMapper>();
         services.AddSingleton<CoachMapper>();
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
-        services.AddSignalR(options =>
-        {
-            options.EnableDetailedErrors = true;
-            options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
-        });
+        services.AddSingleton<NotificationService>();
+        services.AddSingleton<MatchHub>();
         services.AddHttpClient();
 
         return services;

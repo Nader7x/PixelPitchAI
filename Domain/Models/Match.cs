@@ -121,6 +121,8 @@ public sealed class Match
 
     [MaxLength(255)]
     public required string CreatorId { get; init; }
+    [MaxLength(255)]
+    public string? SimulationId { get; set; } // ID for the simulation process, if applicable
 
     public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
