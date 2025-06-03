@@ -1,9 +1,6 @@
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Configurations;
 
@@ -47,6 +44,9 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
         builder.HasIndex(p => p.TeamId)
             .HasMethod("btree")
             .HasDatabaseName("IX_Player_TeamId");
+            
+        // Note: PostgreSQL full-text search indexes will be created via raw SQL in migration
+        // as EF Core doesn't support tsvector expressions in HasIndex
             
         // Relationships
         // (Assuming there's a Team relationship)

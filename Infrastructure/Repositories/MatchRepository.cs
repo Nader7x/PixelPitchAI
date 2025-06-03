@@ -76,13 +76,16 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetByStatusAsync(string status)
     {
+        if (string.IsNullOrEmpty(status)) return new List<Match>();
+        
         return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
-            .Where(m => m.MatchStatus.ToLower() == status.ToLower())
+            .Where(m => m.MatchStatus != null && m.MatchStatus.ToLower() == status.ToLower())
             .OrderByDescending(m => m.ScheduledDateTimeUtc)
+            .AsNoTracking()
             .ToListAsync();
     }
 
@@ -112,12 +115,19 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IEnumerable<Match>> SearchAsync(string query)
     {
+        if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<Match>();
+        
+        var searchTerm = query.ToLower().Trim();
+        
         return await _context.Matches
             .Where(m =>
-                m.HomeTeam.Name.ToLower().Contains(query) ||
-                m.AwayTeam.Name.ToLower().Contains(query))
+                (m.HomeTeam != null && m.HomeTeam.Name != null && m.HomeTeam.Name.ToLower().Contains(searchTerm)) ||
+                (m.AwayTeam != null && m.AwayTeam.Name != null && m.AwayTeam.Name.ToLower().Contains(searchTerm)))
+            .AsSplitQuery()
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
+            .Include(m => m.Stadium)
+            .AsNoTracking()
             .ToListAsync();
     }
 

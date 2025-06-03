@@ -3,9 +3,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Application.CQRS.Matches.Commands;
 using Application.CQRS.Matches.Queries;
+using Application.CQRS.Notifications.Commands;
 using Application.Dtos;
+using Application.Helpers;
 using Application.Interfaces;
 using Application.Mappers;
+using Application.Services;
 using Domain.Interfaces;
 using Infrastructure.Services;
 using MediatR;
@@ -14,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Footex.Configuration;
 using Domain.Models;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Footex.Controllers;
 
@@ -28,13 +32,15 @@ public class MatchesController(
     IPerformanceMonitoringService performanceMonitoringService,
     IServiceScopeFactory serviceScopeFactory,
     IUnitOfWork unitOfWork,
-    ILogger<MatchesController> logger) : ControllerBase
+    ILogger<MatchesController> logger,
+    IHubContext<NotificationService, INotificationService> hubContext) : ControllerBase
 {
     private readonly MatchMapper _matchMapper = matchMapper;
     private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<MatchesController> _logger = logger;
+    private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
 
     [HttpGet]
     [ProducesResponseType(typeof(GetAllMatchesQueryResponse), StatusCodes.Status200OK)]
@@ -308,6 +314,24 @@ public class MatchesController(
             await _unitOfWork.Matches
                 .UpdateSimulationIdAsync(result.Id, result.ApiResponse.SimulationId,
                 cancellationToken);
+            var notification = new Notification
+            {
+                UserId = userId,
+                Content = $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
+                Type = NotificationType.SimulationStart,
+            };
+            var notificationCommand =
+                new CreateNotificationCommand { Notification = notification };
+            var notificationResult = mediator.Send(notificationCommand, cancellationToken);
+            if (!notificationResult.Result.Succeeded)
+            {
+                _logger.LogError("Failed to create notification for simulation start: {Error}",
+                    notificationResult.Result.Error);
+            }
+            if (notificationResult.Result.Notification != null)
+                await _hubContext.Clients.User(userId).SendNotificationAsync(
+                    notificationResult.Result.Notification);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             return Ok(result);
         }
 
@@ -730,6 +754,27 @@ public class MatchesController(
             // If simulation is completed, update the local match with final results
             if (resultResponse.Status == "completed")
             {
+                var notification = new Notification
+                {
+                    Type = NotificationType.MatchStart,
+                    UserId = match.CreatorId,
+                    Content = $"Your Requested Match Has Started Go to the Live Match View to Watch",
+                };
+                var notificationCommand = new CreateNotificationCommand()
+                {
+                    Notification = notification
+                };
+                var notificationResult = await mediator.Send(notificationCommand, cancellationToken);
+                if (!notificationResult.Succeeded)
+                {
+                    _logger.LogError("Failed to create notification for match start: {Error}",
+                        notificationResult.Error);
+                }
+
+                if (notificationResult.Notification != null)
+                    if (match.SimulationId != null)
+                        await _hubContext.Clients.User(match.CreatorId).SendMatchStartNotificationAsync(notificationResult.Notification,
+                            match.SimulationId);
                 await UpdateMatchWithSimulationResult(match.Id, resultResponse, cancellationToken);
             }
 

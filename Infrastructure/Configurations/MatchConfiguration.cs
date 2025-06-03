@@ -1,9 +1,6 @@
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Configurations;
 
@@ -73,6 +70,11 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.HasIndex(m => m.StadiumId)
             .HasMethod("btree")
             .HasDatabaseName("IX_Match_StadiumId");
+            
+        // Add composite index for match search optimization
+        builder.HasIndex(m => new { m.HomeTeamId, m.AwayTeamId, m.ScheduledDateTimeUtc })
+            .HasMethod("btree")
+            .HasDatabaseName("IX_Match_Teams_Date");
             
         // Relationships
 

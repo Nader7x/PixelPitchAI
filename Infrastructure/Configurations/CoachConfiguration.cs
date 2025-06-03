@@ -23,12 +23,13 @@ public class CoachConfiguration : IEntityTypeConfiguration<Coach>
         // Use properly named indexes with appropriate methods for search patterns
         builder.HasIndex(c => new { c.FirstName, c.LastName })
             .HasMethod("btree")
-            .HasDatabaseName("IX_Coach_Name");
-            
-        // Add practical indexes for common queries
+            .HasDatabaseName("IX_Coach_Name");        // Add practical indexes for common queries
         builder.HasIndex(c => c.Nationality)
             .HasMethod("btree")
             .HasDatabaseName("IX_Coach_Nationality");
+            
+        // Note: PostgreSQL full-text search indexes will be created via raw SQL in migration
+        // as EF Core doesn't support tsvector expressions in HasIndex
         builder.Property(c => c.DateOfBirth)
             .HasColumnType("date");
             

@@ -10,8 +10,7 @@ public class NotificationService : Hub<INotificationService>
 {
     public override Task OnConnectedAsync()
     {
-        Console.WriteLine(Context.User.GetNameId());
-        var userId = Context.UserIdentifier;
+        var userId = Context.User.GetNameId();
         if (userId != null)
         {
             Clients.User(userId).SendMessageAsync("Welcome back!");

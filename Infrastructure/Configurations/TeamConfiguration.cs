@@ -31,12 +31,13 @@ public class TeamConfiguration : IEntityTypeConfiguration<Team>
         builder.HasIndex(t => t.ShortName)
             .IsUnique()
             .HasMethod("btree")
-            .HasDatabaseName("IX_Team_ShortName");
-            
-        // Add composite index for common query patterns
+            .HasDatabaseName("IX_Team_ShortName");        // Add composite index for common query patterns
         builder.HasIndex(t => new { t.Country, t.City })
             .HasMethod("btree")
             .HasDatabaseName("IX_Team_Location");
+            
+        // Note: PostgreSQL full-text search indexes will be created via raw SQL in migration
+        // as EF Core doesn't support tsvector expressions in HasIndex
             
         // Relationships with optimized foreign key constraints
         builder.HasOne(t => t.Stadium)

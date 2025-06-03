@@ -7,6 +7,7 @@ using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 
 namespace Footex.Controllers;
 
@@ -217,10 +218,17 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
     // Helper methods
     private string GetIpAddress()
     {
-        if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            return Request.Headers["X-Forwarded-For"];
+        // After ForwardedHeadersMiddleware is configured and used,
+        // HttpContext.Connection.RemoteIpAddress should be the client's actual IP.
+        var ipAddress = HttpContext.Connection.RemoteIpAddress;
 
-        return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "unknown";
+        if (ipAddress != null)
+        {
+            // Map to IPv4 if it's an IPv4-mapped IPv6 address
+            return ipAddress.IsIPv4MappedToIPv6 ? ipAddress.MapToIPv4().ToString() : ipAddress.ToString();
+        }
+
+        return "unknown";
     }
 
     private void SetRefreshTokenCookie(string token)
@@ -228,7 +236,7 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Expires = System.DateTime.UtcNow.AddDays(7),
+            Expires = DateTime.UtcNow.AddDays(7),
             SameSite = SameSiteMode.Strict,
             Secure = true // Set to true in production
         };

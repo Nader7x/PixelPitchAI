@@ -36,6 +36,11 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
         return await _context.Set<T>().FindAsync(id);
     }
 
+    public async Task<T?> GetByIdAsync(string id)
+    {
+        return await _context.Set<T>().FindAsync(id);
+    }
+
     public async Task<EntityEntry<T>> AddAsync(T entity)
     {
         return await _context.AddAsync(entity);

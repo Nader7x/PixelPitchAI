@@ -47,6 +47,9 @@ public class StadiumConfiguration : IEntityTypeConfiguration<Stadium>
             .HasMethod("gin")
             .HasDatabaseName("IX_Stadium_Facilities");
             
+        // Note: PostgreSQL full-text search indexes will be created via raw SQL in migration
+        // as EF Core doesn't support tsvector expressions in HasIndex
+            
         // Set table comment for documentation
         builder.ToTable("Stadiums", tb => tb.HasComment("Stadium information"));
     }

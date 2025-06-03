@@ -12,15 +12,20 @@ public class CoachRepository(FootballDbContext context) : Repository<Coach>(cont
 
     public async Task<IEnumerable<Coach>> SearchAsync(string query)
     {
+        var searchTerm = query.ToLower().Trim();
+        
         return await _context.Coaches
             .Where(c => 
-                c.FirstName.ToLower().Contains(query) ||
-                c.LastName.ToLower().Contains(query) ||
-                c.FullName.ToLower().Contains(query) ||
-                c.Role.ToLower().Contains(query) ||
-                c.Nationality.ToLower().Contains(query) ||
-                (c.Team != null && c.Team.Name.ToLower().Contains(query)))
+                (c.FirstName != null && c.FirstName.ToLower().Contains(searchTerm)) ||
+                (c.LastName != null && c.LastName.ToLower().Contains(searchTerm)) ||
+                (c.FirstName != null && c.LastName != null && 
+                 (c.FirstName + " " + c.LastName).ToLower().Contains(searchTerm)) ||
+                (c.Role != null && c.Role.ToLower().Contains(searchTerm)) ||
+                (c.Nationality != null && c.Nationality.ToLower().Contains(searchTerm)) ||
+                (c.Team != null && c.Team.Name != null && c.Team.Name.ToLower().Contains(searchTerm)))
+            .AsSplitQuery()
             .Include(c => c.Team)
+            .AsNoTracking()
             .ToListAsync();
     }
 }

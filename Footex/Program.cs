@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Serialization;
 using Application;
 using Domain.Models;
@@ -13,6 +14,7 @@ using Application.Services;
 using Footex.Extensions;
 using Footex.Configuration;
 using DotNetEnv;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // Load environment variables from .env file
 var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
@@ -34,6 +36,27 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        // You should configure KnownProxies or KnownNetworks to only trust your specific reverse proxy.
+        // This is crucial for security to prevent IP spoofing.
+        // Example: If your proxy is on localhost (e.g., during development with Kestrel behind IIS Express or another local proxy)
+        options.KnownProxies.Add(IPAddress.Parse("127.0.0.1"));
+        options.KnownProxies.Add(IPAddress.Parse("::1")); // IPv6 loopback
+
+        // If your proxy has a specific IP or is within a specific network:
+        // options.KnownProxies.Add(IPAddress.Parse("YOUR_PROXY_IP_ADDRESS"));
+        // options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("YOUR_PROXY_NETWORK_PREFIX"), YOUR_PROXY_NETWORK_PREFIX_LENGTH));
+
+        // If you don't set KnownProxies/KnownNetworks, it might trust any proxy, which is a security risk.
+        // For cloud environments (Azure App Service, AWS ELB, etc.), these services often handle
+        // X-Forwarded-For correctly and might not require explicit KnownProxies if configured to do so.
+        // However, it's best practice to be explicit if possible.
+        // If you are unsure about your proxy's IP, you might need to log HttpContext.Connection.RemoteIpAddress
+        // *before* UseForwardedHeaders to identify it.
+    });
 
     // Override configuration with environment variables
     builder.Configuration.AddEnvironmentVariables();
@@ -54,7 +77,7 @@ try
         options.AddPolicy("AllowSomeOrigins",
             corsBuilder =>
             {
-                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000" ,"https://localhost:80","https://localhost:433")
+                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000" ,"https://gourav-d.github.io/SignalR-Web-Client")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
@@ -214,13 +237,12 @@ try
         {
             options.EnableDetailedErrors = true;
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
-            options.ClientTimeoutInterval = TimeSpan.FromMinutes(3);
-            options.KeepAliveInterval = TimeSpan.FromSeconds(9000); 
         })
         .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
@@ -235,7 +257,7 @@ try
     // Add authentication and authorization middleware
     app.UseAuthentication();
     app.UseWebSockets();
-    app.UseCors("AllowAllOrigins");
+    app.UseCors("AllowSomeOrigins");
     app.UseAuthorization();
     app.MapControllers();
 

@@ -10,8 +10,11 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
 
     public async Task<Team?> GetByNameAsync(string? name)
     {
+        if (string.IsNullOrEmpty(name)) return null;
+        
         return await _context.Teams
-            .FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower());
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Name != null && t.Name.ToLower() == name.ToLower());
     }
 
     public async Task<IReadOnlyList<Team>> GetTeamsByCriteriaAsync(Func<Team, bool> predicate)
@@ -27,44 +30,63 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
     
     async Task<List<Team>> ITeamRepository.GetByLeagueAsync(string league)
     {
+        if (string.IsNullOrEmpty(league)) return new List<Team>();
+        
         return await _context.Teams
-            .Where(t => t.League.ToLower() == league.ToLower())
-            .OrderBy(t => t.Name)
+            .Where(t => t.League != null && t.League.ToLower() == league.ToLower())
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
             .ToListAsync();
     }
+    
     async Task<List<Team>> ITeamRepository.GetByCountryAsync(string country)
     {
+        if (string.IsNullOrEmpty(country)) return new List<Team>();
+        
         return await _context.Teams
-            .Where(t => t.Country.ToLower() == country.ToLower())
-            .OrderBy(t => t.Name)
+            .Where(t => t.Country != null && t.Country.ToLower() == country.ToLower())
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
             .ToListAsync();
     }
     
 
     public async Task<IReadOnlyList<Team>> GetByCountryAsync(string country)
     {
+        if (string.IsNullOrEmpty(country)) return new List<Team>();
+        
         return await _context.Teams
-            .Where(t => t.Country.ToLower() == country.ToLower())
-            .OrderBy(t => t.Name)
+            .Where(t => t.Country != null && t.Country.ToLower() == country.ToLower())
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
             .ToListAsync();
     }
 
     public async Task<IReadOnlyList<Team>> GetByLeagueAsync(string league)
     {
+        if (string.IsNullOrEmpty(league)) return new List<Team>();
+        
         return await _context.Teams
-            .Where(t => t.League.ToLower() == league.ToLower())
-            .OrderBy(t => t.Name)
+            .Where(t => t.League != null && t.League.ToLower() == league.ToLower())
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
             .ToListAsync();
     }
     public async Task<IEnumerable<Team>> SearchAsync(string query)
     {
+        if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<Team>();
+        
+        var searchTerm = query.ToLower().Trim();
+        
         return await _context.Teams
             .Where(t => 
-                t.Name.ToLower().Contains(query) ||
-                t.League.ToLower().Contains(query))
+                (t.Name != null && t.Name.ToLower().Contains(searchTerm)) ||
+                (t.League != null && t.League.ToLower().Contains(searchTerm)))
+            .AsSplitQuery()
             .Include(t => t.Players)
             .Include(t => t.HomeMatches)
             .Include(t => t.AwayMatches)
+            .AsNoTracking()
             .ToListAsync();
     }
 

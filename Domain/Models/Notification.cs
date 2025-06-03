@@ -7,7 +7,7 @@ public class Notification
 {
     [Key]
     [MaxLength(255)]
-    public required string Id { get; init; }
+    public  string Id { get; init; }
     [MaxLength(512)]
     public required string Content { get; set; }
     [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -23,5 +23,13 @@ public enum NotificationType
     MatchStart,
     MatchEnd,
     SimulationStart,
-    SimulationEnd
+    SimulationEnd,
+    MatchUpdate,
+    SimulationUpdate,
+    SystemAlert,
+    UserMessage,
+    Info,
+    Warning,
+    Error,
+    Success,
 }

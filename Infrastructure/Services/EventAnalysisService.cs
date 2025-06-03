@@ -4,8 +4,7 @@ using Domain.Models;
 namespace Infrastructure.Services;
 
 public class EventAnalysisService : IEventAnalysisService
-{
-    public Task UpdateMatchStatistics(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity, Match match)
+{    public Task UpdateMatchStatistics(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity, Match match , bool withCounters = true)
     {
         // Match object is now passed as a parameter, no need to fetch it here.
         if (match == null)
@@ -13,7 +12,23 @@ public class EventAnalysisService : IEventAnalysisService
         if (matchEventsEntity == null)
             throw new ArgumentNullException(nameof(matchEventsEntity), "MatchEvents object cannot be null.");
 
-        // Update basic event counters
+        // First, update the match statistics using the shared logic
+        UpdateMatchStatistics(matchEvent, match);
+
+        // Then, update the MatchEvents entity specific counters
+        if (withCounters)
+            UpdateMatchEventsCounters(matchEvent, matchEventsEntity, match);
+        
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Updates the MatchEvents entity counters based on the match event.
+    /// This method is called by the full UpdateMatchStatistics overload.
+    /// </summary>
+    private static void UpdateMatchEventsCounters(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity, Match match)
+    {
+        // Update basic event counters specific to MatchEvents entity
         switch (matchEvent.action)
         {
             case "shot":
@@ -23,92 +38,34 @@ public class EventAnalysisService : IEventAnalysisService
                     matchEventsEntity.TotalFreeKicks++;
                 }
 
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamShots = (match.HomeTeamShots ?? 0) + 1;
-                else
-                    match.AwayTeamShots = (match.AwayTeamShots ?? 0) + 1;
-
                 switch (matchEvent.outcome)
                 {
                     case "Blocked":
                         matchEventsEntity.TotalBlocks++;
                         break;
                     case "Goal":
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                        {
-                            match.HomeTeamShotsOnTarget = (match.HomeTeamShotsOnTarget ?? 0) + 1;
-                            match.HomeTeamScore = (match.HomeTeamScore ?? 0) + 1; // Score update
-                            matchEventsEntity.GoalsHomeTeam++;
-                        }
-                        else
-                        {
-                            match.AwayTeamShotsOnTarget = (match.AwayTeamShotsOnTarget ?? 0) + 1;
-                            match.AwayTeamScore = (match.AwayTeamScore ?? 0) + 1; // Score update
-                            matchEventsEntity.GoalsAwayTeam++;
-                        }
-
                         matchEventsEntity.TotalGoals++;
-                        UpdateMatchResult(match);
-                        break;
-                    case "Wayward":
-                    case "Off T":
-                        if (matchEvent.team == match.AwayTeamInMatchName)
-                        {
-                            match.AwayTeamShotsOffTarget = (match.AwayTeamShotsOffTarget ?? 0) + 1;
-                        }
+                        if (matchEvent.team == match.HomeTeamInMatchName)
+                            matchEventsEntity.GoalsHomeTeam++;
                         else
-                        {
-                            match.HomeTeamShotsOffTarget = (match.HomeTeamShotsOffTarget ?? 0) + 1;
-                        }
-
-                        break;
-                    case "Post":
+                            matchEventsEntity.GoalsAwayTeam++;
                         break;
                     case "Saved":
                         matchEventsEntity.TotalGoalkeeperSaves++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                        {
-                            match.HomeTeamShotsOnTarget = (match.HomeTeamShotsOnTarget ?? 0) + 1;
-                            match.AwayTeamSaves = (match.AwayTeamSaves ?? 0) + 1;
-                        }
-                        else
-                        {
-                            match.AwayTeamShotsOnTarget = (match.AwayTeamShotsOnTarget ?? 0) + 1;
-                            match.HomeTeamSaves = (match.HomeTeamSaves ?? 0) + 1;
-                        }
-
-                        break;
-                    case "Saved Off Target":
                         break;
                 }
-
                 break;
 
             case "pass":
                 matchEventsEntity.TotalPasses++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamPasses = (match.HomeTeamPasses ?? 0) + 1;
-                else
-                    match.AwayTeamPasses = (match.AwayTeamPasses ?? 0) + 1;
-
                 switch (matchEvent.type)
                 {
                     case "Free Kick":
                         matchEventsEntity.TotalFreeKicks++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamFreeKicks = (match.HomeTeamFreeKicks ?? 0) + 1;
-                        else
-                            match.AwayTeamFreeKicks = (match.AwayTeamFreeKicks ?? 0) + 1;
                         break;
                     case "Goal Kick":
-                    {
                         matchEventsEntity.TotalGoalKicks++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamGoalKicks = (match.HomeTeamGoalKicks ?? 0) + 1;
-                        else
-                            match.AwayTeamGoalKicks = (match.AwayTeamGoalKicks ?? 0) + 1;
                         break;
-                    }
                     case "Interception":
                         matchEventsEntity.TotalInterceptions++;
                         break;
@@ -130,42 +87,8 @@ public class EventAnalysisService : IEventAnalysisService
                         break;
                     case "Pass Offside":
                         matchEventsEntity.TotalOffsides++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamOffsides = (match.HomeTeamOffsides ?? 0) + 1;
-                        else
-                            match.AwayTeamOffsides = (match.AwayTeamOffsides ?? 0) + 1;
-                        break;
-                    case "Complete":
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                        {
-                            match.HomeTeamPassesCompleted = (match.HomeTeamPassesCompleted ?? 0) + 1;
-                            if (matchEvent.long_pass == true)
-                            {
-                                match.HomeAccurateLongBalls = (match.HomeAccurateLongBalls ?? 0) + 1;
-                            }
-                        }
-                        else
-                        {
-                            match.AwayTeamPassesCompleted = (match.AwayTeamPassesCompleted ?? 0) + 1;
-                            if (matchEvent.long_pass == true)
-                            {
-                                match.AwayAccurateLongBalls = (match.AwayAccurateLongBalls ?? 0) + 1;
-                            }
-                        }
-
                         break;
                 }
-
-                if (matchEvent.long_pass is true)
-                {
-                    if (matchEvent.team == match.HomeTeamInMatchName)
-                    {
-                        match.HomeLongBalls = (match.HomeLongBalls ?? 0) + 1;
-                    }
-                    else
-                        match.AwayLongBalls = (match.AwayLongBalls ?? 0) + 1;
-                }
-
                 break;
 
             case "foul committed":
@@ -175,51 +98,26 @@ public class EventAnalysisService : IEventAnalysisService
                     matchEventsEntity.TotalPenalties++;
                 }
 
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamFouls = (match.HomeTeamFouls ?? 0) + 1;
-                else
-                    match.AwayTeamFouls = (match.AwayTeamFouls ?? 0) + 1;
-
                 if (matchEvent.card != "No Card")
                 {
                     matchEventsEntity.TotalCards++;
                     switch (matchEvent.card)
                     {
                         case "Yellow Card":
-                        {
                             matchEventsEntity.TotalYellowCards++;
-                            if (matchEvent.team == match.HomeTeamInMatchName)
-                                match.HomeTeamYellowCards = (match.HomeTeamYellowCards ?? 0) + 1;
-                            else
-                                match.AwayTeamYellowCards = (match.AwayTeamYellowCards ?? 0) + 1;
                             break;
-                        }
                         case "Red Card":
-                        {
                             matchEventsEntity.TotalRedCards++;
-                            if (matchEvent.team == match.HomeTeamInMatchName)
-                                match.HomeTeamRedCards = (match.HomeTeamRedCards ?? 0) + 1;
-                            else
-                                match.AwayTeamRedCards = (match.AwayTeamRedCards ?? 0) + 1;
                             break;
-                        }
                     }
                 }
-
                 break;
+
             case "Offside":
                 matchEventsEntity.TotalOffsides++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamOffsides = (match.HomeTeamOffsides ?? 0) + 1;
-                else
-                    match.AwayTeamOffsides = (match.AwayTeamOffsides ?? 0) + 1;
                 break;
             case "Corner":
                 matchEventsEntity.TotalCorners++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamCorners = (match.HomeTeamCorners ?? 0) + 1;
-                else
-                    match.AwayTeamCorners = (match.AwayTeamCorners ?? 0) + 1;
                 break;
             case "substitution":
                 matchEventsEntity.TotalSubstitutions++;
@@ -230,95 +128,35 @@ public class EventAnalysisService : IEventAnalysisService
             case "own goal against":
                 matchEventsEntity.TotalGoals++;
                 if (matchEvent.team == match.HomeTeamInMatchName)
-                {
-                    match.AwayTeamScore = (match.AwayTeamScore ?? 0) + 1;
                     matchEventsEntity.GoalsAwayTeam++;
-                }
                 else
-                {
-                    match.HomeTeamScore = (match.HomeTeamScore ?? 0) + 1;
                     matchEventsEntity.GoalsHomeTeam++;
-                }
-
-                UpdateMatchResult(match);
                 break;
             case "Save":
                 matchEventsEntity.TotalGoalkeeperSaves++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamSaves = (match.HomeTeamSaves ?? 0) + 1;
-                else
-                    match.AwayTeamSaves = (match.AwayTeamSaves ?? 0) + 1;
                 break;
             case "interception":
                 matchEventsEntity.TotalInterceptions++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamPossessionWon = (match.HomeTeamPossessionWon ?? 0) + 1;
-                else
-                    match.AwayTeamPossessionWon = (match.AwayTeamPossessionWon ?? 0) + 1;
                 break;
             case "block":
                 matchEventsEntity.TotalBlocks++;
                 break;
             case "clearance":
                 matchEventsEntity.TotalClearances++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamClearances = (match.HomeTeamClearances ?? 0) + 1;
-                else
-                    match.AwayTeamClearances = (match.AwayTeamClearances ?? 0) + 1;
                 break;
             case "carry":
             case "dribble":
                 matchEventsEntity.TotalDribbles++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamDribbles = (match.HomeTeamDribbles ?? 0) + 1;
-                else
-                    match.AwayTeamDribbles = (match.AwayTeamDribbles ?? 0) + 1;
                 break;
             case "duel":
             case "50/50":
                 matchEventsEntity.TotalDuels++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                {
-                    match.HomeTeamDuels = (match.HomeTeamDuels ?? 0) + 1;
-                }
-                else
-                {
-                    match.AwayTeamDuels = (match.AwayTeamDuels ?? 0) + 1;
-                }
-
-                if (matchEvent.outcome == "won")
-                {
-                    if (matchEvent.team == match.AwayTeamInMatchName)
-                    {
-                        match.AwayTeamDuelsWon = (match.AwayTeamDuelsWon ?? 0) + 1;
-                    }
-                    else
-                    {
-                        match.HomeTeamDuelsWon = (match.HomeTeamDuelsWon ?? 0) + 1;
-                    }
-                }
-
                 break;
             case "shield":
                 matchEventsEntity.TotalDuels++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                    match.HomeTeamDuels = (match.HomeTeamDuels ?? 0) + 1;
-                else
-                    match.AwayTeamDuels = (match.AwayTeamDuels ?? 0) + 1;
                 break;
             case "ball recovery":
                 matchEventsEntity.TotalPossessionWon++;
-                if (matchEvent.team == match.HomeTeamInMatchName)
-                {
-                    match.HomeTeamPossessionWon = (match.HomeTeamPossessionWon ?? 0) + 1;
-                    match.HomeTeamRecoveries = (match.HomeTeamRecoveries ?? 0) + 1;
-                }
-                else
-                {
-                    match.AwayTeamPossessionWon = (match.AwayTeamPossessionWon ?? 0) + 1;
-                    match.AwayTeamRecoveries = (match.AwayTeamRecoveries ?? 0) + 1;
-                }
-
                 break;
             case "miscontrol":
                 matchEventsEntity.TotalOuts++;
@@ -336,44 +174,16 @@ public class EventAnalysisService : IEventAnalysisService
                     if (matchEvent.card == "Yellow Card")
                     {
                         matchEventsEntity.TotalYellowCards++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamYellowCards = (match.HomeTeamYellowCards ?? 0) + 1;
-                        else
-                            match.AwayTeamYellowCards = (match.AwayTeamYellowCards ?? 0) + 1;
                     }
                     else if (matchEvent.card == "Red Card")
                     {
                         matchEventsEntity.TotalRedCards++;
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamRedCards = (match.HomeTeamRedCards ?? 0) + 1;
-                        else
-                            match.AwayTeamRedCards = (match.AwayTeamRedCards ?? 0) + 1;
                     }
                 }
-
-                break;
-            case "player on":
-            case "player off":
                 break;
         }
 
         matchEventsEntity.TotalEvents++;
-        match.UpdatedAt = DateTime.UtcNow;
-
-        UpdatePossession(match, matchEvent);
-        // Calculate pass accuracy
-        if (match.HomeTeamPasses.HasValue && match.HomeTeamPassesCompleted.HasValue &&
-            match.HomeTeamPasses > 0)
-        {
-            match.HomeTeamPassAccuracy = Math.Round(
-                (double)match.HomeTeamPassesCompleted.Value * 100 / match.HomeTeamPasses.Value, 2);
-        }
-        else
-        {
-            match.HomeTeamPassAccuracy = 0;
-        }
-
-        return Task.CompletedTask;
     }
     
 
@@ -474,11 +284,8 @@ public class EventAnalysisService : IEventAnalysisService
                         break;
                     }
                     case "Interception":
-                        break;
                     case "Kick Off":
-                        break;
                     case "Recovery":
-                        break;
                     case "Throw-in":
                         break;
                 }
@@ -569,7 +376,6 @@ public class EventAnalysisService : IEventAnalysisService
                     match.AwayTeamCorners = (match.AwayTeamCorners ?? 0) + 1;
                 break;
             case "substitution":
-                break;
             case "injury stoppage":
                 break;
             case "own goal against":
@@ -655,27 +461,30 @@ public class EventAnalysisService : IEventAnalysisService
 
                 break;
             case "miscontrol":
-                break;
             case "error":
-                break;
             case "foul won":
                 break;
             case "bad behaviour":
-                if (matchEvent.card != null && matchEvent.card != "No Card")
+                if (matchEvent.card != "No Card")
                 {
-                    if (matchEvent.card == "Yellow Card")
+                    switch (matchEvent.card)
                     {
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamYellowCards = (match.HomeTeamYellowCards ?? 0) + 1;
-                        else
-                            match.AwayTeamYellowCards = (match.AwayTeamYellowCards ?? 0) + 1;
-                    }
-                    else if (matchEvent.card == "Red Card")
-                    {
-                        if (matchEvent.team == match.HomeTeamInMatchName)
-                            match.HomeTeamRedCards = (match.HomeTeamRedCards ?? 0) + 1;
-                        else
-                            match.AwayTeamRedCards = (match.AwayTeamRedCards ?? 0) + 1;
+                        case "Yellow Card":
+                        {
+                            if (matchEvent.team == match.HomeTeamInMatchName)
+                                match.HomeTeamYellowCards = (match.HomeTeamYellowCards ?? 0) + 1;
+                            else
+                                match.AwayTeamYellowCards = (match.AwayTeamYellowCards ?? 0) + 1;
+                            break;
+                        }
+                        case "Red Card":
+                        {
+                            if (matchEvent.team == match.HomeTeamInMatchName)
+                                match.HomeTeamRedCards = (match.HomeTeamRedCards ?? 0) + 1;
+                            else
+                                match.AwayTeamRedCards = (match.AwayTeamRedCards ?? 0) + 1;
+                            break;
+                        }
                     }
                 }
 
@@ -707,7 +516,7 @@ public class EventAnalysisService : IEventAnalysisService
     {
         if (match.LastEventTimestampSeconds.HasValue && match.LastEventPossessingTeamName != null)
         {
-            int durationSeconds = currentEvent.time_seconds - match.LastEventTimestampSeconds.Value;
+            var durationSeconds = currentEvent.time_seconds - match.LastEventTimestampSeconds.Value;
             if (durationSeconds > 0)
             {
                 if (match.LastEventPossessingTeamName == match.HomeTeamInMatchName)
@@ -723,10 +532,10 @@ public class EventAnalysisService : IEventAnalysisService
             }
         }
 
-        // Determine possessing team after current event
+        // Determine possessing team after the current event
         // This logic assumes that the team performing an action maintains possession unless the action implies a loss of possession
         // or the opponent performs a possession-gaining action.
-        string? currentPossessingTeam = currentEvent.team; // Default to the team performing the action
+        var currentPossessingTeam = currentEvent.team; // Default to the team performing the action
 
         switch (currentEvent.action)
         {
@@ -737,9 +546,7 @@ public class EventAnalysisService : IEventAnalysisService
                 break;
             case "shot":
                 // If shot is saved or goes out, opponent (usually GK) gets possession for goal kick/throw-in
-                if (currentEvent.outcome == "Saved" || currentEvent.outcome == "Out" ||
-                    currentEvent.outcome == "Blocked" || currentEvent.outcome == "Post" ||
-                    currentEvent.outcome == "Wayward" || currentEvent.outcome == "Off T")
+                if (currentEvent.outcome is "Saved" or "Out" or "Blocked" or "Post" or "Wayward" or "Off T")
                     currentPossessingTeam = GetOpponentTeam(currentEvent.team, match);
                 // If it's a goal, possession resets (usually to the team that conceded for kickoff)
                 else if (currentEvent.outcome == "Goal")
@@ -787,8 +594,8 @@ public class EventAnalysisService : IEventAnalysisService
         // After processing all events, or periodically, calculate percentage
         if (match.HomeTeamPossessionDurationSeconds.HasValue && match.AwayTeamPossessionDurationSeconds.HasValue)
         {
-            long totalPossessionSeconds = match.HomeTeamPossessionDurationSeconds.Value +
-                                          match.AwayTeamPossessionDurationSeconds.Value;
+            var totalPossessionSeconds = match.HomeTeamPossessionDurationSeconds.Value +
+                                         match.AwayTeamPossessionDurationSeconds.Value;
             if (totalPossessionSeconds > 0)
             {
                 match.HomeTeamPossession = (int)Math.Round((double)match.HomeTeamPossessionDurationSeconds.Value * 100 /
