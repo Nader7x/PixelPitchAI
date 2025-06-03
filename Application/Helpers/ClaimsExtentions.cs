@@ -6,21 +6,21 @@ public static class  ClaimsExtentions
 {
     public static string? GetUsername(this ClaimsPrincipal user)
     {
-        return user.Claims.SingleOrDefault(c => c.Type.Equals("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"))?.Value;
+        return user.FindFirstValue(ClaimTypes.GivenName);
     }
 
     public static string? GetNameId(this ClaimsPrincipal user)
     {
-        return user.Claims.SingleOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        return user.FindFirstValue( ClaimTypes.NameIdentifier);
     }
 
     public static string? GetEmail(this ClaimsPrincipal user)
     {
-        return user.Claims.SingleOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+        return user.FindFirstValue( ClaimTypes.Email);
     }
 
     public static string? GetRole(this ClaimsPrincipal user)
     {
-        return user.Claims.SingleOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        return user.FindFirstValue( ClaimTypes.Role);
     }
 }
