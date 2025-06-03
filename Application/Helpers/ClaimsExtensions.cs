@@ -2,7 +2,7 @@
 
 namespace Application.Helpers;
 
-public static class  ClaimsExtentions
+public static class  ClaimsExtensions
 {
     public static string? GetUsername(this ClaimsPrincipal user)
     {
