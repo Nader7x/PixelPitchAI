@@ -19,8 +19,7 @@ public class GetUserProfileQueryResponse
     public int? FavoriteTeamId { get; set; }
     public string? FavoriteTeamName { get; set; }
     public string? Gender { get; set; }
-    public DateTime Created { get; set; }
-    public DateTime? LastLogin { get; set; }
+
     public string? ImageUrl { get; set; }
     public int Age { get; set; }
     public string? PhoneNumber { get; set; }

@@ -1,6 +1,7 @@
 using Application.CQRS.Seasons.Commands;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -10,9 +11,10 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : ControllerBase
+public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper, ICacheService cacheService) : ControllerBase
 {
     private readonly SeasonMapper _seasonMapper = seasonMapper;
+    private readonly ICacheService _cacheService = cacheService;
 
     [HttpGet]
     [ProducesResponseType(typeof(GetAllSeasonsQueryResponse), StatusCodes.Status200OK)]
@@ -22,6 +24,18 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
         [FromQuery] string? country,
         [FromQuery] bool? isActive)
     {
+        // Generate a cache key based on the query parameters
+        string cacheKey = $"seasons_all_{leagueName}_{country}_{isActive}";
+        
+        // Try to get from cache first
+        var cachedResult = await _cacheService.GetAsync<GetAllSeasonsQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetAllSeasonsQuery
         {
             LeagueName = leagueName,
@@ -34,6 +48,10 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
         if (!result.Succeeded)
             return BadRequest(result);
             
+        // Store in cache if successful
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(15));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
     
@@ -43,6 +61,16 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetSeasonByIdQueryResponse>> GetSeasonById(int id)
     {
+        // Try to get from cache first
+        var cacheKey = $"season_{id}";
+        var cachedResult = await _cacheService.GetAsync<GetSeasonByIdQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetSeasonByIdQuery { Id = id };
         var result = await mediator.Send(query);
         
@@ -54,6 +82,39 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
             return BadRequest(result);
         }
         
+        // Store in cache if successful
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(15));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
+        return Ok(result);
+    }
+    
+    [HttpGet("SeasonTeams/{id}")]
+    [ProducesResponseType(typeof(GetSeasonTeamsQueryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetSeasonTeamsQueryResponse>> GetSeasonTeams(int id)
+    {
+        // Try to get from cache first
+        var cacheKey = $"season_teams_{id}";
+        var cachedResult = await _cacheService.GetAsync<GetSeasonTeamsQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
+        var query = new GetSeasonTeamsQuery { SeasonId = id };
+        var result = await mediator.Send(query);
+
+        if (!result.Succeeded)
+            return BadRequest(result);
+                
+        // Store in cache if successful
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(15));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
     
@@ -69,7 +130,10 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
         
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
+        // Invalidate the seasons list cache since we've added a new season
+        await _cacheService.RemoveAsync("seasons_all_*");
+        
         return CreatedAtAction(nameof(GetSeasonById), new { id = result.Id }, result);
     }
     
@@ -93,6 +157,11 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
             return BadRequest(result);
         }
         
+        // Invalidate both the specific season cache and season list caches
+        await _cacheService.RemoveAsync($"season_{id}");
+        await _cacheService.RemoveAsync($"season_teams_{id}");
+        await _cacheService.RemoveAsync("seasons_all_*");
+        
         return Ok(result);
     }
     
@@ -114,20 +183,11 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper) : 
             return BadRequest(result);
         }
         
+        // Invalidate both the specific season cache and season list caches
+        await _cacheService.RemoveAsync($"season_{id}");
+        await _cacheService.RemoveAsync($"season_teams_{id}");
+        await _cacheService.RemoveAsync("seasons_all_*");
+        
         return Ok(result);
-    }
-    [HttpGet("SeasonTeams/{id}")]
-    [ProducesResponseType(typeof(GetSeasonTeamsQueryResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetSeasonTeamsQueryResponse>> GetSeasonTeams(int id)
-    {
-        var query = new GetSeasonTeamsQuery { SeasonId = id };
-        var result = await mediator.Send(query);
-
-        if (result.Succeeded) return Ok(result);
-                
-        return BadRequest(result);
-
     }
 }

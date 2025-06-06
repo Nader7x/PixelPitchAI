@@ -11,12 +11,13 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper, IFileStorageService fileStorageService)
+public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper, IFileStorageService fileStorageService, ICacheService cacheService)
     : ControllerBase
 {
     private readonly StadiumMapper _stadiumMapper = stadiumMapper;
     private readonly IMediator _mediator = mediator;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
+    private readonly ICacheService _cacheService = cacheService;
     private const string CONTAINER_NAME = "stadiums";
 
 
@@ -27,6 +28,18 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
         [FromQuery] string? country,
         [FromQuery] string? city)
     {
+        // Generate a cache key based on the query parameters
+        string cacheKey = $"stadiums_all_{country}_{city}";
+        
+        // Try to get from cache first
+        var cachedResult = await _cacheService.GetAsync<GetAllStadiumsQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetAllStadiumsQuery
         {
             Country = country,
@@ -38,6 +51,10 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
         if (!result.Succeeded)
             return BadRequest(result);
             
+        // Store in cache if successful
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
     
@@ -47,6 +64,16 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetStadiumByIdQueryResponse>> GetStadiumById(int id)
     {
+        // Try to get from cache first
+        var cacheKey = $"stadium_{id}";
+        var cachedResult = await _cacheService.GetAsync<GetStadiumByIdQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetStadiumByIdQuery { Id = id };
         var result = await _mediator.Send(query);
         
@@ -58,6 +85,10 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
             return BadRequest(result);
         }
         
+        // Store in cache if successful
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
     
@@ -94,6 +125,9 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
         
         if (!result.Succeeded)
             return BadRequest(result);
+            
+        // Invalidate stadiums list cache since we've added a new stadium
+        await InvalidateStadiumListCaches();
             
         return CreatedAtAction(nameof(GetStadiumById), new { id = result.Id }, result);
     }
@@ -139,6 +173,10 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
             return BadRequest(result);
         }
         
+        // Invalidate both the specific stadium cache and the stadiums list caches
+        await _cacheService.RemoveAsync($"stadium_{id}");
+        await InvalidateStadiumListCaches();
+        
         return Ok(result);
     }
     
@@ -174,6 +212,17 @@ public class StadiumsController(IMediator mediator, StadiumMapper stadiumMapper,
             return BadRequest(result);
         }
         
+        // Invalidate both the specific stadium cache and the stadiums list caches
+        await _cacheService.RemoveAsync($"stadium_{id}");
+        await InvalidateStadiumListCaches();
+        
         return Ok(result);
+    }
+    
+    // Helper method to invalidate all stadium list caches
+    private async Task InvalidateStadiumListCaches()
+    {
+        // Using a pattern to match all stadium list cache keys
+        await _cacheService.RemoveAsync("stadiums_all_*");
     }
 }

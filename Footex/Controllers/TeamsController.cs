@@ -11,10 +11,11 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileStorageService azureBlobStorageService) : ControllerBase
+public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileStorageService azureBlobStorageService, ICacheService cacheService) : ControllerBase
 {
     private readonly TeamMapper _teamMapper = teamMapper;
     private readonly IFileStorageService _azureBlobStorageService = azureBlobStorageService;
+    private readonly ICacheService _cacheService = cacheService;
     private readonly string CONTAINER_NAME = "teams";
 
     /// <summary>
@@ -25,8 +26,27 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
     [ProducesResponseType(typeof(GetAllTeamsQueryResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll()
     {
+        // Try to get from cache first
+        var cacheKey = "teams_all";
+        var cachedResult = await _cacheService.GetAsync<GetAllTeamsQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
+        // Cache miss, fetch from database
         var query = new GetAllTeamsQuery();
         var result = await mediator.Send(query);
+        
+        // Store in cache if successful
+        if (result.Succeeded)
+        {
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+        }
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
@@ -40,9 +60,27 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetTeamByIdQueryResponse>> GetById(int id)
     {
+        // Try to get from cache first
+        var cacheKey = $"team_{id}";
+        var cachedResult = await _cacheService.GetAsync<GetTeamByIdQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
+        // Cache miss, fetch from database
         var query = new GetTeamByIdQuery { Id = id };
         var result = await mediator.Send(query);
 
+        // Store in cache if successful
+        if (result.Succeeded && result.Team != null)
+        {
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+        }
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
@@ -67,6 +105,9 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         
         if (!result.Succeeded)
             return BadRequest(result);
+        
+        // Invalidate the teams list cache since we've added a new team
+        await _cacheService.RemoveAsync("teams_all");
             
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
@@ -102,6 +143,10 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         
         if (!result.Succeeded)
             return result.NotFound ? NotFound() : BadRequest(result);
+        
+        // Invalidate both the specific team cache and the all teams cache
+        await _cacheService.RemoveAsync($"team_{id}");
+        await _cacheService.RemoveAsync("teams_all");
             
         return Ok(result);
     }
@@ -122,6 +167,10 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         
         if (!result.Succeeded)
             return NotFound();
+        
+        // Invalidate both the specific team cache and the all teams cache
+        await _cacheService.RemoveAsync($"team_{id}");
+        await _cacheService.RemoveAsync("teams_all");
             
         return NoContent();
     }

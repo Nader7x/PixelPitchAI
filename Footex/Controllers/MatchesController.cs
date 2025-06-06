@@ -33,7 +33,8 @@ public class MatchesController(
     IServiceScopeFactory serviceScopeFactory,
     IUnitOfWork unitOfWork,
     ILogger<MatchesController> logger,
-    IHubContext<NotificationService, INotificationService> hubContext) : ControllerBase
+    IHubContext<NotificationService, INotificationService> hubContext,
+    ICacheService cacheService) : ControllerBase
 {
     private readonly MatchMapper _matchMapper = matchMapper;
     private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
@@ -41,6 +42,7 @@ public class MatchesController(
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<MatchesController> _logger = logger;
     private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
+    private readonly ICacheService _cacheService = cacheService;
 
     [HttpGet]
     [ProducesResponseType(typeof(GetAllMatchesQueryResponse), StatusCodes.Status200OK)]
@@ -53,6 +55,18 @@ public class MatchesController(
         [FromQuery] DateTime? toDate,
         [FromQuery] int? matchWeek)
     {
+        // Generate a cache key based on the query parameters
+        string cacheKey = $"matches_all_{seasonId}_{teamId}_{status}_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}_{matchWeek}";
+        
+        // Try to get from cache first
+        var cachedResult = await _cacheService.GetAsync<GetAllMatchesQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+
         var query = new GetAllMatchesQuery
         {
             HomeSeasonId = seasonId,
@@ -67,7 +81,11 @@ public class MatchesController(
 
         if (!result.Succeeded)
             return BadRequest(result);
-
+            
+        // Store in cache if successful - with a shorter TTL since match data changes frequently
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
@@ -77,14 +95,32 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetMatchByIdQueryResponse>> GetMatchById(int id)
     {
+        // Try to get from cache first
+        var cacheKey = $"match_{id}";
+        var cachedResult = await _cacheService.GetAsync<GetMatchByIdQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetMatchByIdQuery { Id = id };
         var result = await mediator.Send(query);
 
-        if (result.Succeeded) return Ok(result);
-        if (result.NotFound)
-            return NotFound(result);
+        if (!result.Succeeded)
+        {
+            if (result.NotFound)
+                return NotFound(result);
 
-        return BadRequest(result);
+            return BadRequest(result);
+        }
+        
+        // Store in cache if successful - with a shorter TTL for match data
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
+        return Ok(result);
     }
 
     [HttpGet("Details/{matchId:int}")]
@@ -94,14 +130,32 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetMatchByIdWithDetailsQueryResponse>> GetMatchByIdWithDetails(int matchId)
     {
+        // Try to get from cache first
+        var cacheKey = $"match_details_{matchId}";
+        var cachedResult = await _cacheService.GetAsync<GetMatchByIdWithDetailsQueryResponse>(cacheKey);
+        
+        if (cachedResult != null)
+        {
+            Response.Headers.Append("X-Cache-Hit", "true");
+            return Ok(cachedResult);
+        }
+        
         var query = new GetMatchByIdWithDetailsQuery { MatchId = matchId };
         var result = await mediator.Send(query);
 
-        if (result.Succeeded) return Ok(result);
-        if (result.NotFound)
-            return NotFound(result);
-
-        return BadRequest(result);
+        if (!result.Succeeded)
+        {
+            if (result.NotFound)
+                return NotFound(result);
+                
+            return BadRequest(result);
+        }
+        
+        // Store in cache if successful - with a shorter TTL for match data
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
+        
+        Response.Headers.Append("X-Cache-Hit", "false");
+        return Ok(result);
     }
 
 
@@ -112,9 +166,7 @@ public class MatchesController(
     public async Task<ActionResult<CreateMatchCommandResponse>> CreateMatch([FromBody] CreateMatchDto matchDto)
     {
         if (string.IsNullOrEmpty(matchDto.CreatorId))
-            matchDto.CreatorId =
-                User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value ??
-                string.Empty;
+            matchDto.CreatorId = User.GetNameId();
 
         var command = _matchMapper.ToCreateCommand(matchDto);
 
@@ -122,6 +174,9 @@ public class MatchesController(
 
         if (!result.Succeeded)
             return BadRequest(result);
+
+        // Invalidate matches list cache when creating a new match
+        await InvalidateMatchListCaches();
 
         return CreatedAtAction(nameof(GetMatchById), new { id = result.Id }, result);
     }
@@ -189,11 +244,28 @@ public class MatchesController(
         var command = new DeleteMatchCommand { Id = id };
         var result = await mediator.Send(command);
 
-        if (result.Succeeded) return Ok(result);
-        if (result.NotFound)
-            return NotFound(result);
+        if (!result.Succeeded)
+        {
+            if (result.NotFound)
+                return NotFound(result);
+                
+            return BadRequest(result);
+        }
+        
+        // Invalidate both specific match caches and all list caches that might include this match
+        await _cacheService.RemoveAsync($"match_{id}");
+        await _cacheService.RemoveAsync($"match_details_{id}");
+        await InvalidateMatchListCaches();
 
-        return BadRequest(result);
+        return Ok(result);
+    }
+    
+    // Helper method to invalidate all match-related list caches
+    [NonAction]
+    private async Task InvalidateMatchListCaches()
+    {
+        // Using a pattern to match all match list caches
+        await _cacheService.RemoveAsync("matches_all_*");
     }
 
     [HttpGet("{userId}")]
@@ -225,6 +297,7 @@ public class MatchesController(
         var httpClient = httpClientFactory.CreateClient();
 
         var healthResponse = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/health", cancellationToken);
+        _logger.LogInformation("Simulation Service Health Check {HealthResponse}", healthResponse.Content.ToString());
         if (!healthResponse.IsSuccessStatusCode)
             return StatusCode((int)healthResponse.StatusCode, "Simulation service is not available");
 

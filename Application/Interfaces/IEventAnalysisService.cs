@@ -4,7 +4,6 @@ namespace Application.Interfaces;
 
 public interface IEventAnalysisService
 {
-    Task UpdateMatchStatistics(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity, Match match ,bool withCounters = true);
-    Task UpdateMatchStatistics(FootballMatchEvent matchEvent, Match match);
+    Task<MatchEvents> UpdateMatchStatistics(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity, Match match, bool withCounters = true);
+    Task<Match> UpdateMatchStatistics(FootballMatchEvent matchEvent, Match match);
 }
-
