@@ -1,7 +1,7 @@
 using Application.Dtos;
 using Application.Mappers;
-using MediatR;
 using Domain.Interfaces;
+using MediatR;
 
 namespace Application.CQRS.Matches.Queries;
 
@@ -27,15 +27,13 @@ public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchM
         {
             var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(request.Id);
             if (match == null)
-            {
                 return new GetMatchByIdQueryResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = $"Match with ID {request.Id} not found"
                 };
-            }
-            
+
             var matchDto = matchMapper.ToDto(match);
             return new GetMatchByIdQueryResponse
             {

@@ -1,4 +1,3 @@
-
 using Domain.Interfaces;
 using Domain.Models;
 
@@ -11,6 +10,4 @@ public interface IPlayerRepository : IRepository<Player>
     Task<IEnumerable<Player>> GetByPreferredFootAsync(string? preferredFoot);
     new Task<IEnumerable<Player>> FindAsync(Func<Player, bool> predicate);
     Task<IEnumerable<Player>> SearchAsync(string query);
-    
-    
 }

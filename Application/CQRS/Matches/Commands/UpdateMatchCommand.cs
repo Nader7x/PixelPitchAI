@@ -1,53 +1,45 @@
-using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Domain.Interfaces;
+using MediatR;
 
 namespace Application.CQRS.Matches.Commands;
 
 public class UpdateMatchCommand : IRequest<UpdateMatchCommandResponse>
 {
-    [Required]
-    public int Id { get; set; }
-    
-    [Required]
-    public int HomeSeasonId { get; init; }
-    
-    [Required]
-    public int AwaySeasonId { get; set; }
+    [Required] public int Id { get; set; }
 
-    [Required]
-    public int HomeTeamId { get; set; }
-    
-    [Required]
-    public int AwayTeamId { get; set; }
-    
-    [Required]
-    public DateTime ScheduledDateTimeUtc { get; set; }
-    
+    [Required] public int HomeSeasonId { get; init; }
+
+    [Required] public int AwaySeasonId { get; set; }
+
+    [Required] public int HomeTeamId { get; set; }
+
+    [Required] public int AwayTeamId { get; set; }
+
+    [Required] public DateTime ScheduledDateTimeUtc { get; set; }
+
     public int? StadiumId { get; set; }
-    
+
     public int? MatchWeek { get; set; }
-    
+
     public int? HomeCoachId { get; set; }
-    
+
     public int? AwayCoachId { get; set; }
-    
+
     // Match result data
     public int? HomeTeamScore { get; set; }
 
     public int? AwayTeamScore { get; set; }
-    
+
     public int? WinningTeamId { get; set; }
-    
+
     public int? LosingTeamId { get; set; }
-    
+
     public bool IsDraw { get; set; }
-    
+
     // Match status
-    [StringLength(50)]
-    public string? MatchStatus { get; set; }
-    
+    [StringLength(50)] public string? MatchStatus { get; set; }
+
     // Match statistics
     public int? HomeTeamPossession { get; set; }
     public int? AwayTeamPossession { get; set; }
@@ -79,67 +71,58 @@ public class UpdateMatchCommandResponse
 public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse>
 {
-    public async Task<UpdateMatchCommandResponse> Handle(UpdateMatchCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateMatchCommandResponse> Handle(UpdateMatchCommand request,
+        CancellationToken cancellationToken)
     {
         try
         {
             // Check if match exists
             var match = await unitOfWork.Matches.GetByIdAsync(request.Id);
             if (match == null)
-            {
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = $"Match with ID {request.Id} not found"
                 };
-            }
 
             // Validate Season exists
             var season = await unitOfWork.Seasons.GetByIdAsync(request.HomeSeasonId);
             if (season == null)
-            {
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Season with ID {request.HomeSeasonId} not found"
                 };
-            }
 
             // Validate HomeTeam exists
             var homeTeam = await unitOfWork.Teams.GetByIdAsync(request.HomeTeamId);
             if (homeTeam == null)
-            {
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Home Team with ID {request.HomeTeamId} not found"
                 };
-            }
 
             // Validate AwayTeam exists
             var awayTeam = await unitOfWork.Teams.GetByIdAsync(request.AwayTeamId);
             if (awayTeam == null)
-            {
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Away Team with ID {request.AwayTeamId} not found"
                 };
-            }
-            
+
             // Validate Stadium if provided
             if (request.StadiumId.HasValue)
             {
                 var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.StadiumId.Value);
                 if (stadium == null)
-                {
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
                         Error = $"Stadium with ID {request.StadiumId} not found"
                     };
-                }
             }
 
             // Validate HomeCoach if provided
@@ -147,13 +130,11 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
             {
                 var homeCoach = await unitOfWork.Coaches.GetByIdAsync(request.HomeCoachId.Value);
                 if (homeCoach == null)
-                {
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
                         Error = $"Home Coach with ID {request.HomeCoachId} not found"
                     };
-                }
             }
 
             // Validate AwayCoach if provided
@@ -161,38 +142,30 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
             {
                 var awayCoach = await unitOfWork.Coaches.GetByIdAsync(request.AwayCoachId.Value);
                 if (awayCoach == null)
-                {
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
                         Error = $"Away Coach with ID {request.AwayCoachId} not found"
                     };
-                }
             }
 
             // Validate teams are different
             if (request.HomeTeamId == request.AwayTeamId)
-            {
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = "Home team and away team must be different"
                 };
-            }
 
 
             // Validate match statistics
             if (request.HomeTeamPossession.HasValue && request.AwayTeamPossession.HasValue)
-            {
                 if (request.HomeTeamPossession.Value + request.AwayTeamPossession.Value != 100)
-                {
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
                         Error = "Home team and away team possession must sum to 100%"
                     };
-                }
-            }
 
             // Update match properties
             match.HomeTeamSeasonId = request.HomeSeasonId;

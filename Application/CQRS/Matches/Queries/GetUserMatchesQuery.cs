@@ -9,6 +9,7 @@ public class GetUserMatchesQuery : IRequest<GetUserMatchesQueryResponse>
 {
     public required string UserId { get; init; }
 }
+
 public class GetUserMatchesQueryResponse
 {
     public List<MatchDto?>? Matches { get; init; }
@@ -19,24 +20,25 @@ public class GetUserMatchesQueryResponse
 public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
     : IRequestHandler<GetUserMatchesQuery, GetUserMatchesQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly MatchMapper _matchMapper = matchMapper;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<GetUserMatchesQueryResponse> Handle(GetUserMatchesQuery request, CancellationToken cancellationToken)
+    public async Task<GetUserMatchesQueryResponse> Handle(GetUserMatchesQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {
             var userMatches = await _unitOfWork.Matches.GetAllAsync(m => m.CreatorId == request.UserId);
             var matchesDtos = _matchMapper.ToDtoList(userMatches);
-            return new GetUserMatchesQueryResponse()
+            return new GetUserMatchesQueryResponse
             {
                 Succeeded = true,
-                Matches = matchesDtos.OrderByDescending(md => md?.ScheduledDateTimeUtc ?? default).ToList(),
+                Matches = matchesDtos.OrderByDescending(md => md?.ScheduledDateTimeUtc ?? default).ToList()
             };
         }
         catch (Exception ex)
         {
-            return new GetUserMatchesQueryResponse()
+            return new GetUserMatchesQueryResponse
             {
                 Succeeded = false,
                 Error = ex.Message

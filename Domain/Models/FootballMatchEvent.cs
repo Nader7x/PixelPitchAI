@@ -25,7 +25,8 @@ public sealed class FootballMatchEvent
     public bool? long_pass { get; set; }
     public decimal? pass_length { get; set; }
     public Score? Score { get; set; }
-} 
+}
+
 public abstract class Score
 {
     public int Home { get; set; }

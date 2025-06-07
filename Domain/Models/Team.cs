@@ -1,7 +1,4 @@
-
-
 namespace Domain.Models;
-
 
 public sealed class Team
 {
@@ -16,7 +13,7 @@ public sealed class Team
     public DateTime FoundationDate { get; set; }
     public string? PrimaryColor { get; set; }
     public string? SecondaryColor { get; set; }
-    
+
     // Navigation properties
     public Stadium? Stadium { get; set; }
     public ICollection<Player>? Players { get; set; }

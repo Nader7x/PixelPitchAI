@@ -9,9 +9,9 @@ namespace Infrastructure;
 
 public sealed class UnitOfWork : IUnitOfWork
 {
-    private IDbContextTransaction? _transaction;
     private readonly FootballDbContext _context;
     private bool _disposed;
+    private IDbContextTransaction? _transaction;
 
 
     public UnitOfWork(FootballDbContext context, UserManager<ApplicationUser> userManager, IStadiumsRepository stadiums)
@@ -33,14 +33,14 @@ public sealed class UnitOfWork : IUnitOfWork
         ApplicationUser = new ApplicationUserRepository(_context, userManager);
     }
 
-    public IPlayerRepository Players { get; private set; }
-    public ISeasonRepository Seasons { get; private set; }
-    public IMatchRepository Matches { get; private set; }
-    public ITeamRepository Teams { get; private set; }
-    public ITeamSeasonsRepository TeamSeasons { get; private set; }
-    public IMatchEventsRepository MatchEvents { get; private set; }
-    public IApplicationUserRepository ApplicationUser { get; private set; }
-    public ICoachRepository Coaches { get; private set; }
+    public IPlayerRepository Players { get; }
+    public ISeasonRepository Seasons { get; }
+    public IMatchRepository Matches { get; }
+    public ITeamRepository Teams { get; }
+    public ITeamSeasonsRepository TeamSeasons { get; }
+    public IMatchEventsRepository MatchEvents { get; }
+    public IApplicationUserRepository ApplicationUser { get; }
+    public ICoachRepository Coaches { get; }
     public IStadiumsRepository Stadiums { get; }
     public ICompetitionRepository Competitions { get; }
     public INotificationRepository Notifications { get; }
@@ -103,6 +103,7 @@ public sealed class UnitOfWork : IUnitOfWork
 
         _disposed = true;
     }
+
     ~UnitOfWork()
     {
         Dispose(false);

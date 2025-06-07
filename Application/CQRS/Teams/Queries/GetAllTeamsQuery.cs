@@ -1,4 +1,3 @@
-
 using Application.Dtos;
 using Application.Mappers;
 using Domain.Interfaces;
@@ -20,34 +19,26 @@ public class GetAllTeamsQueryResponse
     public List<TeamDto> Teams { get; set; }
 }
 
-
-
 public class GetAllTeamsQueryHandler : IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly TeamMapper _teamMapper;
-    
+    private readonly IUnitOfWork _unitOfWork;
+
     public GetAllTeamsQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
     {
         _unitOfWork = unitOfWork;
         _teamMapper = teamMapper;
     }
-    
+
     public async Task<GetAllTeamsQueryResponse> Handle(GetAllTeamsQuery request, CancellationToken cancellationToken)
     {
         var teams = await _unitOfWork.Teams.GetAllAsync();
-        
+
         // Apply filters if provided
-        if (!string.IsNullOrEmpty(request.Country))
-        {
-            teams = teams.Where(t => t.Country == request.Country).ToList();
-        }
-        
-        if (!string.IsNullOrEmpty(request.League))
-        {
-            teams = teams.Where(t => t.League == request.League).ToList();
-        }
-        
+        if (!string.IsNullOrEmpty(request.Country)) teams = teams.Where(t => t.Country == request.Country).ToList();
+
+        if (!string.IsNullOrEmpty(request.League)) teams = teams.Where(t => t.League == request.League).ToList();
+
         return new GetAllTeamsQueryResponse
         {
             Teams = _teamMapper.ToDtoList(teams)

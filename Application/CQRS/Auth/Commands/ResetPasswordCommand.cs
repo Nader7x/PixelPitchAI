@@ -1,9 +1,6 @@
 using Domain.Interfaces;
-using MediatR;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Domain.Models;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 
 namespace Application.CQRS.Auth.Commands;
@@ -40,24 +37,20 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
         {
             var user = await _identityService.GetUserByEmailAsync(request.Email);
             if (user == null)
-            {
                 return new ResetPasswordCommandResponse
                 {
                     Succeeded = false,
                     Error = "Invalid email address."
                 };
-            }
 
             var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
-            
+
             if (!result.Succeeded)
-            {
                 return new ResetPasswordCommandResponse
                 {
                     Succeeded = false,
                     Error = string.Join(", ", result.Errors.Select(e => e.Description))
                 };
-            }
 
             return new ResetPasswordCommandResponse { Succeeded = true };
         }

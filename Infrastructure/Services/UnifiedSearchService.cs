@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Application.DTOs;
 using Application.Interfaces;
@@ -38,7 +40,6 @@ public class UnifiedSearchService(
         SearchStrategy strategy = SearchStrategy.Auto, int page = 1, int pageSize = 10)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
-        {
             return new SearchResultDto
             {
                 TotalResults = 0,
@@ -47,7 +48,6 @@ public class UnifiedSearchService(
                 PageSize = pageSize,
                 Items = []
             };
-        }
 
         try
         {
@@ -106,7 +106,7 @@ public class UnifiedSearchService(
                 ? filters.EntityTypes
                 : new List<string> { "Team", "Player", "Coach", "Stadium", "Match" }; // Default types
 
-            string? lowerQuery = string.IsNullOrWhiteSpace(filters.Query) ? null : filters.Query.ToLowerInvariant();
+            var lowerQuery = string.IsNullOrWhiteSpace(filters.Query) ? null : filters.Query.ToLowerInvariant();
 
             // Note: The SearchStrategy from filters.Strategy and filters.EnableFuzzySearch
             // could be used here to determine how 'filters.Query' is matched (e.g., FTS, fuzzy, or simple Contains).
@@ -114,7 +114,6 @@ public class UnifiedSearchService(
             // A more advanced version would integrate the strategy selection here.
 
             foreach (var entityType in typesToSearch)
-            {
                 if (entityType.Equals("Team", StringComparison.OrdinalIgnoreCase))
                 {
                     var teamQuery = context.Teams.AsQueryable();
@@ -129,7 +128,7 @@ public class UnifiedSearchService(
                     if (!string.IsNullOrWhiteSpace(filters.League))
                         teamQuery = teamQuery.Where(t =>
                             t.League != null && t.League.Equals(filters.League, StringComparison.OrdinalIgnoreCase));
-                    
+
                     var teamData = await teamQuery.Select(t => new
                     {
                         t.Id,
@@ -139,13 +138,14 @@ public class UnifiedSearchService(
                         t.Country,
                         t.Logo
                     }).ToListAsync();
-                    
+
                     allFilteredItems.AddRange(teamData.Select(t => new SearchItemDto
                     {
                         Id = t.Id.ToString(),
                         Type = "Team",
                         Name = t.Name ?? "N/A",
-                        Description = $"League: {t.League ?? "N/A"}, City: {t.City ?? "N/A"}, Country: {t.Country ?? "N/A"}",
+                        Description =
+                            $"League: {t.League ?? "N/A"}, City: {t.City ?? "N/A"}, Country: {t.Country ?? "N/A"}",
                         ThumbnailUrl = t.Logo,
                         Url = $"/teams/{t.Id}",
                         AdditionalData = new Dictionary<string, string?>
@@ -174,9 +174,9 @@ public class UnifiedSearchService(
                         playerQuery = playerQuery.Where(p =>
                             p.Position != null &&
                             p.Position.Equals(filters.Position, StringComparison.OrdinalIgnoreCase));
+
                     // Assuming Player has DateOfBirth for age calculation if Min/MaxAge filters were in your DTO
                     // filters.MinPlayerAge / MaxPlayerAge are not in the user's DTO.
-                    
                     var playerData = await playerQuery.Select(p => new
                     {
                         p.Id,
@@ -187,13 +187,14 @@ public class UnifiedSearchService(
                         TeamName = p.Team != null ? p.Team.Name : null,
                         p.PhotoUrl
                     }).ToListAsync();
-                    
+
                     allFilteredItems.AddRange(playerData.Select(p => new SearchItemDto
                     {
                         Id = p.Id.ToString(),
                         Type = "Player",
                         Name = $"{p.FullName} {p.KnownName}".Trim(),
-                        Description = $"Nationality: {p.Nationality ?? "N/A"}, Position: {p.Position ?? "N/A"}, Team: {(p.TeamName ?? "N/A")}",
+                        Description =
+                            $"Nationality: {p.Nationality ?? "N/A"}, Position: {p.Position ?? "N/A"}, Team: {p.TeamName ?? "N/A"}",
                         ThumbnailUrl = p.PhotoUrl,
                         Url = $"/players/{p.Id}",
                         AdditionalData = new Dictionary<string, string?>
@@ -220,7 +221,7 @@ public class UnifiedSearchService(
                         coachQuery = coachQuery.Where(c =>
                             c.Role != null &&
                             c.Role.Equals(filters.Role, StringComparison.OrdinalIgnoreCase)); // Example: c.Role
-                    
+
                     var coachData = await coachQuery.Select(c => new
                     {
                         c.Id,
@@ -231,14 +232,15 @@ public class UnifiedSearchService(
                         TeamName = c.Team != null ? c.Team.Name : null,
                         c.PhotoUrl
                     }).ToListAsync();
-                    
-                    
+
+
                     allFilteredItems.AddRange(coachData.Select(c => new SearchItemDto
                     {
                         Id = c.Id.ToString(),
                         Type = "Coach",
                         Name = $"{c.FirstName} {c.LastName}".Trim(),
-                        Description = $"Nationality: {c.Nationality ?? "N/A"}, Role: {c.Role ?? "N/A"}, Team: {(c.TeamName ?? "N/A")}",
+                        Description =
+                            $"Nationality: {c.Nationality ?? "N/A"}, Role: {c.Role ?? "N/A"}, Team: {c.TeamName ?? "N/A"}",
                         ThumbnailUrl = c.PhotoUrl,
                         Url = $"/coaches/{c.Id}",
                         AdditionalData = new Dictionary<string, string?>
@@ -308,8 +310,8 @@ public class UnifiedSearchService(
                         matchQuery = matchQuery.Where(m => m.ScheduledDateTimeUtc <= filters.ToDate.Value);
                     if (!string.IsNullOrWhiteSpace(filters.League)) // Match league
                         matchQuery = matchQuery.Where(m => m.Id > 0);
-                    // filters.HomeTeamId / AwayTeamId are not in user's DTO.
 
+                    // filters.HomeTeamId / AwayTeamId are not in user's DTO.
                     var matchData = await matchQuery.Select(m => new
                     {
                         m.Id,
@@ -324,8 +326,9 @@ public class UnifiedSearchService(
                     {
                         Id = m.Id.ToString(),
                         Type = "Match",
-                        Name = $"{(m.HomeTeamName ?? "N/A")} vs {(m.AwayTeamName ?? "N/A")}",
-                        Description = $"Date: {m.ScheduledDateTimeUtc.ToShortDateString()}, Score: {m.HomeTeamScore}-{m.AwayTeamScore}",
+                        Name = $"{m.HomeTeamName ?? "N/A"} vs {m.AwayTeamName ?? "N/A"}",
+                        Description =
+                            $"Date: {m.ScheduledDateTimeUtc.ToShortDateString()}, Score: {m.HomeTeamScore}-{m.AwayTeamScore}",
                         Url = $"/matches/{m.Id}",
                         AdditionalData = new Dictionary<string, string?>
                         {
@@ -336,11 +339,9 @@ public class UnifiedSearchService(
                         }
                     }));
                 }
-            }
 
             // Apply Sorting
             if (!string.IsNullOrWhiteSpace(filters.SortBy))
-            {
                 // This is a simplified sorting. For robust dynamic sorting on different properties of SearchItemDto,
                 // you might need a more complex solution or a switch statement.
                 // Sorting on properties of the original entities before projection is more performant.
@@ -348,18 +349,14 @@ public class UnifiedSearchService(
                 try
                 {
                     var pi = typeof(SearchItemDto).GetProperty(filters.SortBy,
-                        System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public |
-                        System.Reflection.BindingFlags.Instance);
+                        BindingFlags.IgnoreCase | BindingFlags.Public |
+                        BindingFlags.Instance);
                     if (pi != null)
                     {
                         if (filters.SortDescending)
-                        {
                             allFilteredItems = allFilteredItems.OrderByDescending(x => pi.GetValue(x, null)).ToList();
-                        }
                         else
-                        {
                             allFilteredItems = allFilteredItems.OrderBy(x => pi.GetValue(x, null)).ToList();
-                        }
                     }
                     else
                     {
@@ -371,12 +368,9 @@ public class UnifiedSearchService(
                 {
                     logger.LogError(ex, "Error applying sorting for SortBy '{SortByProperty}'.", filters.SortBy);
                 }
-            }
             else
-            {
                 // Default sort if no SortBy is specified, e.g., by Name or relevance if available
                 allFilteredItems = allFilteredItems.OrderBy(item => item.Name).ToList();
-            }
 
 
             var totalResults = allFilteredItems.Count;
@@ -584,7 +578,6 @@ public class UnifiedSearchService(
         int pageSize = 10)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
-        {
             return new SearchResultDto
             {
                 TotalResults = 0,
@@ -593,7 +586,6 @@ public class UnifiedSearchService(
                 PageSize = pageSize,
                 Items = []
             };
-        }
 
         try
         {
@@ -606,7 +598,6 @@ public class UnifiedSearchService(
             var searchTasks = new List<Task<List<SearchItemDto>>>();
 
             if (typesToSearch.Contains("Team"))
-            {
                 searchTasks.Add(Task.Run(async () =>
                 {
                     var teams = await SearchTeamsWithAdvancedRankingAsync(query, 20);
@@ -626,10 +617,8 @@ public class UnifiedSearchService(
                         }
                     }).ToList();
                 }));
-            }
 
             if (typesToSearch.Contains("Player"))
-            {
                 searchTasks.Add(Task.Run(async () =>
                 {
                     var players = await SearchPlayersWithAdvancedRankingAsync(query, 20);
@@ -649,10 +638,8 @@ public class UnifiedSearchService(
                         }
                     }).ToList();
                 }));
-            }
 
             if (typesToSearch.Contains("Coach"))
-            {
                 searchTasks.Add(Task.Run(async () =>
                 {
                     var coaches = await SearchCoachesWithAdvancedRankingAsync(query, 20);
@@ -672,10 +659,8 @@ public class UnifiedSearchService(
                         }
                     }).ToList();
                 }));
-            }
 
             if (typesToSearch.Contains("Match"))
-            {
                 searchTasks.Add(Task.Run(async () =>
                 {
                     var matches = await SearchMatchesAsync(query, 20);
@@ -692,10 +677,8 @@ public class UnifiedSearchService(
                         }
                     }).ToList();
                 }));
-            }
 
             if (typesToSearch.Contains("Stadium"))
-            {
                 searchTasks.Add(Task.Run(async () =>
                 {
                     var stadiums = await SearchStadiumsWithAdvancedRankingAsync(query, 20);
@@ -715,13 +698,9 @@ public class UnifiedSearchService(
                         }
                     }).ToList();
                 }));
-            }
 
             var searchResults = await Task.WhenAll(searchTasks);
-            foreach (var resultList in searchResults)
-            {
-                results.AddRange(resultList);
-            }
+            foreach (var resultList in searchResults) results.AddRange(resultList);
 
             // Apply pagination
             var totalResults = results.Count;
@@ -752,7 +731,6 @@ public class UnifiedSearchService(
     public async Task<SearchAnalyticsDto> GetSearchAnalyticsAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
-        {
             return new SearchAnalyticsDto
             {
                 Query = query,
@@ -764,9 +742,8 @@ public class UnifiedSearchService(
                 UsedFallbackSearch = false,
                 SearchSuggestions = new List<string>()
             };
-        }
 
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -803,7 +780,7 @@ public class UnifiedSearchService(
             var totalResults = resultsByType.Values.Sum();
 
             // Generate search suggestions
-            var suggestions = await GetSearchSuggestionsAsync(query, 5);
+            var suggestions = await GetSearchSuggestionsAsync(query);
             var suggestionTexts = suggestions.Select(s => s.Text).ToList();
 
             // Calculate average relevance (simplified)
@@ -887,10 +864,7 @@ public class UnifiedSearchService(
         var results = await Task.WhenAll(searchTasks);
         var allResults = new List<(SearchItemDto Item, float Score)>();
 
-        foreach (var resultList in results)
-        {
-            allResults.AddRange(resultList);
-        }
+        foreach (var resultList in results) allResults.AddRange(resultList);
 
         return allResults
             .OrderByDescending(r => r.Score)
@@ -913,10 +887,7 @@ public class UnifiedSearchService(
         var results = await Task.WhenAll(searchTasks);
         var allResults = new List<SearchItemDto>();
 
-        foreach (var resultList in results)
-        {
-            allResults.AddRange(resultList);
-        }
+        foreach (var resultList in results) allResults.AddRange(resultList);
 
         return allResults.OrderBy(r => r.Name).ToList();
     }
@@ -930,18 +901,12 @@ public class UnifiedSearchService(
         // Merge and deduplicate results
         var combinedResults = new Dictionary<string, SearchItemDto>();
 
-        foreach (var result in fullTextResults)
-        {
-            combinedResults[$"{result.Type}_{result.Id}"] = result;
-        }
+        foreach (var result in fullTextResults) combinedResults[$"{result.Type}_{result.Id}"] = result;
 
         foreach (var result in fuzzyResults)
         {
             var key = $"{result.Type}_{result.Id}";
-            if (!combinedResults.ContainsKey(key))
-            {
-                combinedResults[key] = result;
-            }
+            if (!combinedResults.ContainsKey(key)) combinedResults[key] = result;
         }
 
         return combinedResults.Values.ToList();
@@ -987,19 +952,17 @@ public class UnifiedSearchService(
 
         var distance = new int[source.Length + 1, target.Length + 1];
 
-        for (int i = 0; i <= source.Length; i++)
+        for (var i = 0; i <= source.Length; i++)
             distance[i, 0] = i;
-        for (int j = 0; j <= target.Length; j++)
+        for (var j = 0; j <= target.Length; j++)
             distance[0, j] = j;
 
-        for (int i = 1; i <= source.Length; i++)
+        for (var i = 1; i <= source.Length; i++)
+        for (var j = 1; j <= target.Length; j++)
         {
-            for (int j = 1; j <= target.Length; j++)
-            {
-                int cost = target[j - 1] == source[i - 1] ? 0 : 1;
-                distance[i, j] = Math.Min(Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
-                    distance[i - 1, j - 1] + cost);
-            }
+            var cost = target[j - 1] == source[i - 1] ? 0 : 1;
+            distance[i, j] = Math.Min(Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1),
+                distance[i - 1, j - 1] + cost);
         }
 
         return distance[source.Length, target.Length];

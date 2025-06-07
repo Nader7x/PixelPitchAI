@@ -1,8 +1,8 @@
-using Domain.Models;
-using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure;
 
@@ -19,13 +19,15 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     public DbSet<Season> Seasons { get; set; }
     public DbSet<TeamSeasons> TeamSeasons { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
-    public DbSet<Notification> Notifications { get; set; }    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public DbSet<Notification> Notifications { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         // Apply all configurations from the Configurations namespace
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        
+
         // Configure identity tables - customize table names
         modelBuilder.Entity<ApplicationUser>().ToTable("Users");
         modelBuilder.Entity<IdentityRole>().ToTable("Roles");
@@ -34,13 +36,13 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
         modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
         modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
         modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
-    }    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
 
         // Query splitting should be configured at the provider level in Program.cs
         // or can be set per query using AsSplitQuery()
-    
     }
-    
 }

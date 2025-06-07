@@ -5,5 +5,4 @@ namespace Domain.Repositories;
 
 public interface ICompetitionRepository : IRepository<Competition>
 {
-    
 }

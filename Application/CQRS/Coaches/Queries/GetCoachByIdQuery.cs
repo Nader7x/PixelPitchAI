@@ -1,7 +1,7 @@
 using Application.Dtos;
 using Application.Mappers;
-using MediatR;
 using Domain.Interfaces;
+using MediatR;
 
 namespace Application.CQRS.Coaches.Queries;
 
@@ -20,31 +20,29 @@ public class GetCoachByIdQueryResponse
 
 public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly CoachMapper _coachMapper;
-    
+    private readonly IUnitOfWork _unitOfWork;
+
     public GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
     {
         _unitOfWork = unitOfWork;
         _coachMapper = coachMapper;
     }
-    
+
     public async Task<GetCoachByIdQueryResponse> Handle(GetCoachByIdQuery request, CancellationToken cancellationToken)
     {
         try
         {
             var coach = await _unitOfWork.Coaches.GetByIdAsync(request.Id);
             if (coach == null)
-            {
                 return new GetCoachByIdQueryResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = "Coach not found"
                 };
-            }
             var coachDto = _coachMapper.ToDto(coach);
-            
+
             return new GetCoachByIdQueryResponse
             {
                 Succeeded = true,

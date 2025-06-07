@@ -11,15 +11,19 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileStorageService azureBlobStorageService, ICacheService cacheService) : ControllerBase
+public class TeamsController(
+    IMediator mediator,
+    TeamMapper teamMapper,
+    IFileStorageService azureBlobStorageService,
+    ICacheService cacheService) : ControllerBase
 {
-    private readonly TeamMapper _teamMapper = teamMapper;
     private readonly IFileStorageService _azureBlobStorageService = azureBlobStorageService;
     private readonly ICacheService _cacheService = cacheService;
+    private readonly TeamMapper _teamMapper = teamMapper;
     private readonly string CONTAINER_NAME = "teams";
 
     /// <summary>
-    /// Get all teams
+    ///     Get all teams
     /// </summary>
     /// <returns>List of teams</returns>
     [HttpGet]
@@ -29,29 +33,26 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         // Try to get from cache first
         var cacheKey = "teams_all";
         var cachedResult = await _cacheService.GetAsync<GetAllTeamsQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         // Cache miss, fetch from database
         var query = new GetAllTeamsQuery();
         var result = await mediator.Send(query);
-        
+
         // Store in cache if successful
-        if (result.Succeeded)
-        {
-            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
-        }
-        
+        if (result.Succeeded) await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
     /// <summary>
-    /// Get team by ID
+    ///     Get team by ID
     /// </summary>
     /// <param name="id">Team ID</param>
     /// <returns>Team details</returns>
@@ -63,29 +64,27 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         // Try to get from cache first
         var cacheKey = $"team_{id}";
         var cachedResult = await _cacheService.GetAsync<GetTeamByIdQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         // Cache miss, fetch from database
         var query = new GetTeamByIdQuery { Id = id };
         var result = await mediator.Send(query);
 
         // Store in cache if successful
         if (result.Succeeded && result.Team != null)
-        {
             await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
-        }
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
     /// <summary>
-    /// Create a new team
+    ///     Create a new team
     /// </summary>
     /// <param name="dto"></param>
     /// <returns>Created team</returns>
@@ -100,20 +99,21 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
             var imageUrl = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
             dto.Logo = imageUrl;
         }
+
         var command = _teamMapper.ToCreateCommand(dto);
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return BadRequest(result);
-        
+
         // Invalidate the teams list cache since we've added a new team
         await _cacheService.RemoveAsync("teams_all");
-            
+
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>
-    /// Update an existing team
+    ///     Update an existing team
     /// </summary>
     /// <param name="id">Team ID</param>
     /// <param name="dto">Team update data</param>
@@ -130,29 +130,28 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
         {
             var existingTeam = await mediator.Send(new GetTeamByIdQuery { Id = id });
             if (existingTeam is { Succeeded: true, Team: not null } && !string.IsNullOrEmpty(existingTeam.Team.Logo))
-            {
                 await _azureBlobStorageService.DeleteImageAsync(existingTeam.Team.Logo, CONTAINER_NAME);
-            }
             dto.Logo = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
         }
+
         var command = _teamMapper.ToUpdateCommand(dto);
         if (id != command.Id)
             return BadRequest("ID mismatch");
-            
+
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return result.NotFound ? NotFound() : BadRequest(result);
-        
+
         // Invalidate both the specific team cache and the all teams cache
         await _cacheService.RemoveAsync($"team_{id}");
         await _cacheService.RemoveAsync("teams_all");
-            
+
         return Ok(result);
     }
 
     /// <summary>
-    /// Delete a team
+    ///     Delete a team
     /// </summary>
     /// <param name="id">Team ID</param>
     /// <returns>Operation result</returns>
@@ -164,16 +163,17 @@ public class TeamsController(IMediator mediator, TeamMapper teamMapper, IFileSto
     {
         var command = new DeleteTeamCommand { Id = id };
         var result = await mediator.Send(command);
-        
+
         if (!result.Succeeded)
             return NotFound();
-        
+
         // Invalidate both the specific team cache and the all teams cache
         await _cacheService.RemoveAsync($"team_{id}");
         await _cacheService.RemoveAsync("teams_all");
-            
+
         return NoContent();
     }
+
     [HttpGet("Seasons/{id:int}")]
     [ProducesResponseType(typeof(GetTeamSeasonsQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

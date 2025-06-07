@@ -37,8 +37,7 @@ public sealed class MatchEvents
     public int TotalBlocks { get; set; }
     public int TotalClearances { get; set; }
     public int TotalInterceptions { get; set; }
-    
-    
+
 
     // Navigation property
     public Match? Match { get; set; }

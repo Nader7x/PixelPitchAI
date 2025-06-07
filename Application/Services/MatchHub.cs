@@ -4,16 +4,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Application.Services;
+
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class MatchHub : Hub<IMatchHub>
 {
     public override Task OnConnectedAsync()
     {
         var userId = Context.User?.FindFirst("nameid")?.Value;
-        if (userId != null)
-        {
-            Clients.User(userId).SendAsync("Welcome", "Welcome to the Match Hub!");
-        }
+        if (userId != null) Clients.User(userId).SendAsync("Welcome", "Welcome to the Match Hub!");
         return base.OnConnectedAsync();
     }
 

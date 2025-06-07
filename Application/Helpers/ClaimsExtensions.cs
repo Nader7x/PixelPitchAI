@@ -2,7 +2,7 @@
 
 namespace Application.Helpers;
 
-public static class  ClaimsExtensions
+public static class ClaimsExtensions
 {
     public static string? GetUsername(this ClaimsPrincipal user)
     {
@@ -11,16 +11,16 @@ public static class  ClaimsExtensions
 
     public static string? GetNameId(this ClaimsPrincipal user)
     {
-        return user.FindFirstValue( ClaimTypes.NameIdentifier);
+        return user.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
     public static string? GetEmail(this ClaimsPrincipal user)
     {
-        return user.FindFirstValue( ClaimTypes.Email);
+        return user.FindFirstValue(ClaimTypes.Email);
     }
 
     public static string? GetRole(this ClaimsPrincipal user)
     {
-        return user.FindFirstValue( ClaimTypes.Role);
+        return user.FindFirstValue(ClaimTypes.Role);
     }
 }

@@ -21,7 +21,7 @@ function Show-Help {
     Write-Host "  prod-rebuild - Rebuild and start production environment"
     Write-Host "  prod-logs    - Show production logs"
     Write-Host ""
-    Write-Host "  db-only      - Start only database and RabbitMQ"
+    Write-Host "  db-only      - Start only database, Redis, and RabbitMQ"
     Write-Host "  clean        - Remove all containers and volumes"
     Write-Host "  setup        - Initial setup (copy env files)"
     Write-Host ""
@@ -51,9 +51,9 @@ function Setup-Environment {
 function Start-Development {
     Write-Host "Starting development environment..." -ForegroundColor Yellow
     docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
-    Write-Host "Development environment started!" -ForegroundColor Green
-    Write-Host "API: http://localhost:5025" -ForegroundColor Cyan
+    Write-Host "Development environment started!" -ForegroundColor Green    Write-Host "API: http://localhost:5025" -ForegroundColor Cyan
     Write-Host "RabbitMQ Management: http://localhost:15672 (guest/guest)" -ForegroundColor Cyan
+    Write-Host "Redis: localhost:6379" -ForegroundColor Cyan
 }
 
 function Stop-Development {
@@ -76,9 +76,9 @@ function Show-Development-Logs {
 function Start-Production {
     Write-Host "Starting production environment..." -ForegroundColor Yellow
     docker-compose --env-file .env up -d
-    Write-Host "Production environment started!" -ForegroundColor Green
-    Write-Host "API: http://localhost:8080" -ForegroundColor Cyan
+    Write-Host "Production environment started!" -ForegroundColor Green    Write-Host "API: http://localhost:8080" -ForegroundColor Cyan
     Write-Host "RabbitMQ Management: http://localhost:15672" -ForegroundColor Cyan
+    Write-Host "Redis: localhost:6379" -ForegroundColor Cyan
 }
 
 function Stop-Production {
@@ -99,9 +99,9 @@ function Show-Production-Logs {
 }
 
 function Start-DatabaseOnly {
-    Write-Host "Starting database and RabbitMQ only..." -ForegroundColor Yellow
-    docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d postgres rabbitmq
-    Write-Host "Database and RabbitMQ started!" -ForegroundColor Green
+    Write-Host "Starting database, Redis, and RabbitMQ only..." -ForegroundColor Yellow
+    docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis rabbitmq
+    Write-Host "Database, Redis, and RabbitMQ started!" -ForegroundColor Green
 }
 
 function Clean-All {

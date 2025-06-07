@@ -1,5 +1,3 @@
-
-
 namespace Application.Dtos;
 
 public class SeasonDto
@@ -39,5 +37,3 @@ public class UpdateSeasonDto
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
 }
-
-

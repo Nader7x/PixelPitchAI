@@ -5,7 +5,7 @@ namespace Infrastructure.Services.EventProcessors;
 public class PossessionCalculator
 {
     /// <summary>
-    /// Updates possession statistics for a match based on the current event
+    ///     Updates possession statistics for a match based on the current event
     /// </summary>
     public static void UpdatePossession(Match match, FootballMatchEvent currentEvent)
     {
@@ -22,13 +22,11 @@ public class PossessionCalculator
             if (durationSeconds > 0)
             {
                 if (match.LastEventPossessingTeamName == match.HomeTeamInMatchName)
-                {
-                    match.HomeTeamPossessionDurationSeconds = (match.HomeTeamPossessionDurationSeconds ?? 0) + durationSeconds;
-                }
+                    match.HomeTeamPossessionDurationSeconds =
+                        (match.HomeTeamPossessionDurationSeconds ?? 0) + durationSeconds;
                 else if (match.LastEventPossessingTeamName == match.AwayTeamInMatchName)
-                {
-                    match.AwayTeamPossessionDurationSeconds = (match.AwayTeamPossessionDurationSeconds ?? 0) + durationSeconds;
-                }
+                    match.AwayTeamPossessionDurationSeconds =
+                        (match.AwayTeamPossessionDurationSeconds ?? 0) + durationSeconds;
             }
         }
     }
@@ -45,7 +43,7 @@ public class PossessionCalculator
                     ? currentEvent.team
                     : GetOpponentTeam(currentEvent.team, match);
                 break;
-                
+
             case "shot":
                 // If shot is saved or goes out, opponent gets possession
                 if (currentEvent.outcome is "Saved" or "Out" or "Blocked" or "Post" or "Wayward" or "Off T")
@@ -54,28 +52,28 @@ public class PossessionCalculator
                 else if (currentEvent.outcome == "Goal")
                     currentPossessingTeam = GetOpponentTeam(currentEvent.team, match);
                 break;
-                
+
             case "interception":
             case "ball recovery":
             case "Save": // Goalkeeper save
                 currentPossessingTeam = currentEvent.team;
                 break;
-                
+
             case "foul committed": // Team that committed the foul loses possession
                 currentPossessingTeam = GetOpponentTeam(currentEvent.team, match);
                 break;
-                
+
             case "dispossessed":
             case "miscontrol":
-            case "error": 
+            case "error":
                 currentPossessingTeam = GetOpponentTeam(currentEvent.team, match);
                 break;
-                
+
             case "clearance":
                 // Possession after clearance is ambiguous
                 currentPossessingTeam = null;
                 break;
-                
+
             case "duel":
             case "50/50":
                 if (currentEvent.outcome == "success" || currentEvent.outcome == "won")

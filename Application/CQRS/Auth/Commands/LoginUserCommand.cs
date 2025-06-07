@@ -2,7 +2,6 @@ using Application.Mappers;
 using Domain.Interfaces;
 using MediatR;
 
-
 namespace Application.CQRS.Auth.Commands;
 
 public class LoginUserCommand : IRequest<LoginUserCommandResponse>
@@ -33,6 +32,7 @@ public class LoginUserCommandHandler(
     : IRequestHandler<LoginUserCommand, LoginUserCommandResponse>
 {
     private readonly UserMapper _userMapper = userMapper;
+
     public async Task<LoginUserCommandResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
     {
         try
@@ -40,24 +40,20 @@ public class LoginUserCommandHandler(
             // Find user by email
             var user = await userRepository.GetByEmailAsync(request.Email);
             if (user == null)
-            {
                 return new LoginUserCommandResponse
                 {
                     Succeeded = false,
                     Error = "Invalid email or password"
                 };
-            }
 
             // Verify password
             var isPasswordValid = await userRepository.CheckPasswordAsync(user, request.Password);
             if (!isPasswordValid)
-            {
                 return new LoginUserCommandResponse
                 {
                     Succeeded = false,
                     Error = "Invalid email or password"
                 };
-            }
 
             // Update last login time
             user.LastLogin = DateTime.UtcNow;

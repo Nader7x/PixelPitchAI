@@ -6,62 +6,64 @@ namespace Application.Interfaces;
 public interface IAdvancedSearchService : ISearchService
 {
     /// <summary>
-    /// Enhanced search with configurable search strategies
+    ///     Enhanced search with configurable search strategies
     /// </summary>
-    Task<SearchResultDto> SearchWithStrategyAsync(string query, SearchStrategy strategy = SearchStrategy.Auto, int page = 1, int pageSize = 10);
-    
+    Task<SearchResultDto> SearchWithStrategyAsync(string query, SearchStrategy strategy = SearchStrategy.Auto,
+        int page = 1, int pageSize = 10);
+
     /// <summary>
-    /// Get search suggestions with relevance ranking
+    ///     Get search suggestions with relevance ranking
     /// </summary>
     Task<List<SearchSuggestionDto>> GetSearchSuggestionsAsync(string query, int limit = 5);
-    
+
     /// <summary>
-    /// Search with advanced filters and sorting
+    ///     Search with advanced filters and sorting
     /// </summary>
     Task<SearchResultDto> SearchWithFiltersAsync(SearchFiltersDto filters);
 
     /// <summary>
-    /// Search for matches with advanced ranking
+    ///     Search for matches with advanced ranking
     /// </summary>
     Task<List<Match>> SearchMatchesAsync(string query, int limit = 10, bool enableFuzzySearch = false);
 
     /// <summary>
-    /// Advanced team search with ranking and scoring
+    ///     Advanced team search with ranking and scoring
     /// </summary>
     Task<List<Team>> SearchTeamsWithAdvancedRankingAsync(string query, int limit = 10);
 
     /// <summary>
-    /// Advanced player search with detailed filtering
+    ///     Advanced player search with detailed filtering
     /// </summary>
     Task<List<Player>> SearchPlayersWithAdvancedRankingAsync(string query, int limit = 10);
 
     /// <summary>
-    /// Advanced coach search with relevance scoring
+    ///     Advanced coach search with relevance scoring
     /// </summary>
     Task<List<Coach>> SearchCoachesWithAdvancedRankingAsync(string query, int limit = 10);
 
     /// <summary>
-    /// Advanced stadium search with location-based ranking
+    ///     Advanced stadium search with location-based ranking
     /// </summary>
     Task<List<Stadium>> SearchStadiumsWithAdvancedRankingAsync(string query, int limit = 10);
 
     /// <summary>
-    /// Multi-entity search with unified ranking
+    ///     Multi-entity search with unified ranking
     /// </summary>
-    Task<SearchResultDto> UnifiedSearchAsync(string query, List<string>? entityTypes = null, int page = 1, int pageSize = 10);
+    Task<SearchResultDto> UnifiedSearchAsync(string query, List<string>? entityTypes = null, int page = 1,
+        int pageSize = 10);
 
     /// <summary>
-    /// Get search analytics and statistics
+    ///     Get search analytics and statistics
     /// </summary>
     Task<SearchAnalyticsDto> GetSearchAnalyticsAsync(string query);
 }
 
 public enum SearchStrategy
 {
-    Auto,           // Automatically choose based on query and data
-    FullText,       // PostgreSQL full-text search
-    Fuzzy,          // Levenshtein distance-based fuzzy search
-    Hybrid          // Combination of both strategies
+    Auto, // Automatically choose based on query and data
+    FullText, // PostgreSQL full-text search
+    Fuzzy, // Levenshtein distance-based fuzzy search
+    Hybrid // Combination of both strategies
 }
 
 public class SearchFiltersDto
@@ -105,4 +107,3 @@ public class SearchAnalyticsDto
     public bool UsedFallbackSearch { get; set; }
     public List<string> SearchSuggestions { get; set; } = new();
 }
-

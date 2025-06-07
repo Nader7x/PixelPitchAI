@@ -59,8 +59,8 @@ public class ApplicationUserRepository(
         {
             refreshToken.UserId = user?.Id;
             refreshToken.User = user;
-            refreshToken.Created = System.DateTime.UtcNow;
-            refreshToken.Expires = System.DateTime.UtcNow.AddDays(7);
+            refreshToken.Created = DateTime.UtcNow;
+            refreshToken.Expires = DateTime.UtcNow.AddDays(7);
             if (user != null)
                 refreshToken.JwtId = await userManager.GetClaimsAsync(user)
                     .ContinueWith(t => t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value);
@@ -76,7 +76,7 @@ public class ApplicationUserRepository(
 
         if (refreshToken != null)
         {
-            refreshToken.Revoked = System.DateTime.UtcNow;
+            refreshToken.Revoked = DateTime.UtcNow;
             refreshToken.RevokedByIp = ipAddress;
 
             _context.RefreshTokens.Update(refreshToken);

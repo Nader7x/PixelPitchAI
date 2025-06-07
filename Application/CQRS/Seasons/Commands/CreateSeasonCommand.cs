@@ -1,8 +1,7 @@
-using Domain.Models;
-using MediatR;
-using System;
 using System.ComponentModel.DataAnnotations;
 using Domain.Interfaces;
+using Domain.Models;
+using MediatR;
 
 namespace Application.CQRS.Seasons.Commands;
 
@@ -11,24 +10,20 @@ public class CreateSeasonCommand : IRequest<CreateSeasonCommandResponse>
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string Name { get; set; }
-    
+
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string LeagueName { get; set; }
-    
-    [Required]
-    [StringLength(50)]
-    public string Country { get; set; }
-    
+
+    [Required] [StringLength(50)] public string Country { get; set; }
+
     public int TotalRounds { get; set; }
-    
+
     public bool IsActive { get; set; }
-    
-    [Required]
-    public DateTime StartDate { get; set; }
-    
-    [Required]
-    public DateTime EndDate { get; set; }
+
+    [Required] public DateTime StartDate { get; set; }
+
+    [Required] public DateTime EndDate { get; set; }
 }
 
 public class CreateSeasonCommandResponse
@@ -42,55 +37,50 @@ public class CreateSeasonCommandResponse
 public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, CreateSeasonCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
-    
+
     public CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
     }
-    
-    public async Task<CreateSeasonCommandResponse> Handle(CreateSeasonCommand request, CancellationToken cancellationToken)
+
+    public async Task<CreateSeasonCommandResponse> Handle(CreateSeasonCommand request,
+        CancellationToken cancellationToken)
     {
         try
         {
             // Validate date range
             if (request.EndDate <= request.StartDate)
-            {
                 return new CreateSeasonCommandResponse
                 {
                     Succeeded = false,
                     Error = "End date must be after start date"
                 };
-            }
-            
+
             // Check if season with the same name already exists
             var existingSeason = await _unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
             if (existingSeason != null)
-            {
                 return new CreateSeasonCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Season with name '{request.Name}' already exists"
                 };
-            }
-            
+
             // Check if active season already exists for the same league
             if (request.IsActive)
             {
-                var activeSeasons = await _unitOfWork.Seasons.FindAsync(s => 
-                    s.LeagueName == request.LeagueName && 
-                    s.Country == request.Country && 
+                var activeSeasons = await _unitOfWork.Seasons.FindAsync(s =>
+                    s.LeagueName == request.LeagueName &&
+                    s.Country == request.Country &&
                     s.IsActive);
-                    
+
                 if (activeSeasons != null)
-                {
                     return new CreateSeasonCommandResponse
                     {
                         Succeeded = false,
                         Error = $"An active season for {request.LeagueName} in {request.Country} already exists"
                     };
-                }
             }
-            
+
             // Create new season
             var season = new Season
             {
@@ -101,12 +91,12 @@ public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, C
                 IsActive = request.IsActive,
                 IsCompleted = false, // A new season is not completed
                 StartDate = request.StartDate,
-                EndDate = request.EndDate,
+                EndDate = request.EndDate
             };
-            
+
             await _unitOfWork.Seasons.AddAsync(season);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            
+
             return new CreateSeasonCommandResponse
             {
                 Succeeded = true,

@@ -1,7 +1,7 @@
 using Application.Dtos;
 using Application.Mappers;
-using MediatR;
 using Domain.Interfaces;
+using MediatR;
 
 namespace Application.CQRS.Players.Queries;
 
@@ -20,32 +20,31 @@ public class GetPlayerByIdQueryResponse
 
 public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly PlayerMapper _playerMapper;
-    
+    private readonly IUnitOfWork _unitOfWork;
+
     public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
     {
         _unitOfWork = unitOfWork;
         _playerMapper = playerMapper;
     }
-    
-    public async Task<GetPlayerByIdQueryResponse> Handle(GetPlayerByIdQuery request, CancellationToken cancellationToken)
+
+    public async Task<GetPlayerByIdQueryResponse> Handle(GetPlayerByIdQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {
             var player = await _unitOfWork.Players.GetByIdAsync(request.Id);
             if (player == null)
-            {
                 return new GetPlayerByIdQueryResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = $"Player with ID {request.Id} not found"
                 };
-            }
-            
+
             var playerDto = _playerMapper.ToDto(player);
-            
+
             return new GetPlayerByIdQueryResponse
             {
                 Succeeded = true,

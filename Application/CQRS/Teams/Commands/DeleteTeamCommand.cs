@@ -17,12 +17,12 @@ public class DeleteTeamCommandResponse
 public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
-    
+
     public DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
     }
-    
+
     public async Task<DeleteTeamCommandResponse> Handle(DeleteTeamCommand request, CancellationToken cancellationToken)
     {
         try
@@ -30,17 +30,15 @@ public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, Delet
             // Check if team exists
             var team = await _unitOfWork.Teams.GetByIdAsync(request.Id);
             if (team == null)
-            {
                 return new DeleteTeamCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Team with ID {request.Id} not found"
                 };
-            }
-            
+
             // Begin transaction to ensure atomic operation
             await _unitOfWork.BeginTransactionAsync();
-            
+
             try
             {
                 // Set TeamId to null for all related coaches
@@ -51,10 +49,10 @@ public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, Delet
                 // Delete team
                 _unitOfWork.Teams.DeleteAsync(team);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-                
+
                 // Commit transaction
                 await _unitOfWork.CommitTransactionAsync();
-                
+
                 return new DeleteTeamCommandResponse
                 {
                     Succeeded = true

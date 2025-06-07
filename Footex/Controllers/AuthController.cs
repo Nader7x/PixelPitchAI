@@ -12,18 +12,21 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IMediator mediator, UserMapper usermapper,IFileStorageService blobStorageService) : ControllerBase
+public class AuthController(IMediator mediator, UserMapper usermapper, IFileStorageService blobStorageService)
+    : ControllerBase
 {
+    private readonly IFileStorageService _blobStorageService = blobStorageService;
     private readonly IMediator _mediator = mediator;
     private readonly UserMapper _usermapper = usermapper;
-    private readonly IFileStorageService _blobStorageService = blobStorageService;
     private readonly string CONTAINER_NAME = "users";
 
     [HttpPost("register")]
     public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromForm] RegisterUserDto dto)
     {
         var command = _usermapper.ToRegisterCommandFromDto(dto);
-        command.ImageUrl = dto.Image != null ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME) : null;
+        command.ImageUrl = dto.Image != null
+            ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME)
+            : null;
         var result = await _mediator.Send(command);
 
         if (!result.Succeeded)
@@ -197,11 +200,11 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
 
         return Ok(result);
     }
+
     [HttpGet("profile/{id}")]
     [Authorize]
     public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfileById(string id)
     {
-
         if (string.IsNullOrEmpty(id))
             return BadRequest(new { message = "User ID not found in token" });
 
@@ -222,10 +225,8 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
         var ipAddress = HttpContext.Connection.RemoteIpAddress;
 
         if (ipAddress != null)
-        {
             // Map to IPv4 if it's an IPv4-mapped IPv6 address
             return ipAddress.IsIPv4MappedToIPv6 ? ipAddress.MapToIPv4().ToString() : ipAddress.ToString();
-        }
 
         return "unknown";
     }
@@ -244,13 +245,13 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
     }
 
     /// <summary>
-    /// Public endpoints don't need the [Authorize] attribute
+    ///     Public endpoints don't need the [Authorize] attribute
     /// </summary>
     /// <summary>
-    /// Manual refresh token endpoint for Swagger testing
+    ///     Manual refresh token endpoint for Swagger testing
     /// </summary>
     /// <remarks>
-    /// This endpoint allows manual entry of a refresh token for testing in Swagger UI
+    ///     This endpoint allows manual entry of a refresh token for testing in Swagger UI
     /// </remarks>
     /// <param name="token">The refresh token string</param>
     /// <returns>New access token and refresh token</returns>
@@ -285,16 +286,13 @@ public class AuthController(IMediator mediator, UserMapper usermapper,IFileStora
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser([FromForm] UpdateUserDto dto)
     {
-
         var command = _usermapper.ToUpdateCommand(dto);
-        if (dto.Image !=null)
+        if (dto.Image != null)
         {
-             // delete old image if it exists
+            // delete old image if it exists
             var existingUser = await _mediator.Send(new GetUserProfileQuery { UserId = dto.Id });
             if (!existingUser.Succeeded == false && !string.IsNullOrEmpty(existingUser.ImageUrl))
-            {
                 await _blobStorageService.DeleteImageAsync(existingUser.ImageUrl, CONTAINER_NAME);
-            }
             // upload new image
             command.ImageUrl = await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
         }

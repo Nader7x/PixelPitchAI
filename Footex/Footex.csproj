@@ -9,47 +9,49 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
-        <PackageReference Include="Azure.Storage.Blobs.Batch" Version="12.21.0" />
-        <PackageReference Include="DotNetEnv" Version="3.1.1" />
-        <PackageReference Include="MediatR" Version="12.5.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.15" />
-        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.15" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13" />
+        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1"/>
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0"/>
+        <PackageReference Include="Azure.Storage.Blobs.Batch" Version="12.21.0"/>
+        <PackageReference Include="DotNetEnv" Version="3.1.1"/>
+        <PackageReference Include="MediatR" Version="12.5.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.15"/>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.15"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-        <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
-        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
-        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-        <PackageReference Include="Serilog.Sinks.PostgreSQL" Version="2.3.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0"/>
+        <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1"/>
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
+        <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
+        <PackageReference Include="Serilog.Sinks.PostgreSQL" Version="2.3.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Application\Application.csproj" />
-      <ProjectReference Include="..\Domain\Domain.csproj" />
-      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+        <ProjectReference Include="..\Application\Application.csproj"/>
+        <ProjectReference Include="..\Domain\Domain.csproj"/>
+        <ProjectReference Include="..\Infrastructure\Infrastructure.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Logs\" />
+        <Folder Include="Logs\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Logs\log-20250522.txt" />
-      <None Remove="Logs\log-20250521.txt" />
-      <None Remove="Logs\log-20250520.txt" />
+        <None Remove="Logs\log-20250522.txt"/>
+        <None Remove="Logs\log-20250521.txt"/>
+        <None Remove="Logs\log-20250520.txt"/>
     </ItemGroup>
 
 </Project>

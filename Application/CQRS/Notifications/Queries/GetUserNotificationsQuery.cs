@@ -8,6 +8,7 @@ public class GetUserNotificationsQuery : IRequest<GetUserNotificationsQueryRespo
 {
     public required string UserId { get; set; }
 }
+
 public class GetUserNotificationsQueryResponse
 {
     public bool Succeeded { get; set; }
@@ -18,7 +19,8 @@ public class GetUserNotificationsQueryResponse
 public class GetUserNotificationsQueryHandler(INotificationRepository notificationRepository)
     : IRequestHandler<GetUserNotificationsQuery, GetUserNotificationsQueryResponse>
 {
-    public async Task<GetUserNotificationsQueryResponse> Handle(GetUserNotificationsQuery request, CancellationToken cancellationToken)
+    public async Task<GetUserNotificationsQueryResponse> Handle(GetUserNotificationsQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {

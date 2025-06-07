@@ -1,8 +1,8 @@
 using Application.Dtos;
-using MediatR;
-using Domain.Interfaces;
-using System.Collections.Generic;
 using Application.Mappers;
+using Domain.Interfaces;
+using Domain.Models;
+using MediatR;
 
 namespace Application.CQRS.Stadiums.Queries;
 
@@ -22,45 +22,38 @@ public class GetAllStadiumsQueryResponse
 
 public class GetAllStadiumsQueryHandler : IRequestHandler<GetAllStadiumsQuery, GetAllStadiumsQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly StadiumMapper _stadiumMapper;
-    
+    private readonly IUnitOfWork _unitOfWork;
+
     public GetAllStadiumsQueryHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
     {
         _unitOfWork = unitOfWork;
         _stadiumMapper = stadiumMapper;
     }
-    
-    public async Task<GetAllStadiumsQueryResponse> Handle(GetAllStadiumsQuery request, CancellationToken cancellationToken)
+
+    public async Task<GetAllStadiumsQueryResponse> Handle(GetAllStadiumsQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {
-            IEnumerable<Domain.Models.Stadium> stadiums;
-            
+            IEnumerable<Stadium> stadiums;
+
             // Apply filters if provided
             if (!string.IsNullOrEmpty(request.Country) && !string.IsNullOrEmpty(request.City))
-            {
-                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s => 
-                    s.Country.Equals(request.Country, StringComparison.CurrentCultureIgnoreCase) && 
+                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s =>
+                    s.Country.Equals(request.Country, StringComparison.CurrentCultureIgnoreCase) &&
                     s.City.Equals(request.City, StringComparison.CurrentCultureIgnoreCase));
-            }
             else if (!string.IsNullOrEmpty(request.Country))
-            {
-                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s => 
+                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s =>
                     s.Country.ToLower() == request.Country.ToLower());
-            }
             else if (!string.IsNullOrEmpty(request.City))
-            {
-                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s => 
+                stadiums = await _unitOfWork.Stadiums.GetAllAsync(s =>
                     s.City.ToLower() == request.City.ToLower());
-            }
             else
-            {
                 stadiums = await _unitOfWork.Stadiums.GetAllAsync();
-            }
-            
+
             var stadiumDtos = _stadiumMapper.ToDtoList(stadiums);
-            
+
             return new GetAllStadiumsQueryResponse
             {
                 Succeeded = true,

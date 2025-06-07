@@ -2,7 +2,7 @@ namespace Domain.Models;
 
 public sealed class Season
 {
-    public int Id { get; init; }
+    public int Id { get; set; }
     public required string Name { get; set; } // e.g., "La Liga 2023/2024"
     public bool IsActive { get; set; }
     public bool? IsCompleted { get; set; }
@@ -23,4 +23,3 @@ public sealed class Season
     public ICollection<TeamSeasons>? SeasonTeams { get; set; }
     public Competition? Competition { get; set; } // Required navigation property to Competition
 }
-

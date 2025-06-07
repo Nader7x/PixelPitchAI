@@ -1,8 +1,8 @@
+using Application.Interfaces;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Application.Interfaces;
 
 namespace Application.Services;
 
@@ -12,7 +12,7 @@ public class AzureBlobStorageService : IFileStorageService
 
     public AzureBlobStorageService(IConfiguration configuration)
     {
-        string? connectionString = configuration.GetConnectionString("BlobConnection");
+        var connectionString = configuration.GetConnectionString("BlobConnection");
         _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
@@ -26,7 +26,7 @@ public class AzureBlobStorageService : IFileStorageService
         await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
         // Create a unique file name
-        string fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+        var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
         var blobClient = containerClient.GetBlobClient(fileName);
 
         // Upload the file
@@ -48,7 +48,7 @@ public class AzureBlobStorageService : IFileStorageService
 
             // Extract the blob name from the URL
             var uri = new Uri(imageUrl);
-            string blobName = Path.GetFileName(uri.LocalPath);
+            var blobName = Path.GetFileName(uri.LocalPath);
 
             var blobClient = containerClient.GetBlobClient(blobName);
             await blobClient.DeleteIfExistsAsync();

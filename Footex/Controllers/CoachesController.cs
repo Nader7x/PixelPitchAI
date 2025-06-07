@@ -11,14 +11,18 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CoachesController(IMediator mediator, IFileStorageService fileStorageService, CoachMapper coachMapper, ICacheService cacheService)
+public class CoachesController(
+    IMediator mediator,
+    IFileStorageService fileStorageService,
+    CoachMapper coachMapper,
+    ICacheService cacheService)
     : ControllerBase
 {
+    private readonly ICacheService _cacheService = cacheService;
+    private readonly CoachMapper _coachMapper = coachMapper;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IMediator _mediator = mediator;
-    private readonly CoachMapper _coachMapper = coachMapper;
-    private readonly ICacheService _cacheService = cacheService;
-    private string CONTAINER_NAME = "coaches";
+    private readonly string CONTAINER_NAME = "coaches";
 
 
     [HttpGet("filter")]
@@ -29,17 +33,17 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
         [FromQuery] int? teamId)
     {
         // Generate a cache key based on the query parameters
-        string cacheKey = $"coaches_all_{nationality}_{teamId}";
-        
+        var cacheKey = $"coaches_all_{nationality}_{teamId}";
+
         // Try to get from cache first
         var cachedResult = await _cacheService.GetAsync<GetAllCoachesQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         // Cache miss, fetch from database
         var query = new GetAllCoachesQuery
         {
@@ -51,10 +55,10 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
 
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         // Store in cache if successful
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -68,13 +72,13 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
         // Try to get from cache first
         var cacheKey = $"coach_{id}";
         var cachedResult = await _cacheService.GetAsync<GetCoachByIdQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         // Cache miss, fetch from database
         var query = new GetCoachByIdQuery { Id = id };
         var result = await _mediator.Send(query);
@@ -89,7 +93,7 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
 
         // Store in cache if successful
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -101,11 +105,9 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
     public async Task<ActionResult<CreateCoachCommandResponse>> CreateCoach([FromForm] CreateCoachDto coachDto)
     {
         // Handle file upload if present
-        string? photoUrl = coachDto.PhotoUrl;
+        var photoUrl = coachDto.PhotoUrl;
         if (coachDto.Photo != null)
-        {
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
-        }
         coachDto.PhotoUrl = photoUrl;
         var command = _coachMapper.ToCreateCommand(coachDto);
 
@@ -135,14 +137,12 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
             return NotFound(existingResult);
 
         // Handle file upload if present
-        string? photoUrl = coachDto.PhotoUrl;
+        var photoUrl = coachDto.PhotoUrl;
         if (coachDto.Photo != null)
         {
             // Delete old photo if it exists
             if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
-            {
                 await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
-            }
 
             // Upload new photo
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
@@ -161,11 +161,11 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
                 return NotFound(result);
             return BadRequest(result);
         }
-        
+
         // Invalidate both the specific coach cache and coach list caches
         await _cacheService.RemoveAsync($"coach_{id}");
         await InvalidateCoachListCaches();
-        
+
         return Ok(result);
     }
 
@@ -185,9 +185,7 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
 
         // Delete photo if it exists
         if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
-        {
             await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
-        }
 
         var command = new DeleteCoachCommand { Id = id };
         var result = await _mediator.Send(command);
@@ -199,14 +197,14 @@ public class CoachesController(IMediator mediator, IFileStorageService fileStora
 
             return BadRequest(result);
         }
-        
+
         // Invalidate both the specific coach cache and coach list caches
         await _cacheService.RemoveAsync($"coach_{id}");
         await InvalidateCoachListCaches();
 
         return Ok(result);
     }
-    
+
     // Helper method to invalidate all coach list caches
     private async Task InvalidateCoachListCaches()
     {

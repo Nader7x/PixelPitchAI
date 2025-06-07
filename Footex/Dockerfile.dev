@@ -2,11 +2,17 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS development
 WORKDIR /app
 
-# Install dotnet tools
-RUN dotnet tool install --global dotnet-ef
+# Install required tools and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dotnet tools globally
+RUN dotnet tool install --global dotnet-ef --version 8.* && \
+    dotnet tool install --global dotnet-watch
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
-# Copy project files
+# Copy project files for dependency restoration
 COPY ["Footex/Footex.csproj", "Footex/"]
 COPY ["Application/Application.csproj", "Application/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
@@ -15,18 +21,34 @@ COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 # Restore dependencies
 RUN dotnet restore "Footex/Footex.csproj"
 
-# Copy source code
+# Copy entire source code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p /app/Logs
+# Create required directories
+RUN mkdir -p /app/Logs /app/temp /app/wwwroot && \
+    chmod 755 /app/Logs /app/temp /app/wwwroot
 
-# Set working directory
+# Set working directory to the main project
 WORKDIR /app/Footex
 
-# Expose ports
+# Expose ports for HTTP and HTTPS
 EXPOSE 8080
 EXPOSE 8081
 
-# Entry point for development with watch
-ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8080"]
+# Create a startup script for development
+RUN echo '#!/bin/bash\n\
+echo "Starting Footex Development Server..."\n\
+echo "Restoring packages..."\n\
+dotnet restore\n\
+echo "Building project..."\n\
+dotnet build --no-restore\n\
+echo "Starting with hot reload..."\n\
+exec dotnet watch run --urls "http://0.0.0.0:8080;https://0.0.0.0:8081" --no-restore' > /app/start-dev.sh && \
+    chmod +x /app/start-dev.sh
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Entry point for development with watch and automatic restart
+ENTRYPOINT ["/app/start-dev.sh"]

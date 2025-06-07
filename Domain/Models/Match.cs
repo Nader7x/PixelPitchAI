@@ -71,7 +71,8 @@ public sealed class Match
     public int? LastEventTimestampSeconds { get; set; } // Timestamp of the last processed event
 
     [MaxLength(500)]
-    public string? LastEventPossessingTeamName { get; set; } // Name of the team possessing the ball after the last event
+    public string?
+        LastEventPossessingTeamName { get; set; } // Name of the team possessing the ball after the last event
 
     public int? HomeTeamDribbles { get; set; }
     public int? AwayTeamDribbles { get; set; }
@@ -99,7 +100,7 @@ public sealed class Match
     public int? AwayTeamFreeKicks { get; set; }
     public int? AwayTeamShotsOffTarget { get; set; }
     public int? HomeTeamShotsOffTarget { get; set; }
-    
+
     // Monitoring Field
     public bool IsLive { get; set; } = false; // Indicates if the match is currently live or not
 
@@ -116,16 +117,14 @@ public sealed class Match
     public Coach? AwayCoach { get; init; }
 
     /// <summary>
-    /// User that created the match.
+    ///     User that created the match.
     /// </summary>
 
     [MaxLength(255)]
-    public required string CreatorId { get; init; }
-    [MaxLength(255)]
-    public string? SimulationId { get; set; } // ID for the simulation process, if applicable
+    public required string CreatorId { get; set; }
+
+    [MaxLength(255)] public string? SimulationId { get; set; } // ID for the simulation process, if applicable
 
     public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
 }
-
-

@@ -21,20 +21,19 @@ public class GetMatchByIdWithDetailsQueryResponse
 public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitOfWork unitOfWork)
     : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
 {
-    public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(GetMatchByIdWithDetailsQuery request, CancellationToken cancellationToken)
+    public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(GetMatchByIdWithDetailsQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {
             var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(request.MatchId);
             if (match == null)
-            {
                 return new GetMatchByIdWithDetailsQueryResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = $"Match with ID {request.MatchId} not found"
                 };
-            }
 
             var matchDto = matchMapper.ToDetailsFromMatch(match);
             return new GetMatchByIdWithDetailsQueryResponse
@@ -53,5 +52,3 @@ public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitO
         }
     }
 }
-
-

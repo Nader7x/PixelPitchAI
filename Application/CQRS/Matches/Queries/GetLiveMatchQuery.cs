@@ -14,19 +14,19 @@ public class GetLiveMatchQueryResponse
     public string? Error { get; init; }
     public int MatchId { get; set; }
 }
-public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork) : IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse>
+
+public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse>
 {
     public async Task<GetLiveMatchQueryResponse> Handle(GetLiveMatchQuery request, CancellationToken cancellationToken)
     {
         var match = await unitOfWork.Matches.GetLiveMatchAsync(request.UserId);
         if (match == 0 || match == null)
-        {
             return new GetLiveMatchQueryResponse
             {
                 Succeeded = false,
                 Error = "No live match found for the user."
             };
-        }
 
         return new GetLiveMatchQueryResponse
         {

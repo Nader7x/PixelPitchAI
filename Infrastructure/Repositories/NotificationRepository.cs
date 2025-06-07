@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class NotificationRepository(FootballDbContext context) : Repository<Notification>(context), INotificationRepository
+public class NotificationRepository(FootballDbContext context)
+    : Repository<Notification>(context), INotificationRepository
 {
     public async Task<IEnumerable<Notification>> GetNotificationsAsync(string userId)
     {

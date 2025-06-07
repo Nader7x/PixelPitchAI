@@ -6,7 +6,9 @@ public interface INotificationService
 {
     Task SendNotificationAsync(Notification notification);
     Task SendNotificationAsync(string title, string message, string type, IEnumerable<int> userIds);
-    Task SendMatchStartNotificationAsync(Notification notification , string simulationId);
-
+    Task SendMatchStartNotificationAsync(Notification notification, string simulationId);
+    Task SendMatchEndNotificationAsync(Notification notification, string simulationId);
+    Task SendMatchUpdateNotificationAsync(Notification notification, string simulationId);
+    Task SendSimulationUpdateNotificationAsync(Notification notification, string simulationId);
     Task SendMessageAsync(string message);
 }

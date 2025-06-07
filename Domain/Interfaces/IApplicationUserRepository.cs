@@ -1,4 +1,5 @@
 using Domain.Models;
+
 namespace Domain.Interfaces;
 
 public interface IApplicationUserRepository : IRepository<ApplicationUser>
@@ -14,5 +15,4 @@ public interface IApplicationUserRepository : IRepository<ApplicationUser>
     Task RevokeRefreshTokenAsync(string token, string ipAddress);
     Task<bool> HasRefreshTokensAsync(string userid);
     Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId);
-
 }

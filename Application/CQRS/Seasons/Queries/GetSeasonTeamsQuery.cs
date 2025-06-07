@@ -1,15 +1,14 @@
-using Application.Dtos;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Application.CQRS.Seasons.Queries;
 
 public class GetSeasonTeamsQuery : IRequest<GetSeasonTeamsQueryResponse>
 {
-  public  int SeasonId { get; set; }
+    public int SeasonId { get; set; }
 }
+
 public class GetSeasonTeamsQueryResponse
 {
     public bool Succeeded { get; set; }
@@ -22,7 +21,8 @@ public class GetSeasonTeamsQueryHandler(IUnitOfWork unitOfWork)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<GetSeasonTeamsQueryResponse> Handle(GetSeasonTeamsQuery request, CancellationToken cancellationToken)
+    public async Task<GetSeasonTeamsQueryResponse> Handle(GetSeasonTeamsQuery request,
+        CancellationToken cancellationToken)
     {
         var seasonTeams = await _unitOfWork.TeamSeasons.GetTeamsBySeasonIdAsync(request.SeasonId);
         if (seasonTeams.Count == 0)

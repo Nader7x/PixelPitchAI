@@ -2,7 +2,6 @@ using System.Linq.Expressions;
 using Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Infrastructure.Repositories;
 
@@ -18,14 +17,12 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
 
     public async Task<IEnumerable<T>> GetAllAsync(int? pageNumber, int? pageSize)
     {
-        if (pageNumber> 0 && pageSize > 0)
-        {
+        if (pageNumber > 0 && pageSize > 0)
             return await _context.Set<T>()
                 .AsNoTracking()
-                .Skip((pageNumber.Value -1) * pageSize.Value)
+                .Skip((pageNumber.Value - 1) * pageSize.Value)
                 .Take(pageSize.Value * 3)
                 .ToListAsync();
-        }
         return await _context.Set<T>()
             .AsNoTracking()
             .ToListAsync();
@@ -70,7 +67,8 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
     {
         return await _context.Set<T>()
             .AsQueryable()
-            .FirstOrDefaultAsync(predicate,cancellationToken);;
+            .FirstOrDefaultAsync(predicate, cancellationToken);
+        ;
     }
 
     public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate)
@@ -88,4 +86,3 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
         return await _context.Set<T>().CountAsync(predicate);
     }
 }
-

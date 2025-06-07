@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: Footex_Api
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: footex_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
@@ -17,10 +18,31 @@ services:
     networks:
       - footex-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Footex_Api"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: footex-redis
+    command: redis-server --appendonly yes --requirepass footex_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - footex-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   # RabbitMQ Message Broker
   rabbitmq:
@@ -30,6 +52,7 @@ services:
       RABBITMQ_DEFAULT_USER: footex
       RABBITMQ_DEFAULT_PASS: footex_password
       RABBITMQ_DEFAULT_VHOST: /
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,error},{default,info}]
     ports:
       - "5672:5672" # AMQP port
       - "15672:15672" # Management UI port
@@ -41,30 +64,53 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
 
   # Footex API Application
   footex-api:
     build:
       context: .
       dockerfile: Footex/Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
     container_name: footex-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=footex_password;
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=footex_password;Include Error Detail=true;
+      - ConnectionStrings__RemoteRedisConnection=redis:6379
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=footex
       - RabbitMQ__Password=footex_password
       - RabbitMQ__VirtualHost=/
       - RabbitMQ__Port=5672
       - RabbitMQ__QueueName=match_events_queue
-      - SIMULATION_API_KEY=${SIMULATION_API_KEY}
+      - RedisCache__LocalConnectionString=redis:6379
+      - RedisCache__InstanceName=Footex_Prod_
+      - RedisCache__DefaultExpirationMinutes=10
+      - JWT__Secret=${JWT_SECRET:-[REMOVED-SECRET]}
+      - JWT__ValidIssuer=https://footex.com
+      - JWT__ValidAudience=https://footex.com
+      - JWT__ExpiryInMinutes=60
+      - AdminUser__Email=admin@footex.com
+      - AdminUser__Password=${ADMIN_PASSWORD:-[REMOVED-ADMIN-PASSWORD]}
+      - SIMULATION_API_KEY=${SIMULATION_API_KEY:-}
       - SIMULATION_SERVICE_URL=http://host.docker.internal:8000
+      - SmtpSettings__Host=${SMTP_HOST:-smtp.gmail.com}
+      - SmtpSettings__Port=${SMTP_PORT:-587}
+      - SmtpSettings__UserName=${SMTP_USERNAME:-}
+      - SmtpSettings__Password=${SMTP_PASSWORD:-}
+      - SmtpSettings__FromEmail=${SMTP_FROM_EMAIL:-no-reply@footex.com}
+      - SmtpSettings__EnableSSL=true
     ports:
       - "8080:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -72,12 +118,28 @@ services:
       - footex-network
     volumes:
       - ./Footex/Logs:/app/Logs
+      - api_temp:/app/temp
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   rabbitmq_data:
+    driver: local
+  api_temp:
+    driver: local
 
 networks:
   footex-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -4,8 +4,11 @@ namespace Infrastructure.Services.EventProcessors;
 
 public class FoulEventProcessor : BaseEventProcessor
 {
-    public override bool CanProcess(FootballMatchEvent matchEvent) => 
-        matchEvent.action == "foul committed" || matchEvent.action == "foul won" || matchEvent.action == "bad behaviour";
+    public override bool CanProcess(FootballMatchEvent matchEvent)
+    {
+        return matchEvent.action == "foul committed" || matchEvent.action == "foul won" ||
+               matchEvent.action == "bad behaviour";
+    }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
@@ -29,10 +32,7 @@ public class FoulEventProcessor : BaseEventProcessor
         if (matchEvent.action == "foul committed")
         {
             matchEvents.TotalFouls++;
-            if (matchEvent.outcome is "Penalty" or "penalty")
-            {
-                matchEvents.TotalPenalties++;
-            }
+            if (matchEvent.outcome is "Penalty" or "penalty") matchEvents.TotalPenalties++;
 
             ProcessCardCounters(matchEvent, matchEvents);
         }
@@ -48,9 +48,9 @@ public class FoulEventProcessor : BaseEventProcessor
 
     private static void ProcessCard(FootballMatchEvent matchEvent, Match match)
     {
-        if (matchEvent.card == null || matchEvent.card == "No Card") 
+        if (matchEvent.card == null || matchEvent.card == "No Card")
             return;
-            
+
         switch (matchEvent.card)
         {
             case "Yellow Card":
@@ -59,7 +59,7 @@ public class FoulEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamYellowCards = IncrementValue(match.AwayTeamYellowCards);
                 break;
-                
+
             case "Red Card":
                 if (IsHomeTeam(matchEvent, match))
                     match.HomeTeamRedCards = IncrementValue(match.HomeTeamRedCards);
@@ -68,19 +68,19 @@ public class FoulEventProcessor : BaseEventProcessor
                 break;
         }
     }
-    
+
     private static void ProcessCardCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents)
     {
-        if (matchEvent.card == null || matchEvent.card == "No Card") 
+        if (matchEvent.card == null || matchEvent.card == "No Card")
             return;
-            
+
         matchEvents.TotalCards++;
         switch (matchEvent.card)
         {
             case "Yellow Card":
                 matchEvents.TotalYellowCards++;
                 break;
-                
+
             case "Red Card":
                 matchEvents.TotalRedCards++;
                 break;

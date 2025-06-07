@@ -46,13 +46,11 @@ public class RegisterUserCommandHandler(
             var (succeeded, userId, result) = await identityService.CreateUserAsync(user, request.Password);
 
             if (!succeeded)
-            {
                 return new RegisterUserCommandResponse
                 {
                     Succeeded = false,
                     Error = result.ToString()
                 };
-            }
 
             // Add to default role
             await identityService.AddUserToRoleAsync(user, "User");

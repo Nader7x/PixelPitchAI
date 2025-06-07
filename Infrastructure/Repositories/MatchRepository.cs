@@ -2,9 +2,7 @@ using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace Infrastructure.Repositories;
-
 
 public class MatchRepository(FootballDbContext context) : Repository<Match>(context), IMatchRepository
 {
@@ -77,7 +75,7 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
     public async Task<IReadOnlyList<Match>> GetByStatusAsync(string status)
     {
         if (string.IsNullOrEmpty(status)) return new List<Match>();
-        
+
         return await _context.Matches
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
@@ -116,9 +114,9 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
     public async Task<IEnumerable<Match>> SearchAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<Match>();
-        
+
         var searchTerm = query.ToLower().Trim();
-        
+
         return await _context.Matches
             .Where(m =>
                 (m.HomeTeam != null && m.HomeTeam.Name != null && m.HomeTeam.Name.ToLower().Contains(searchTerm)) ||
@@ -145,17 +143,15 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .FirstOrDefaultAsync();
     }
 
-    public async Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId , CancellationToken cancellationToken)
+    public async Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId,
+        CancellationToken cancellationToken)
     {
-        var match = await _context.Matches.FindAsync([matchId, cancellationToken], cancellationToken: cancellationToken);
-        if (match == null)
-        {
-            return null;
-        }
+        var match = await _context.Matches.FindAsync([matchId, cancellationToken], cancellationToken);
+        if (match == null) return null;
         match.SimulationId = simulationId;
         _context.Matches.Update(match);
         await _context.SaveChangesAsync(cancellationToken);
-        
+
         return match;
     }
 }

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # PostgreSQL Database
   postgres:
@@ -9,6 +7,7 @@ services:
       POSTGRES_DB: Footex_Api
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 0000
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
@@ -17,10 +16,31 @@ services:
     networks:
       - footex-dev-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Footex_Api"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Redis Cache for Development
+  redis:
+    image: redis:7-alpine
+    container_name: footex-redis-dev
+    command: redis-server --appendonly yes --save 60 1000
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - footex-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # RabbitMQ Message Broker
   rabbitmq:
@@ -30,6 +50,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
       RABBITMQ_DEFAULT_VHOST: /
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,error},{default,info}]
     ports:
       - "5672:5672" # AMQP port
       - "15672:15672" # Management UI port
@@ -41,45 +62,91 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
 
   # Footex API Application (Development)
   footex-api:
     build:
       context: .
       dockerfile: Footex/Dockerfile.dev
+      args:
+        BUILD_CONFIGURATION: Debug
     container_name: footex-api-dev
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=0000;
+      - ASPNETCORE_URLS=http://+:8080;https://+:8081
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/aspnetapp.pfx
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=0000;Include Error Detail=true;
+      - ConnectionStrings__RemoteRedisConnection=redis:6379
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=guest
       - RabbitMQ__Password=guest
       - RabbitMQ__VirtualHost=/
       - RabbitMQ__Port=5672
       - RabbitMQ__QueueName=match_events_queue
+      - RedisCache__LocalConnectionString=redis:6379
+      - RedisCache__InstanceName=Footex_Dev_
+      - RedisCache__DefaultExpirationMinutes=5
+      - JWT__Secret=[REMOVED-SECRET]
+      - JWT__ValidIssuer=https://localhost:7082
+      - JWT__ValidAudience=https://localhost:7082
+      - JWT__ExpiryInMinutes=60
+      - AdminUser__Email=admin@footex.com
+      - AdminUser__Password=[REMOVED-ADMIN-PASSWORD]
       - SIMULATION_API_KEY=${SIMULATION_API_KEY:-}
       - SIMULATION_SERVICE_URL=http://host.docker.internal:8000
+      - SmtpSettings__Host=localhost
+      - SmtpSettings__Port=25
+      - SmtpSettings__EnableSSL=false
+      - SmtpSettings__FromEmail=no-reply@footex.local
+      # Development-specific settings
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
     ports:
       - "5025:8080"
       - "7082:8081"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
       - footex-dev-network
     volumes:
-      - ./Footex:/app/src
-      - ./Footex/Logs:/app/Logs
+      - ./Footex:/app/src:rw
+      - ./Application:/app/Application:rw
+      - ./Domain:/app/Domain:rw
+      - ./Infrastructure:/app/Infrastructure:rw
+      - ./Footex/Logs:/app/Logs:rw
+      - dev_temp:/app/temp
+      # Cache directories for faster builds
+      - dotnet_packages:/root/.nuget/packages
     restart: unless-stopped
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
   rabbitmq_dev_data:
+    driver: local
+  dev_temp:
+    driver: local
+  dotnet_packages:
+    driver: local
 
 networks:
   footex-dev-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

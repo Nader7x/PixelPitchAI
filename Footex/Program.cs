@@ -1,32 +1,32 @@
 using System.Net;
+using System.Text;
 using System.Text.Json.Serialization;
 using Application;
+using Application.Services;
 using Domain.Models;
+using DotNetEnv;
+using Footex.Configuration;
+using Footex.Extensions;
+using HealthChecks.UI.Client;
 using Infrastructure;
-using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Sinks.PostgreSQL;
-using System.Text;
-using Application.Services;
-using Footex.Extensions;
-using Footex.Configuration;
-using DotNetEnv;
-using Microsoft.AspNetCore.HttpOverrides;
 
 // Load environment variables from .env file
 var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
 if (File.Exists(envPath))
-{
     Env.Load(envPath);
-}
 else
-{
     // Try loading from current directory
     Env.Load();
-}
 
 // Initialize Serilog first
 Log.Logger = new LoggerConfiguration()
@@ -77,7 +77,8 @@ try
         options.AddPolicy("AllowSomeOrigins",
             corsBuilder =>
             {
-                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000" ,"https://gourav-d.github.io/SignalR-Web-Client")
+                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000",
+                        "https://gourav-d.github.io/SignalR-Web-Client")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
@@ -136,9 +137,9 @@ try
         // Apply custom column writers for PostgresSQL sink
         var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
         loggerConfiguration.WriteTo.PostgreSQL(
-            connectionString: connectionString,
-            tableName: "Logs",
-            columnOptions: columnWriters,
+            connectionString,
+            "Logs",
+            columnWriters,
             needAutoCreateTable: true);
     });
 
@@ -206,11 +207,8 @@ try
                     var path = context.HttpContext.Request.Path;
                     if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/Notify") ||
                                                                path.StartsWithSegments("/matchSimulationHub")))
-                    {
                         // Read the token out of the query string
                         context.Token = accessToken;
-                        
-                    }
 
                     return Task.CompletedTask;
                 }
@@ -240,6 +238,13 @@ try
         })
         .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
+    // Add Health Checks
+    builder.Services.AddHealthChecks()
+        .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+            name: "PostgresSQL",
+            tags: ["db", "postgres"])
+        .AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
+
     var app = builder.Build();
 
     app.UseForwardedHeaders();
@@ -259,6 +264,13 @@ try
     app.UseWebSockets();
     app.UseCors("AllowSomeOrigins");
     app.UseAuthorization();
+
+    // Map health check endpoint
+    app.MapHealthChecks("/api/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
     app.MapControllers();
 
     // Seed roles and admin user on startup
@@ -273,12 +285,8 @@ try
             // Seed roles
             var roles = new[] { "Admin", "User", "Premium" };
             foreach (var role in roles)
-            {
                 if (!await roleManager.RoleExistsAsync(role))
-                {
                     await roleManager.CreateAsync(new IdentityRole(role));
-                }
-            }
 
             // Seed admin user
             var adminEmail = builder.Configuration["AdminUser:Email"];
@@ -298,10 +306,7 @@ try
 
                     var result = await userManager.CreateAsync(admin,
                         builder.Configuration["AdminUser:Password"] ?? string.Empty);
-                    if (result.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(admin, "Admin");
-                    }
+                    if (result.Succeeded) await userManager.AddToRoleAsync(admin, "Admin");
                 }
             }
         }
@@ -311,13 +316,11 @@ try
             logger.LogError(ex, "An error occurred while seeding the database.");
         }
     }
+
     app.MapHub<NotificationService>("/Notify",
-        options => { options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets; });
+        options => { options.Transports = HttpTransportType.WebSockets; });
     app.MapHub<MatchHub>("/matchSimulationHub",
-        options =>
-        {
-            options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-        });
+        options => { options.Transports = HttpTransportType.WebSockets; });
     app.Run();
 }
 catch (Exception ex)

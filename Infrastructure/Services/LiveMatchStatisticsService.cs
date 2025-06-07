@@ -1,26 +1,26 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
 /// <summary>
-/// Service for managing live match statistics with in-memory caching for optimized performance.
-/// Reduces database calls during real-time event processing.
+///     Service for managing live match statistics with in-memory caching for optimized performance.
+///     Reduces database calls during real-time event processing.
 /// </summary>
 public class LiveMatchStatisticsService : ILiveMatchStatisticsService
 {
-    private readonly ILogger<LiveMatchStatisticsService> _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IPerformanceMonitoringService _performanceMonitoringService;
     private readonly IEventAnalysisService _eventAnalysisService;
 
     // Thread-safe cache for live matches
     private readonly ConcurrentDictionary<string, Match> _liveMatchesCache = new();
+    private readonly ILogger<LiveMatchStatisticsService> _logger;
+    private readonly IPerformanceMonitoringService _performanceMonitoringService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public LiveMatchStatisticsService(
         ILogger<LiveMatchStatisticsService> logger,
@@ -36,7 +36,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         _performanceMonitoringService = performanceMonitoringService;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public async Task<Match?> PreloadMatchForLiveStatistics(string matchId)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -73,7 +73,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         }
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public async Task<int> PreloadMultipleMatchesForLiveStatistics(IEnumerable<string> matchIds)
     {
         var loadedCount = 0;
@@ -81,10 +81,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         var tasks = idsList.Select(async matchId =>
         {
             var match = await PreloadMatchForLiveStatistics(matchId);
-            if (match != null)
-            {
-                Interlocked.Increment(ref loadedCount);
-            }
+            if (match != null) Interlocked.Increment(ref loadedCount);
         });
 
         await Task.WhenAll(tasks);
@@ -95,7 +92,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         return loadedCount;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public Match? GetCachedLiveMatch(string matchId)
     {
         if (_liveMatchesCache.TryGetValue(matchId, out var cachedMatch))
@@ -110,7 +107,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         return null;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public Dictionary<string, Match> GetAllLiveMatches()
     {
         var liveMatches = _liveMatchesCache.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -120,8 +117,8 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
     }
 
     /// <summary>
-    /// Updates cached match statistics in real-time during event processing.
-    /// This method should be called when processing live events to keep cache synchronized.
+    ///     Updates cached match statistics in real-time during event processing.
+    ///     This method should be called when processing live events to keep cache synchronized.
     /// </summary>
     /// <param name="matchId">The match ID to update</param>
     /// <param name="updatedMatch">The updated match object with latest statistics</param>
@@ -132,23 +129,20 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
     }
 
     /// <summary>
-    /// Removes a match from the live cache when it's no longer active.
-    /// Should be called when a match ends or is no longer being tracked.
+    ///     Removes a match from the live cache when it's no longer active.
+    ///     Should be called when a match ends or is no longer being tracked.
     /// </summary>
     /// <param name="matchId">The match ID to remove from cache</param>
     public bool RemoveFromLiveCache(string matchId)
     {
         var removed = _liveMatchesCache.TryRemove(matchId, out _);
-        if (removed)
-        {
-            _logger.LogInformation("Removed match {MatchId} from live cache", matchId);
-        }
+        if (removed) _logger.LogInformation("Removed match {MatchId} from live cache", matchId);
 
         return removed;
     }
 
     /// <summary>
-    /// Gets the current cache status for monitoring purposes.
+    ///     Gets the current cache status for monitoring purposes.
     /// </summary>
     /// <returns>Cache status information</returns>
     public object GetCacheStatus()

@@ -21,65 +21,51 @@ public static class DependencyInjection
             IConfiguration configuration)
     {
         // Configure Redis Cache
-        services.Configure<RedisCacheOptions>(options => 
+        services.Configure<RedisCacheOptions>(options =>
         {
             configuration.GetSection(RedisCacheOptions.SectionName).Bind(options);
-            
+
             // Set the remote connection string from Connection Strings section if available
-            if (string.IsNullOrEmpty(options.RemoteConnectionString) && 
+            if (string.IsNullOrEmpty(options.RemoteConnectionString) &&
                 !string.IsNullOrEmpty(configuration.GetConnectionString("RemoteRedisConnection")))
-            {
                 options.RemoteConnectionString = configuration.GetConnectionString("RemoteRedisConnection");
-            }
-            
+
             // Use the configured local connection string or default to localhost
-            if (string.IsNullOrEmpty(options.LocalConnectionString))
-            {
-                options.LocalConnectionString = "localhost:6379";
-            }
+            if (string.IsNullOrEmpty(options.LocalConnectionString)) options.LocalConnectionString = "localhost:6379";
         });
-        
+
         // Create the Redis connection directly without relying on the service provider
         // to avoid the circular dependency that causes "Logger already frozen" errors
         var redisOptions = new RedisCacheOptions();
         configuration.GetSection(RedisCacheOptions.SectionName).Bind(redisOptions);
-        
-        string remoteConnectionString = redisOptions.RemoteConnectionString;
+
+        var remoteConnectionString = redisOptions.RemoteConnectionString;
         if (string.IsNullOrEmpty(remoteConnectionString))
-        {
             remoteConnectionString = configuration.GetConnectionString("RemoteRedisConnection") ?? "";
-        }
-        
-        string localConnectionString = redisOptions.LocalConnectionString;
-        if (string.IsNullOrEmpty(localConnectionString))
-        {
-            localConnectionString = "localhost:6379";
-        }
-        
+
+        var localConnectionString = redisOptions.LocalConnectionString;
+        if (string.IsNullOrEmpty(localConnectionString)) localConnectionString = "localhost:6379";
+
         // Create the multiplexer directly
         ConnectionMultiplexer redis;
-        try 
+        try
         {
             // Try remote connection first
             if (!string.IsNullOrEmpty(remoteConnectionString))
-            {
                 redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
                 {
-                    EndPoints = { { remoteConnectionString , 17264 } },
+                    EndPoints = { { remoteConnectionString, 17264 } },
                     User = "default",
                     Password = "[REMOVED-DB-PASSWORD]",
                     AbortOnConnectFail = false,
                     ConnectRetry = 3,
                     ConnectTimeout = 5000
                 });
-            }
             else
-            {
                 // Fall back to local immediately if no remote configured
                 throw new Exception("No remote connection string available");
-            }
         }
-        catch 
+        catch
         {
             // Fall back to local
             redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
@@ -90,26 +76,27 @@ public static class DependencyInjection
                 ConnectTimeout = 3000
             });
         }
-        
+
         // Register Redis connection multiplexer as singleton
         services.AddSingleton<IConnectionMultiplexer>(redis);
-        
+
         // Configure Redis distributed cache
         services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = configuration.GetValue<string>($"{RedisCacheOptions.SectionName}:InstanceName") ?? "Footex_";
+            options.InstanceName = configuration.GetValue<string>($"{RedisCacheOptions.SectionName}:InstanceName") ??
+                                   "Footex_";
             options.ConnectionMultiplexerFactory = () => Task.FromResult<IConnectionMultiplexer>(redis);
         });
-        
+
         // Register Redis cache service implementation
         services.AddSingleton<ICacheService, RedisCacheService>();
-        
+
 
         // Also register DbContext for services that need direct context access
         services.AddDbContext<FootballDbContext>(options =>
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection")));
-        
+
         // Register repositories
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<ISeasonRepository, SeasonRepository>();

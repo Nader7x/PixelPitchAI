@@ -1,5 +1,4 @@
 using Domain.Models;
-using System.Threading.Tasks;
 
 namespace Domain.Interfaces;
 

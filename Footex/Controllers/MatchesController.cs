@@ -10,14 +10,13 @@ using Application.Interfaces;
 using Application.Mappers;
 using Application.Services;
 using Domain.Interfaces;
-using Infrastructure.Services;
+using Domain.Models;
+using Footex.Configuration;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Footex.Configuration;
-using Domain.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 namespace Footex.Controllers;
 
@@ -28,21 +27,19 @@ public class MatchesController(
     IHttpClientFactory httpClientFactory,
     MatchMapper matchMapper,
     IOptions<SimulationServiceOptions> simulationOptions,
-    ILiveMatchStatisticsService liveMatchService,
-    IPerformanceMonitoringService performanceMonitoringService,
     IServiceScopeFactory serviceScopeFactory,
     IUnitOfWork unitOfWork,
     ILogger<MatchesController> logger,
     IHubContext<NotificationService, INotificationService> hubContext,
     ICacheService cacheService) : ControllerBase
 {
-    private readonly MatchMapper _matchMapper = matchMapper;
-    private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
-    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly ILogger<MatchesController> _logger = logger;
-    private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
     private readonly ICacheService _cacheService = cacheService;
+    private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
+    private readonly ILogger<MatchesController> _logger = logger;
+    private readonly MatchMapper _matchMapper = matchMapper;
+    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+    private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     [HttpGet]
     [ProducesResponseType(typeof(GetAllMatchesQueryResponse), StatusCodes.Status200OK)]
@@ -56,11 +53,12 @@ public class MatchesController(
         [FromQuery] int? matchWeek)
     {
         // Generate a cache key based on the query parameters
-        string cacheKey = $"matches_all_{seasonId}_{teamId}_{status}_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}_{matchWeek}";
-        
+        var cacheKey =
+            $"matches_all_{seasonId}_{teamId}_{status}_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}_{matchWeek}";
+
         // Try to get from cache first
         var cachedResult = await _cacheService.GetAsync<GetAllMatchesQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
@@ -81,10 +79,10 @@ public class MatchesController(
 
         if (!result.Succeeded)
             return BadRequest(result);
-            
+
         // Store in cache if successful - with a shorter TTL since match data changes frequently
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -98,13 +96,13 @@ public class MatchesController(
         // Try to get from cache first
         var cacheKey = $"match_{id}";
         var cachedResult = await _cacheService.GetAsync<GetMatchByIdQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         var query = new GetMatchByIdQuery { Id = id };
         var result = await mediator.Send(query);
 
@@ -115,10 +113,10 @@ public class MatchesController(
 
             return BadRequest(result);
         }
-        
+
         // Store in cache if successful - with a shorter TTL for match data
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -133,13 +131,13 @@ public class MatchesController(
         // Try to get from cache first
         var cacheKey = $"match_details_{matchId}";
         var cachedResult = await _cacheService.GetAsync<GetMatchByIdWithDetailsQueryResponse>(cacheKey);
-        
+
         if (cachedResult != null)
         {
             Response.Headers.Append("X-Cache-Hit", "true");
             return Ok(cachedResult);
         }
-        
+
         var query = new GetMatchByIdWithDetailsQuery { MatchId = matchId };
         var result = await mediator.Send(query);
 
@@ -147,13 +145,13 @@ public class MatchesController(
         {
             if (result.NotFound)
                 return NotFound(result);
-                
+
             return BadRequest(result);
         }
-        
+
         // Store in cache if successful - with a shorter TTL for match data
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(2));
-        
+
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -222,7 +220,7 @@ public class MatchesController(
             HomeTeamYellowCards = matchDto.HomeTeamYellowCards,
             AwayTeamYellowCards = matchDto.AwayTeamYellowCards,
             HomeTeamRedCards = matchDto.HomeTeamRedCards,
-            AwayTeamRedCards = matchDto.AwayTeamRedCards,
+            AwayTeamRedCards = matchDto.AwayTeamRedCards
         };
 
         var result = await mediator.Send(command);
@@ -248,10 +246,10 @@ public class MatchesController(
         {
             if (result.NotFound)
                 return NotFound(result);
-                
+
             return BadRequest(result);
         }
-        
+
         // Invalidate both specific match caches and all list caches that might include this match
         await _cacheService.RemoveAsync($"match_{id}");
         await _cacheService.RemoveAsync($"match_details_{id}");
@@ -259,7 +257,7 @@ public class MatchesController(
 
         return Ok(result);
     }
-    
+
     // Helper method to invalidate all match-related list caches
     [NonAction]
     private async Task InvalidateMatchListCaches()
@@ -275,13 +273,10 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetUserMatchesQueryResponse>> GetUserMatches(string userId)
     {
-        var query = new GetUserMatchesQuery() { UserId = userId };
+        var query = new GetUserMatchesQuery { UserId = userId };
         var result = await mediator.Send(query);
 
-        if (!result.Succeeded)
-        {
-            return BadRequest(result);
-        }
+        if (!result.Succeeded) return BadRequest(result);
 
         return Ok(result);
     }
@@ -294,334 +289,363 @@ public class MatchesController(
     {
         if (HasLiveMatch(userId, cancellationToken).Result)
             return BadRequest(new { error = "You Can Not Simulate Two Matches At The Same Time" });
+        
         var httpClient = httpClientFactory.CreateClient();
-
-        var healthResponse = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/health", cancellationToken);
-        _logger.LogInformation("Simulation Service Health Check {HealthResponse}", healthResponse.Content.ToString());
-        if (!healthResponse.IsSuccessStatusCode)
-            return StatusCode((int)healthResponse.StatusCode, "Simulation service is not available");
-
-        var healthCheckResult = await healthResponse.Content.ReadFromJsonAsync<HealthCheckResponse>(cancellationToken);
-        if (healthCheckResult == null)
+        
+        try
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                "Failed to parse simulation service health check response.");
-        }
+            // Check if simulation service is available
+            var healthResponse = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/health", cancellationToken);
+            _logger.LogInformation("Simulation Service Health Check {HealthResponse}", healthResponse.Content.ToString());
+            if (!healthResponse.IsSuccessStatusCode)
+                return StatusCode((int)healthResponse.StatusCode, "Simulation service is not available");
 
-        if (!healthCheckResult.ModelLoaded || !healthCheckResult.XgboostLoaded)
-        {
-            var notReadyReason = new StringBuilder("Simulation service is not ready. ");
-            if (!healthCheckResult.ModelLoaded) notReadyReason.Append("Model not loaded. ");
-            if (!healthCheckResult.XgboostLoaded) notReadyReason.Append("XGBoost not loaded.");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new { error = notReadyReason.ToString().Trim(), healthDetails = healthCheckResult });
-        }
+            var healthCheckResult = await healthResponse.Content.ReadFromJsonAsync<HealthCheckResponse>(cancellationToken);
+            if (healthCheckResult == null)
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Failed to parse simulation service health check response.");
 
-        var homeSeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
-        var awaySeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
-        var homeInMatchName = $"{simulationDto.HomeTeamName.Replace(" ", "_")}_{homeSeasonYear}";
-        var awayInMatchName = $"{simulationDto.AwayTeamName.Replace(" ", "_")}_{awaySeasonYear}";
-        var command = new CreateMatchCommand()
-        {
-            HomeTeamId = simulationDto.HomeTeamId,
-            AwayTeamId = simulationDto.AwayTeamId,
-            HomeTeamInMatchName = homeInMatchName,
-            AwayTeamInMatchName = awayInMatchName,
-            ScheduledDateTimeUtc = DateTime.UtcNow,
-            MatchStatus = "SimulationInProgress",
-            CreatorId = userId,
-            ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
-            IsLive = true
-        };
-        var result = await mediator.Send(command, cancellationToken);
-        if (!result.Succeeded)
-            return BadRequest(result);
-
-
-        var content = new StringContent(JsonSerializer.Serialize(new
-        {
-            match_id = result.Id,
-            home_team_id = simulationDto.HomeTeamId,
-            away_team_id = simulationDto.AwayTeamId,
-            home_team_name = simulationDto.HomeTeamName,
-            away_team_name = simulationDto.AwayTeamName,
-            home_team_season = simulationDto.HomeTeamSeason,
-            away_team_season = simulationDto.AwayTeamSeason,
-            num_tokens_to_generate = 400,
-            temperature = 0.7,
-            top_p = 0.9,
-            top_k = 50,
-            max_new_tokens = 1024
-        }), Encoding.UTF8, "application/json");
-
-        if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-        {
-            httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-        }
-
-        var response =
-            await httpClient.PostAsync($"{_simulationOptions.BaseUrl}/startMatch", content, cancellationToken);
-        if (response.IsSuccessStatusCode)
-        {
-            var statusCommand = new UpdateMatchStatusCommand()
+            if (!healthCheckResult.ModelLoaded || !healthCheckResult.XgboostLoaded)
             {
-                MatchId = result.Id,
+                var notReadyReason = new StringBuilder("Simulation service is not ready. ");
+                if (!healthCheckResult.ModelLoaded) notReadyReason.Append("Model not loaded. ");
+                if (!healthCheckResult.XgboostLoaded) notReadyReason.Append("XGBoost not loaded.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = notReadyReason.ToString().Trim(), healthDetails = healthCheckResult });
+            }
+
+            // Create match in database
+            var homeSeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
+            var awaySeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
+            var homeInMatchName = $"{simulationDto.HomeTeamName.Replace(" ", "_")}_{homeSeasonYear}";
+            var awayInMatchName = $"{simulationDto.AwayTeamName.Replace(" ", "_")}_{awaySeasonYear}";
+            var command = new CreateMatchCommand
+            {
+                HomeTeamId = simulationDto.HomeTeamId,
+                AwayTeamId = simulationDto.AwayTeamId,
+                HomeSeasonId = simulationDto.HomeSeasonId,
+                AwaySeasonId = simulationDto.AwaySeasonId,
+                HomeTeamInMatchName = homeInMatchName,
+                AwayTeamInMatchName = awayInMatchName,
+                ScheduledDateTimeUtc = DateTime.UtcNow,
+                MatchStatus = "SimulationInProgress",
+                CreatorId = userId,
+                ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
+                IsLive = true
             };
-            var statusResult = await mediator.Send(statusCommand, cancellationToken);
-            if (!statusResult.Succeeded)
-            {
-                result.Succeeded = false;
-                result.Error = statusResult.Error;
+            var result = await mediator.Send(command, cancellationToken);
+            if (!result.Succeeded)
                 return BadRequest(result);
-            }
-        }
-        else
-        {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            return StatusCode((int)response.StatusCode, error);
-        }
 
-        result.ApiResponse = await response.Content.ReadFromJsonAsync<StartMatchResponse>(cancellationToken);
-        if (result.ApiResponse != null)
-        {
-            await _unitOfWork.Matches
-                .UpdateSimulationIdAsync(result.Id, result.ApiResponse.SimulationId,
-                cancellationToken);
-            var notification = new Notification
+            // Prepare request for simulation service
+            var content = new StringContent(JsonSerializer.Serialize(new
             {
-                UserId = userId,
-                Content = $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
-                Type = NotificationType.SimulationStart,
-            };
-            var notificationCommand =
-                new CreateNotificationCommand { Notification = notification };
-            var notificationResult = mediator.Send(notificationCommand, cancellationToken);
-            if (!notificationResult.Result.Succeeded)
+                match_id = result.Id,
+                home_team_id = simulationDto.HomeTeamId,
+                away_team_id = simulationDto.AwayTeamId,
+                home_team_name = simulationDto.HomeTeamName,
+                away_team_name = simulationDto.AwayTeamName,
+                home_team_season = simulationDto.HomeTeamSeason,
+                away_team_season = simulationDto.AwayTeamSeason,
+                num_tokens_to_generate = 10000,
+                temperature = 0.7,
+                top_p = 0.9,
+                top_k = 50,
+                max_new_tokens = 1024
+            }), Encoding.UTF8, "application/json");
+
+            if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+
+            // Start the simulation
+            var response = await httpClient.PostAsync($"{_simulationOptions.BaseUrl}/startMatch", content, cancellationToken);
+            if (response.IsSuccessStatusCode)
             {
-                _logger.LogError("Failed to create notification for simulation start: {Error}",
-                    notificationResult.Result.Error);
-            }
-            if (notificationResult.Result.Notification != null)
-                await _hubContext.Clients.User(userId).SendNotificationAsync(
-                    notificationResult.Result.Notification);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return Ok(result);
-        }
-
-        result.Succeeded = false;
-        result.Error = "Failed to parse simulation service response.";
-        return BadRequest(result);
-    }
-
-    [HttpGet("live/all")]
-    [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult GetAllLiveMatches()
-    {
-        try
-        {
-            var liveMatches = liveMatchService.GetAllLiveMatches();
-            var response = liveMatches.Select(m => new
-            {
-                matchId = m.Key,
-                homeTeam = m.Value.HomeTeam?.Name ?? "Unknown",
-                awayTeam = m.Value.AwayTeam?.Name ?? "Unknown",
-                homeScore = m.Value.HomeTeamScore,
-                awayScore = m.Value.AwayTeamScore,
-                status = m.Value.MatchStatus,
-                lastUpdated = DateTime.UtcNow
-            });
-
-            return Ok(new { matches = response, count = liveMatches.Count });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to retrieve live matches", details = ex.Message });
-        }
-    }
-
-    [HttpGet("live/cached/{matchId:int}")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult GetCachedLiveMatch(int matchId)
-    {
-        try
-        {
-            var cachedMatch = liveMatchService.GetCachedLiveMatch(matchId.ToString());
-            if (cachedMatch == null)
-            {
-                return NotFound(new { error = "Match not found in live cache", matchId });
-            }
-
-            return Ok(new
-            {
-                matchId = cachedMatch.Id,
-                homeTeam = cachedMatch.HomeTeam?.Name ?? "Unknown",
-                awayTeam = cachedMatch.AwayTeam?.Name ?? "Unknown",
-                homeScore = cachedMatch.HomeTeamScore,
-                awayScore = cachedMatch.AwayTeamScore,
-                status = cachedMatch.MatchStatus,
-                possession = new
+                var statusCommand = new UpdateMatchStatusCommand
                 {
-                    home = cachedMatch.HomeTeamPossession,
-                    away = cachedMatch.AwayTeamPossession
-                },
-                shots = new
+                    MatchId = result.Id
+                };
+                var statusResult = await mediator.Send(statusCommand, cancellationToken);
+                if (!statusResult.Succeeded)
                 {
-                    home = cachedMatch.HomeTeamShots,
-                    away = cachedMatch.AwayTeamShots
-                },
-                lastUpdated = DateTime.UtcNow,
-                source = "cache"
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to retrieve cached match", details = ex.Message });
-        }
-    }
-
-    [HttpPost("live/preload")]
-    [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> PreloadMatchesForLiveStats([FromBody] PreloadMatchesRequest request)
-    {
-        try
-        {
-            if (!request.MatchIds.Any())
-            {
-                return BadRequest(new { error = "At least one match ID is required" });
-            }
-
-            var startTime = DateTime.UtcNow;
-            await liveMatchService.PreloadMultipleMatchesForLiveStatistics(request.MatchIds);
-            var endTime = DateTime.UtcNow;
-
-            var preloadedMatches = new List<object>();
-            foreach (var matchId in request.MatchIds)
-            {
-                var cachedMatch = liveMatchService.GetCachedLiveMatch(matchId);
-                if (cachedMatch != null)
-                {
-                    preloadedMatches.Add(new
-                    {
-                        matchId = cachedMatch.Id,
-                        homeTeam = cachedMatch.HomeTeam?.Name ?? "Unknown",
-                        awayTeam = cachedMatch.AwayTeam?.Name ?? "Unknown",
-                        status = cachedMatch.MatchStatus
-                    });
+                    result.Succeeded = false;
+                    result.Error = statusResult.Error;
+                    return BadRequest(result);
                 }
             }
-
-            return Ok(new
+            else
             {
-                message = "Matches preloaded successfully",
-                preloadedCount = preloadedMatches.Count,
-                requestedCount = request.MatchIds.Count(),
-                preloadTimeMs = (endTime - startTime).TotalMilliseconds,
-                matches = preloadedMatches
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to preload matches", details = ex.Message });
-        }
-    }
-
-    [HttpPost("live/preload/{matchId:int}")]
-    [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> PreloadSingleMatchForLiveStats(int matchId)
-    {
-        try
-        {
-            var startTime = DateTime.UtcNow;
-            await liveMatchService.PreloadMatchForLiveStatistics(matchId.ToString());
-            var endTime = DateTime.UtcNow;
-
-            var cachedMatch = liveMatchService.GetCachedLiveMatch(matchId.ToString());
-            if (cachedMatch == null)
-            {
-                return BadRequest(new { error = "Failed to preload match", matchId });
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return StatusCode((int)response.StatusCode, error);
             }
 
-            return Ok(new
+            result.ApiResponse = await response.Content.ReadFromJsonAsync<StartMatchResponse>(cancellationToken);
+            if (result.ApiResponse != null)
             {
-                message = "Match preloaded successfully",
-                matchId = cachedMatch.Id,
-                homeTeam = cachedMatch.HomeTeam?.Name ?? "Unknown",
-                awayTeam = cachedMatch.AwayTeam?.Name ?? "Unknown",
-                status = cachedMatch.MatchStatus,
-                preloadTimeMs = (endTime - startTime).TotalMilliseconds
+                await RegisterApiWebhook(new ApiRegisterWebhookRequest
+                {
+                    SimulationId = result.ApiResponse.SimulationId,
+                    WebhookUrl = $"https://localhost:7082/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
+                    WebhookSecret = _simulationOptions.ApiKey
+                });
+                await _unitOfWork.Matches
+                    .UpdateSimulationIdAsync(result.Id, result.ApiResponse.SimulationId,
+                        cancellationToken);
+                var notification = new Notification
+                {
+                    UserId = userId,
+                    Content =
+                        $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
+                    Type = NotificationType.SimulationStart
+                };
+                var notificationCommand =
+                    new CreateNotificationCommand { Notification = notification };
+                var notificationResult = mediator.Send(notificationCommand, cancellationToken);
+                if (!notificationResult.Result.Succeeded)
+                    _logger.LogError("Failed to create notification for simulation start: {Error}",
+                        notificationResult.Result.Error);
+            }
+
+            return Ok(result);
+        }
+        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException { ErrorCode: 10061 })
+        {
+            // Specific handling for connection refused errors
+            _logger.LogError(ex, "Simulation service connection refused at {Url}. The service might be down or not running.", _simulationOptions.BaseUrl);
+            
+            // Return user-friendly error message
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { 
+                error = "Unable to connect to simulation service. Please try again later.",
+                details = "The simulation service is currently unavailable. This could be because it is not running or the connection settings are incorrect."
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            // Handle other HTTP request exceptions
+            _logger.LogError(ex, "HTTP request error during match simulation: {Message}", ex.Message);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { 
+                error = "Error communicating with simulation service", 
+                details = ex.Message 
             });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = "Failed to preload match", details = ex.Message });
+            // General error handling for other exceptions
+            _logger.LogError(ex, "Unexpected error during match simulation: {Message}", ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { 
+                error = "An unexpected error occurred",
+                details = "Please contact support if the issue persists."
+            });
         }
     }
 
-    [HttpGet("live/performance-stats")]
-    [Authorize(Roles = "Admin,Manager")]
+    [NonAction]
+    private async Task<ApiRegisterWebhookResponse> RegisterApiWebhook(ApiRegisterWebhookRequest webhookRequest)
+    {
+        const int maxRetries = 3;
+        var currentRetry = 0;
+        
+        while (currentRetry < maxRetries)
+        {
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient();
+                httpClient.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
+                
+                // Add API key if available
+                if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+                    httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+
+                // Prepare the request content
+                var content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    webhook_url = webhookRequest.WebhookUrl,
+                    webhook_secret = webhookRequest.WebhookSecret
+                }), Encoding.UTF8, "application/json");
+
+                _logger.LogInformation("Attempting to register webhook for simulation {SimulationId} (Attempt {Attempt}/{MaxAttempts})", 
+                    webhookRequest.SimulationId, currentRetry + 1, maxRetries);
+
+                // Make the API call to register webhook
+                var response = await httpClient.PostAsync(
+                    $"{_simulationOptions.BaseUrl}/simulations/{webhookRequest.SimulationId}/webhook",
+                    content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to register webhook: HTTP {StatusCode}. Response: {Response}", 
+                        (int)response.StatusCode, errorContent);
+                    
+                    if (IsRetryableStatusCode((int)response.StatusCode))
+                    {
+                        currentRetry++;
+                        if (currentRetry < maxRetries)
+                        {
+                            var delayMs = CalculateExponentialBackoff(currentRetry);
+                            _logger.LogInformation("Retrying webhook registration after {DelayMs}ms", delayMs);
+                            await Task.Delay(delayMs);
+                            continue;
+                        }
+                    }
+                    
+                    return new ApiRegisterWebhookResponse
+                    {
+                        Message = "Failed to register webhook with simulation service",
+                        Detail = $"HTTP {response.StatusCode}: {errorContent}",
+                    };
+                }
+
+                // Parse the response
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiRegisterWebhookResponse>();
+                var result = apiResponse ?? new ApiRegisterWebhookResponse
+                {
+                    Message = "Webhook registered successfully",
+                    SimulationId = webhookRequest.SimulationId,
+                };
+                
+                _logger.LogInformation("Successfully registered webhook for simulation {SimulationId}", webhookRequest.SimulationId);
+                return result;
+            }
+            catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException { ErrorCode: 10061 })
+            {
+                // Connection refused errors
+                _logger.LogError(ex, "Connection refused when registering webhook for simulation {SimulationId} at {BaseUrl}", 
+                    webhookRequest.SimulationId, _simulationOptions.BaseUrl);
+                
+                currentRetry++;
+                if (currentRetry < maxRetries)
+                {
+                    var delayMs = CalculateExponentialBackoff(currentRetry);
+                    await Task.Delay(delayMs);
+                    continue;
+                }
+                
+                return new ApiRegisterWebhookResponse
+                {
+                    Message = "Failed to register webhook: connection refused",
+                    Detail = "The simulation service is unavailable. Please check if the service is running.",
+                };
+            }
+            catch (TaskCanceledException ex)
+            {
+                // Handle timeouts
+                _logger.LogError(ex, "Timeout when registering webhook for simulation {SimulationId}", webhookRequest.SimulationId);
+                
+                currentRetry++;
+                if (currentRetry < maxRetries)
+                {
+                    var delayMs = CalculateExponentialBackoff(currentRetry);
+                    await Task.Delay(delayMs);
+                    continue;
+                }
+                
+                return new ApiRegisterWebhookResponse
+                {
+                    Message = "Failed to register webhook: request timeout",
+                    Detail = "The operation timed out. The simulation service might be overloaded.",
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registering webhook for simulation {SimulationId}: {Message}", 
+                    webhookRequest.SimulationId, ex.Message);
+                
+                return new ApiRegisterWebhookResponse
+                {
+                    Message = "Failed to register webhook",
+                    Detail = ex.Message,
+                };
+            }
+        }
+        
+        // We should never reach here, but just in case
+        return new ApiRegisterWebhookResponse
+        {
+            Message = "Failed to register webhook after maximum retries",
+            Detail = "The operation could not be completed after multiple attempts.",
+        };
+    }
+
+    [NonAction]
+    private bool IsRetryableStatusCode(int statusCode)
+    {
+        // Status codes that are worth retrying:
+        // 408 (Request Timeout)
+        // 429 (Too Many Requests)
+        // 5xx (Server errors)
+        return statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode < 600);
+    }
+
+    [NonAction]
+    private int CalculateExponentialBackoff(int retryAttempt)
+    {
+        // Simple exponential backoff with jitter:
+        // Base delay: 200ms
+        // Max delay: 2000ms
+        // Formula: min(maxDelay, baseDelay * 2^attempt) + random jitter
+    
+        const int baseDelayMs = 200;
+        const int maxDelayMs = 2000;
+    
+        var exponentialDelay = Math.Min(maxDelayMs, baseDelayMs * Math.Pow(2, retryAttempt));
+        var jitter = new Random().Next(0, 100); // Add up to 100ms of random jitter
+    
+        return (int)exponentialDelay + jitter;
+    }
+
+    [HttpPost("webhookNotification/{simulationId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult GetLiveMatchPerformanceStats()
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ReceiveWebhookNotification(string simulationId,
+        [FromBody] WebhookNotificationPayload payload, CancellationToken cancellationToken)
     {
         try
         {
-            var allLiveMatches = liveMatchService.GetAllLiveMatches();
+            _logger.LogInformation("Received webhook notification for simulation {SimulationId} with status {Status}",
+                simulationId, payload.Status);
 
-            return Ok(new
+            // Validate payload
+            if (string.IsNullOrEmpty(payload.SimulationId) || payload.SimulationId != simulationId)
             {
-                totalLiveMatches = allLiveMatches.Count(),
-                cacheStatus = new
-                {
-                    totalCachedMatches = allLiveMatches.Count(),
-                    memoryEfficient = true,
-                    lastRefresh = DateTime.UtcNow
-                },
-                performance = new
-                {
-                    avgResponseTimeMs = "< 5ms (cached)",
-                    databaseCallsReduced = "~90% reduction vs non-cached approach",
-                    concurrentMatchSupport = "Unlimited with O(1) lookup"
-                },
-                matches = allLiveMatches.Select(m => new
-                {
-                    matchId = m.Key,
-                    homeTeam = m.Value.HomeTeam?.Name ?? "Unknown",
-                    awayTeam = m.Value.AwayTeam?.Name ?? "Unknown",
-                    status = m.Value.MatchStatus,
-                    isPreloaded = true
-                })
-            });
+                _logger.LogWarning("Simulation ID mismatch in webhook payload: expected {Expected}, got {Actual}",
+                    simulationId, payload.SimulationId);
+                return BadRequest(new { error = "Simulation ID mismatch" });
+            }
+
+            // Find the match associated with this simulation
+            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
+            if (match == null)
+            {
+                _logger.LogWarning("No match found for simulation ID {SimulationId}", simulationId);
+                return NotFound(new { error = "Match not found for simulation", simulation_id = simulationId });
+            }
+
+            // Handle different webhook statuses
+            switch (payload.Status?.ToLower())
+            {
+                case "completed":
+                    await HandleSimulationCompleted(match, payload, cancellationToken);
+                    break;
+
+                case "failed":
+                    await HandleSimulationFailed(match, payload, cancellationToken);
+                    break;
+
+                default:
+                    _logger.LogInformation(
+                        "Webhook received for simulation {SimulationId} with status {Status} - no action needed",
+                        simulationId, payload.Status);
+                    break;
+            }
+
+            return Ok(new { message = "Webhook notification processed successfully", simulation_id = simulationId });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = "Failed to retrieve performance stats", details = ex.Message });
+            _logger.LogError(ex, "Error processing webhook notification for simulation {SimulationId}", simulationId);
+            return BadRequest(new { error = "Failed to process webhook notification", details = ex.Message });
         }
-    }
-
-    [HttpGet("LiveMatch/{userId}")]
-    [Authorize]
-    [ProducesResponseType(typeof(GetLiveMatchQueryResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetLiveMatchQueryResponse>> GetLiveMatch(string userId)
-    {
-        var query = new GetLiveMatchQuery() { UserId = userId };
-        var result = await mediator.Send(query);
-
-        if (!result.Succeeded)
-        {
-            return BadRequest(result);
-        }
-
-        return Ok(result);
     }
 
 
@@ -629,372 +653,11 @@ public class MatchesController(
     [NonAction]
     private async Task<bool> HasLiveMatch(string userId, CancellationToken cancellationToken = default)
     {
-        var query = new GetLiveMatchQuery() { UserId = userId };
+        var query = new GetLiveMatchQuery { UserId = userId };
         var result = await mediator.Send(query, cancellationToken);
         return result.Succeeded && result.MatchId != 0;
     }
 
-    [HttpGet("performance/dashboard")]
-    [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult GetPerformanceDashboard()
-    {
-        try
-        {
-            // Get detailed performance metrics
-            var performanceMetrics = performanceMonitoringService.GetDetailedMetrics();
-            dynamic cacheStatus = liveMatchService.GetCacheStatus();
-            var allLiveMatches = liveMatchService.GetAllLiveMatches();
-
-            // Calculate optimization benefits
-            var totalPotentialDbCalls = performanceMetrics.CacheMetrics.TotalOperations +
-                                        performanceMetrics.DatabaseCalls.Sum(db => db.Count);
-            var actualDbCalls = performanceMetrics.DatabaseCalls.Sum(db => db.Count);
-            var optimizationRatio = totalPotentialDbCalls > 0
-                ? ((double)(totalPotentialDbCalls - actualDbCalls) / totalPotentialDbCalls) * 100
-                : 0;
-
-            var dashboard = new
-            {
-                // Summary
-                summary = new
-                {
-                    totalLiveMatches = allLiveMatches.Count,
-                    systemUptime = performanceMetrics.UpTime.ToString(@"dd\.hh\:mm\:ss"),
-                    optimizationRatio = $"{optimizationRatio:F1}%",
-                    avgResponseTime = performanceMetrics.CacheMetrics.TotalOperations > 0 ? "< 5ms" : "N/A",
-                    lastRefresh = DateTime.UtcNow
-                },
-
-                // Real-time Performance Metrics
-                performance = new
-                {
-                    database = new
-                    {
-                        totalCalls = performanceMetrics.DatabaseCalls.Sum(db => db.Count),
-                        callsPerSecond = performanceMetrics.SystemMetrics.TotalDatabaseCallsPerSecond,
-                        averageDuration = $"{performanceMetrics.SystemMetrics.AverageDatabaseCallDuration:F2}ms",
-                        operations = performanceMetrics.DatabaseCalls.Select(db => new
-                        {
-                            operation = db.OperationType,
-                            count = db.Count,
-                            avgDuration = $"{db.AverageDurationMs:F2}ms",
-                            minDuration = $"{db.MinDurationMs:F2}ms",
-                            maxDuration = $"{db.MaxDurationMs:F2}ms",
-                            rate = $"{db.CallsPerSecond:F1}/sec"
-                        })
-                    },
-                    cache = new
-                    {
-                        hitRatio = $"{performanceMetrics.CacheMetrics.HitRatio * 100:F1}%",
-                        totalHits = performanceMetrics.CacheMetrics.TotalHits,
-                        totalMisses = performanceMetrics.CacheMetrics.TotalMisses,
-                        operationsPerSecond = $"{performanceMetrics.CacheMetrics.OperationsPerSecond:F1}/sec"
-                    }
-                }, // Live Match Status
-                liveMatches = new
-                {
-                    totalCached = cacheStatus.TotalCachedMatches,
-                    memoryEfficient = cacheStatus.MemoryEfficient,
-                    matches = allLiveMatches.Take(10).Select(m => new
-                    {
-                        matchId = m.Key,
-                        homeTeam = m.Value.HomeTeam?.Name ?? "Unknown",
-                        awayTeam = m.Value.AwayTeam?.Name ?? "Unknown",
-                        score = $"{m.Value.HomeTeamScore ?? 0} - {m.Value.AwayTeamScore ?? 0}",
-                        status = m.Value.MatchStatus
-                    }),
-                    showingFirst = Math.Min(10, allLiveMatches.Count),
-                    totalCount = allLiveMatches.Count
-                }
-            };
-
-            return Ok(dashboard);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to generate performance dashboard", details = ex.Message });
-        }
-    }
-
-    private class HealthCheckResponse
-    {
-        [JsonPropertyName("status")] public string? Status { get; init; }
-
-        [JsonPropertyName("timestamp")] public string? Timestamp { get; init; }
-
-        [JsonPropertyName("version")] public string? Version { get; init; }
-
-        [JsonPropertyName("model_loaded")] public bool ModelLoaded { get; init; }
-
-        [JsonPropertyName("xgboost_loaded")] public bool XgboostLoaded { get; init; }
-    }
-
-    // Simulation status tracking endpoints
-    [HttpGet("simulation/{simulationId}/status")]
-    [Authorize]
-    [ProducesResponseType(typeof(SimulationStatusResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<SimulationStatusResponse>> GetSimulationStatus(string simulationId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Get match by simulation_id from a database
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
-            if (match == null)
-            {
-                return NotFound(new { error = "Simulation not found", simulation_id = simulationId });
-            }
-
-            var httpClient = httpClientFactory.CreateClient();
-            if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
-
-            // Call model API for status
-            var response = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/simulationStatus/{simulationId}",
-                cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode,
-                    new { error = "Failed to get simulation status from model API" });
-            }
-
-            var statusResponse = await response.Content.ReadFromJsonAsync<SimulationStatusResponse>(cancellationToken);
-            if (statusResponse != null)
-            {
-                // Add local match information
-                statusResponse.MatchId = match.Id;
-                statusResponse.MatchStatus = match.MatchStatus;
-
-                // Update the local match status if needed
-                if (statusResponse.Status != match.MatchStatus)
-                {
-                    await UpdateLocalMatchStatus(match.Id, statusResponse.Status, cancellationToken);
-                }
-            }
-
-            return Ok(statusResponse);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to get simulation status", details = ex.Message });
-        }
-    }
-
-    [HttpGet("simulation/{simulationId}/result")]
-    [Authorize]
-    [ProducesResponseType(typeof(SimulationResultResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<SimulationResultResponse>> GetSimulationResult(string simulationId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Get match by simulation_id from a database
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
-            if (match == null)
-            {
-                return NotFound(new { error = "Simulation not found", simulation_id = simulationId });
-            }
-
-            var httpClient = httpClientFactory.CreateClient();
-            if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
-
-            // Call model API for a result
-            var response = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/simulationResult/{simulationId}",
-                cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode,
-                    new { error = "Failed to get simulation result from model API" });
-            }
-
-            var resultResponse = await response.Content.ReadFromJsonAsync<SimulationResultResponse>(cancellationToken);
-            if (resultResponse == null) return Ok(resultResponse);
-            resultResponse.MatchId = match.Id;
-
-            // If simulation is completed, update the local match with final results
-            if (resultResponse.Status == "completed")
-            {
-                var notification = new Notification
-                {
-                    Type = NotificationType.MatchStart,
-                    UserId = match.CreatorId,
-                    Content = $"Your Requested Match Has Started Go to the Live Match View to Watch",
-                };
-                var notificationCommand = new CreateNotificationCommand()
-                {
-                    Notification = notification
-                };
-                var notificationResult = await mediator.Send(notificationCommand, cancellationToken);
-                if (!notificationResult.Succeeded)
-                {
-                    _logger.LogError("Failed to create notification for match start: {Error}",
-                        notificationResult.Error);
-                }
-
-                if (notificationResult.Notification != null)
-                    if (match.SimulationId != null)
-                        await _hubContext.Clients.User(match.CreatorId).SendMatchStartNotificationAsync(notificationResult.Notification,
-                            match.SimulationId);
-                await UpdateMatchWithSimulationResult(match.Id, resultResponse, cancellationToken);
-            }
-
-            return Ok(resultResponse);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to get simulation result", details = ex.Message });
-        }
-    }
-
-    [HttpGet("simulation/{simulationId}/stream")]
-    [Authorize]
-    public async Task<IActionResult> StreamSimulationUpdates(string simulationId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Verify simulation exists
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken).ConfigureAwait(false);
-            if (match == null)
-            {
-                return NotFound(new { error = "Simulation not found", simulation_id = simulationId });
-            }
-
-            Response.Headers.Append("Content-Type", "text/event-stream");
-            Response.Headers.Append("Cache-Control", "no-cache");
-            Response.Headers.Append("Connection", "keep-alive");
-
-            var httpClient = httpClientFactory.CreateClient();
-            if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
-
-            // Stream from model API
-            using var response = await httpClient.GetAsync(
-                $"{_simulationOptions.BaseUrl}/simulationResult/{simulationId}/stream",
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                return StatusCode((int)response.StatusCode,
-                    new { error = "Failed to start simulation stream", details = errorBody });
-            }
-
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var reader = new StreamReader(stream);
-
-            while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(line))
-                {
-                    continue;
-                }
-
-                // Explicitly create the string to avoid ambiguity for Response.WriteAsync
-                var eventString = $"data: {line}\n\n";
-                await Response.WriteAsync(eventString, cancellationToken).ConfigureAwait(false);
-                await Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-                // Parse the event to check for completion
-                if (!line.Contains("\"event_type\":\"completion\"")) continue;
-                try
-                {
-                    // Ensure 'line' is not null and is a valid JSON string for deserialization
-                    var eventData = JsonSerializer.Deserialize<SimulationStreamEvent>(line);
-                    if (eventData?.EventType == "completion")
-                    {
-                        // Update local match status
-                        await UpdateLocalMatchStatus(match.Id, "completed", cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                }
-                catch (JsonException jsonEx)
-                {
-                    // Log specific JSON parsing errors if necessary
-                    _logger.LogWarning(jsonEx, "Failed to parse stream event: {Line}", line);
-                }
-                catch
-                {
-                    // Ignore other parsing errors for stream events or log them as warnings
-                }
-            }
-
-            return new EmptyResult();
-        }
-        catch (OperationCanceledException)
-        {
-            // Client disconnected or a request was canceled
-            return new EmptyResult();
-        }
-        catch (Exception ex)
-        {
-            // Log the exception,
-            // For example, _logger.LogError(ex, "Error in StreamSimulationUpdates for {SimulationId}", simulation_id);
-            return BadRequest(new { error = "Failed to stream simulation updates", details = ex.Message });
-        }
-    }
-
-    [HttpPost("simulation/{simulationId}/webhook")]
-    [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(typeof(RegisterWebhookResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RegisterWebhookResponse>> RegisterWebhook(string simulationId,
-        [FromBody] RegisterWebhookRequest request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Verify simulation exists
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
-            if (match == null)
-            {
-                return NotFound(new { error = "Simulation not found", simulation_id = simulationId });
-            }
-
-            var httpClient = httpClientFactory.CreateClient();
-            if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
-
-            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(
-                $"{_simulationOptions.BaseUrl}/simulations/{simulationId}/webhook",
-                content, cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode,
-                    new { error = "Failed to register webhook with model API" });
-            }
-
-            var webhookResponse = await response.Content.ReadFromJsonAsync<RegisterWebhookResponse>(cancellationToken);
-            return Ok(webhookResponse);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to register webhook", details = ex.Message });
-        }
-    }
 
     // Helper methods for simulation tracking
     [NonAction]
@@ -1050,4 +713,114 @@ public class MatchesController(
             Console.WriteLine($"Failed to update match with simulation result: {ex.Message}");
         }
     }
+
+    [NonAction]
+    private async Task HandleSimulationCompleted(Match match, WebhookNotificationPayload payload,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Handling completed simulation for match {MatchId}, simulation {SimulationId}",
+                match.Id, payload.SimulationId);
+
+            // Update match status to completed
+            await UpdateLocalMatchStatus(match.Id, "Completed", cancellationToken);
+
+            // Get the full simulation result if we have a result URL
+            if (!string.IsNullOrEmpty(payload.ResultUrl))
+                try
+                {
+                    var httpClient = httpClientFactory.CreateClient();
+                    if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+                        httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+
+                    var response = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}{payload.ResultUrl}", cancellationToken);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var simulationResult =
+                            await response.Content.ReadFromJsonAsync<SimulationResultResponse>(cancellationToken);
+                        if (simulationResult != null)
+                            await UpdateMatchWithSimulationResult(match.Id, simulationResult, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to fetch simulation result from URL {ResultUrl}", payload.ResultUrl);
+                }
+
+            // Create and send notification to the user who created the match
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content =
+                    $"Your match simulation between {match.HomeTeam?.Name ?? "Home Team"} and {match.AwayTeam?.Name ?? "Away Team"} has completed! The match is now ready to watch.",
+                Type = NotificationType.MatchEnd,
+                UserId = match.CreatorId,
+                Time = DateTime.UtcNow
+            };
+
+            // Send notification via SignalR
+            await _hubContext.Clients.User(match.CreatorId)
+                .SendMatchEndNotificationAsync(notification, payload.SimulationId);
+
+            _logger.LogInformation("Successfully processed simulation completion for match {MatchId}", match.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling simulation completion for match {MatchId}", match.Id);
+        }
+    }
+
+    [NonAction]
+    private async Task HandleSimulationFailed(Match match, WebhookNotificationPayload payload,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Handling failed simulation for match {MatchId}, simulation {SimulationId}",
+                match.Id, payload.SimulationId);
+
+            // Update match status to failed
+            await UpdateLocalMatchStatus(match.Id, "Failed", cancellationToken);
+
+            // Create and send notification to the user who created the match
+            var errorMessage = !string.IsNullOrEmpty(payload.ErrorMessage)
+                ? payload.ErrorMessage
+                : "Unknown simulation error";
+
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid().ToString(),
+                Content =
+                    $"Your match simulation between {match.HomeTeam?.Name ?? "Home Team"} and {match.AwayTeam?.Name ?? "Away Team"} has failed. Error: {errorMessage}",
+                Type = NotificationType.Error,
+                UserId = match.CreatorId,
+                Time = DateTime.UtcNow
+            };
+
+            // Send notification via SignalR  
+            await _hubContext.Clients.User(match.CreatorId).SendNotificationAsync(notification);
+
+            _logger.LogInformation("Successfully processed simulation failure for match {MatchId}", match.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling simulation failure for match {MatchId}", match.Id);
+        }
+    }
+
+
+    private class HealthCheckResponse
+    {
+        [JsonPropertyName("status")] public string? Status { get; init; }
+
+        [JsonPropertyName("timestamp")] public string? Timestamp { get; init; }
+
+        [JsonPropertyName("version")] public string? Version { get; init; }
+
+        [JsonPropertyName("model_loaded")] public bool ModelLoaded { get; init; }
+
+        [JsonPropertyName("xgboost_loaded")] public bool XgboostLoaded { get; init; }
+    }
 }
+

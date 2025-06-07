@@ -10,18 +10,18 @@ namespace Infrastructure.Services;
 public class RedisCacheService : ICacheService
 {
     private readonly IDistributedCache _cache;
+    private readonly RedisCacheOptions _cacheOptions;
+    private readonly object _circuitLock = new();
     private readonly ILogger<RedisCacheService> _logger;
     private readonly DistributedCacheEntryOptions _options;
-    private readonly RedisCacheOptions _cacheOptions;
-    
+
     // Circuit breaker pattern properties
-    private bool _circuitOpen = false;
+    private bool _circuitOpen;
     private DateTime _circuitResetTime = DateTime.MinValue;
-    private int _failureCount = 0;
-    private readonly object _circuitLock = new object();
+    private int _failureCount;
 
     public RedisCacheService(
-        IDistributedCache cache, 
+        IDistributedCache cache,
         ILogger<RedisCacheService> logger,
         IOptions<RedisCacheOptions> options)
     {
@@ -52,11 +52,8 @@ public class RedisCacheService : ICacheService
         try
         {
             var cachedValue = await _cache.GetStringAsync(key, cancellationToken);
-            
-            if (cachedValue is null)
-            {
-                return null;
-            }
+
+            if (cachedValue is null) return null;
 
             ResetCircuitBreaker(); // Successful operation
             return JsonSerializer.Deserialize<T>(cachedValue);
@@ -69,7 +66,8 @@ public class RedisCacheService : ICacheService
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
+    public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null,
+        CancellationToken cancellationToken = default) where T : class
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -91,13 +89,13 @@ public class RedisCacheService : ICacheService
 
         try
         {
-            var options = expiration.HasValue 
+            var options = expiration.HasValue
                 ? new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiration }
                 : _options;
-                
+
             var serializedValue = JsonSerializer.Serialize(value);
             await _cache.SetStringAsync(key, serializedValue, options, cancellationToken);
-            
+
             ResetCircuitBreaker(); // Successful operation
         }
         catch (Exception ex)
@@ -134,9 +132,9 @@ public class RedisCacheService : ICacheService
     }
 
     public async Task<T> GetOrCreateAsync<T>(
-        string key, 
-        Func<Task<T>> factory, 
-        TimeSpan? expiration = null, 
+        string key,
+        Func<Task<T>> factory,
+        TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class
     {
         if (string.IsNullOrEmpty(key))
@@ -146,27 +144,21 @@ public class RedisCacheService : ICacheService
         }
 
         // Try to get from cache only if circuit is closed
-        var cachedValue = !IsCircuitOpen() 
-            ? await GetAsync<T>(key, cancellationToken) 
+        var cachedValue = !IsCircuitOpen()
+            ? await GetAsync<T>(key, cancellationToken)
             : null;
-        
-        if (cachedValue != null)
-        {
-            return cachedValue;
-        }
-        
+
+        if (cachedValue != null) return cachedValue;
+
         // Generate value from factory
         var newValue = await factory();
-        
+
         // Only cache non-null values
-        if (newValue != null && !IsCircuitOpen())
-        {
-            await SetAsync(key, newValue, expiration, cancellationToken);
-        }
-        
+        if (newValue != null && !IsCircuitOpen()) await SetAsync(key, newValue, expiration, cancellationToken);
+
         return newValue;
     }
-    
+
     // Circuit breaker pattern methods
     private bool IsCircuitOpen()
     {
@@ -181,39 +173,36 @@ public class RedisCacheService : ICacheService
                 _failureCount = 0;
                 return false;
             }
-            
+
             return _circuitOpen;
         }
     }
-    
+
     private void IncrementFailureCount()
     {
         lock (_circuitLock)
         {
             _failureCount++;
-            
+
             // If failure threshold reached, open the circuit
             if (_failureCount >= _cacheOptions.FailureThreshold && !_circuitOpen)
             {
                 _circuitOpen = true;
                 _circuitResetTime = DateTime.UtcNow.Add(_cacheOptions.CircuitResetInterval);
                 _logger.LogWarning(
-                    "Circuit breaker opened after {FailureCount} failures. Will reset at {ResetTime}", 
-                    _failureCount, 
+                    "Circuit breaker opened after {FailureCount} failures. Will reset at {ResetTime}",
+                    _failureCount,
                     _circuitResetTime);
             }
         }
     }
-    
+
     private void ResetCircuitBreaker()
     {
         lock (_circuitLock)
         {
-            if (_circuitOpen)
-            {
-                _logger.LogInformation("Circuit breaker closed after successful operation");
-            }
-            
+            if (_circuitOpen) _logger.LogInformation("Circuit breaker closed after successful operation");
+
             _circuitOpen = false;
             _failureCount = 0;
         }

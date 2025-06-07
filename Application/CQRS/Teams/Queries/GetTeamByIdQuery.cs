@@ -1,4 +1,3 @@
-
 using Application.Dtos;
 using Application.Mappers;
 using Domain.Interfaces;
@@ -27,7 +26,7 @@ public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapp
     public async Task<GetTeamByIdQueryResponse> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)
     {
         var team = await unitOfWork.Teams.GetByIdAsyncWithStadium(request.Id);
-        
+
         if (team == null)
             return new GetTeamByIdQueryResponse
             {
@@ -35,7 +34,7 @@ public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapp
                 error = "Team not found"
             };
         var teamDto = _teamMapper.ToTeamDto(team);
-            
+
         return new GetTeamByIdQueryResponse
         {
             Succeeded = true,

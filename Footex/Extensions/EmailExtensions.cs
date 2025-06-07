@@ -5,7 +5,8 @@ namespace Footex.Extensions;
 
 public static class EmailExtensions
 {
-    public static IServiceCollection ConfigureEmailServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    public static IServiceCollection ConfigureEmailServices(this IServiceCollection services,
+        IConfiguration configuration, IWebHostEnvironment environment)
     {
         // Configure FluentEmail
         if (environment.IsDevelopment())
@@ -18,11 +19,11 @@ public static class EmailExtensions
                 EnableSsl = false,
                 DeliveryMethod = SmtpDeliveryMethod.Network
             };
-            
+
             services
                 .AddFluentEmail("no-reply@footex.com")
                 .AddSmtpSender(smtpClient);
-            
+
             // Log info about PaperCut
             var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
             logger.LogInformation("Email configured to use local PaperCut SMTP server on localhost:25");
@@ -32,13 +33,13 @@ public static class EmailExtensions
         {
             // For production, use SMTP settings from configuration
             var smtpSettings = configuration.GetSection("SmtpSettings");
-            string host = smtpSettings["Host"];
-            int port = int.Parse(smtpSettings["Port"]);
-            bool enableSsl = bool.Parse(smtpSettings["EnableSSL"]);
-            string userName = smtpSettings["UserName"];
-            string password = smtpSettings["Password"];
-            string fromEmail = smtpSettings["FromEmail"];
-            
+            var host = smtpSettings["Host"];
+            var port = int.Parse(smtpSettings["Port"]);
+            var enableSsl = bool.Parse(smtpSettings["EnableSSL"]);
+            var userName = smtpSettings["UserName"];
+            var password = smtpSettings["Password"];
+            var fromEmail = smtpSettings["FromEmail"];
+
             // Create SMTP client with credentials
             var smtpClient = new SmtpClient
             {
@@ -47,13 +48,11 @@ public static class EmailExtensions
                 EnableSsl = enableSsl,
                 DeliveryMethod = SmtpDeliveryMethod.Network
             };
-            
+
             // Add credentials if provided
             if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(password))
-            {
                 smtpClient.Credentials = new NetworkCredential(userName, password);
-            }
-            
+
             services
                 .AddFluentEmail(fromEmail)
                 .AddSmtpSender(smtpClient);

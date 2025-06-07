@@ -4,8 +4,10 @@ namespace Infrastructure.Services.EventProcessors;
 
 public class ShotEventProcessor : BaseEventProcessor
 {
-    public override bool CanProcess(FootballMatchEvent matchEvent) => 
-        matchEvent.action == "shot";
+    public override bool CanProcess(FootballMatchEvent matchEvent)
+    {
+        return matchEvent.action == "shot";
+    }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
@@ -38,9 +40,10 @@ public class ShotEventProcessor : BaseEventProcessor
                     match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
                     match.AwayTeamScore = IncrementValue(match.AwayTeamScore);
                 }
+
                 UpdateMatchResult(match);
                 break;
-                
+
             case "Wayward":
             case "Off T":
                 if (IsHomeTeam(matchEvent, match))
@@ -48,7 +51,7 @@ public class ShotEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
                 break;
-                
+
             case "Saved":
                 if (IsHomeTeam(matchEvent, match))
                 {
@@ -60,6 +63,7 @@ public class ShotEventProcessor : BaseEventProcessor
                     match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
                     match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
                 }
+
                 break;
         }
     }
@@ -67,18 +71,15 @@ public class ShotEventProcessor : BaseEventProcessor
     public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
     {
         matchEvents.TotalShots++;
-        
-        if (matchEvent.type == "Free Kick")
-        {
-            matchEvents.TotalFreeKicks++;
-        }
-        
+
+        if (matchEvent.type == "Free Kick") matchEvents.TotalFreeKicks++;
+
         switch (matchEvent.outcome)
         {
             case "Blocked":
                 matchEvents.TotalBlocks++;
                 break;
-                
+
             case "Goal":
                 matchEvents.TotalGoals++;
                 if (IsHomeTeam(matchEvent, match))
@@ -86,7 +87,7 @@ public class ShotEventProcessor : BaseEventProcessor
                 else
                     matchEvents.GoalsAwayTeam++;
                 break;
-                
+
             case "Saved":
                 matchEvents.TotalGoalkeeperSaves++;
                 break;
@@ -96,7 +97,7 @@ public class ShotEventProcessor : BaseEventProcessor
     private static void UpdateMatchResult(Match match)
     {
         if (match is not { HomeTeamScore: not null, AwayTeamScore: not null }) return;
-        
+
         if (match.HomeTeamScore > match.AwayTeamScore)
         {
             match.WinningTeamId = match.HomeTeamId;

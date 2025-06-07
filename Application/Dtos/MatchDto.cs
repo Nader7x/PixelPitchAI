@@ -1,6 +1,4 @@
-using System;
 using System.Text.Json.Serialization;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Dtos;
 
@@ -19,17 +17,17 @@ public class MatchDto
     public int? MatchWeek { get; set; }
     public int? HomeCoachId { get; set; }
     public int? AwayCoachId { get; set; }
-    
+
     // Match result data
     public int? HomeTeamScore { get; set; }
     public int? AwayTeamScore { get; set; }
     public int? WinningTeamId { get; set; }
     public int? LosingTeamId { get; set; }
     public bool IsDraw { get; set; }
-    
+
     // Match status and simulation tracking
     public string? MatchStatus { get; set; }
-    
+
     // Match statistics
     public int? HomeTeamPossession { get; set; }
     public int? AwayTeamPossession { get; set; }
@@ -52,14 +50,15 @@ public class CreateMatchDto
 {
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
-    [JsonIgnore]
-    public DateTime ScheduledDateTimeUtc { get; set; } = DateTime.UtcNow;
+
+    [JsonIgnore] public DateTime ScheduledDateTimeUtc { get; set; } = DateTime.UtcNow;
+
     public int? StadiumId { get; set; }
     public int? HomeSeasonId { get; set; }
     public int? AwaySeasonId { get; set; }
-    
-    [JsonIgnore]
-    public string? MatchStatus { get; set; } = "Scheduled";
+
+    [JsonIgnore] public string? MatchStatus { get; set; } = "Scheduled";
+
     public string? CreatorId { get; set; }
 }
 
@@ -74,17 +73,17 @@ public class UpdateMatchDto
     public int? MatchWeek { get; set; }
     public int? HomeCoachId { get; set; }
     public int? AwayCoachId { get; set; }
-    
+
     // Match result data
     public int? HomeTeamScore { get; set; }
     public int? AwayTeamScore { get; set; }
     public int? WinningTeamId { get; set; }
     public int? LosingTeamId { get; set; }
     public bool IsDraw { get; set; }
-    
+
     // Match status and simulation tracking
     public string? MatchStatus { get; set; }
-    
+
     // Match statistics
     public int? HomeTeamPossession { get; set; }
     public int? AwayTeamPossession { get; set; }
@@ -174,7 +173,6 @@ public class MatchDetailsDto
     public int? AwayTeamFreeKicks { get; set; }
     public string? CreatorId { get; set; }
     public bool? IsLive { get; set; }
-
 }
 
 public class SimulateMatchDto
@@ -185,7 +183,6 @@ public class SimulateMatchDto
     public required string AwayTeamName { get; set; }
     public required string HomeTeamSeason { get; set; }
     public required string AwayTeamSeason { get; set; }
+    public required int HomeSeasonId { get; set; }
+    public required int AwaySeasonId { get; set; }
 }
-
-
-

@@ -38,13 +38,11 @@ public class GetUserProfileQueryHandler(IApplicationUserRepository userRepositor
             // Get user by id
             var user = await userRepository.GetByIdAsyncWithTeam(request.UserId);
             if (user == null)
-            {
                 return new GetUserProfileQueryResponse
                 {
                     Succeeded = false,
                     Error = "User not found"
                 };
-            }
 
             // Get user roles
             var roles = await userRepository.GetUserRolesAsync(user);

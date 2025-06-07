@@ -1,4 +1,3 @@
-
 using Domain.Interfaces;
 using Domain.Models;
 
@@ -6,7 +5,7 @@ namespace Domain.Repositories;
 
 public interface IMatchRepository : IRepository<Match>
 {
-    Task<IReadOnlyList<Match>> GetBySeasonIdAsync(int homeSeasonId , int awaySeasonId);
+    Task<IReadOnlyList<Match>> GetBySeasonIdAsync(int homeSeasonId, int awaySeasonId);
     Task<IReadOnlyList<Match>> GetByTeamIdAsync(int teamId);
     Task<IReadOnlyList<Match>> GetByDateRangeAsync(DateTime start, DateTime end);
     Task<IReadOnlyList<Match>> GetUpcomingMatchesAsync(int count);
@@ -19,5 +18,5 @@ public interface IMatchRepository : IRepository<Match>
     Task<IReadOnlyList<Match>> GetMatchesBySeasonIdAsync(int seasonId);
 
     Task<int> GetLiveMatchAsync(string requestUserId);
-    Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId ,CancellationToken cancellationToken);
+    Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId, CancellationToken cancellationToken);
 }

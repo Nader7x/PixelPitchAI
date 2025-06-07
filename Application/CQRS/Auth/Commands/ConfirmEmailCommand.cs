@@ -1,6 +1,6 @@
 using Domain.Interfaces;
-using MediatR;
 using Domain.Models;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 
 namespace Application.CQRS.Auth.Commands;
@@ -19,8 +19,8 @@ public class ConfirmEmailCommandResponse
 
 public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, ConfirmEmailCommandResponse>
 {
-    private readonly IApplicationUserRepository _userRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IApplicationUserRepository _userRepository;
 
     public ConfirmEmailCommandHandler(
         IApplicationUserRepository userRepository,
@@ -38,24 +38,20 @@ public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, C
         {
             var user = await _userRepository.GetByIdAsync(request.UserId);
             if (user == null)
-            {
                 return new ConfirmEmailCommandResponse
                 {
                     Succeeded = false,
                     Error = "User not found."
                 };
-            }
 
             var result = await _userManager.ConfirmEmailAsync(user, request.Token);
-            
+
             if (!result.Succeeded)
-            {
                 return new ConfirmEmailCommandResponse
                 {
                     Succeeded = false,
                     Error = string.Join(", ", result.Errors.Select(e => e.Description))
                 };
-            }
 
             return new ConfirmEmailCommandResponse { Succeeded = true };
         }

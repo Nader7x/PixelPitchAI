@@ -1,7 +1,7 @@
 using Application.Dtos;
 using Application.Mappers;
-using MediatR;
 using Domain.Interfaces;
+using MediatR;
 
 namespace Application.CQRS.Stadiums.Queries;
 
@@ -20,32 +20,31 @@ public class GetStadiumByIdQueryResponse
 
 public class GetStadiumByIdQueryHandler : IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly StadiumMapper _stadiumMapper;
-    
+    private readonly IUnitOfWork _unitOfWork;
+
     public GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
     {
         _unitOfWork = unitOfWork;
         _stadiumMapper = stadiumMapper;
     }
-    
-    public async Task<GetStadiumByIdQueryResponse> Handle(GetStadiumByIdQuery request, CancellationToken cancellationToken)
+
+    public async Task<GetStadiumByIdQueryResponse> Handle(GetStadiumByIdQuery request,
+        CancellationToken cancellationToken)
     {
         try
         {
             var stadium = await _unitOfWork.Stadiums.GetByIdAsync(request.Id);
             if (stadium == null)
-            {
                 return new GetStadiumByIdQueryResponse
                 {
                     Succeeded = false,
                     NotFound = true,
                     Error = $"Stadium with ID {request.Id} not found"
                 };
-            }
-            
+
             var stadiumDto = _stadiumMapper.ToDto(stadium);
-            
+
             return new GetStadiumByIdQueryResponse
             {
                 Succeeded = true,

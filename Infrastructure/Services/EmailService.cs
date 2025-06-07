@@ -1,7 +1,7 @@
-using Application.Services;
-using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Mail;
+using Application.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Services;
 

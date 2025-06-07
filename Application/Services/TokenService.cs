@@ -1,12 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Application.Services;
 
@@ -28,6 +28,7 @@ public class TokenService(
             var claimsIdentity = new ClaimsIdentity(claims);
             await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
         }
+
         return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
     }
 
@@ -36,7 +37,7 @@ public class TokenService(
         using var rng = RandomNumberGenerator.Create();
         var randomBytes = new byte[64];
         rng.GetBytes(randomBytes);
-        
+
         return new RefreshToken
         {
             Token = Convert.ToBase64String(randomBytes),
@@ -52,10 +53,10 @@ public class TokenService(
         var token = await CreateTokenAsync(user);
         var refreshToken = GenerateRefreshToken(ipAddress);
 
-        
+
         // Add refresh token to user
         await userRepository.AddRefreshTokenAsync(user, refreshToken);
-        
+
         return (token, refreshToken);
     }
 
@@ -63,23 +64,23 @@ public class TokenService(
     {
         var refreshToken = await userRepository.GetRefreshTokenAsync(token);
         Console.WriteLine(refreshToken);
-        if (refreshToken is not  { IsActive: true })
+        if (refreshToken is not { IsActive: true })
             throw new SecurityTokenException("Invalid refresh token");
-            
+
         var user = refreshToken.User;
-        
+
         // Generate new tokens
         var newToken = await CreateTokenAsync(user);
         var newRefreshToken = GenerateRefreshToken(ipAddress);
-        
+
         // Revoke current refresh token
         refreshToken.Revoked = DateTime.UtcNow;
         refreshToken.RevokedByIp = ipAddress;
         refreshToken.ReplacedByToken = newRefreshToken.Token;
-        
+
         // Save new refresh token
         await userRepository.AddRefreshTokenAsync(user, newRefreshToken);
-        
+
         return (newToken, newRefreshToken);
     }
 
@@ -92,7 +93,7 @@ public class TokenService(
     {
         var key = Encoding.UTF8.GetBytes(configuration["JWT:Secret"]);
         var secret = new SymmetricSecurityKey(key);
-        
+
         return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
     }
 
@@ -100,37 +101,31 @@ public class TokenService(
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id)
+            new(ClaimTypes.Name, user.UserName),
+            new(ClaimTypes.Email, user.Email),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id)
         };
-        
+
         var roles = await userManager.GetRolesAsync(user);
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-        
+        foreach (var role in roles) claims.Add(new Claim(ClaimTypes.Role, role));
+
         // Add custom claims if needed
-        if (user.FavoriteTeamId.HasValue)
-        {
-            claims.Add(new Claim("FavoriteTeamId", user.FavoriteTeamId.Value.ToString()));
-        }
-        
+        if (user.FavoriteTeamId.HasValue) claims.Add(new Claim("FavoriteTeamId", user.FavoriteTeamId.Value.ToString()));
+
         return claims;
     }
 
     private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
     {
         var tokenOptions = new JwtSecurityToken(
-            issuer: configuration["JWT:ValidIssuer"],
-            audience: configuration["JWT:ValidAudience"],
-            claims: claims,
+            configuration["JWT:ValidIssuer"],
+            configuration["JWT:ValidAudience"],
+            claims,
             expires: DateTime.Now.AddMinutes(Convert.ToDouble(configuration["JWT:ExpiryInMinutes"])),
             signingCredentials: signingCredentials
         );
-        
+
         return tokenOptions;
     }
 }

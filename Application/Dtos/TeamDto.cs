@@ -14,7 +14,6 @@ public class TeamDto
     public string? PrimaryColor { get; set; }
     public string? SecondaryColor { get; set; }
     public DateTime? FoundationDate { get; set; }
-    
 }
 
 public class CreateTeamDto
@@ -46,6 +45,7 @@ public class UpdateTeamDto
     public string? SecondaryColor { get; set; } = string.Empty;
     public int? CoachId { get; set; }
 }
+
 public class TeamSeasonsDto
 {
     public int SeasonId { get; set; }

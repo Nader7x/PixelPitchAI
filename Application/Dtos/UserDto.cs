@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http;
 
 namespace Application.Dtos;
 
-
 public class UserDto
 {
     public string Email { get; set; }
@@ -13,6 +12,7 @@ public class UserDto
     public string ImageUrl { get; set; }
     public string Age { get; set; }
 }
+
 public class UserLoginDto
 {
     public string Email { get; set; }
@@ -45,5 +45,4 @@ public class RegisterUserDto
     public int? FavoriteTeamId { get; set; }
     public IFormFile? Image { get; set; }
     public string? PhoneNumber { get; set; }
-    
 }

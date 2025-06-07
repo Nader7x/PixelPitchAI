@@ -1,6 +1,3 @@
-using System;
-using System;
-
 namespace Domain.Models;
 
 public class RefreshToken
@@ -17,7 +14,7 @@ public class RefreshToken
     public string? ReplacedByToken { get; set; }
     public bool IsExpired => DateTime.UtcNow >= Expires;
     public bool IsActive => Revoked == null && !IsExpired;
-    
+
     // Navigation property
     public virtual ApplicationUser? User { get; set; }
 }

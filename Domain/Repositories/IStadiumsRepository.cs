@@ -5,5 +5,4 @@ namespace Domain.Repositories;
 
 public interface IStadiumsRepository : IRepository<Stadium>
 {
-    
 }
