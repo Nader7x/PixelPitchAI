@@ -32,8 +32,8 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 │   Frontend      │    │   (This Project) │    │   FastAPI       │
 │                 │    │                  │    │                 │
 │ • React UI      │◄──►│ • Clean Arch     │◄──►│ • GPT-2 LLM     │
-│ • TypeScript    │    │ • CQRS/MediatR   │    │ • Match Engine   │
-│ • Real-time UI  │    │ • SignalR Hub    │    │ • AI Predictions │
+│ • TypeScript    │    │ • CQRS/MediatR   │    │ • Match Engine  │
+│ • Real-time UI  │    │ • SignalR Hub    │    │ • AI Predictions│
 │ • State Mgmt    │    │ • Message Queue  │    │ • ML Analytics  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │
@@ -78,10 +78,10 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 │                    🌐 Presentation Layer                    │
 │                     (Web API / Controllers)                 │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │              📋 Application Layer                   │   │
+│  │              📋 Application Layer                   │    │
 │  │            (CQRS / MediatR / Services)              │    │
 │  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │            🏢 Domain Layer                  │    │   │
+│  │  │            🏢 Domain Layer                  │    │    │
 │  │  │         (Entities / Interfaces)             │    │    │
 │  │  │                                             │    │    │
 │  │  │  • Team      • Player    • Match            │    │    │
@@ -91,7 +91,7 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 │  │                                                     │    │
 │  │  • Commands & Queries    • DTOs & Mappers           │    │
 │  │  • Application Services  • Validation Logic         │    │
-│  └─────────────────────────────────────────────────────┘    │
+│  └──────────────────────────────────────────────��─────┘    │
 │                                                             │
 │  • REST Controllers      • Authentication & Authorization   │
 │  • SignalR Hubs         • API Documentation (Swagger)       │
@@ -99,18 +99,18 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 │
 ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  🔧 Infrastructure Layer                   │
+│                  🔧 Infrastructure Layer                    │
 │                 (External Concerns & Data)                  │
 │                                                             │
-│  📊 Data Access     🗄️ Caching        📨 Messaging        │
+│  📊 Data Access     🗄️ Caching        📨 Messaging         │
 │  • EF Core          • Redis Cache     • RabbitMQ Client     │
 │  • PostgreSQL       • Session Store   • Event Handlers      │
 │  • Repositories     • Performance     • Background Tasks    │
 │                                                             │
-│  🔐 Identity        📧 External       📁 File Storage     |
+│  🔐 Identity        📧 External       📁 File Storage      |
 │  • JWT Auth         • Email Service   • Local/Cloud         │
 │  • User Management  • 3rd Party APIs  • File Operations     │
-└─────────────────────────────────────────────────────────────┘
+└──���────────────────────────────────────────────────────────┘
 ```
 
 #### **CQRS Pattern Flow Diagram**
@@ -169,7 +169,7 @@ Frontend    .NET API    RabbitMQ    Python AI    SignalR    Database
     │           │◄─Events───│           │           │           │
     │           │  Queue    │           │           │           │
     │           │           │           │           │           │
-    │           │──────────────────────────────────────────────►│
+    │           │────────────────────────────���───────────────►│
     │           │                    Save Events                │
     │           │           │           │           │           │
     │           │──────────────────────►│           │           │
@@ -187,7 +187,7 @@ Frontend    .NET API    RabbitMQ    Python AI    SignalR    Database
 │                 │    WebSocket     │  Controllers    │
 │ • State Mgmt    │◄────────────────►│                 │
 │ • Real-time UI  │                  │ • CQRS Handler  │
-└─────────────────┘                  │ • Validation    │
+|_________________|                  │ • Validation    │
                                      │ • Auth/Auth     │
                                      └─────────────────┘
                                               │
@@ -226,7 +226,7 @@ Frontend    .NET API    RabbitMQ    Python AI    SignalR    Database
 #### **Security & Authentication Flow**
 
 ```
-┌─────────────────┐                    ┌─────────────────┐
+┌─────────────────┐                    ┌─────────────��──┐
 │    Frontend     │                    │   .NET API      │
 │                 │                    │                 │
 │ 1. Login Request│──────────────────►│ 2. Validate      │
@@ -478,10 +478,230 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
 ### SOLID Principles
 
 - **Single Responsibility**: Each class has one reason to change
+  - **Example**: The `IEmailService` interface in `Application/Interfaces` handles only email-related functionality, while `IFileStorageService` is strictly responsible for file operations. This separation ensures changes to email logic don't affect file operations.
+  
+  ```csharp
+  // Single Responsibility Example
+  public interface IEmailService
+  {
+      Task SendEmailAsync(string to, string subject, string body);
+      Task SendConfirmationEmailAsync(string to, string token);
+      Task SendPasswordResetEmailAsync(string to, string token);
+  }
+  
+  public interface IFileStorageService
+  {
+      Task<string> SaveFileAsync(Stream fileStream, string fileName);
+      Task<bool> DeleteFileAsync(string filePath);
+      Task<Stream> GetFileAsync(string filePath);
+  }
+  ```
+
 - **Open/Closed**: Open for extension, closed for modification
+  - **Example**: The Command/Query handlers in the CQRS pattern (found in `Application/CQRS/`) can be extended with new handlers without modifying existing ones. New match types, notification types, or player operations can be added by creating new handlers rather than modifying existing code.
+  
+  ```csharp
+  // Open/Closed Example with CQRS Handlers
+  
+  // Existing handler
+  public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, PlayerDto>
+  {
+      private readonly IPlayerRepository _playerRepository;
+      
+      public GetPlayerByIdQueryHandler(IPlayerRepository playerRepository)
+      {
+          _playerRepository = playerRepository;
+      }
+      
+      public async Task<PlayerDto> Handle(GetPlayerByIdQuery request, CancellationToken cancellationToken)
+      {
+          var player = await _playerRepository.GetByIdAsync(request.Id);
+          return player.ToDto();
+      }
+  }
+  
+  // Adding new functionality by extension, not modification
+  public class GetPlayerWithStatsQueryHandler : IRequestHandler<GetPlayerWithStatsQuery, PlayerStatsDto>
+  {
+      private readonly IPlayerRepository _playerRepository;
+      private readonly IPlayerStatsRepository _statsRepository;
+      
+      public GetPlayerWithStatsQueryHandler(
+          IPlayerRepository playerRepository,
+          IPlayerStatsRepository statsRepository)
+      {
+          _playerRepository = playerRepository;
+          _statsRepository = statsRepository;
+      }
+      
+      public async Task<PlayerStatsDto> Handle(GetPlayerWithStatsQuery request, CancellationToken cancellationToken)
+      {
+          var player = await _playerRepository.GetByIdAsync(request.Id);
+          var stats = await _statsRepository.GetPlayerStatsAsync(request.Id, request.SeasonId);
+          return new PlayerStatsDto(player, stats);
+      }
+  }
+  ```
+
 - **Liskov Substitution**: Objects should be replaceable with instances of their subtypes
+  - **Example**: Repository implementations in `Infrastructure/Repositories` all adhere to the interfaces defined in `Domain/Repositories`, allowing the system to substitute any repository implementation (like switching from SQL to in-memory repositories for testing) without altering business logic.
+  
+  ```csharp
+  // Liskov Substitution Example
+  
+  // Interface in Domain Layer
+  public interface ITeamRepository
+  {
+      Task<Team> GetByIdAsync(int id);
+      Task<IEnumerable<Team>> GetAllAsync();
+      Task AddAsync(Team team);
+      Task UpdateAsync(Team team);
+      Task DeleteAsync(int id);
+  }
+  
+  // SQL Implementation in Infrastructure Layer
+  public class SqlTeamRepository : ITeamRepository
+  {
+      private readonly FootballDbContext _context;
+      
+      public SqlTeamRepository(FootballDbContext context)
+      {
+          _context = context;
+      }
+      
+      public async Task<Team> GetByIdAsync(int id)
+      {
+          return await _context.Teams
+              .Include(t => t.Stadium)
+              .Include(t => t.Players)
+              .FirstOrDefaultAsync(t => t.Id == id);
+      }
+      
+      // Other implemented methods...
+  }
+  
+  // InMemory Implementation for Testing
+  public class InMemoryTeamRepository : ITeamRepository
+  {
+      private readonly List<Team> _teams = new();
+      
+      public async Task<Team> GetByIdAsync(int id)
+      {
+          return await Task.FromResult(_teams.FirstOrDefault(t => t.Id == id));
+      }
+      
+      // Other implemented methods...
+  }
+  ```
+
 - **Interface Segregation**: Many client-specific interfaces are better than one general-purpose interface
+  - **Example**: The application uses fine-grained interfaces like `IAdvancedSearchService`, `ICacheService`, `IEmailService`, and `IMatchHub` rather than having a single large service interface. This allows clients to depend only on the specific functionality they need.
+  
+  ```csharp
+  // Interface Segregation Example
+  
+  // Instead of one large interface:
+  // public interface IFootexService {
+  //     Task SendEmailAsync(string to, string subject, string body);
+  //     Task<string> SaveFileAsync(Stream fileStream, string fileName);
+  //     Task<SearchResultDto> SearchAsync(string query, int page);
+  //     Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+  // }
+  
+  // We use segregated interfaces:
+  public interface IEmailService
+  {
+      Task SendEmailAsync(string to, string subject, string body);
+  }
+  
+  public interface IFileStorageService
+  {
+      Task<string> SaveFileAsync(Stream fileStream, string fileName);
+  }
+  
+  public interface IAdvancedSearchService
+  {
+      Task<SearchResultDto> SearchAsync(string query, int page);
+  }
+  
+  public interface IMatchHub
+  {
+      Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+  }
+  
+  // This way, a component that only needs search functionality doesn't
+  // depend on email or file storage implementations
+  public class SearchController : ControllerBase
+  {
+      private readonly IAdvancedSearchService _searchService;
+      
+      // Only depends on what it needs
+      public SearchController(IAdvancedSearchService searchService)
+      {
+          _searchService = searchService;
+      }
+      
+      [HttpGet("search")]
+      public async Task<ActionResult<SearchResultDto>> Search([FromQuery] string query, int page = 1)
+      {
+          return await _searchService.SearchAsync(query, page);
+      }
+  }
+  ```
+
 - **Dependency Inversion**: Depend on abstractions, not concretions
+  - **Example**: The CQRS handlers in `Application/CQRS/` depend on repository interfaces from `Domain/Interfaces` rather than concrete implementations. This is enforced by the dependency injection setup in `Application/DependencyInjection.cs` and `Infrastructure/DependencyInjection.cs` where concrete implementations are bound to abstractions.
+  
+  ```csharp
+  // Dependency Inversion Example
+  
+  // Application Layer - depends on abstraction, not concrete implementation
+  public class CreateTeamCommandHandler : IRequestHandler<CreateTeamCommand, int>
+  {
+      private readonly ITeamRepository _teamRepository;
+      private readonly IUnitOfWork _unitOfWork;
+      
+      public CreateTeamCommandHandler(ITeamRepository teamRepository, IUnitOfWork unitOfWork)
+      {
+          _teamRepository = teamRepository;
+          _unitOfWork = unitOfWork;
+      }
+      
+      public async Task<int> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
+      {
+          var team = new Team
+          {
+              Name = request.Name,
+              Country = request.Country,
+              StadiumId = request.StadiumId
+          };
+          
+          await _teamRepository.AddAsync(team);
+          await _unitOfWork.SaveChangesAsync(cancellationToken);
+          
+          return team.Id;
+      }
+  }
+  
+  // Infrastructure Layer - Dependency Registration in DependencyInjection.cs
+  public static class DependencyInjection
+  {
+      public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+      {
+          // Register database context
+          services.AddDbContext<FootballDbContext>(options =>
+              options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+          
+          // Register repositories
+          services.AddScoped<ITeamRepository, SqlTeamRepository>();
+          services.AddScoped<IPlayerRepository, SqlPlayerRepository>();
+          services.AddScoped<IMatchRepository, SqlMatchRepository>();
+          services.AddScoped<IUnitOfWork, UnitOfWork>();
+          
+          return services;
+      }
+  }
+  ```
 
 ## 📁 Project Structure
 

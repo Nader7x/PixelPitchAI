@@ -1,5 +1,5 @@
 using Application.Helpers;
-using Domain.Interfaces;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;

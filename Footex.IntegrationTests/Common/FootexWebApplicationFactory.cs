@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Common;
 
-public abstract class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private PostgreSqlContainer? _postgreSqlContainer;
 

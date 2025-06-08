@@ -282,8 +282,11 @@ public class MatchesController(
     }
 
 
-    [HttpPost("/simulateMatch/{userId}")]
+    [HttpPost("SimulateMatch/{userId}")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateMatchCommandResponse>> SimulateMatch(string userId,
         [FromBody] SimulateMatchDto simulationDto, CancellationToken cancellationToken)
     {
