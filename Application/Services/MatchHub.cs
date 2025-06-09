@@ -15,15 +15,15 @@ public class MatchHub : Hub<IMatchHub>
         return base.OnConnectedAsync();
     }
 
-    public async Task JoinMatchGroup(int matchId , string simulationId)
+    public async Task JoinMatchGroup(int matchId )
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"{matchId.ToString()}.{simulationId}");
-        await Clients.Caller.SendAsync("JoinedMatchGroup", $"Joined Match {matchId.ToString()} with Simulation {simulationId}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
+        await Clients.Caller.SendAsync("JoinedMatchGroup", $"Joined Match {matchId.ToString()}");
     }
 
-    public async Task LeaveMatchGroup(int matchId , string simulationId)
+    public async Task LeaveMatchGroup(int matchId )
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{matchId.ToString()}.{simulationId}");
-        await Clients.Caller.SendAsync("LeftMatchGroup", $"Left Match {matchId.ToString()} with Simulation {simulationId}");
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
+        await Clients.Caller.SendAsync("LeftMatchGroup", $"Left Match {matchId.ToString()}");
     }
 }
