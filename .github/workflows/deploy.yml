@@ -1,0 +1,441 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - "staging"
+          - "production"
+      force_deploy:
+        description: "Force deployment even if tests fail"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Pre-deployment checks
+  pre-deployment:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      target_environment: ${{ steps.check.outputs.target_environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine deployment conditions
+        id: check
+        run: |
+          SHOULD_DEPLOY="false"
+          TARGET_ENV="staging"
+
+          # Manual deployment
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            SHOULD_DEPLOY="true"
+            TARGET_ENV="${{ github.event.inputs.environment }}"
+          fi
+
+          # Tag-based production deployment
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            SHOULD_DEPLOY="true"
+            TARGET_ENV="production"
+          fi
+
+          # Main branch to staging
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            SHOULD_DEPLOY="true"
+            TARGET_ENV="staging"
+          fi
+
+          echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "target_environment=$TARGET_ENV" >> $GITHUB_OUTPUT
+          echo "Will deploy to $TARGET_ENV: $SHOULD_DEPLOY"
+
+  # Job 2: Build and push Docker image
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+    if: needs.pre-deployment.outputs.should_deploy == 'true'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=staging,enable=${{ needs.pre-deployment.outputs.target_environment == 'staging' }}
+            type=raw,value=production,enable=${{ needs.pre-deployment.outputs.target_environment == 'production' }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Footex/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_CONFIGURATION=Release
+            ASPNETCORE_ENVIRONMENT=${{ needs.pre-deployment.outputs.target_environment }}
+
+  # Job 3: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [pre-deployment, build-and-push]
+    if: needs.pre-deployment.outputs.target_environment == 'staging'
+    environment:
+      name: staging
+      url: https://footex-staging.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+
+      - name: Deploy to Azure Container Apps - Staging
+        run: |
+          az containerapp update \
+            --name footex-api-staging \
+            --resource-group footex-staging-rg \
+            --image ${{ needs.build-and-push.outputs.image_tag }} \
+            --set-env-vars \
+              ASPNETCORE_ENVIRONMENT=Staging \
+              ConnectionStrings__DefaultConnection="${{ secrets.STAGING_DB_CONNECTION }}" \
+              ConnectionStrings__Redis="${{ secrets.STAGING_REDIS_CONNECTION }}" \
+              JwtSettings__SecretKey="${{ secrets.STAGING_JWT_SECRET }}" \
+              --revision-suffix $(date +%Y%m%d-%H%M%S)
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 60
+
+      - name: Health check
+        run: |
+          HEALTH_URL="https://footex-staging.yourdomain.com/api/health"
+          for i in {1..10}; do
+            if curl -f $HEALTH_URL; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Health check failed, attempt $i/10"
+            sleep 30
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging environment..."
+          # Add smoke test commands here
+          curl -f "https://footex-staging.yourdomain.com/api/health"
+          curl -f "https://footex-staging.yourdomain.com/api/matches" -H "Accept: application/json"
+
+  # Job 4: Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deployment, build-and-push]
+    if: needs.pre-deployment.outputs.target_environment == 'production'
+    environment:
+      name: production
+      url: https://footex.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+
+      - name: Pre-deployment backup
+        run: |
+          echo "Creating pre-deployment backup..."
+          # Add backup commands for database and current state
+
+      - name: Deploy to Azure Container Apps - Production
+        run: |
+          az containerapp update \
+            --name footex-api-production \
+            --resource-group footex-production-rg \
+            --image ${{ needs.build-and-push.outputs.image_tag }} \
+            --set-env-vars \
+              ASPNETCORE_ENVIRONMENT=Production \
+              ConnectionStrings__DefaultConnection="${{ secrets.PRODUCTION_DB_CONNECTION }}" \
+              ConnectionStrings__Redis="${{ secrets.PRODUCTION_REDIS_CONNECTION }}" \
+              JwtSettings__SecretKey="${{ secrets.PRODUCTION_JWT_SECRET }}" \
+              --revision-suffix $(date +%Y%m%d-%H%M%S)
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for production deployment to complete..."
+          sleep 90
+
+      - name: Health check
+        run: |
+          HEALTH_URL="https://footex.yourdomain.com/api/health"
+          for i in {1..15}; do
+            if curl -f $HEALTH_URL; then
+              echo "Production health check passed"
+              exit 0
+            fi
+            echo "Production health check failed, attempt $i/15"
+            sleep 30
+          done
+          echo "Production health check failed after 15 attempts"
+          exit 1
+
+      - name: Run production smoke tests
+        run: |
+          echo "Running production smoke tests..."
+          curl -f "https://footex.yourdomain.com/api/health"
+          curl -f "https://footex.yourdomain.com/api/matches" -H "Accept: application/json"
+
+      - name: Update production status
+        run: |
+          echo "Production deployment completed successfully"
+          echo "Image: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Digest: ${{ needs.build-and-push.outputs.image_digest }}"
+
+  # Job 5: Post-deployment tests
+  post-deployment-tests:
+    name: Post-deployment Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Determine test environment
+        id: env
+        run: |
+          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            echo "target_url=https://footex.yourdomain.com" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "target_url=https://footex-staging.yourdomain.com" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run post-deployment API tests
+        run: |
+          echo "Running post-deployment tests against ${{ steps.env.outputs.environment }}"
+          # Add comprehensive API tests here
+          BASE_URL="${{ steps.env.outputs.target_url }}"
+
+          # Test core endpoints
+          curl -f "$BASE_URL/api/health"
+          curl -f "$BASE_URL/api/matches" -H "Accept: application/json"
+          curl -f "$BASE_URL/api/teams" -H "Accept: application/json"
+          curl -f "$BASE_URL/api/players" -H "Accept: application/json"
+
+          echo "Post-deployment tests completed successfully"
+
+  # Job 6: Notify deployment status
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs:
+      [
+        pre-deployment,
+        build-and-push,
+        deploy-staging,
+        deploy-production,
+        post-deployment-tests,
+      ]
+    if: always() && needs.pre-deployment.outputs.should_deploy == 'true'
+
+    steps:
+      - name: Prepare notification
+        id: notification
+        run: |
+          ENVIRONMENT="${{ needs.pre-deployment.outputs.target_environment }}"
+
+          if [[ "$ENVIRONMENT" == "staging" ]]; then
+            DEPLOY_STATUS="${{ needs.deploy-staging.result }}"
+            URL="https://footex-staging.yourdomain.com"
+          else
+            DEPLOY_STATUS="${{ needs.deploy-production.result }}"
+            URL="https://footex.yourdomain.com"
+          fi
+
+          POST_DEPLOY_STATUS="${{ needs.post-deployment-tests.result }}"
+
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          echo "deploy_status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
+          echo "post_deploy_status=$POST_DEPLOY_STATUS" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Create deployment summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          # 🚀 Deployment Summary
+
+          **Environment**: ${{ steps.notification.outputs.environment }}
+          **URL**: ${{ steps.notification.outputs.url }}
+          **Deployment Status**: ${{ steps.notification.outputs.deploy_status }}
+          **Post-deployment Tests**: ${{ steps.notification.outputs.post_deploy_status }}
+          **Commit**: ${{ github.sha }}
+          **Triggered by**: ${{ github.event_name }}
+
+          ## Image Details
+          - **Tags**: ${{ needs.build-and-push.outputs.image_tag }}
+          - **Digest**: ${{ needs.build-and-push.outputs.image_digest }}
+
+          EOF
+
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ steps.notification.outputs.deploy_status }}
+          channel: "#deployments"
+          text: |
+            Deployment to ${{ steps.notification.outputs.environment }} ${{ steps.notification.outputs.deploy_status }}
+            Environment: ${{ steps.notification.outputs.url }}
+            Commit: ${{ github.sha }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 7: Rollback on failure
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs:
+      [pre-deployment, deploy-staging, deploy-production, post-deployment-tests]
+    if: |
+      always() && 
+      needs.pre-deployment.outputs.should_deploy == 'true' && 
+      (needs.deploy-staging.result == 'failure' || needs.deploy-production.result == 'failure' || needs.post-deployment-tests.result == 'failure')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ needs.pre-deployment.outputs.target_environment == 'production' && secrets.AZURE_CREDENTIALS_PRODUCTION || secrets.AZURE_CREDENTIALS_STAGING }}
+
+      - name: Rollback deployment
+        run: |
+          ENVIRONMENT="${{ needs.pre-deployment.outputs.target_environment }}"
+
+          if [[ "$ENVIRONMENT" == "production" ]]; then
+            RESOURCE_GROUP="footex-production-rg"
+            APP_NAME="footex-api-production"
+          else
+            RESOURCE_GROUP="footex-staging-rg"
+            APP_NAME="footex-api-staging"
+          fi
+
+          echo "Rolling back $ENVIRONMENT deployment..."
+
+          # Get previous revision
+          PREVIOUS_REVISION=$(az containerapp revision list \
+            --name $APP_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --query "[?properties.trafficWeight > 0] | [1].name" \
+            --output tsv)
+
+          if [[ -n "$PREVIOUS_REVISION" ]]; then
+            echo "Rolling back to revision: $PREVIOUS_REVISION"
+            az containerapp ingress traffic set \
+              --name $APP_NAME \
+              --resource-group $RESOURCE_GROUP \
+              --revision-weight "$PREVIOUS_REVISION=100"
+          else
+            echo "No previous revision found for rollback"
+          fi
+
+      - name: Verify rollback
+        run: |
+          ENVIRONMENT="${{ needs.pre-deployment.outputs.target_environment }}"
+
+          if [[ "$ENVIRONMENT" == "production" ]]; then
+            HEALTH_URL="https://footex.yourdomain.com/api/health"
+          else
+            HEALTH_URL="https://footex-staging.yourdomain.com/api/health"
+          fi
+
+          echo "Verifying rollback..."
+          for i in {1..10}; do
+            if curl -f $HEALTH_URL; then
+              echo "Rollback verification successful"
+              exit 0
+            fi
+            echo "Rollback verification failed, attempt $i/10"
+            sleep 30
+          done
+          echo "Rollback verification failed"
+          exit 1
