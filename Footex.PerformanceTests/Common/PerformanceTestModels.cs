@@ -30,7 +30,7 @@ public class PerformanceMetric
     public double MaxMs { get; set; }
     public double P95Ms { get; set; }
     public double P99Ms { get; set; }
-    
+
     public double SuccessRate => RequestCount > 0 ? (double)OkCount / RequestCount : 0;
     public double FailureRate => RequestCount > 0 ? (double)FailCount / RequestCount : 0;
 }
@@ -47,7 +47,7 @@ public class BenchmarkResult
     public int Gen0Collections { get; set; }
     public int Gen1Collections { get; set; }
     public int Gen2Collections { get; set; }
-    
+
     public double MeanMs => MeanNs / 1_000_000;
     public double MeanSeconds => MeanNs / 1_000_000_000;
 }
@@ -62,10 +62,10 @@ public class PerformanceSummary
     public double MaxResponseTime { get; set; }
     public double P95ResponseTime { get; set; }
     public List<string> PerformanceIssues { get; set; } = new();
-    
+
     public bool HasPerformanceIssues => PerformanceIssues.Any();
     public string Grade => HasPerformanceIssues ? GetGrade() : "A";
-    
+
     private string GetGrade()
     {
         var issueCount = PerformanceIssues.Count;

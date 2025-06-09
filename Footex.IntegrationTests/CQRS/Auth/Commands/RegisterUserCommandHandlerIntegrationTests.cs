@@ -1,5 +1,4 @@
 using Application.CQRS.Auth.Commands;
-using Application.Mappers;
 using Domain.Interfaces;
 using Domain.Models;
 using Footex.IntegrationTests.Common;
@@ -32,7 +31,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "Doe",
             Email = "john.doe@example.com",
             Password = "StrongPassword123!",
-            UserName = "JohnDoe",
+            UserName = "JohnDoe"
         };
 
         // Act
@@ -284,7 +283,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
                 LastName = "Test",
                 Email = "user2@example.com",
                 UserName = "user2",
-                Password = "Password123!",
+                Password = "Password123!"
             },
             new RegisterUserCommand
             {
@@ -292,7 +291,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
                 LastName = "Test",
                 Email = "user3@example.com",
                 UserName = "user3",
-                Password = "Password123!",
+                Password = "Password123!"
             }
         };
 
@@ -327,7 +326,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "test@example.com",
             UserName = "testuser",
-            Password = "StrongPassword123!",
+            Password = "StrongPassword123!"
         };
 
         // Dispose context to simulate database error
@@ -337,7 +336,8 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);        Assert.NotNull(result.Error);
+        Assert.False(result.Succeeded);
+        Assert.NotNull(result.Error);
     }
 
     private Task DisposeContext()

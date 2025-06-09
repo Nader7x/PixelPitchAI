@@ -103,7 +103,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
 
         // Act - First call
         var response1 = await _client.GetAsync($"/api/seasons/{seasonId}");
-        
+
         // Act - Second call (should be cached)
         var response2 = await _client.GetAsync($"/api/seasons/{seasonId}");
 
@@ -114,7 +114,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }
@@ -280,7 +280,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
 
         // Act - First call
         var response1 = await _client.GetAsync("/api/seasons?leagueName=Premier League");
-        
+
         // Act - Second call with same parameters (should be cached)
         var response2 = await _client.GetAsync("/api/seasons?leagueName=Premier League");
 
@@ -291,7 +291,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }
@@ -319,19 +319,19 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         var team1 = TestData.CreateTestTeam();
         var team2 = TestData.CreateTestTeam();
         team2.Name = "Team 2";
-        
+
         context.Teams.Add(team1);
         context.Teams.Add(team2);
-        
+
         await context.SaveChangesAsync();
 
         // Create season teams relationship
         var seasonTeam1 = TestData.CreateTestSeasonTeam(season.Id, team1.Id);
         var seasonTeam2 = TestData.CreateTestSeasonTeam(season.Id, team2.Id);
-        
+
         context.TeamSeasons.Add(seasonTeam1);
         context.TeamSeasons.Add(seasonTeam2);
-        
+
         await context.SaveChangesAsync();
 
         return season.Id;

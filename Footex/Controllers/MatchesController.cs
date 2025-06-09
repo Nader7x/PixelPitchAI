@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -292,18 +293,20 @@ public class MatchesController(
     {
         if (HasLiveMatch(userId, cancellationToken).Result)
             return BadRequest(new { error = "You Can Not Simulate Two Matches At The Same Time" });
-        
+
         var httpClient = httpClientFactory.CreateClient();
-        
+
         try
         {
             // Check if simulation service is available
             var healthResponse = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}/health", cancellationToken);
-            _logger.LogInformation("Simulation Service Health Check {HealthResponse}", healthResponse.Content.ToString());
+            _logger.LogInformation("Simulation Service Health Check {HealthResponse}",
+                healthResponse.Content.ToString());
             if (!healthResponse.IsSuccessStatusCode)
                 return StatusCode((int)healthResponse.StatusCode, "Simulation service is not available");
 
-            var healthCheckResult = await healthResponse.Content.ReadFromJsonAsync<HealthCheckResponse>(cancellationToken);
+            var healthCheckResult =
+                await healthResponse.Content.ReadFromJsonAsync<HealthCheckResponse>(cancellationToken);
             if (healthCheckResult == null)
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "Failed to parse simulation service health check response.");
@@ -361,7 +364,8 @@ public class MatchesController(
                 httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
 
             // Start the simulation
-            var response = await httpClient.PostAsync($"{_simulationOptions.BaseUrl}/startMatch", content, cancellationToken);
+            var response =
+                await httpClient.PostAsync($"{_simulationOptions.BaseUrl}/startMatch", content, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 var statusCommand = new UpdateMatchStatusCommand
@@ -388,7 +392,8 @@ public class MatchesController(
                 await RegisterApiWebhook(new ApiRegisterWebhookRequest
                 {
                     SimulationId = result.ApiResponse.SimulationId,
-                    WebhookUrl = $"https://localhost:7082/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
+                    WebhookUrl =
+                        $"https://localhost:7082/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
                     WebhookSecret = _simulationOptions.ApiKey
                 });
                 await _unitOfWork.Matches
@@ -400,7 +405,7 @@ public class MatchesController(
                     Content =
                         $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
                     Type = NotificationType.SimulationStart,
-                    Title = "Match Simulation Started",
+                    Title = "Match Simulation Started"
                 };
                 var notificationCommand =
                     new CreateNotificationCommand { Notification = notification };
@@ -412,31 +417,37 @@ public class MatchesController(
 
             return Ok(result);
         }
-        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException { ErrorCode: 10061 })
+        catch (HttpRequestException ex) when (ex.InnerException is SocketException { ErrorCode: 10061 })
         {
             // Specific handling for connection refused errors
-            _logger.LogError(ex, "Simulation service connection refused at {Url}. The service might be down or not running.", _simulationOptions.BaseUrl);
-            
+            _logger.LogError(ex,
+                "Simulation service connection refused at {Url}. The service might be down or not running.",
+                _simulationOptions.BaseUrl);
+
             // Return user-friendly error message
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
                 error = "Unable to connect to simulation service. Please try again later.",
-                details = "The simulation service is currently unavailable. This could be because it is not running or the connection settings are incorrect."
+                details =
+                    "The simulation service is currently unavailable. This could be because it is not running or the connection settings are incorrect."
             });
         }
         catch (HttpRequestException ex)
         {
             // Handle other HTTP request exceptions
             _logger.LogError(ex, "HTTP request error during match simulation: {Message}", ex.Message);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { 
-                error = "Error communicating with simulation service", 
-                details = ex.Message 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = "Error communicating with simulation service",
+                details = ex.Message
             });
         }
         catch (Exception ex)
         {
             // General error handling for other exceptions
             _logger.LogError(ex, "Unexpected error during match simulation: {Message}", ex.Message);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { 
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
                 error = "An unexpected error occurred",
                 details = "Please contact support if the issue persists."
             });
@@ -448,14 +459,13 @@ public class MatchesController(
     {
         const int maxRetries = 3;
         var currentRetry = 0;
-        
+
         while (currentRetry < maxRetries)
-        {
             try
             {
                 var httpClient = httpClientFactory.CreateClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
-                
+
                 // Add API key if available
                 if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
                     httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
@@ -467,7 +477,8 @@ public class MatchesController(
                     webhook_secret = webhookRequest.WebhookSecret
                 }), Encoding.UTF8, "application/json");
 
-                _logger.LogInformation("Attempting to register webhook for simulation {SimulationId} (Attempt {Attempt}/{MaxAttempts})", 
+                _logger.LogInformation(
+                    "Attempting to register webhook for simulation {SimulationId} (Attempt {Attempt}/{MaxAttempts})",
                     webhookRequest.SimulationId, currentRetry + 1, maxRetries);
 
                 // Make the API call to register webhook
@@ -478,9 +489,9 @@ public class MatchesController(
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning("Failed to register webhook: HTTP {StatusCode}. Response: {Response}", 
+                    _logger.LogWarning("Failed to register webhook: HTTP {StatusCode}. Response: {Response}",
                         (int)response.StatusCode, errorContent);
-                    
+
                     if (IsRetryableStatusCode((int)response.StatusCode))
                     {
                         currentRetry++;
@@ -492,11 +503,11 @@ public class MatchesController(
                             continue;
                         }
                     }
-                    
+
                     return new ApiRegisterWebhookResponse
                     {
                         Message = "Failed to register webhook with simulation service",
-                        Detail = $"HTTP {response.StatusCode}: {errorContent}",
+                        Detail = $"HTTP {response.StatusCode}: {errorContent}"
                     };
                 }
 
@@ -505,18 +516,20 @@ public class MatchesController(
                 var result = apiResponse ?? new ApiRegisterWebhookResponse
                 {
                     Message = "Webhook registered successfully",
-                    SimulationId = webhookRequest.SimulationId,
+                    SimulationId = webhookRequest.SimulationId
                 };
-                
-                _logger.LogInformation("Successfully registered webhook for simulation {SimulationId}", webhookRequest.SimulationId);
+
+                _logger.LogInformation("Successfully registered webhook for simulation {SimulationId}",
+                    webhookRequest.SimulationId);
                 return result;
             }
-            catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException { ErrorCode: 10061 })
+            catch (HttpRequestException ex) when (ex.InnerException is SocketException { ErrorCode: 10061 })
             {
                 // Connection refused errors
-                _logger.LogError(ex, "Connection refused when registering webhook for simulation {SimulationId} at {BaseUrl}", 
+                _logger.LogError(ex,
+                    "Connection refused when registering webhook for simulation {SimulationId} at {BaseUrl}",
                     webhookRequest.SimulationId, _simulationOptions.BaseUrl);
-                
+
                 currentRetry++;
                 if (currentRetry < maxRetries)
                 {
@@ -524,18 +537,19 @@ public class MatchesController(
                     await Task.Delay(delayMs);
                     continue;
                 }
-                
+
                 return new ApiRegisterWebhookResponse
                 {
                     Message = "Failed to register webhook: connection refused",
-                    Detail = "The simulation service is unavailable. Please check if the service is running.",
+                    Detail = "The simulation service is unavailable. Please check if the service is running."
                 };
             }
             catch (TaskCanceledException ex)
             {
                 // Handle timeouts
-                _logger.LogError(ex, "Timeout when registering webhook for simulation {SimulationId}", webhookRequest.SimulationId);
-                
+                _logger.LogError(ex, "Timeout when registering webhook for simulation {SimulationId}",
+                    webhookRequest.SimulationId);
+
                 currentRetry++;
                 if (currentRetry < maxRetries)
                 {
@@ -543,31 +557,30 @@ public class MatchesController(
                     await Task.Delay(delayMs);
                     continue;
                 }
-                
+
                 return new ApiRegisterWebhookResponse
                 {
                     Message = "Failed to register webhook: request timeout",
-                    Detail = "The operation timed out. The simulation service might be overloaded.",
+                    Detail = "The operation timed out. The simulation service might be overloaded."
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error registering webhook for simulation {SimulationId}: {Message}", 
+                _logger.LogError(ex, "Error registering webhook for simulation {SimulationId}: {Message}",
                     webhookRequest.SimulationId, ex.Message);
-                
+
                 return new ApiRegisterWebhookResponse
                 {
                     Message = "Failed to register webhook",
-                    Detail = ex.Message,
+                    Detail = ex.Message
                 };
             }
-        }
-        
+
         // We should never reach here, but just in case
         return new ApiRegisterWebhookResponse
         {
             Message = "Failed to register webhook after maximum retries",
-            Detail = "The operation could not be completed after multiple attempts.",
+            Detail = "The operation could not be completed after multiple attempts."
         };
     }
 
@@ -588,13 +601,13 @@ public class MatchesController(
         // Base delay: 200ms
         // Max delay: 2000ms
         // Formula: min(maxDelay, baseDelay * 2^attempt) + random jitter
-    
+
         const int baseDelayMs = 200;
         const int maxDelayMs = 2000;
-    
+
         var exponentialDelay = Math.Min(maxDelayMs, baseDelayMs * Math.Pow(2, retryAttempt));
         var jitter = new Random().Next(0, 100); // Add up to 100ms of random jitter
-    
+
         return (int)exponentialDelay + jitter;
     }
 
@@ -738,7 +751,8 @@ public class MatchesController(
                     if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
                         httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
 
-                    var response = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}{payload.ResultUrl}", cancellationToken);
+                    var response = await httpClient.GetAsync($"{_simulationOptions.BaseUrl}{payload.ResultUrl}",
+                        cancellationToken);
                     if (response.IsSuccessStatusCode)
                     {
                         var simulationResult =
@@ -831,4 +845,3 @@ public class MatchesController(
         [JsonPropertyName("xgboost_loaded")] public bool XgboostLoaded { get; init; }
     }
 }
-

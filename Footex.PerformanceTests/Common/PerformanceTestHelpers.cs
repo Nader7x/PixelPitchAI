@@ -1,50 +1,44 @@
-using System;
-using System.Linq;
-using System.Net.Http; // Corrected: Using System.Net.Http.HttpResponseMessage
-using NBomber.Contracts;
-using NBomber.Http; // NBomber's HTTP response type
+using NBomber.Http;
+// Corrected: Using System.Net.Http.HttpResponseMessage
+
+// NBomber's HTTP response type
 
 namespace Footex.PerformanceTests.Common;
 
 public class PerformanceTestHelpers
 {
     // Corrected generic type to HttpResponseMessage
-    public static void AssertResponseSuccess(NBomber.Http.HttpResponse<HttpResponseMessage> response, string testName)
+    public static void AssertResponseSuccess(HttpResponse<HttpResponseMessage> response, string testName)
     {
         // Accessing IsSuccessStatusCode directly from the inner HttpResponseMessage
-        if (!response.Response.IsSuccessStatusCode) 
-        {
+        if (!response.Response.IsSuccessStatusCode)
             // Accessing StatusCode from the inner HttpResponseMessage
             throw new Exception($"{testName} failed with status code: {response.Response.StatusCode}");
-        }
     }
 
     // Corrected: Now takes elapsedMs as a parameter, as NBomber.Http.HttpResponse<T> doesn't expose it directly
     // when using WebApplicationFactory's client. You'll measure this with Stopwatch in your step.
     public static void AssertResponseTime(long elapsedMs, TimeSpan maxResponseTime, string testName)
     {
-        if (elapsedMs > maxResponseTime.TotalMilliseconds && maxResponseTime.TotalMilliseconds != 0) // Added check for 0 maxResponseTime
-        {
-            throw new Exception($"{testName} exceeded max response time: {elapsedMs}ms > {maxResponseTime.TotalMilliseconds}ms");
-        }
+        if (elapsedMs > maxResponseTime.TotalMilliseconds &&
+            maxResponseTime.TotalMilliseconds != 0) // Added check for 0 maxResponseTime
+            throw new Exception(
+                $"{testName} exceeded max response time: {elapsedMs}ms > {maxResponseTime.TotalMilliseconds}ms");
     }
 
     // Corrected generic type to HttpResponseMessage
-    public static void AssertCacheHeader(NBomber.Http.HttpResponse<HttpResponseMessage> response, bool expectedCacheHit, string testName)
+    public static void AssertCacheHeader(HttpResponse<HttpResponseMessage> response, bool expectedCacheHit,
+        string testName)
     {
         // Accessing Headers from the inner HttpResponseMessage
         var hasCacheHeader = response.Response.Headers.TryGetValues("X-Cache-Hit", out var cacheHeaderValue);
 
-        if (!hasCacheHeader)
-        {
-            throw new Exception($"{testName} missing cache header");
-        }
+        if (!hasCacheHeader) throw new Exception($"{testName} missing cache header");
 
-        var actualCacheHit = bool.Parse(cacheHeaderValue?.FirstOrDefault() ?? string.Empty); // Use FirstOrDefault for enumerable headers
+        var actualCacheHit =
+            bool.Parse(cacheHeaderValue?.FirstOrDefault() ?? string.Empty); // Use FirstOrDefault for enumerable headers
         if (actualCacheHit != expectedCacheHit)
-        {
             throw new Exception($"{testName} cache hit mismatch: expected {expectedCacheHit}, got {actualCacheHit}");
-        }
     }
 
     public static string[] GetRealisticSearchQueries()

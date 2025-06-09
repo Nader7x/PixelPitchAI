@@ -11,18 +11,18 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class UpdateUserCommandHandlerTests
 {
+    private readonly Fixture _fixture;
+    private readonly UpdateUserCommandHandler _handler;
+    private readonly Mock<IApplicationUserRepository> _mockApplicationUserRepository;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<IApplicationUserRepository> _mockApplicationUserRepository;
-    private readonly UpdateUserCommandHandler _handler;
-    private readonly Fixture _fixture;
 
     public UpdateUserCommandHandlerTests()
     {
         _fixture = new Fixture();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockApplicationUserRepository = new Mock<IApplicationUserRepository>();
-        
+
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -31,7 +31,7 @@ public class UpdateUserCommandHandlerTests
         // Setup UnitOfWork to return the mock repository
         _mockUnitOfWork.Setup(x => x.ApplicationUser)
             .Returns(_mockApplicationUserRepository.Object);
-        
+
         _handler = new UpdateUserCommandHandler(_mockUnitOfWork.Object, _mockUserManager.Object);
     }
 
@@ -144,7 +144,8 @@ public class UpdateUserCommandHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
 
-        _mockUserManager.Verify(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword), Times.Once);
+        _mockUserManager.Verify(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword),
+            Times.Once);
     }
 
     [Fact]
@@ -175,7 +176,9 @@ public class UpdateUserCommandHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
 
-        _mockUserManager.Verify(x => x.ChangePasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockUserManager.Verify(
+            x => x.ChangePasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -185,7 +188,7 @@ public class UpdateUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var originalFirstName = "OriginalFirst";
         var originalLastName = "OriginalLast";
-        
+
         var command = _fixture.Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "")
@@ -226,7 +229,7 @@ public class UpdateUserCommandHandlerTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var originalAge = 25;
-        
+
         var command = _fixture.Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.Age, 0)

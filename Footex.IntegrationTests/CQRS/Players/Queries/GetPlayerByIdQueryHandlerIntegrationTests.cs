@@ -1,7 +1,5 @@
 using Application.CQRS.Players.Queries;
-using Application.Mappers;
 using Domain.Interfaces;
-using Domain.Models;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -91,7 +89,6 @@ public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         Assert.Equal(player.Nationality, result.Player.Nationality);
         Assert.Equal(player.PreferredFoot, result.Player.PreferredFoot);
         Assert.Equal(player.PhotoUrl, result.Player.PhotoUrl);
-
     }
 
     [Fact]
@@ -199,6 +196,4 @@ public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-
-
 }

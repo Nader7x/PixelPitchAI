@@ -45,7 +45,8 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         await SeedTestDataAsync();
 
         // Act
-        var response = await _client.GetAsync("/api/players?nationality=England&preferredFoot=Right&pageNumber=1&pageSize=10");
+        var response =
+            await _client.GetAsync("/api/players?nationality=England&preferredFoot=Right&pageNumber=1&pageSize=10");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -103,7 +104,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
 
         // Act - First call
         var response1 = await _client.GetAsync($"/api/players/{playerId}");
-        
+
         // Act - Second call (should be cached)
         var response2 = await _client.GetAsync($"/api/players/{playerId}");
 
@@ -114,7 +115,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }
@@ -301,7 +302,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var player = TestData.CreateTestPlayer(team.Id);
             player.FullName = $"Player{i}";

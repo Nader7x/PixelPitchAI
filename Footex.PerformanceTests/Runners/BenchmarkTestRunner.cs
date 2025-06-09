@@ -1,5 +1,5 @@
-using Xunit;
 using Footex.PerformanceTests.Benchmarks;
+using Xunit;
 
 namespace Footex.PerformanceTests.Runners;
 

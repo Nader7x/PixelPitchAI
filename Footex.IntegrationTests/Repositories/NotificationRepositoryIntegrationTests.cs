@@ -28,7 +28,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
             Content = "Test notification content",
             Type = NotificationType.Info,
             IsRead = false,
-            Title = "Test Notification Title",
+            Title = "Test Notification Title"
         }; // Act
         var result = await _notificationRepository.AddAsync(notification);
         await Context.SaveChangesAsync();
@@ -77,9 +77,9 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var user1 = await SeedUserAsync();
         var user2 = await SeedUserAsync();
-        var notification1 = await SeedNotificationAsync(user1.Id, "Notification 1", NotificationType.Info);
+        var notification1 = await SeedNotificationAsync(user1.Id, "Notification 1");
         var notification2 = await SeedNotificationAsync(user1.Id, "Notification 2", NotificationType.MatchUpdate);
-        var notification3 = await SeedNotificationAsync(user2.Id, "Notification 3", NotificationType.Info);
+        var notification3 = await SeedNotificationAsync(user2.Id, "Notification 3");
 
         // Act
         var result = await _notificationRepository.GetNotificationsAsync(user1.Id);
@@ -97,9 +97,9 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var user = await SeedUserAsync();
-        var oldNotification = await SeedNotificationAsync(user.Id, "Old notification", NotificationType.Info);
+        var oldNotification = await SeedNotificationAsync(user.Id, "Old notification");
         await Task.Delay(100); // Ensure different timestamps
-        var newNotification = await SeedNotificationAsync(user.Id, "New notification", NotificationType.Info);
+        var newNotification = await SeedNotificationAsync(user.Id, "New notification");
 
         // Act
         var result = await _notificationRepository.GetNotificationsAsync(user.Id);
@@ -130,9 +130,9 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var user = await SeedUserAsync();
-        await SeedNotificationAsync(user.Id, "Unread 1", NotificationType.Info, isRead: false);
-        await SeedNotificationAsync(user.Id, "Unread 2", NotificationType.MatchUpdate, isRead: false);
-        await SeedNotificationAsync(user.Id, "Read 1", NotificationType.Info, isRead: true);
+        await SeedNotificationAsync(user.Id, "Unread 1");
+        await SeedNotificationAsync(user.Id, "Unread 2", NotificationType.MatchUpdate);
+        await SeedNotificationAsync(user.Id, "Read 1", NotificationType.Info, true);
 
         // Act
         var result = await _notificationRepository.GetUnreadNotificationsCountAsync(user.Id);
@@ -147,8 +147,8 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var user = await SeedUserAsync();
 
-        await SeedNotificationAsync(user.Id, "Read 1", NotificationType.Info, isRead: true);
-        await SeedNotificationAsync(user.Id, "Read 2", NotificationType.MatchUpdate, isRead: true);
+        await SeedNotificationAsync(user.Id, "Read 1", NotificationType.Info, true);
+        await SeedNotificationAsync(user.Id, "Read 2", NotificationType.MatchUpdate, true);
 
         // Act
         var result = await _notificationRepository.GetUnreadNotificationsCountAsync(user.Id);

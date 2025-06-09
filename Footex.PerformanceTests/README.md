@@ -96,20 +96,20 @@ dotnet run --project Footex.PerformanceTests --configuration Release all
 - Generated in test output folders: `stress-test-results/`, `spike-test-results/`, etc.
 - Formats: HTML (detailed analysis), CSV (data export)
 - Key Metrics:
-  - **RPS (Requests Per Second)**: Throughput measurement
-  - **Response Time**: P50, P75, P95, P99 percentiles
-  - **Error Rate**: Failed requests percentage
-  - **Data Transfer**: MB/s transferred
+    - **RPS (Requests Per Second)**: Throughput measurement
+    - **Response Time**: P50, P75, P95, P99 percentiles
+    - **Error Rate**: Failed requests percentage
+    - **Data Transfer**: MB/s transferred
 
 ### BenchmarkDotNet Reports
 
 - Generated in `BenchmarkDotNet.Artifacts/` folder
 - Formats: HTML, CSV, Markdown
 - Key Metrics:
-  - **Mean Execution Time**: Average response time
-  - **Memory Allocation**: Bytes allocated per operation
-  - **Standard Deviation**: Performance consistency
-  - **Baseline Comparisons**: Relative performance
+    - **Mean Execution Time**: Average response time
+    - **Memory Allocation**: Bytes allocated per operation
+    - **Standard Deviation**: Performance consistency
+    - **Baseline Comparisons**: Relative performance
 
 ## Performance Expectations
 

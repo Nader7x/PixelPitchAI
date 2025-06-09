@@ -58,7 +58,7 @@ public class LoginUserCommandHandler(
             // Update last login time
             user.LastLogin = DateTime.UtcNow;
             // Generate JWT token and refresh token
-            var (accessToken, refreshToken) = await tokenService.GenerateTokensAsync(user, request.IpAddress);
+            var (accessToken, refreshToken) = await tokenService.GenerateTokenAsync(user, request.IpAddress);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             // get usr roles
             var roles = await userRepository.GetUserRolesAsync(user);

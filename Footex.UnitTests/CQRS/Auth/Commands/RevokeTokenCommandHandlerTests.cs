@@ -9,17 +9,17 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class RevokeTokenCommandHandlerTests
 {
+    private readonly Fixture _fixture;
+    private readonly RevokeTokenCommandHandler _handler;
     private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-    private readonly RevokeTokenCommandHandler _handler;
-    private readonly Fixture _fixture;
 
     public RevokeTokenCommandHandlerTests()
     {
         _fixture = new Fixture();
         _mockTokenService = new Mock<ITokenService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
-        
+
         _handler = new RevokeTokenCommandHandler(_mockTokenService.Object, _mockUnitOfWork.Object);
     }
 

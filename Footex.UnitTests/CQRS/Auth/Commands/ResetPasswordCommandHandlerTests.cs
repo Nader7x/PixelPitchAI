@@ -11,21 +11,21 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class ResetPasswordCommandHandlerTests
 {
+    private readonly Fixture _fixture;
+    private readonly ResetPasswordCommandHandler _handler;
     private readonly Mock<IIdentityService> _mockIdentityService;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly ResetPasswordCommandHandler _handler;
-    private readonly Fixture _fixture;
 
     public ResetPasswordCommandHandlerTests()
     {
         _fixture = new Fixture();
         _mockIdentityService = new Mock<IIdentityService>();
-        
+
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null, null, null, null, null, null, null, null);
-        
+
         _handler = new ResetPasswordCommandHandler(_mockIdentityService.Object, _mockUserManager.Object);
     }
 
@@ -81,7 +81,9 @@ public class ResetPasswordCommandHandlerTests
         result.Error.Should().Be("Invalid email address.");
 
         _mockIdentityService.Verify(x => x.GetUserByEmailAsync(command.Email), Times.Once);
-        _mockUserManager.Verify(x => x.ResetPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockUserManager.Verify(
+            x => x.ResetPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -138,7 +140,8 @@ public class ResetPasswordCommandHandlerTests
         var identityErrors = new[]
         {
             new IdentityError { Code = "PasswordTooShort", Description = "Passwords must be at least 6 characters." },
-            new IdentityError { Code = "PasswordRequiresDigit", Description = "Passwords must have at least one digit." }
+            new IdentityError
+                { Code = "PasswordRequiresDigit", Description = "Passwords must have at least one digit." }
         };
 
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email))

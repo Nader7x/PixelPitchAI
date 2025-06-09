@@ -39,7 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="CQRS\Teams\Commands\" />
+        <Folder Include="CQRS\Teams\Commands\"/>
     </ItemGroup>
 
 </Project>

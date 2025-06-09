@@ -14,10 +14,12 @@ public class SeasonRepository(FootballDbContext context) : Repository<Season>(co
         return await _context.Seasons
             .FirstOrDefaultAsync(s => s.Name.ToLower() == name.ToLower());
     }
-    public async Task<Season?> GetByNameAsync(string name,CancellationToken cancellationToken)
+
+    public async Task<Season?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
         return await _context.Seasons
-            .FirstOrDefaultAsync(s => s.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase), cancellationToken);
+            .FirstOrDefaultAsync(s => s.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase),
+                cancellationToken);
     }
 
 

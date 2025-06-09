@@ -10,10 +10,10 @@ namespace Footex.IntegrationTests.CQRS.Matches.Commands;
 
 public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IServiceScope _scope;
-    private readonly IMediator _mediator;
     private readonly FootballDbContext _context;
+    private readonly FootexWebApplicationFactory _factory;
+    private readonly IMediator _mediator;
+    private readonly IServiceScope _scope;
 
     public UpdateMatchCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
     {
@@ -31,7 +31,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
         var awayTeam = TestData.CreateTestTeam();
         awayTeam.Name = "Away Team";
         awayTeam.ShortName = "AWT";
-        
+
         var season = TestData.CreateTestSeason();
 
         _context.Teams.AddRange(homeTeam, awayTeam);
@@ -153,7 +153,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
         var awayTeam = TestData.CreateTestTeam();
         awayTeam.Name = "Away Team";
         awayTeam.ShortName = "AWT";
-        
+
         var season = TestData.CreateTestSeason();
 
         _context.Teams.AddRange(homeTeam, awayTeam);
@@ -200,7 +200,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
         var awayTeam = TestData.CreateTestTeam();
         awayTeam.Name = "Away Team";
         awayTeam.ShortName = "AWT";
-        
+
         var season = TestData.CreateTestSeason();
 
         _context.Teams.AddRange(homeTeam, awayTeam);
@@ -257,7 +257,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
         var awayTeam = TestData.CreateTestTeam();
         awayTeam.Name = "Away Team";
         awayTeam.ShortName = "AWT";
-        
+
         var season = TestData.CreateTestSeason();
 
         _context.Teams.AddRange(homeTeam, awayTeam);

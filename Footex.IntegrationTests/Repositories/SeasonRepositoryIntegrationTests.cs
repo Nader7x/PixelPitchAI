@@ -3,7 +3,6 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -13,13 +12,14 @@ namespace Footex.IntegrationTests.Repositories;
 public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ISeasonRepository _seasonRepository;
-    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
 
     public SeasonRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
     {
         _seasonRepository = ServiceProvider.GetRequiredService<ISeasonRepository>();
     }
+
+    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     [Fact]
     public async Task GetByNameAsync_WithValidName_ReturnsSeason()
@@ -310,7 +310,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         season.Id.Should().BeGreaterThan(0);
-        
+
         var retrievedSeason = await _seasonRepository.GetByIdAsync(season.Id);
         retrievedSeason.Should().NotBeNull();
         retrievedSeason!.Name.Should().Be("New Season 2024-25");
@@ -393,7 +393,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var seasons = new List<Season>
         {
-            new Season
+            new()
             {
                 Name = "Season A",
                 Country = "England",
@@ -403,7 +403,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
                 IsActive = true,
                 CurrentRound = 15
             },
-            new Season
+            new()
             {
                 Name = "Season B",
                 Country = "Spain",
@@ -413,7 +413,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
                 IsActive = true,
                 CurrentRound = 12
             },
-            new Season
+            new()
             {
                 Name = "Season C",
                 Country = "Italy",
@@ -425,10 +425,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             }
         };
 
-        foreach (var season in seasons)
-        {
-            await _seasonRepository.AddAsync(season);
-        }
+        foreach (var season in seasons) await _seasonRepository.AddAsync(season);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -458,14 +455,14 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await UnitOfWork.BeginTransactionAsync();
-        
+
         await _seasonRepository.AddAsync(season);
         await UnitOfWork.SaveChangesAsync();
-        
+
         // Verify season exists within transaction
         var seasonInTransaction = await _seasonRepository.GetByNameAsync("Transaction Test Season");
         seasonInTransaction.Should().NotBeNull();
-        
+
         // Rollback
         await UnitOfWork.RollbackTransactionAsync();
 
@@ -501,7 +498,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         resultsLowerCase.Should().HaveCount(1);
         resultsUpperCase.Should().HaveCount(1);
         resultsMixedCase.Should().HaveCount(1);
-        
+
         resultsLowerCase.First().Name.Should().Be("Test Season");
         resultsUpperCase.First().Name.Should().Be("Test Season");
         resultsMixedCase.First().Name.Should().Be("Test Season");
@@ -534,7 +531,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         resultsLowerCase.Should().HaveCount(1);
         resultsUpperCase.Should().HaveCount(1);
         resultsMixedCase.Should().HaveCount(1);
-        
+
         resultsLowerCase.First().Name.Should().Be("Test Season");
         resultsUpperCase.First().Name.Should().Be("Test Season");
         resultsMixedCase.First().Name.Should().Be("Test Season");
@@ -587,13 +584,13 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         activeSeasons.Should().HaveCount(3);
-        
+
         // Should be ordered by CurrentRound descending
         var seasonsList = activeSeasons.ToList();
         seasonsList[0].CurrentRound.Should().Be(25);
         seasonsList[1].CurrentRound.Should().Be(15);
         seasonsList[2].CurrentRound.Should().Be(5);
-        
+
         seasonsList[0].Name.Should().Be("Season with Round 25");
         seasonsList[1].Name.Should().Be("Season with Round 15");
         seasonsList[2].Name.Should().Be("Season with Round 5");
@@ -642,7 +639,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.SaveChangesAsync();
 
         // Act - Find active seasons with CurrentRound > 10
-        var activeAdvancedSeasons = await _seasonRepository.GetAsync(s => 
+        var activeAdvancedSeasons = await _seasonRepository.GetAsync(s =>
             s.IsActive && s.CurrentRound > 10);
 
         // Assert

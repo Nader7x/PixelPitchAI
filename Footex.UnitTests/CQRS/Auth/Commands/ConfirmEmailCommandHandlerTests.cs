@@ -11,26 +11,26 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class ConfirmEmailCommandHandlerTests
 {
-    private readonly Mock<IApplicationUserRepository> _mockUserRepository;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<IIdentityService> _mockIdentityService;
-    private readonly ConfirmEmailCommandHandler _handler;
     private readonly Fixture _fixture;
+    private readonly ConfirmEmailCommandHandler _handler;
+    private readonly Mock<IIdentityService> _mockIdentityService;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<IApplicationUserRepository> _mockUserRepository;
 
     public ConfirmEmailCommandHandlerTests()
     {
         _fixture = new Fixture();
         _mockUserRepository = new Mock<IApplicationUserRepository>();
         _mockIdentityService = new Mock<IIdentityService>();
-        
+
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null, null, null, null, null, null, null, null);
-        
+
         _handler = new ConfirmEmailCommandHandler(
-            _mockUserRepository.Object, 
-            _mockIdentityService.Object, 
+            _mockUserRepository.Object,
+            _mockIdentityService.Object,
             _mockUserManager.Object);
     }
 

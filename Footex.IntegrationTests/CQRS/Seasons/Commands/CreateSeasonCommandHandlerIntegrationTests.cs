@@ -87,7 +87,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddDays(300),
             IsActive = true,
             LeagueName = "Premier League",
-            Country = "England",
+            Country = "England"
         };
         await _unitOfWork.Seasons.AddAsync(existingSeason);
         await _unitOfWork.SaveChangesAsync();
@@ -109,12 +109,12 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
         // Verify the business logic for handling multiple current seasons
         var newSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
         var existingSeasonUpdated = await _unitOfWork.Seasons.GetByIdAsync(existingSeason.Id);
-        
+
         // Either the new season is current and existing is not, or vice versa
         // The exact behavior depends on business requirements
         var currentSeasons = await _unitOfWork.Seasons.GetAllAsync();
         var activeCurrent = currentSeasons.Where(s => s.IsActive).ToList();
-        
+
         // Should have only one current season
         Assert.True(activeCurrent.Count <= 1, "Only one season should be current at a time");
     }
@@ -171,7 +171,8 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_LongSeasonName_CreatesSuccessfully()
     {
         // Arrange
-        var longName = "Very Long Season Name That Exceeds Normal Length But Should Still Be Valid For Database Storage";
+        var longName =
+            "Very Long Season Name That Exceeds Normal Length But Should Still Be Valid For Database Storage";
         var command = new CreateSeasonCommand
         {
             Name = longName,
@@ -197,9 +198,21 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
         // Arrange
         var commands = new[]
         {
-            new CreateSeasonCommand { Name = "Season 1", StartDate = new DateTime(2024, 1, 1), EndDate = new DateTime(2024, 12, 31), IsActive = false },
-            new CreateSeasonCommand { Name = "Season 2", StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2025, 12, 31), IsActive = false },
-            new CreateSeasonCommand { Name = "Season 3", StartDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 12, 31), IsActive = true }
+            new CreateSeasonCommand
+            {
+                Name = "Season 1", StartDate = new DateTime(2024, 1, 1), EndDate = new DateTime(2024, 12, 31),
+                IsActive = false
+            },
+            new CreateSeasonCommand
+            {
+                Name = "Season 2", StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2025, 12, 31),
+                IsActive = false
+            },
+            new CreateSeasonCommand
+            {
+                Name = "Season 3", StartDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 12, 31),
+                IsActive = true
+            }
         };
 
         var results = new List<CreateSeasonCommandResponse>();

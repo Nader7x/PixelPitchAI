@@ -1,8 +1,6 @@
+using Footex.IntegrationTests.Common;
 using NBomber.CSharp;
 using NBomber.Http.CSharp;
-using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Footex.IntegrationTests.Common;
 using Xunit;
 
 namespace Footex.PerformanceTests.LoadTests;
@@ -22,17 +20,17 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetAllMatches_LoadTest()
     {
         var scenario = Scenario.Create("get_all_matches", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/matches")
-                .WithHeader("Accept", "application/json");
+            {
+                var request = Http.CreateRequest("GET", "/api/matches")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 5, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(5, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -43,19 +41,19 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetMatchById_LoadTest()
     {
         var scenario = Scenario.Create("get_match_by_id", async context =>
-        {
-            // Use random IDs between 1-100 to simulate different matches
-            var matchId = Random.Shared.Next(1, 101);
-            var request = Http.CreateRequest("GET", $"/api/matches/{matchId}")
-                .WithHeader("Accept", "application/json");
+            {
+                // Use random IDs between 1-100 to simulate different matches
+                var matchId = Random.Shared.Next(1, 101);
+                var request = Http.CreateRequest("GET", $"/api/matches/{matchId}")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 15, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 8, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(15, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(8, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -66,17 +64,17 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetAllPlayers_LoadTest()
     {
         var scenario = Scenario.Create("get_all_players", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/players")
-                .WithHeader("Accept", "application/json");
+            {
+                var request = Http.CreateRequest("GET", "/api/players")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 12, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 6, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(12, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(6, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -87,18 +85,18 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetPlayerById_LoadTest()
     {
         var scenario = Scenario.Create("get_player_by_id", async context =>
-        {
-            var playerId = Random.Shared.Next(1, 101);
-            var request = Http.CreateRequest("GET", $"/api/players/{playerId}")
-                .WithHeader("Accept", "application/json");
+            {
+                var playerId = Random.Shared.Next(1, 101);
+                var request = Http.CreateRequest("GET", $"/api/players/{playerId}")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 20, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 10, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -109,17 +107,17 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetAllTeams_LoadTest()
     {
         var scenario = Scenario.Create("get_all_teams", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/teams")
-                .WithHeader("Accept", "application/json");
+            {
+                var request = Http.CreateRequest("GET", "/api/teams")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 8, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 4, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(4, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -130,17 +128,17 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void GetAllStadiums_LoadTest()
     {
         var scenario = Scenario.Create("get_all_stadiums", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/stadiums")
-                .WithHeader("Accept", "application/json");
+            {
+                var request = Http.CreateRequest("GET", "/api/stadiums")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 5, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 3, during: TimeSpan.FromMinutes(2))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(3, TimeSpan.FromMinutes(2))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -151,20 +149,20 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void SearchEndpoints_LoadTest()
     {
         var searchQueries = new[] { "manchester", "liverpool", "barcelona", "madrid", "juventus" };
-        
-        var scenario = Scenario.Create("search_players", async context =>
-        {
-            var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
-            var request = Http.CreateRequest("GET", $"/api/search/players?query={query}&limit=10")
-                .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 5, during: TimeSpan.FromMinutes(1))
-        );
+        var scenario = Scenario.Create("search_players", async context =>
+            {
+                var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                var request = Http.CreateRequest("GET", $"/api/search/players?query={query}&limit=10")
+                    .WithHeader("Accept", "application/json");
+
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(5, TimeSpan.FromMinutes(1))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -175,17 +173,17 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void HealthCheck_LoadTest()
     {
         var scenario = Scenario.Create("health_check", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/health")
-                .WithHeader("Accept", "application/json");
+            {
+                var request = Http.CreateRequest("GET", "/api/health")
+                    .WithHeader("Accept", "application/json");
 
-            var response = await Http.Send(_httpClient, request);
-            return response;
-        })
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-            Simulation.KeepConstant(copies: 20, during: TimeSpan.FromMinutes(1))
-        );
+                var response = await Http.Send(_httpClient, request);
+                return response;
+            })
+            .WithLoadSimulations(
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(20, TimeSpan.FromMinutes(1))
+            );
 
         NBomberRunner
             .RegisterScenarios(scenario)
@@ -196,43 +194,43 @@ public class ApiLoadTests : IClassFixture<FootexWebApplicationFactory>
     public void MixedWorkload_LoadTest()
     {
         var matchesScenario = Scenario.Create("mixed_matches", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/matches")
-                .WithHeader("Accept", "application/json");
-            return await Http.Send(_httpClient, request);
-        })
-        .WithWeight(30)
-        .WithLoadSimulations(Simulation.KeepConstant(copies: 5, during: TimeSpan.FromMinutes(3)));
+            {
+                var request = Http.CreateRequest("GET", "/api/matches")
+                    .WithHeader("Accept", "application/json");
+                return await Http.Send(_httpClient, request);
+            })
+            .WithWeight(30)
+            .WithLoadSimulations(Simulation.KeepConstant(5, TimeSpan.FromMinutes(3)));
 
         var playersScenario = Scenario.Create("mixed_players", async context =>
-        {
-            var playerId = Random.Shared.Next(1, 101);
-            var request = Http.CreateRequest("GET", $"/api/players/{playerId}")
-                .WithHeader("Accept", "application/json");
-            return await Http.Send(_httpClient, request);
-        })
-        .WithWeight(40)
-        .WithLoadSimulations(Simulation.KeepConstant(copies: 8, during: TimeSpan.FromMinutes(3)));
+            {
+                var playerId = Random.Shared.Next(1, 101);
+                var request = Http.CreateRequest("GET", $"/api/players/{playerId}")
+                    .WithHeader("Accept", "application/json");
+                return await Http.Send(_httpClient, request);
+            })
+            .WithWeight(40)
+            .WithLoadSimulations(Simulation.KeepConstant(8, TimeSpan.FromMinutes(3)));
 
         var teamsScenario = Scenario.Create("mixed_teams", async context =>
-        {
-            var request = Http.CreateRequest("GET", "/api/teams")
-                .WithHeader("Accept", "application/json");
-            return await Http.Send(_httpClient, request);
-        })
-        .WithWeight(20)
-        .WithLoadSimulations(Simulation.KeepConstant(copies: 3, during: TimeSpan.FromMinutes(3)));
+            {
+                var request = Http.CreateRequest("GET", "/api/teams")
+                    .WithHeader("Accept", "application/json");
+                return await Http.Send(_httpClient, request);
+            })
+            .WithWeight(20)
+            .WithLoadSimulations(Simulation.KeepConstant(3, TimeSpan.FromMinutes(3)));
 
         var searchScenario = Scenario.Create("mixed_search", async context =>
-        {
-            var queries = new[] { "manchester", "liverpool", "barcelona" };
-            var query = queries[Random.Shared.Next(queries.Length)];
-            var request = Http.CreateRequest("GET", $"/api/search/players?query={query}")
-                .WithHeader("Accept", "application/json");
-            return await Http.Send(_httpClient, request);
-        })
-        .WithWeight(10)
-        .WithLoadSimulations(Simulation.KeepConstant(copies: 2, during: TimeSpan.FromMinutes(3)));
+            {
+                var queries = new[] { "manchester", "liverpool", "barcelona" };
+                var query = queries[Random.Shared.Next(queries.Length)];
+                var request = Http.CreateRequest("GET", $"/api/search/players?query={query}")
+                    .WithHeader("Accept", "application/json");
+                return await Http.Send(_httpClient, request);
+            })
+            .WithWeight(10)
+            .WithLoadSimulations(Simulation.KeepConstant(2, TimeSpan.FromMinutes(3)));
 
         NBomberRunner
             .RegisterScenarios(matchesScenario, playersScenario, teamsScenario, searchScenario)

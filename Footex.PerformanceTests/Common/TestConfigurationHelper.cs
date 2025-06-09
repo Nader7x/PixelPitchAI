@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Footex.PerformanceTests.Common;
 
 namespace Footex.PerformanceTests.Common;
 
@@ -15,13 +14,11 @@ public static class TestConfigurationHelper
         get
         {
             if (_configuration == null)
-            {
                 _configuration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddJsonFile("appsettings.json", false, true)
                     .AddEnvironmentVariables()
                     .Build();
-            }
             return _configuration;
         }
     }
@@ -35,6 +32,7 @@ public static class TestConfigurationHelper
                 _settings = new PerformanceTestSettings();
                 Configuration.GetSection(PerformanceTestSettings.SectionName).Bind(_settings);
             }
+
             return _settings;
         }
     }
@@ -42,11 +40,11 @@ public static class TestConfigurationHelper
     public static IServiceProvider CreateServiceProvider()
     {
         var services = new ServiceCollection();
-        
+
         // Add configuration
         services.AddSingleton(Configuration);
         services.AddSingleton(Settings);
-        
+
         // Add logging
         services.AddLogging(builder =>
         {
@@ -59,10 +57,7 @@ public static class TestConfigurationHelper
 
     public static void EnsureDirectoryExists(string path)
     {
-        if (!Directory.Exists(path))
-        {
-            Directory.CreateDirectory(path);
-        }
+        if (!Directory.Exists(path)) Directory.CreateDirectory(path);
     }
 
     public static string GetResultsDirectory(string testType)

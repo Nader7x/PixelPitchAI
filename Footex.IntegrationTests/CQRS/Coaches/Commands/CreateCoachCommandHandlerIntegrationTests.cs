@@ -1,5 +1,4 @@
 using Application.CQRS.Coaches.Commands;
-using Application.Mappers;
 using Domain.Interfaces;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +27,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var command = new CreateCoachCommand
         {
-            FirstName= "Pep Guardiola",
+            FirstName = "Pep Guardiola",
             DateOfBirth = new DateTime(1971, 1, 18),
             Nationality = "Spanish",
             Role = "Head Coach",
@@ -70,7 +69,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var command = new CreateCoachCommand
         {
-            FirstName= "Mikel Arteta",
+            FirstName = "Mikel Arteta",
             TeamId = team.Id
         };
 
@@ -100,7 +99,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var command = new CreateCoachCommand
         {
-            FirstName= "Jürgen Klopp",
+            FirstName = "Jürgen Klopp",
             DateOfBirth = new DateTime(1967, 6, 16),
             Nationality = "German",
             Role = "Manager",
@@ -109,7 +108,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
             PreferredFormation = "4-3-3",
             CoachingStyle = "Gegenpressing",
             Biography = "Former Borussia Dortmund and Liverpool manager",
-            YearsOfExperience = 25,
+            YearsOfExperience = 25
         };
 
         // Act
@@ -131,7 +130,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         var nonExistentTeamId = -1;
         var command = new CreateCoachCommand
         {
-            FirstName= "Test Coach",
+            FirstName = "Test Coach",
             TeamId = nonExistentTeamId
         };
 
@@ -151,7 +150,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         // Arrange
         var command = new CreateCoachCommand
         {
-            FirstName= "Free Agent Coach",
+            FirstName = "Free Agent Coach",
             Nationality = "English",
             Role = "Assistant Coach"
             // No TeamId provided
@@ -184,7 +183,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var command = new CreateCoachCommand
         {
-            FirstName= "Young Coach",
+            FirstName = "Young Coach",
             DateOfBirth = new DateTime(1995, 5, 15), // Young coach
             TeamId = team.Id,
             Role = "Assistant Coach",
@@ -213,11 +212,11 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var command = new CreateCoachCommand
         {
-            FirstName= "Veteran Coach",
+            FirstName = "Veteran Coach",
             DateOfBirth = new DateTime(1950, 3, 10), // Experienced coach
             TeamId = team.Id,
             Role = "Head Coach",
-            YearsOfExperience = 45,
+            YearsOfExperience = 45
         };
 
         // Act
@@ -242,9 +241,9 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var commands = new[]
         {
-            new CreateCoachCommand { FirstName= "Head Coach", Role = "Head Coach", TeamId = team.Id },
-            new CreateCoachCommand { FirstName= "Assistant Coach 1", Role = "Assistant Coach", TeamId = team.Id },
-            new CreateCoachCommand { FirstName= "Assistant Coach 2", Role = "Assistant Coach", TeamId = team.Id }
+            new CreateCoachCommand { FirstName = "Head Coach", Role = "Head Coach", TeamId = team.Id },
+            new CreateCoachCommand { FirstName = "Assistant Coach 1", Role = "Assistant Coach", TeamId = team.Id },
+            new CreateCoachCommand { FirstName = "Assistant Coach 2", Role = "Assistant Coach", TeamId = team.Id }
         };
 
         var results = new List<CreateCoachCommandResponse>();
@@ -275,7 +274,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         // Arrange
         var command = new CreateCoachCommand
         {
-            FirstName= "Test Coach",
+            FirstName = "Test Coach",
             Role = "Head Coach"
         };
 
@@ -296,5 +295,4 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-    
 }

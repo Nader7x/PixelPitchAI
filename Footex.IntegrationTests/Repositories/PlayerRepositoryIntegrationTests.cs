@@ -3,7 +3,6 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -13,12 +12,13 @@ namespace Footex.IntegrationTests.Repositories;
 public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IPlayerRepository _playerRepository;
-    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     public PlayerRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
     {
         _playerRepository = ServiceProvider.GetRequiredService<IPlayerRepository>();
     }
+
+    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     [Fact]
     public async Task GetByFullNameAsync_WithValidName_ReturnsPlayer()
@@ -190,7 +190,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         rightFootedResult.Should().HaveCount(2);
         rightFootedResult.All(p => p.PreferredFoot == "Right").Should().BeTrue();
-        
+
         leftFootedResult.Should().HaveCount(1);
         leftFootedResult.First().PreferredFoot.Should().Be("Left");
         leftFootedResult.First().FullName.Should().Be("Left Footed Player");
@@ -399,13 +399,13 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Act
         await UnitOfWork.Teams.AddAsync(team);
         await UnitOfWork.SaveChangesAsync();
-        
+
         await _playerRepository.AddAsync(player);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
         player.Id.Should().BeGreaterThan(0);
-        
+
         var retrievedPlayer = await _playerRepository.GetByIdAsync(player.Id);
         retrievedPlayer.Should().NotBeNull();
         retrievedPlayer!.FullName.Should().Be("New Player");
@@ -446,7 +446,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         player.FullName = "Updated Name";
         player.Position = "Midfielder";
         player.ShirtNumber = 10;
-        
+
         _playerRepository.UpdateAsync(player);
         await UnitOfWork.SaveChangesAsync();
 
@@ -506,8 +506,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         // Create 5 players
         var players = new List<Player>();
-        for (int i = 1; i <= 5; i++)
-        {
+        for (var i = 1; i <= 5; i++)
             players.Add(new Player
             {
                 FullName = $"Player {i}",
@@ -515,13 +514,9 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
                 ShirtNumber = i,
                 Team = team
             });
-        }
 
         await UnitOfWork.Teams.AddAsync(team);
-        foreach (var player in players)
-        {
-            await UnitOfWork.Players.AddAsync(player);
-        }
+        foreach (var player in players) await UnitOfWork.Players.AddAsync(player);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -557,14 +552,14 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await UnitOfWork.BeginTransactionAsync();
-        
+
         await _playerRepository.AddAsync(player);
         await UnitOfWork.SaveChangesAsync();
-        
+
         // Verify player exists within transaction
         var playerInTransaction = await _playerRepository.GetByFullNameAsync("Transaction Test Player");
         playerInTransaction.Should().NotBeNull();
-        
+
         // Rollback
         await UnitOfWork.RollbackTransactionAsync();
 

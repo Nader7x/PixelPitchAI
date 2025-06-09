@@ -17,13 +17,40 @@ public static class TestData
     private static readonly Guid _sampleStadiumId = Guid.Parse("b23a3d3c-a434-4ba5-9f7a-059d041f55b3");
     private static readonly Guid _sampleCoachId = Guid.Parse("afc65e75-d452-4a17-94f6-c3abcd92a4b1");
 
-    public static Guid GetSampleMatchId() => _sampleMatchId;
-    public static Guid GetLiveMatchId() => _liveMatchId;
-    public static Guid GetSampleTeamId() => _sampleTeamId;
-    public static Guid GetSamplePlayerId() => _samplePlayerId;
-    public static Guid GetSampleSeasonId() => _sampleSeasonId;
-    public static Guid GetSampleStadiumId() => _sampleStadiumId;
-    public static Guid GetSampleCoachId() => _sampleCoachId;
+    public static Guid GetSampleMatchId()
+    {
+        return _sampleMatchId;
+    }
+
+    public static Guid GetLiveMatchId()
+    {
+        return _liveMatchId;
+    }
+
+    public static Guid GetSampleTeamId()
+    {
+        return _sampleTeamId;
+    }
+
+    public static Guid GetSamplePlayerId()
+    {
+        return _samplePlayerId;
+    }
+
+    public static Guid GetSampleSeasonId()
+    {
+        return _sampleSeasonId;
+    }
+
+    public static Guid GetSampleStadiumId()
+    {
+        return _sampleStadiumId;
+    }
+
+    public static Guid GetSampleCoachId()
+    {
+        return _sampleCoachId;
+    }
 
     public static Team CreateTeam(string name)
     {
@@ -32,7 +59,7 @@ public static class TestData
             Id = 1,
             Name = name,
             Country = "Testland",
-            FoundationDate = new DateTime(1900, 1, 1),
+            FoundationDate = new DateTime(1900, 1, 1)
         };
     }
 
@@ -42,7 +69,7 @@ public static class TestData
         {
             Id = 0,
             FullName = player,
-            TeamId = teamId,
+            TeamId = teamId
         };
     }
 
@@ -52,7 +79,7 @@ public static class TestData
         {
             Id = 0,
             FirstName = headCoach,
-            TeamId = teamId,
+            TeamId = teamId
         };
     }
 
@@ -64,7 +91,7 @@ public static class TestData
             Name = "Test Team",
             ShortName = "TT",
             Country = "Testland",
-            FoundationDate = new DateTime(1900, 1, 1),
+            FoundationDate = new DateTime(1900, 1, 1)
         };
     }
 
@@ -81,7 +108,7 @@ public static class TestData
                 1,
                 1),
             LeagueName = "Test League",
-            Country = "Testland",
+            Country = "Testland"
         };
     }
 
@@ -92,7 +119,7 @@ public static class TestData
             Id = 0,
             Name = "Test Stadium",
             Capacity = 50000,
-            Country = "Testland",
+            Country = "Testland"
         };
     }
 
@@ -102,7 +129,7 @@ public static class TestData
         {
             Id = 0,
             SeasonId = seasonId,
-            TeamId = homeTeamId,
+            TeamId = homeTeamId
         };
     }
 
@@ -113,7 +140,7 @@ public static class TestData
             Id = 0,
             FirstName = "Test",
             LastName = "Coach",
-            TeamId = homeTeamId,
+            TeamId = homeTeamId
         };
     }
 
@@ -204,7 +231,7 @@ public static class TestData
             AwayCoach = null,
             CreatorId = "test_creator",
             SimulationId = null,
-            MatchEvents = null,
+            MatchEvents = null
         };
     }
 
@@ -220,7 +247,7 @@ public static class TestData
             PreferredFoot = "Right",
             TeamId = 0,
             PhotoUrl = "http://example.com/photo.jpg",
-            Position = nameof(PlayerPosition.CentralMidfielder),
+            Position = nameof(PlayerPosition.CentralMidfielder)
         };
     }
 
@@ -267,7 +294,7 @@ public static class TestData
         dbContext.Teams.Add(team);
         await dbContext.SaveChangesAsync();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var player = new Player
             {
@@ -297,7 +324,7 @@ public static class TestData
         dbContext.Teams.Add(team);
         await dbContext.SaveChangesAsync();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var player = new Player
             {
@@ -321,7 +348,7 @@ public static class TestData
         using var scope = scopeServiceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var player = new Player
             {
@@ -350,7 +377,7 @@ public static class TestData
             Type = NotificationType.MatchUpdate,
             Time = default,
             IsRead = false,
-            Title = "Test Match Update",
+            Title = "Test Match Update"
         };
     }
 
@@ -365,7 +392,7 @@ public static class TestData
             PhoneNumber = "1234567890",
             PhoneNumberConfirmed = true,
             FirstName = "Test",
-            LastName = "User",
+            LastName = "User"
         };
     }
 
@@ -379,7 +406,7 @@ public static class TestData
             EndDate = DateTime.UtcNow.AddMonths(9),
             LeagueName = leagueName,
             Country = "Testland",
-            IsActive = true,
+            IsActive = true
         };
     }
 
@@ -395,8 +422,7 @@ public static class TestData
             BuiltDate = null,
             Description = null,
             ImageUrl = null,
-            SurfaceType = null,
+            SurfaceType = null
         };
     }
-
 }

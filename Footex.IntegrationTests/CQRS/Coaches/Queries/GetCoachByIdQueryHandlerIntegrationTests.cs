@@ -1,5 +1,4 @@
 using Application.CQRS.Coaches.Queries;
-using Application.Mappers;
 using Domain.Interfaces;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -275,7 +274,7 @@ public class GetCoachByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var query = new GetCoachByIdQuery { Id = -1 };
-        
+
         // Dispose context to simulate database error
         await DisposeContext();
 
@@ -294,5 +293,4 @@ public class GetCoachByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-    
 }

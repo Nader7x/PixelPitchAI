@@ -13,25 +13,25 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class ForgotPasswordCommandHandlerTests
 {
-    private readonly Mock<IIdentityService> _mockIdentityService;
-    private readonly Mock<IEmailService> _mockEmailService;
-    private readonly Mock<IConfiguration> _mockConfiguration;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly ForgotPasswordCommandHandler _handler;
     private readonly Fixture _fixture;
+    private readonly ForgotPasswordCommandHandler _handler;
+    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IEmailService> _mockEmailService;
+    private readonly Mock<IIdentityService> _mockIdentityService;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public ForgotPasswordCommandHandlerTests()
     {
         _mockIdentityService = new Mock<IIdentityService>();
         _mockEmailService = new Mock<IEmailService>();
         _mockConfiguration = new Mock<IConfiguration>();
-        
+
         var userStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStore.Object, null, null, null, null, null, null, null, null);
-        
+
         _fixture = new Fixture();
-        
+
         _handler = new ForgotPasswordCommandHandler(
             _mockIdentityService.Object,
             _mockEmailService.Object,
@@ -50,13 +50,13 @@ public class ForgotPasswordCommandHandlerTests
 
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserManager.Setup(x => x.IsEmailConfirmedAsync(user))
             .ReturnsAsync(true);
-        
+
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user))
             .ReturnsAsync(resetToken);
-        
+
         _mockConfiguration.Setup(x => x["AppUrl"])
             .Returns(appUrl);
 
@@ -67,7 +67,7 @@ public class ForgotPasswordCommandHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
-        
+
         _mockEmailService.Verify(x => x.SendEmailAsync(
             user.Email,
             "Reset Your Password",
@@ -90,7 +90,7 @@ public class ForgotPasswordCommandHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue(); // Don't reveal user doesn't exist
         result.Error.Should().BeNull();
-        
+
         _mockEmailService.Verify(x => x.SendEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -104,7 +104,7 @@ public class ForgotPasswordCommandHandlerTests
 
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserManager.Setup(x => x.IsEmailConfirmedAsync(user))
             .ReturnsAsync(false);
 
@@ -130,18 +130,18 @@ public class ForgotPasswordCommandHandlerTests
         };
         var resetToken = "reset-token-123";
         var appUrl = "https://test-app.com";
-        
+
         string capturedEmailBody = null;
 
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserManager.Setup(x => x.IsEmailConfirmedAsync(user))
             .ReturnsAsync(true);
-        
+
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user))
             .ReturnsAsync(resetToken);
-        
+
         _mockConfiguration.Setup(x => x["AppUrl"])
             .Returns(appUrl);
 

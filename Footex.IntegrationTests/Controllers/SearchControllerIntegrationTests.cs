@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Application.DTOs;
 using Application.Interfaces;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
@@ -155,10 +154,10 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
 
         var content = await response.Content.ReadAsStringAsync();
         var jsonDoc = JsonDocument.Parse(content);
-        
+
         jsonDoc.RootElement.TryGetProperty("results", out var results);
         results.ValueKind.Should().Be(JsonValueKind.Array);
-        
+
         jsonDoc.RootElement.TryGetProperty("totalCount", out var totalCount);
         totalCount.GetInt32().Should().BeGreaterOrEqualTo(0);
     }
@@ -172,14 +171,15 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var entityTypes = "Team,Player";
 
         // Act
-        var response = await _client.GetAsync($"/api/search/unified?query={query}&entityTypes={entityTypes}&page=1&pageSize=10");
+        var response =
+            await _client.GetAsync($"/api/search/unified?query={query}&entityTypes={entityTypes}&page=1&pageSize=10");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
         var jsonDoc = JsonDocument.Parse(content);
-        
+
         jsonDoc.RootElement.TryGetProperty("results", out var results);
         results.ValueKind.Should().Be(JsonValueKind.Array);
     }
@@ -217,7 +217,7 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
 
         var content = await response.Content.ReadAsStringAsync();
         var jsonDoc = JsonDocument.Parse(content);
-        
+
         jsonDoc.RootElement.TryGetProperty("results", out var results);
         results.ValueKind.Should().Be(JsonValueKind.Array);
     }
@@ -237,13 +237,13 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
 
         var content = await response.Content.ReadAsStringAsync();
         var jsonDoc = JsonDocument.Parse(content);
-        
+
         // Should contain results from multiple entity types
         jsonDoc.RootElement.TryGetProperty("teams", out var teams);
         jsonDoc.RootElement.TryGetProperty("players", out var players);
         jsonDoc.RootElement.TryGetProperty("coaches", out var coaches);
         jsonDoc.RootElement.TryGetProperty("stadiums", out var stadiums);
-        
+
         teams.ValueKind.Should().Be(JsonValueKind.Array);
         players.ValueKind.Should().Be(JsonValueKind.Array);
         coaches.ValueKind.Should().Be(JsonValueKind.Array);
@@ -283,10 +283,10 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
 
         var content = await response.Content.ReadAsStringAsync();
         var jsonDoc = JsonDocument.Parse(content);
-        
+
         jsonDoc.RootElement.TryGetProperty("results", out var results);
         results.GetArrayLength().Should().BeLessOrEqualTo(5);
-        
+
         jsonDoc.RootElement.TryGetProperty("pageSize", out var pageSize);
         pageSize.GetInt32().Should().Be(5);
     }
@@ -348,13 +348,13 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         homeTeam.Name = "Home Team";
         var awayTeam = TestData.CreateTestTeam();
         awayTeam.Name = "Away Team";
-        
+
         context.Teams.AddRange(homeTeam, awayTeam);
         await context.SaveChangesAsync();
 
         var match = TestData.CreateTestMatch(homeTeam.Id, awayTeam.Id);
         context.Matches.Add(match);
-        
+
         await context.SaveChangesAsync();
     }
 
@@ -364,7 +364,7 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
 
         // Create multiple teams for pagination testing
-        for (int i = 1; i <= 10; i++)
+        for (var i = 1; i <= 10; i++)
         {
             var team = TestData.CreateTestTeam();
             team.Name = $"Test Team {i}";

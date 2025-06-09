@@ -1,5 +1,4 @@
 using Application.CQRS.Players.Queries;
-using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using MediatR;
@@ -205,7 +204,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         result.Succeeded.Should().BeTrue();
         result.Players.Should().NotBeNull();
         result.Players!.Count.Should().BeGreaterThan(0);
-        
+
         // Should filter by nationality only (highest priority)
         result.Players.All(p => p.Nationality == testNationality).Should().BeTrue();
         result.Error.Should().BeNull();

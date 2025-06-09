@@ -6,8 +6,8 @@ namespace Domain.Models;
 public class Notification
 {
     [Key] [MaxLength(255)] public string Id { get; init; }
-    [MaxLength(255)]
-    public required string Title { get; set; }
+
+    [MaxLength(255)] public required string Title { get; set; }
 
     [MaxLength(512)] public required string Content { get; set; }
 

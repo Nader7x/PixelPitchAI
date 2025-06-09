@@ -15,13 +15,13 @@ public class MatchHub : Hub<IMatchHub>
         return base.OnConnectedAsync();
     }
 
-    public async Task JoinMatchGroup(int matchId )
+    public async Task JoinMatchGroup(int matchId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
         await Clients.Caller.SendAsync("JoinedMatchGroup", $"Joined Match {matchId.ToString()}");
     }
 
-    public async Task LeaveMatchGroup(int matchId )
+    public async Task LeaveMatchGroup(int matchId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
         await Clients.Caller.SendAsync("LeftMatchGroup", $"Left Match {matchId.ToString()}");

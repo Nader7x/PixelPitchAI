@@ -1,8 +1,8 @@
+using System.Text.Json;
 using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -108,9 +108,9 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         matchEvents.GoalsHomeTeam = updatedGoalsHome;
         matchEvents.GoalsAwayTeam = updatedGoalsAway;
         matchEvents.TotalEvents = updatedTotalEvents;
-        var entityEntry =  _repository.UpdateAsync(matchEvents);
+        var entityEntry = _repository.UpdateAsync(matchEvents);
 
-        var result =  entityEntry.Entity;
+        var result = entityEntry.Entity;
 
         // Assert
         result.Should().NotBeNull();
@@ -128,7 +128,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var matchEvents = matchEventsEntity.Entity;
 
         // Act
-         _repository.DeleteAsync(matchEvents);
+        _repository.DeleteAsync(matchEvents);
 
         // Assert
         var deletedMatchEvents = await _repository.GetByIdAsync(matchEvents.Id);
@@ -189,7 +189,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         result.Should().NotBeNull();
         result.EventsJson.Should().NotBeNullOrEmpty();
-        
+
         var deserializedEvents = result.GetEvents<object[]>();
         deserializedEvents.Should().NotBeNull();
         deserializedEvents.Should().HaveCount(3);
@@ -209,7 +209,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         matchEvents.SetEvents(newEvents);
-        var entityEntry =  _repository.UpdateAsync(matchEvents);
+        var entityEntry = _repository.UpdateAsync(matchEvents);
 
         var result = entityEntry.Entity;
 
@@ -316,7 +316,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         var match = await SeedMatchAsync();
         var matchEvents = CreateValidMatchEvents(match.Id);
-        
+
         return await _repository.AddAsync(matchEvents);
     }
 
@@ -379,12 +379,12 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             MatchStatus = "Scheduled",
             HomeTeamScore = 0,
             AwayTeamScore = 0,
-            CreatorId = "test-creator-id",
+            CreatorId = "test-creator-id"
         };
 
         Context.Matches.Add(match);
         await Context.SaveChangesAsync();
-        
+
         return match;
     }
 
@@ -400,7 +400,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 
         Context.Teams.Add(team);
         await Context.SaveChangesAsync();
-        
+
         return team;
     }
 
@@ -413,12 +413,12 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddMonths(6),
             IsActive = true,
             LeagueName = "Test League",
-            Country = "Test Country",
+            Country = "Test Country"
         };
 
         Context.Seasons.Add(season);
         await Context.SaveChangesAsync();
-        
+
         return season;
     }
 }

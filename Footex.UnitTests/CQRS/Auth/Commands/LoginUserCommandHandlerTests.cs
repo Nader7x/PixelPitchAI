@@ -4,7 +4,6 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
-using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Xunit;
 
@@ -12,12 +11,12 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class LoginUserCommandHandlerTests
 {
-    private readonly Mock<IApplicationUserRepository> _mockUserRepository;
+    private readonly Fixture _fixture;
+    private readonly LoginUserCommandHandler _handler;
     private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<UserMapper> _mockUserMapper;
-    private readonly LoginUserCommandHandler _handler;
-    private readonly Fixture _fixture;
+    private readonly Mock<IApplicationUserRepository> _mockUserRepository;
 
     public LoginUserCommandHandlerTests()
     {
@@ -26,7 +25,7 @@ public class LoginUserCommandHandlerTests
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockUserMapper = new Mock<UserMapper>();
         _fixture = new Fixture();
-        
+
         _handler = new LoginUserCommandHandler(
             _mockUserRepository.Object,
             _mockTokenService.Object,
@@ -41,22 +40,22 @@ public class LoginUserCommandHandlerTests
         var command = _fixture.Create<LoginUserCommand>();
         var user = _fixture.Create<ApplicationUser>();
         var roles = new List<string> { "User" };
-        var refreshToken = new RefreshToken 
-        { 
+        var refreshToken = new RefreshToken
+        {
             Token = "refresh-token",
             Expires = DateTime.UtcNow.AddDays(7)
         };
 
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserRepository.Setup(x => x.CheckPasswordAsync(user, command.Password))
             .ReturnsAsync(true);
-        
+
         _mockUserRepository.Setup(x => x.GetUserRolesAsync(user))
             .ReturnsAsync(roles);
-        
-        _mockTokenService.Setup(x => x.GenerateTokensAsync(user, command.IpAddress))
+
+        _mockTokenService.Setup(x => x.GenerateTokenAsync(user, command.IpAddress))
             .ReturnsAsync(("access-token", refreshToken));
 
         // Act
@@ -70,7 +69,7 @@ public class LoginUserCommandHandlerTests
         result.AccessToken.Should().Be("access-token");
         result.RefreshToken.Should().Be("refresh-token");
         result.Roles.Should().BeEquivalentTo(roles);
-        
+
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -79,7 +78,7 @@ public class LoginUserCommandHandlerTests
     {
         // Arrange
         var command = _fixture.Create<LoginUserCommand>();
-        
+
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email))
             .ReturnsAsync((ApplicationUser?)null);
 
@@ -101,7 +100,7 @@ public class LoginUserCommandHandlerTests
 
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserRepository.Setup(x => x.CheckPasswordAsync(user, command.Password))
             .ReturnsAsync(false);
 
@@ -119,7 +118,7 @@ public class LoginUserCommandHandlerTests
     {
         // Arrange
         var command = _fixture.Create<LoginUserCommand>();
-        
+
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email))
             .ThrowsAsync(new Exception("Database error"));
 
@@ -140,22 +139,22 @@ public class LoginUserCommandHandlerTests
         var user = _fixture.Create<ApplicationUser>();
         var oldLastLogin = user.LastLogin;
         var roles = new List<string> { "User" };
-        var refreshToken = new RefreshToken 
-        { 
+        var refreshToken = new RefreshToken
+        {
             Token = "refresh-token",
             Expires = DateTime.UtcNow.AddDays(7)
         };
 
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email))
             .ReturnsAsync(user);
-        
+
         _mockUserRepository.Setup(x => x.CheckPasswordAsync(user, command.Password))
             .ReturnsAsync(true);
-        
+
         _mockUserRepository.Setup(x => x.GetUserRolesAsync(user))
             .ReturnsAsync(roles);
-        
-        _mockTokenService.Setup(x => x.GenerateTokensAsync(user, command.IpAddress))
+
+        _mockTokenService.Setup(x => x.GenerateTokenAsync(user, command.IpAddress))
             .ReturnsAsync(("access-token", refreshToken));
 
         // Act

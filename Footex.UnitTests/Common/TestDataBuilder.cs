@@ -54,7 +54,7 @@ public static class TestDataBuilder
             HomeTeamSeason = "2023/24",
             AwayTeamSeason = "2023/24",
             HomeSeasonId = 7,
-            AwaySeasonId = 7,
+            AwaySeasonId = 7
         };
     }
 

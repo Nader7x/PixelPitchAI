@@ -1,5 +1,4 @@
 using Application.CQRS.Seasons.Queries;
-using Application.Mappers;
 using Domain.Interfaces;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ public class GetSeasonByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_ValidSeasonId_ReturnsSeasonSuccessfully()
     {
         // Arrange
-        var season = TestData.CreateSeason("2024/2025","LaLiga");
+        var season = TestData.CreateSeason("2024/2025", "LaLiga");
         season.StartDate = new DateTime(2024, 8, 18);
         season.EndDate = new DateTime(2025, 5, 25);
         season.IsActive = true;
@@ -247,7 +246,7 @@ public class GetSeasonByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var query = new GetSeasonByIdQuery { Id = -1 }; // Invalid ID to trigger exception
-        
+
         // Dispose context to simulate database error
         await DisposeContext();
 
@@ -266,5 +265,4 @@ public class GetSeasonByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-    
 }

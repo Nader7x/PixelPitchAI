@@ -1,5 +1,4 @@
 using Application.CQRS.Teams.Queries;
-using Application.Mappers;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
@@ -11,10 +10,10 @@ namespace Footex.IntegrationTests.CQRS.Teams.Queries;
 
 public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IServiceScope _scope;
-    private readonly IMediator _mediator;
     private readonly FootballDbContext _context;
+    private readonly FootexWebApplicationFactory _factory;
+    private readonly IMediator _mediator;
+    private readonly IServiceScope _scope;
 
     public GetTeamByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
     {
@@ -92,7 +91,7 @@ public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebAp
         testTeam.PrimaryColor = "#FF0000";
         testTeam.SecondaryColor = "#0000FF";
         testTeam.Logo = "https://example.com/logo.png";
-        
+
         _context.Teams.Add(testTeam);
         await _context.SaveChangesAsync();
 

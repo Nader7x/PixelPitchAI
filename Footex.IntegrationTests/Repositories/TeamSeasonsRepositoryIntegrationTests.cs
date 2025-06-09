@@ -70,7 +70,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var team = await SeedTeamAsync();
         var season1 = await SeedSeasonAsync("Season 2023");
         var season2 = await SeedSeasonAsync("Season 2024");
-        
+
         var teamSeason1 = await SeedTeamSeasonAsync(team.Id, season1.Id);
         var teamSeason2 = await SeedTeamSeasonAsync(team.Id, season2.Id);
 
@@ -82,7 +82,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         result.Should().HaveCount(2);
         result.Should().Contain(ts => ts.Id == teamSeason1.Id);
         result.Should().Contain(ts => ts.Id == teamSeason2.Id);
-        
+
         // Verify Season navigation property is included
         result.All(ts => ts.Season != null).Should().BeTrue();
         result.Should().Contain(ts => ts.Season!.Name == "Season 2023");
@@ -136,7 +136,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var season = await SeedSeasonAsync();
         var team1 = await SeedTeamAsync("Team A");
         var team2 = await SeedTeamAsync("Team B");
-        
+
         var teamSeason1 = await SeedTeamSeasonAsync(team1.Id, season.Id);
         var teamSeason2 = await SeedTeamSeasonAsync(team2.Id, season.Id);
 
@@ -148,7 +148,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         result.Should().HaveCount(2);
         result.Should().Contain(ts => ts.Id == teamSeason1.Id);
         result.Should().Contain(ts => ts.Id == teamSeason2.Id);
-        
+
         // Verify Team navigation property is included
         result.All(ts => ts.Team != null).Should().BeTrue();
         result.Should().Contain(ts => ts.Team!.Name == "Team A");
@@ -175,15 +175,15 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var teamSeason = await SeedTeamSeasonAsync();
         var originalUpdatedAt = teamSeason.UpdatedAt;
-        
+
         // Wait to ensure different timestamp
         await Task.Delay(1000);
 
         // Act
         teamSeason.UpdatedAt = DateTime.UtcNow;
-        var entityEntry =  _repository.UpdateAsync(teamSeason);
+        var entityEntry = _repository.UpdateAsync(teamSeason);
 
-        var result =  entityEntry.Entity;
+        var result = entityEntry.Entity;
 
         // Assert
         result.Should().NotBeNull();
@@ -197,7 +197,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamSeason = await SeedTeamSeasonAsync();
 
         // Act
-         _repository.DeleteAsync(teamSeason);
+        _repository.DeleteAsync(teamSeason);
 
         // Assert
         var deletedTeamSeason = await _repository.GetByIdAsync(teamSeason.Id);
@@ -238,18 +238,15 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = await SeedTeamAsync();
         var season = await SeedSeasonAsync();
-        
+
         var teamSeason1 = CreateValidTeamSeason(team.Id, season.Id);
         await _repository.AddAsync(teamSeason1);
 
         var teamSeason2 = CreateValidTeamSeason(team.Id, season.Id);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(async () =>
-        {
-            await _repository.AddAsync(teamSeason2);
-        });
-        
+        var exception = await Assert.ThrowsAsync<Exception>(async () => { await _repository.AddAsync(teamSeason2); });
+
         exception.Should().NotBeNull();
     }
 
@@ -261,7 +258,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var season1 = await SeedSeasonAsync("Season 2022", new DateTime(2022, 8, 1));
         var season2 = await SeedSeasonAsync("Season 2023", new DateTime(2023, 8, 1));
         var season3 = await SeedSeasonAsync("Season 2024", new DateTime(2024, 8, 1));
-        
+
         await SeedTeamSeasonAsync(team.Id, season3.Id);
         await SeedTeamSeasonAsync(team.Id, season1.Id);
         await SeedTeamSeasonAsync(team.Id, season2.Id);
@@ -272,7 +269,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         result.Should().HaveCount(3);
         result.All(ts => ts.Season != null).Should().BeTrue();
-        
+
         var seasonNames = result.Select(ts => ts.Season!.Name).ToList();
         seasonNames.Should().Contain("Season 2022");
         seasonNames.Should().Contain("Season 2023");
@@ -287,7 +284,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamA = await SeedTeamAsync("A Team");
         var teamB = await SeedTeamAsync("B Team");
         var teamC = await SeedTeamAsync("C Team");
-        
+
         await SeedTeamSeasonAsync(teamC.Id, season.Id);
         await SeedTeamSeasonAsync(teamA.Id, season.Id);
         await SeedTeamSeasonAsync(teamB.Id, season.Id);
@@ -298,7 +295,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         result.Should().HaveCount(3);
         result.All(ts => ts.Team != null).Should().BeTrue();
-        
+
         var teamNames = result.Select(ts => ts.Team!.Name).ToList();
         teamNames.Should().Contain("A Team");
         teamNames.Should().Contain("B Team");
@@ -317,7 +314,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         var teamSeason = CreateValidTeamSeason(teamId, seasonId);
         var teamEntity = await _repository.AddAsync(teamSeason);
-        return teamEntity.Entity ;
+        return teamEntity.Entity;
     }
 
     private TeamSeasons CreateValidTeamSeason(int teamId, int seasonId)
@@ -336,7 +333,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         {
             Name = name,
             City = "Test City",
-            FoundationDate = new DateTime(1990,1,1),
+            FoundationDate = new DateTime(1990, 1, 1),
             Logo = "http://example.com/logo.png",
             Country = "Test Country",
             League = "Test League"
@@ -344,7 +341,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 
         Context.Teams.Add(team);
         await Context.SaveChangesAsync();
-        
+
         return team;
     }
 
@@ -364,7 +361,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 
         Context.Seasons.Add(season);
         await Context.SaveChangesAsync();
-        
+
         return season;
     }
 }

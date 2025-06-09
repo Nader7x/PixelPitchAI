@@ -13,12 +13,12 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class ResendEmailConfirmationCommandHandlerTests
 {
-    private readonly Mock<IIdentityService> _mockIdentityService;
-    private readonly Mock<IEmailService> _mockEmailService;
-    private readonly Mock<IConfiguration> _mockConfiguration;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly ResendEmailConfirmationCommandHandler _handler;
     private readonly Fixture _fixture;
+    private readonly ResendEmailConfirmationCommandHandler _handler;
+    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IEmailService> _mockEmailService;
+    private readonly Mock<IIdentityService> _mockIdentityService;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public ResendEmailConfirmationCommandHandlerTests()
     {
@@ -26,12 +26,12 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockIdentityService = new Mock<IIdentityService>();
         _mockEmailService = new Mock<IEmailService>();
         _mockConfiguration = new Mock<IConfiguration>();
-        
+
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object, null, null, null, null, null, null, null, null);
-        
+
         _handler = new ResendEmailConfirmationCommandHandler(
             _mockIdentityService.Object,
             _mockEmailService.Object,
@@ -69,9 +69,9 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Returns(appUrl);
 
         _mockEmailService.Setup(x => x.SendEmailAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -86,9 +86,9 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockUserManager.Verify(x => x.IsEmailConfirmedAsync(user), Times.Once);
         _mockUserManager.Verify(x => x.GenerateEmailConfirmationTokenAsync(user), Times.Once);
         _mockEmailService.Verify(x => x.SendEmailAsync(
-            user.Email,
-            "Confirm Your Email",
-            It.Is<string>(content => content.Contains($"userId={user.Id}") && content.Contains("token="))),
+                user.Email,
+                "Confirm Your Email",
+                It.Is<string>(content => content.Contains($"userId={user.Id}") && content.Contains("token="))),
             Times.Once);
     }
 
@@ -113,7 +113,8 @@ public class ResendEmailConfirmationCommandHandlerTests
 
         _mockIdentityService.Verify(x => x.GetUserByEmailAsync(command.Email), Times.Once);
         _mockUserManager.Verify(x => x.IsEmailConfirmedAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -146,7 +147,8 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockIdentityService.Verify(x => x.GetUserByEmailAsync(command.Email), Times.Once);
         _mockUserManager.Verify(x => x.IsEmailConfirmedAsync(user), Times.Once);
         _mockUserManager.Verify(x => x.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -177,9 +179,9 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Returns((string)null); // No app URL configured
 
         _mockEmailService.Setup(x => x.SendEmailAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -190,9 +192,9 @@ public class ResendEmailConfirmationCommandHandlerTests
         result.Succeeded.Should().BeTrue();
 
         _mockEmailService.Verify(x => x.SendEmailAsync(
-            user.Email,
-            "Confirm Your Email",
-            It.Is<string>(content => content.Contains("https://Footex.AI"))),
+                user.Email,
+                "Confirm Your Email",
+                It.Is<string>(content => content.Contains("https://Footex.AI"))),
             Times.Once);
     }
 
@@ -225,9 +227,9 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Returns("https://footex.ai");
 
         _mockEmailService.Setup(x => x.SendEmailAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -270,7 +272,8 @@ public class ResendEmailConfirmationCommandHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Be(exceptionMessage);
 
-        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]
@@ -307,7 +310,8 @@ public class ResendEmailConfirmationCommandHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
 
-        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _mockEmailService.Verify(x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Theory]
@@ -366,9 +370,9 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Returns(appUrl);
 
         _mockEmailService.Setup(x => x.SendEmailAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -379,11 +383,11 @@ public class ResendEmailConfirmationCommandHandlerTests
         result.Succeeded.Should().BeTrue();
 
         _mockEmailService.Verify(x => x.SendEmailAsync(
-            user.Email,
-            "Confirm Your Email",
-            It.Is<string>(content => 
-                content.Contains($"userId={userId}") && 
-                content.Contains($"token={expectedEncodedToken}"))),
+                user.Email,
+                "Confirm Your Email",
+                It.Is<string>(content =>
+                    content.Contains($"userId={userId}") &&
+                    content.Contains($"token={expectedEncodedToken}"))),
             Times.Once);
     }
 }

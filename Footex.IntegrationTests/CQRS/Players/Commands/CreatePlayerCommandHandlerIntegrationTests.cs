@@ -1,21 +1,20 @@
 using Application.CQRS.Players.Commands;
+using Domain.Enums;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Domain.Enums;
-using Sprache;
 
 namespace Footex.IntegrationTests.CQRS.Players.Commands;
 
 public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IServiceScope _scope;
-    private readonly IMediator _mediator;
     private readonly FootballDbContext _context;
+    private readonly FootexWebApplicationFactory _factory;
+    private readonly IMediator _mediator;
+    private readonly IServiceScope _scope;
 
     public CreatePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
     {
@@ -42,8 +41,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             PhotoUrl = "http://example.com/photo.jpg",
             Position = nameof(PlayerPosition.AttackingMidfielder),
             TeamId = team.Id,
-            ShirtNumber = 10,
-
+            ShirtNumber = 10
         };
 
         // Act
@@ -230,7 +228,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "Brazil",
             Position = nameof(PlayerPosition.Goalkeeper),
             ShirtNumber = 1,
-            TeamId = team.Id,
+            TeamId = team.Id
         };
 
         // Act

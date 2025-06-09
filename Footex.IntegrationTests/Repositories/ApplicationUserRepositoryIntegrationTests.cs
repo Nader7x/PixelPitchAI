@@ -12,8 +12,8 @@ namespace Footex.IntegrationTests.Repositories;
 [Collection("IntegrationTests")]
 public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
 {
-    private readonly IApplicationUserRepository _userRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IApplicationUserRepository _userRepository;
 
     public ApplicationUserRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
     {
@@ -147,7 +147,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         result.Should().BeTrue();
-        
+
         var userRoles = await _userRepository.GetUserRolesAsync(user);
         userRoles.Should().Contain("TestRole");
     }
@@ -172,7 +172,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         var user = await SeedUserAsync();
         await SeedRoleAsync("Role1");
         await SeedRoleAsync("Role2");
-        
+
         await _userRepository.AddToRoleAsync(user, "Role1");
         await _userRepository.AddToRoleAsync(user, "Role2");
 
@@ -229,7 +229,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         var persistedToken = await Context.RefreshTokens
             .FirstOrDefaultAsync(rt => rt.Token == refreshToken.Token);
-        
+
         persistedToken.Should().NotBeNull();
         persistedToken!.UserId.Should().Be(user.Id);
         persistedToken.Token.Should().Be(refreshToken.Token);
@@ -371,7 +371,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         var revokedToken = await Context.RefreshTokens
             .FirstOrDefaultAsync(rt => rt.Token == tokenValue);
-        
+
         revokedToken.Should().NotBeNull();
         revokedToken!.Revoked.Should().NotBeNull();
         revokedToken.RevokedByIp.Should().Be(ipAddress);
@@ -379,8 +379,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     }
 
     private async Task<ApplicationUser> SeedUserAsync(
-        string? email = null, 
-        string? username = null, 
+        string? email = null,
+        string? username = null,
         string password = "TestPassword123!",
         int? favoriteTeamId = null)
     {
@@ -402,9 +402,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
 
         var result = await _userManager.CreateAsync(user, password);
         if (!result.Succeeded)
-        {
-            throw new InvalidOperationException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-        }
+            throw new InvalidOperationException(
+                $"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
 
         return user;
     }
@@ -412,11 +411,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     private async Task SeedRoleAsync(string roleName)
     {
         var roleManager = ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        
-        if (!await roleManager.RoleExistsAsync(roleName))
-        {
-            await roleManager.CreateAsync(new IdentityRole(roleName));
-        }
+
+        if (!await roleManager.RoleExistsAsync(roleName)) await roleManager.CreateAsync(new IdentityRole(roleName));
     }
 
     private async Task<Team> SeedTeamAsync()

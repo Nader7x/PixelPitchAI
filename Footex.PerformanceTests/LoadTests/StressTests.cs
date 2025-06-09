@@ -1,8 +1,8 @@
+using Footex.IntegrationTests.Common;
+using NBomber.Contracts.Stats;
 using NBomber.CSharp;
 using NBomber.Http.CSharp;
-using Footex.IntegrationTests.Common;
 using Xunit;
-using NBomber.Contracts.Stats;
 
 namespace Footex.PerformanceTests.LoadTests;
 
@@ -39,14 +39,14 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithLoadSimulations(
                 // Gradually increase load
-                Simulation.Inject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
-                Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(2)),
-                Simulation.Inject(rate: 100, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(2)),
-                Simulation.Inject(rate: 200, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1)),
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
+                Simulation.Inject(100, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
+                Simulation.Inject(200, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
                 // Spike test
-                Simulation.Inject(rate: 500, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(30)),
+                Simulation.Inject(500, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30)),
                 // Cool down
-                Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromMinutes(1))
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner
@@ -68,11 +68,11 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithLoadSimulations(
                 // Normal load
-                Simulation.KeepConstant(copies: 10, during: TimeSpan.FromMinutes(2)),
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(2)),
                 // Sudden spike
-                Simulation.KeepConstant(copies: 100, during: TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(100, TimeSpan.FromMinutes(1)),
                 // Back to normal
-                Simulation.KeepConstant(copies: 10, during: TimeSpan.FromMinutes(2))
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(2))
             );
 
         NBomberRunner
@@ -94,7 +94,7 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithWeight(40)
             .WithLoadSimulations(
-                Simulation.KeepConstant(copies: 20, during: TimeSpan.FromMinutes(5))
+                Simulation.KeepConstant(20, TimeSpan.FromMinutes(5))
             );
 
         var matchScenario = Scenario.Create("match_queries", async context =>
@@ -107,7 +107,7 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithWeight(30)
             .WithLoadSimulations(
-                Simulation.KeepConstant(copies: 15, during: TimeSpan.FromMinutes(5))
+                Simulation.KeepConstant(15, TimeSpan.FromMinutes(5))
             );
 
         var searchScenario = Scenario.Create("search_queries", async context =>
@@ -122,7 +122,7 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithWeight(30)
             .WithLoadSimulations(
-                Simulation.KeepConstant(copies: 10, during: TimeSpan.FromMinutes(5))
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(5))
             );
 
         NBomberRunner
@@ -178,22 +178,20 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
                     {
                         var request = Http.CreateRequest("GET", "/api/teams");
                         return await Http.Send(_httpClient, request);
-                    },
+                    }
                 };
 
-                    // Random user action
-                    var action = actions[Random.Shared.Next(actions.Length)];
-                    var response = await action();
+                // Random user action
+                var action = actions[Random.Shared.Next(actions.Length)];
+                var response = await action();
 
-                    // Add some think time between actions (100-500ms)
-                    await Task.Delay(Random.Shared.Next(100, 501));
-                    return response;
-
-                
+                // Add some think time between actions (100-500ms)
+                await Task.Delay(Random.Shared.Next(100, 501));
+                return response;
             })
             .WithLoadSimulations(
                 // Simulate 50 concurrent users for 10 minutes
-                Simulation.KeepConstant(copies: 50, during: TimeSpan.FromMinutes(10))
+                Simulation.KeepConstant(50, TimeSpan.FromMinutes(10))
             );
 
         NBomberRunner
@@ -224,7 +222,7 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithLoadSimulations(
                 // Sustained load for 30 minutes
-                Simulation.KeepConstant(copies: 20, during: TimeSpan.FromMinutes(30))
+                Simulation.KeepConstant(20, TimeSpan.FromMinutes(30))
             );
 
         NBomberRunner
@@ -256,7 +254,7 @@ public class StressTests : IClassFixture<FootexWebApplicationFactory>
             })
             .WithLoadSimulations(
                 // Run for extended period to detect memory leaks
-                Simulation.KeepConstant(copies: 15, during: TimeSpan.FromHours(1))
+                Simulation.KeepConstant(15, TimeSpan.FromHours(1))
             );
 
         NBomberRunner

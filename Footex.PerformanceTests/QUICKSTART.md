@@ -145,41 +145,41 @@ dotnet test --filter TestMethodName=GetAllMatches
 
 1. **Connection Refused**
 
-   - Ensure the Footex API is running
-   - Check the BaseUrl in appsettings.json
-   - Verify firewall/network settings
+    - Ensure the Footex API is running
+    - Check the BaseUrl in appsettings.json
+    - Verify firewall/network settings
 
 2. **Database Connection Errors**
 
-   - Ensure PostgreSQL is running
-   - Check database connection string
-   - Verify database permissions
+    - Ensure PostgreSQL is running
+    - Check database connection string
+    - Verify database permissions
 
 3. **High Error Rates**
 
-   - Check API logs for errors
-   - Verify test data is properly seeded
-   - Consider reducing load levels
+    - Check API logs for errors
+    - Verify test data is properly seeded
+    - Consider reducing load levels
 
 4. **Out of Memory**
-   - Reduce concurrent users
-   - Decrease test duration
-   - Check for memory leaks in the API
+    - Reduce concurrent users
+    - Decrease test duration
+    - Check for memory leaks in the API
 
 ### Performance Optimization Tips
 
 1. **API Optimization**
 
-   - Enable response compression
-   - Implement proper caching strategies
-   - Optimize database queries
-   - Use connection pooling
+    - Enable response compression
+    - Implement proper caching strategies
+    - Optimize database queries
+    - Use connection pooling
 
 2. **Test Optimization**
-   - Start with light loads and gradually increase
-   - Use realistic test data
-   - Run tests in isolated environments
-   - Monitor system resources during tests
+    - Start with light loads and gradually increase
+    - Use realistic test data
+    - Run tests in isolated environments
+    - Monitor system resources during tests
 
 ## Advanced Usage
 

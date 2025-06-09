@@ -57,11 +57,11 @@ public class PerformanceTestAnalyzer
 
         // Look for CSV files with performance metrics
         var csvFiles = Directory.GetFiles(nbomberResultsPath, "*.csv", SearchOption.AllDirectories);
-        
+
         foreach (var csvFile in csvFiles)
         {
             _logger.LogInformation("Processing NBomber CSV file: {File}", csvFile);
-            
+
             var testResult = new LoadTestResult
             {
                 TestName = Path.GetFileNameWithoutExtension(csvFile),
@@ -82,7 +82,7 @@ public class PerformanceTestAnalyzer
             if (lines.Length < 2) return;
 
             // Skip header line and process data
-            for (int i = 1; i < lines.Length; i++)
+            for (var i = 1; i < lines.Length; i++)
             {
                 var fields = lines[i].Split(',');
                 if (fields.Length >= 10)
@@ -101,10 +101,7 @@ public class PerformanceTestAnalyzer
                         P95Ms = double.TryParse(fields[9], out var p95) ? p95 : 0
                     };
 
-                    if (fields.Length > 10)
-                    {
-                        metric.P99Ms = double.TryParse(fields[10], out var p99) ? p99 : 0;
-                    }
+                    if (fields.Length > 10) metric.P99Ms = double.TryParse(fields[10], out var p99) ? p99 : 0;
 
                     result.Metrics.Add(metric);
                 }
@@ -127,7 +124,7 @@ public class PerformanceTestAnalyzer
 
         // Look for JSON result files
         var jsonFiles = Directory.GetFiles(benchmarkResultsPath, "*-report-full.json", SearchOption.AllDirectories);
-        
+
         foreach (var jsonFile in jsonFiles)
         {
             _logger.LogInformation("Processing BenchmarkDotNet JSON file: {File}", jsonFile);
@@ -143,13 +140,13 @@ public class PerformanceTestAnalyzer
             var benchmarkData = JsonSerializer.Deserialize<JsonElement>(jsonContent);
 
             if (benchmarkData.TryGetProperty("Benchmarks", out var benchmarks))
-            {
                 foreach (var benchmark in benchmarks.EnumerateArray())
                 {
                     var benchmarkResult = new BenchmarkResult
                     {
                         TestName = benchmark.GetProperty("DisplayInfo").GetString() ?? "Unknown",
-                        MethodName = benchmark.GetProperty("Target").GetProperty("Method").GetProperty("Name").GetString() ?? "Unknown"
+                        MethodName = benchmark.GetProperty("Target").GetProperty("Method").GetProperty("Name")
+                            .GetString() ?? "Unknown"
                     };
 
                     if (benchmark.TryGetProperty("Statistics", out var stats))
@@ -170,7 +167,6 @@ public class PerformanceTestAnalyzer
 
                     report.BenchmarkResults.Add(benchmarkResult);
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -186,16 +182,16 @@ public class PerformanceTestAnalyzer
         if (report.LoadTestResults.Any())
         {
             var allMetrics = report.LoadTestResults.SelectMany(r => r.Metrics).ToList();
-            
+
             report.Summary.TotalRequests = allMetrics.Sum(m => m.RequestCount);
             report.Summary.TotalFailures = allMetrics.Sum(m => m.FailCount);
             report.Summary.AverageRPS = allMetrics.Average(m => m.ScenarioRPS);
             report.Summary.AverageResponseTime = allMetrics.Average(m => m.MeanMs);
             report.Summary.MaxResponseTime = allMetrics.Max(m => m.MaxMs);
             report.Summary.P95ResponseTime = allMetrics.Average(m => m.P95Ms);
-            
-            report.Summary.SuccessRate = report.Summary.TotalRequests > 0 
-                ? (double)(report.Summary.TotalRequests - report.Summary.TotalFailures) / report.Summary.TotalRequests 
+
+            report.Summary.SuccessRate = report.Summary.TotalRequests > 0
+                ? (double)(report.Summary.TotalRequests - report.Summary.TotalFailures) / report.Summary.TotalRequests
                 : 0;
         }
 
@@ -209,31 +205,22 @@ public class PerformanceTestAnalyzer
 
         // Check success rate
         if (report.Summary.SuccessRate < 0.95)
-        {
             issues.Add($"Low success rate: {report.Summary.SuccessRate:P2} (expected: ≥95%)");
-        }
 
         // Check average response time
         if (report.Summary.AverageResponseTime > 1000) // 1 second
-        {
             issues.Add($"High average response time: {report.Summary.AverageResponseTime:F2}ms (expected: ≤1000ms)");
-        }
 
         // Check P95 response time
         if (report.Summary.P95ResponseTime > 2000) // 2 seconds
-        {
             issues.Add($"High P95 response time: {report.Summary.P95ResponseTime:F2}ms (expected: ≤2000ms)");
-        }
 
         report.Summary.PerformanceIssues = issues;
 
         if (issues.Any())
         {
             _logger.LogWarning("Performance issues detected:");
-            foreach (var issue in issues)
-            {
-                _logger.LogWarning("- {Issue}", issue);
-            }
+            foreach (var issue in issues) _logger.LogWarning("- {Issue}", issue);
         }
         else
         {

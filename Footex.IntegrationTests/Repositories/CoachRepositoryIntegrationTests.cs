@@ -3,7 +3,6 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -30,14 +29,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000,1,1)
+            FoundationDate = new DateTime(2000, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "John",
             LastName = "Smith",
-            DateOfBirth = new DateTime(1990,1,1),
+            DateOfBirth = new DateTime(1990, 1, 1),
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 15,
@@ -47,13 +46,13 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         // Act
         await _unitOfWork.Teams.AddAsync(team);
         await _unitOfWork.SaveChangesAsync();
-        
+
         await _coachRepository.AddAsync(coach);
         await _unitOfWork.SaveChangesAsync();
 
         // Assert
         coach.Id.Should().BeGreaterThan(0);
-        
+
         var retrievedCoach = await _coachRepository.GetByIdAsync(coach.Id);
         retrievedCoach.Should().NotBeNull();
         retrievedCoach!.FirstName.Should().Be("John");
@@ -81,7 +80,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Roberto",
             LastName = "Martinez",
-            DateOfBirth = new DateTime(1995 ,1,1),
+            DateOfBirth = new DateTime(1995, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 20,
@@ -100,7 +99,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         result!.Id.Should().Be(coach.Id);
         result.FirstName.Should().Be("Roberto");
         result.LastName.Should().Be("Martinez");
-        result.DateOfBirth.Should().Be(new DateTime(1995 ,1,1));
+        result.DateOfBirth.Should().Be(new DateTime(1995, 1, 1));
         result.Nationality.Should().Be("Spain");
         result.Role.Should().Be("Head Coach");
         result.YearsOfExperience.Should().Be(20);
@@ -132,7 +131,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Jose",
             LastName = "Mourinho",
-            DateOfBirth = new DateTime(1995 ,1,1),
+            DateOfBirth = new DateTime(1995, 1, 1),
             Nationality = "Portugal",
             Role = "Head Coach",
             YearsOfExperience = 25,
@@ -143,7 +142,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Jose",
             LastName = "Guardiola",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 18,
@@ -154,7 +153,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Carlo",
             LastName = "Ancelotti",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Italy",
             Role = "Head Coach",
             YearsOfExperience = 30,
@@ -186,14 +185,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Search Team 2",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach1 = new Coach
         {
             FirstName = "Pep",
             LastName = "Guardiola",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 18,
@@ -204,7 +203,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Frank",
             LastName = "Lampard",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 8,
@@ -235,14 +234,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Full Name Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "Jurgen",
             LastName = "Klopp",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Germany",
             Role = "Head Coach",
             YearsOfExperience = 22,
@@ -272,14 +271,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Role Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var headCoach = new Coach
         {
             FirstName = "Head",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 15,
@@ -290,7 +289,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Assistant",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 10,
@@ -320,14 +319,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Nationality Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1985 ,1,1)
+            FoundationDate = new DateTime(1985, 1, 1)
         };
 
         var spanishCoach1 = new Coach
         {
             FirstName = "Luis",
             LastName = "Enrique",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 12,
@@ -338,7 +337,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Diego",
             LastName = "Simeone",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 20,
@@ -349,7 +348,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Thomas",
             LastName = "Tuchel",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Germany",
             Role = "Head Coach",
             YearsOfExperience = 15,
@@ -382,7 +381,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Manchester United",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var team2 = new Team
@@ -390,14 +389,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Barcelona",
             League = "La Liga",
             Country = "Spain",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach1 = new Coach
         {
             FirstName = "Erik",
             LastName = "Ten Hag",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Netherlands",
             Role = "Head Coach",
             YearsOfExperience = 16,
@@ -408,7 +407,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Xavi",
             LastName = "Hernandez",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 5,
@@ -448,14 +447,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Team With Coach",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "Team",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 12,
@@ -476,7 +475,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         foundCoach.Team!.Name.Should().Be("Team With Coach");
         foundCoach.Team.League.Should().Be("Premier League");
         foundCoach.Team.Country.Should().Be("England");
-        foundCoach.Team.FoundationDate.Should().Be(new DateTime(1900 ,1,1));
+        foundCoach.Team.FoundationDate.Should().Be(new DateTime(1900, 1, 1));
     }
 
     [Fact]
@@ -488,14 +487,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Update Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "Original",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 5,
@@ -509,7 +508,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         // Act
         coach.FirstName = "Updated";
         coach.LastName = "Name";
-        coach.DateOfBirth = new DateTime(1985 ,1,1);
+        coach.DateOfBirth = new DateTime(1985, 1, 1);
         coach.Role = "Head Coach";
         coach.YearsOfExperience = 15;
 
@@ -521,7 +520,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         updatedCoach.Should().NotBeNull();
         updatedCoach!.FirstName.Should().Be("Updated");
         updatedCoach.LastName.Should().Be("Name");
-        updatedCoach.DateOfBirth.Should().Be(new DateTime(1985 ,1,1));
+        updatedCoach.DateOfBirth.Should().Be(new DateTime(1985, 1, 1));
         updatedCoach.Role.Should().Be("Head Coach");
         updatedCoach.YearsOfExperience.Should().Be(15);
         updatedCoach.Nationality.Should().Be("England"); // Should remain unchanged
@@ -536,14 +535,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Delete Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "Coach",
             LastName = "To Delete",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Portugal",
             Role = "Head Coach",
             YearsOfExperience = 20,
@@ -574,36 +573,36 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Multi Coach Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coaches = new List<Coach>
         {
-            new Coach
+            new()
             {
                 FirstName = "Coach",
                 LastName = "One",
-                DateOfBirth = new DateTime(1985 ,1,1),
+                DateOfBirth = new DateTime(1985, 1, 1),
                 Nationality = "Spain",
                 Role = "Head Coach",
                 YearsOfExperience = 15,
                 Team = team
             },
-            new Coach
+            new()
             {
                 FirstName = "Coach",
                 LastName = "Two",
-                DateOfBirth = new DateTime(1985 ,1,1),
+                DateOfBirth = new DateTime(1985, 1, 1),
                 Nationality = "Italy",
                 Role = "Assistant Coach",
                 YearsOfExperience = 8,
                 Team = team
             },
-            new Coach
+            new()
             {
                 FirstName = "Coach",
                 LastName = "Three",
-                DateOfBirth = new DateTime(1985 ,1,1),
+                DateOfBirth = new DateTime(1985, 1, 1),
                 Nationality = "Germany",
                 Role = "Goalkeeping Coach",
                 YearsOfExperience = 12,
@@ -612,10 +611,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         await _unitOfWork.Teams.AddAsync(team);
-        foreach (var coach in coaches)
-        {
-            await _coachRepository.AddAsync(coach);
-        }
+        foreach (var coach in coaches) await _coachRepository.AddAsync(coach);
         await _unitOfWork.SaveChangesAsync();
 
         // Act
@@ -637,14 +633,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Transaction Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "Transaction",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "France",
             Role = "Head Coach",
             YearsOfExperience = 18,
@@ -656,14 +652,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await _unitOfWork.BeginTransactionAsync();
-        
+
         await _coachRepository.AddAsync(coach);
         await _unitOfWork.SaveChangesAsync();
-        
+
         // Verify coach exists within transaction
         var coachInTransaction = await _coachRepository.SearchAsync("Transaction Coach");
         coachInTransaction.Should().HaveCount(1);
-        
+
         // Rollback
         await _unitOfWork.RollbackTransactionAsync();
 
@@ -681,14 +677,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Experience Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var experiencedCoach1 = new Coach
         {
             FirstName = "Experienced",
             LastName = "Coach One",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Italy",
             Role = "Head Coach",
             YearsOfExperience = 25,
@@ -699,7 +695,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Experienced",
             LastName = "Coach Two",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 22,
@@ -710,7 +706,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "New",
             LastName = "Coach",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 3,
@@ -742,7 +738,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Free",
             LastName = "DateOfBirthnt",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Brazil",
             Role = "Head Coach",
             YearsOfExperience = 14
@@ -755,7 +751,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         coach.Id.Should().BeGreaterThan(0);
-        
+
         var retrievedCoach = await _coachRepository.GetByIdAsync(coach.Id);
         retrievedCoach.Should().NotBeNull();
         retrievedCoach!.FirstName.Should().Be("Free");
@@ -772,14 +768,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Case Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900 ,1,1)
+            FoundationDate = new DateTime(1900, 1, 1)
         };
 
         var coach = new Coach
         {
             FirstName = "UPPERCASE",
             LastName = "lowercase",
-            DateOfBirth = new DateTime(1985 ,1,1),
+            DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "MiXeD CaSe",
             Role = "Head Coach",
             YearsOfExperience = 15,
@@ -799,7 +795,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         upperCaseSearch.Should().HaveCount(1);
         lowerCaseSearch.Should().HaveCount(1);
         mixedCaseSearch.Should().HaveCount(1);
-        
+
         upperCaseSearch.First().FirstName.Should().Be("UPPERCASE");
         lowerCaseSearch.First().LastName.Should().Be("lowercase");
         mixedCaseSearch.First().Nationality.Should().Be("MiXeD CaSe");

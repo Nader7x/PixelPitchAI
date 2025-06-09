@@ -1,10 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Footex.IntegrationTests.Common;
-using System.Text.Json;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Footex.IntegrationTests.Common;
 
 namespace Footex.PerformanceTests.Benchmarks;
 
@@ -36,7 +33,7 @@ public class CacheBenchmarks
     {
         // First request to warm up cache
         await _httpClient.GetAsync("/api/players/1");
-        
+
         // Measured request (should hit cache)
         var response = await _httpClient.GetAsync("/api/players/1");
         return await response.Content.ReadAsStringAsync();
@@ -56,7 +53,7 @@ public class CacheBenchmarks
     {
         // First request to warm up cache
         await _httpClient.GetAsync("/api/stadiums/1");
-        
+
         // Measured request (should hit cache)
         var response = await _httpClient.GetAsync("/api/stadiums/1");
         return await response.Content.ReadAsStringAsync();
@@ -75,7 +72,7 @@ public class CacheBenchmarks
     {
         // First request to warm up cache
         await _httpClient.GetAsync("/api/coaches/filter?nationality=Brazil");
-        
+
         // Measured request (should hit cache)
         var response = await _httpClient.GetAsync("/api/coaches/filter?nationality=Brazil");
         return await response.Content.ReadAsStringAsync();
@@ -94,7 +91,7 @@ public class CacheBenchmarks
     {
         // First request to warm up cache
         await _httpClient.GetAsync("/api/stadiums?country=Spain");
-        
+
         // Measured request (should hit cache)
         var response = await _httpClient.GetAsync("/api/stadiums?country=Spain");
         return await response.Content.ReadAsStringAsync();
@@ -116,14 +113,14 @@ public class CacheBenchmarks
     {
         // Warm up cache
         await _httpClient.GetAsync("/api/players/1");
-        
+
         var results = new List<string>();
-        for (int i = 0; i < iterations; i++)
+        for (var i = 0; i < iterations; i++)
         {
             var response = await _httpClient.GetAsync("/api/players/1");
             results.Add(await response.Content.ReadAsStringAsync());
         }
-        
+
         return string.Join(",", results.Select(r => r.Length.ToString()));
     }
 
@@ -131,17 +128,17 @@ public class CacheBenchmarks
     public async Task<string> MixedCacheScenario()
     {
         var results = new List<string>();
-        
+
         // Cache hit
         await _httpClient.GetAsync("/api/players/1");
         var hitResponse = await _httpClient.GetAsync("/api/players/1");
         results.Add(await hitResponse.Content.ReadAsStringAsync());
-        
+
         // Cache miss
         var missId = Random.Shared.Next(1000, 2000);
         var missResponse = await _httpClient.GetAsync($"/api/players/{missId}");
         results.Add(await missResponse.Content.ReadAsStringAsync());
-        
+
         return string.Join(",", results.Select(r => r.Length.ToString()));
     }
 }

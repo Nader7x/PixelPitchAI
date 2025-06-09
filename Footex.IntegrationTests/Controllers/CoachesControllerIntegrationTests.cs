@@ -103,7 +103,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
 
         // Act - First call
         var response1 = await _client.GetAsync($"/api/coaches/{coachId}");
-        
+
         // Act - Second call (should be cached)
         var response2 = await _client.GetAsync($"/api/coaches/{coachId}");
 
@@ -114,7 +114,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }

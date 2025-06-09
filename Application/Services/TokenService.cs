@@ -21,18 +21,17 @@ public class TokenService(
         var signingCredentials = GetSigningCredentials();
         var claims = await GetClaims(user);
         var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
-        var HasClaims = userManager.GetClaimsAsync(user).Result.Any();
-        if (!HasClaims)
-        {
-            // Add claims to user
-            var claimsIdentity = new ClaimsIdentity(claims);
-            await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
-        }
+        var hasClaims = userManager.GetClaimsAsync(user).Result.Any();
+
+        if (hasClaims) return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
+        // Add claims to user
+        var claimsIdentity = new ClaimsIdentity(claims);
+        await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
 
         return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
     }
 
-    public RefreshToken? GenerateRefreshToken(string ipAddress)
+    public RefreshToken GenerateRefreshToken(string ipAddress)
     {
         using var rng = RandomNumberGenerator.Create();
         var randomBytes = new byte[64];
@@ -47,7 +46,7 @@ public class TokenService(
         };
     }
 
-    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokensAsync(ApplicationUser user,
+    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokenAsync(ApplicationUser user,
         string ipAddress)
     {
         var token = await CreateTokenAsync(user);
@@ -70,6 +69,7 @@ public class TokenService(
         var user = refreshToken.User;
 
         // Generate new tokens
+        if (user == null) return (string.Empty, null)!;
         var newToken = await CreateTokenAsync(user);
         var newRefreshToken = GenerateRefreshToken(ipAddress);
 
@@ -118,11 +118,15 @@ public class TokenService(
 
     private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
     {
+        var isAdmin = claims.Any(c => c is { Type: ClaimTypes.Role, Value: "Admin" });
+        var baseExpiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(configuration["JWT:ExpiryInMinutes"]));
+        var expiration = isAdmin ? baseExpiration.AddDays(10) : baseExpiration;
+
         var tokenOptions = new JwtSecurityToken(
             configuration["JWT:ValidIssuer"],
             configuration["JWT:ValidAudience"],
             claims,
-            expires: DateTime.Now.AddMinutes(Convert.ToDouble(configuration["JWT:ExpiryInMinutes"])),
+            expires: expiration,
             signingCredentials: signingCredentials
         );
 

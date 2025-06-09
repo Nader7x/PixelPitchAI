@@ -55,7 +55,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
         // Assert
         response.EnsureSuccessStatusCode();
         var loginResponse = await response.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
-        
+
         loginResponse.Should().NotBeNull();
         loginResponse.AccessToken.Should().NotBeNullOrEmpty();
         loginResponse.RefreshToken.Should().NotBeNullOrEmpty();
@@ -94,7 +94,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
 
         var refreshRequest = new
         {
-            RefreshToken = tokens.RefreshToken
+            tokens.RefreshToken
         };
 
         // Act
@@ -103,7 +103,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
         // Assert
         response.EnsureSuccessStatusCode();
         var refreshResponse = await response.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
-        
+
         refreshResponse.Should().NotBeNull();
         refreshResponse.AccessToken.Should().NotBeNullOrEmpty();
         refreshResponse.RefreshToken.Should().NotBeNullOrEmpty();

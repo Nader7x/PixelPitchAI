@@ -6,10 +6,10 @@ namespace Footex.IntegrationTests.Common;
 
 public abstract class BaseIntegrationTest : IClassFixture<FootexWebApplicationFactory>, IDisposable
 {
-    protected readonly FootexWebApplicationFactory Factory;
-    protected readonly IServiceScope ServiceScope;
-    protected readonly IServiceProvider ServiceProvider;
     protected readonly FootballDbContext Context;
+    protected readonly FootexWebApplicationFactory Factory;
+    protected readonly IServiceProvider ServiceProvider;
+    protected readonly IServiceScope ServiceScope;
 
     protected BaseIntegrationTest(FootexWebApplicationFactory factory)
     {

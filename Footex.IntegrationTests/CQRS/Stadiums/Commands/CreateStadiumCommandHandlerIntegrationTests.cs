@@ -1,5 +1,4 @@
 using Application.CQRS.Stadiums.Commands;
-using Application.Mappers;
 using Domain.Interfaces;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +26,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Old Trafford",
             City = "Manchester, England",
             Capacity = 74879,
-            BuiltDate = new DateTime(1910,1,1),
+            BuiltDate = new DateTime(1910, 1, 1),
             Description = "The Theatre of Dreams"
         };
 
@@ -87,10 +86,10 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Camp Nou",
             City = "Barcelona, Spain",
             Capacity = 99354,
-            BuiltDate = new DateTime(1957,1,1),
+            BuiltDate = new DateTime(1957, 1, 1),
             Description = "Home of FC Barcelona",
             ImageUrl = "https://example.com/camp-nou.jpg",
-            SurfaceType = "Natural Grass",
+            SurfaceType = "Natural Grass"
         };
 
         // Act
@@ -147,7 +146,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Rungrado 1st of May Stadium",
             City = "Pyongyang, North Korea",
             Capacity = 114000, // World's largest stadium by capacity
-            BuiltDate = new DateTime(1989,1,1)
+            BuiltDate = new DateTime(1989, 1, 1)
         };
 
         // Act
@@ -171,7 +170,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Historic Stadium",
             City = "Old City",
             Capacity = 25000,
-            BuiltDate = new DateTime(1888,1,1) // Very old stadium
+            BuiltDate = new DateTime(1888, 1, 1) // Very old stadium
         };
 
         // Act
@@ -182,7 +181,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
         Assert.NotNull(savedStadium);
-        Assert.Equal(new DateTime(1888,1,1), savedStadium.BuiltDate);
+        Assert.Equal(new DateTime(1888, 1, 1), savedStadium.BuiltDate);
     }
 
     [Fact]
@@ -208,7 +207,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         // Assert
         Assert.All(results, r => Assert.True(r.Succeeded));
         Assert.Equal(3, results.Count);
-        
+
         // Verify all have unique IDs
         var ids = results.Select(r => r.Id).ToList();
         Assert.Equal(3, ids.Distinct().Count());
@@ -249,5 +248,4 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-    
 }

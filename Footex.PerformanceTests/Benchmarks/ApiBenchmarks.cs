@@ -1,11 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Footex.IntegrationTests.Common;
-using System.Text.Json;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
+using Footex.IntegrationTests.Common;
 
 namespace Footex.PerformanceTests.Benchmarks;
 
@@ -100,13 +97,13 @@ public class ApiBenchmarks
     public async Task<string> GetPlayersWithFilters(string nationality, string preferredFoot, int? teamId)
     {
         var queryParams = new List<string>();
-        
+
         if (!string.IsNullOrEmpty(nationality))
             queryParams.Add($"nationality={nationality}");
-        
+
         if (!string.IsNullOrEmpty(preferredFoot))
             queryParams.Add($"preferredFoot={preferredFoot}");
-        
+
         if (teamId.HasValue)
             queryParams.Add($"teamId={teamId}");
 

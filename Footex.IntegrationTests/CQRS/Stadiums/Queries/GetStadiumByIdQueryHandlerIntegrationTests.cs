@@ -1,5 +1,4 @@
 using Application.CQRS.Stadiums.Queries;
-using Application.Mappers;
 using Domain.Interfaces;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +24,7 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         var stadium = TestData.CreateStadium("Santiago Bernabéu");
         stadium.City = "Madrid, Spain";
         stadium.Capacity = 81044;
-        stadium.BuiltDate = new DateTime(1947,1,1);
+        stadium.BuiltDate = new DateTime(1947, 1, 1);
         stadium.Description = "Home of Real Madrid";
 
         await _unitOfWork.Stadiums.AddAsync(stadium);
@@ -73,7 +72,7 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         var stadium = TestData.CreateStadium("Allianz Arena");
         stadium.City = "Munich, Germany";
         stadium.Capacity = 75000;
-        stadium.BuiltDate = new DateTime(2005,1,1);
+        stadium.BuiltDate = new DateTime(2005, 1, 1);
         stadium.Description = "Home of Bayern Munich";
         stadium.ImageUrl = "https://example.com/allianz-arena.jpg";
         stadium.SurfaceType = "Natural Grass";
@@ -195,7 +194,7 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var stadium = TestData.CreateStadium("Historic Stadium");
-        stadium.BuiltDate = new DateTime(1860,1,1); // Very old stadium
+        stadium.BuiltDate = new DateTime(1860, 1, 1); // Very old stadium
         await _unitOfWork.Stadiums.AddAsync(stadium);
         await _unitOfWork.SaveChangesAsync();
 
@@ -207,7 +206,7 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         // Assert
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Stadium);
-        Assert.Equal(new DateTime(1847,1,1), result.Stadium.BuiltDate);
+        Assert.Equal(new DateTime(1847, 1, 1), result.Stadium.BuiltDate);
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var query = new GetStadiumByIdQuery { Id = -1 };
-        
+
         // Dispose the context to simulate database error
         await DisposeContext();
 
@@ -234,5 +233,4 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         _unitOfWork.Dispose();
         return Task.CompletedTask;
     }
-    
 }

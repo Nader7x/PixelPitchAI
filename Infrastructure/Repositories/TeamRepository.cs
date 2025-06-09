@@ -109,7 +109,7 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
             .Where(t => t.FoundationDate != null && t.FoundationDate.Year > year)
             .OrderBy(t => t.Name ?? "")
             .AsNoTracking()
-            .ToListAsync(); 
+            .ToListAsync();
     }
 
 

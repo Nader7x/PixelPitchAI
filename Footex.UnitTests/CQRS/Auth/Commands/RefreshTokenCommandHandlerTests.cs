@@ -11,17 +11,17 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class RefreshTokenCommandHandlerTests
 {
+    private readonly Fixture _fixture;
+    private readonly RefreshTokenCommandHandler _handler;
     private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-    private readonly RefreshTokenCommandHandler _handler;
-    private readonly Fixture _fixture;
 
     public RefreshTokenCommandHandlerTests()
     {
         _mockTokenService = new Mock<ITokenService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _fixture = new Fixture();
-        
+
         _handler = new RefreshTokenCommandHandler(
             _mockTokenService.Object,
             _mockUnitOfWork.Object);
@@ -33,8 +33,8 @@ public class RefreshTokenCommandHandlerTests
         // Arrange
         var command = _fixture.Create<RefreshTokenCommand>();
         var newAccessToken = "new-access-token";
-        var newRefreshToken = new RefreshToken 
-        { 
+        var newRefreshToken = new RefreshToken
+        {
             Token = "new-refresh-token",
             Expires = DateTime.UtcNow.AddDays(7)
         };
@@ -51,7 +51,7 @@ public class RefreshTokenCommandHandlerTests
         result.AccessToken.Should().Be(newAccessToken);
         result.RefreshToken.Should().Be(newRefreshToken.Token);
         result.TokenExpires.Should().BeCloseTo(DateTime.Now.AddMinutes(60), TimeSpan.FromMinutes(1));
-        
+
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -101,8 +101,8 @@ public class RefreshTokenCommandHandlerTests
         // Arrange
         var command = _fixture.Create<RefreshTokenCommand>();
         var newAccessToken = "new-access-token";
-        var newRefreshToken = new RefreshToken 
-        { 
+        var newRefreshToken = new RefreshToken
+        {
             Token = "new-refresh-token",
             Expires = DateTime.UtcNow.AddDays(7)
         };

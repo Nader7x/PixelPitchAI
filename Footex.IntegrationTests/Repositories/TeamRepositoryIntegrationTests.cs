@@ -1,5 +1,4 @@
 using Domain.Interfaces;
-using Domain.Models;
 using Domain.Repositories;
 using Footex.IntegrationTests.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var team = TestData.CreateTeam("Real Madrid");
-        team.FoundationDate = new DateTime(1902,1,1);
+        team.FoundationDate = new DateTime(1902, 1, 1);
         team.City = "Madrid";
         team.Country = "Spain";
 
@@ -60,7 +59,6 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task GetByIdAsync_NonExistentTeam_ReturnsNull()
     {
-
         // Act
         var retrievedTeam = await _teamRepository.GetByIdAsync(-1);
 
@@ -289,8 +287,8 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
         var newTeam = TestData.CreateTeam("New Team");
 
         oldTeam.FoundationDate = new DateTime(1890, 1, 1);
-        moderateTeam.FoundationDate = new DateTime(1920,1,1);
-        newTeam.FoundationDate = new DateTime(1950,1,1);
+        moderateTeam.FoundationDate = new DateTime(1920, 1, 1);
+        newTeam.FoundationDate = new DateTime(1950, 1, 1);
 
         await _teamRepository.AddAsync(oldTeam);
         await _teamRepository.AddAsync(moderateTeam);

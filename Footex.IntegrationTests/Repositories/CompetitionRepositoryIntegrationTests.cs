@@ -144,7 +144,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         await SeedCompetitionAsync("Competition 3");
 
         // Act
-        var result = await _repository.GetAllAsync(pageNumber: 1, pageSize: 2);
+        var result = await _repository.GetAllAsync(1, 2);
 
         // Assert
         result.Should().NotBeNull();
@@ -285,7 +285,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = CreateValidCompetition(name);
         var result = await _repository.AddAsync(competition);
         await Context.SaveChangesAsync();
-        
+
         return result.Entity;
     }
 
@@ -317,7 +317,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
 
         Context.Seasons.Add(season);
         await Context.SaveChangesAsync();
-        
+
         return season;
     }
 }

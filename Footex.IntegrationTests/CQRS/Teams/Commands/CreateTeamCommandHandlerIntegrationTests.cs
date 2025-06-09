@@ -1,5 +1,4 @@
 using Application.CQRS.Teams.Commands;
-using Application.Mappers;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
@@ -11,10 +10,10 @@ namespace Footex.IntegrationTests.CQRS.Teams.Commands;
 
 public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IServiceScope _scope;
-    private readonly IMediator _mediator;
     private readonly FootballDbContext _context;
+    private readonly FootexWebApplicationFactory _factory;
+    private readonly IMediator _mediator;
+    private readonly IServiceScope _scope;
 
     public CreateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
     {

@@ -2,8 +2,6 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -25,7 +23,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var teams = await SeedTeamsAsync();
         var season = await SeedSeasonAsync();
-        
+
         var match = new Match
         {
             HomeTeamId = teams.HomeTeam.Id,
@@ -41,7 +39,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         result.Should().NotBeNull();
         result.Id.Should().BeGreaterThan(0);
-        
+
         var persistedMatch = await Context.Matches.FindAsync(result.Id);
         persistedMatch.Should().NotBeNull();
         persistedMatch!.HomeTeamId.Should().Be(teams.HomeTeam.Id);
@@ -132,9 +130,9 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var teams = await SeedTeamsAsync();
         var season1 = await SeedSeasonAsync();
         var season2 = await SeedSeasonAsync();
-        
-        var match1 = await SeedMatchAsync(homeTeamId: teams.HomeTeam.Id, awayTeamId: teams.AwayTeam.Id, seasonId: season1.Id);
-        var match2 = await SeedMatchAsync(homeTeamId: teams.HomeTeam.Id, awayTeamId: teams.AwayTeam.Id, seasonId: season2.Id);
+
+        var match1 = await SeedMatchAsync(teams.HomeTeam.Id, teams.AwayTeam.Id, season1.Id);
+        var match2 = await SeedMatchAsync(teams.HomeTeam.Id, teams.AwayTeam.Id, season2.Id);
 
         // Act
         var result = await _matchRepository.GetBySeasonIdAsync(season1.Id, season1.Id);
@@ -151,9 +149,9 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var teams = await SeedTeamsAsync();
         var season = await SeedSeasonAsync();
-        
-        var match1 = await SeedMatchAsync(homeTeamId: teams.HomeTeam.Id, awayTeamId: teams.AwayTeam.Id, seasonId: season.Id);
-        var match2 = await SeedMatchAsync(homeTeamId: teams.AwayTeam.Id, awayTeamId: teams.HomeTeam.Id, seasonId: season.Id);
+
+        var match1 = await SeedMatchAsync(teams.HomeTeam.Id, teams.AwayTeam.Id, season.Id);
+        var match2 = await SeedMatchAsync(teams.AwayTeam.Id, teams.HomeTeam.Id, season.Id);
 
         // Act
         var result = await _matchRepository.GetByTeamIdAsync(teams.HomeTeam.Id);
@@ -171,7 +169,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var startDate = DateTime.UtcNow.Date;
         var endDate = startDate.AddDays(7);
-        
+
         var match1 = await SeedMatchAsync(matchDate: startDate.AddDays(2));
         var match2 = await SeedMatchAsync(matchDate: startDate.AddDays(10)); // Outside range
 
@@ -190,7 +188,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var futureDate = DateTime.UtcNow.AddDays(5);
         var pastDate = DateTime.UtcNow.AddDays(-5);
-        
+
         var upcomingMatch = await SeedMatchAsync(matchDate: futureDate);
         var pastMatch = await SeedMatchAsync(matchDate: pastDate);
 
@@ -209,7 +207,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var recentDate = DateTime.UtcNow.AddDays(-2);
         var futureDate = DateTime.UtcNow.AddDays(5);
-        
+
         var recentMatch = await SeedMatchAsync(matchDate: recentDate);
         var futureMatch = await SeedMatchAsync(matchDate: futureDate);
 
@@ -244,11 +242,11 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var teams = await SeedTeamsAsync();
         var season = await SeedSeasonAsync();
-        
+
         var match = await SeedMatchAsync(
-            homeTeamId: teams.HomeTeam.Id, 
-            awayTeamId: teams.AwayTeam.Id, 
-            seasonId: season.Id,
+            teams.HomeTeam.Id,
+            teams.AwayTeam.Id,
+            season.Id,
             venue: "Old Trafford");
 
         // Act
@@ -265,7 +263,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var season1 = await SeedSeasonAsync();
         var season2 = await SeedSeasonAsync();
-        
+
         var match1 = await SeedMatchAsync(seasonId: season1.Id);
         var match2 = await SeedMatchAsync(seasonId: season2.Id);
 
@@ -284,7 +282,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var match = await SeedMatchAsync();
         var originalVenue = match.Stadium;
-        
+
         match.HomeTeamScore = 2;
         match.AwayTeamScore = 1;
         match.MatchStatus = "Completed";
@@ -309,7 +307,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var matchId = match.Id;
 
         // Act
-         _matchRepository.DeleteAsync(match);
+        _matchRepository.DeleteAsync(match);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -331,14 +329,14 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         result.Should().NotBeNull();
         result!.SimulationId.Should().Be(simulationId);
-        
+
         var persistedMatch = await Context.Matches.FindAsync(match.Id);
         persistedMatch!.SimulationId.Should().Be(simulationId);
     }
 
     private async Task<Match> SeedMatchAsync(
-        int? homeTeamId = null, 
-        int? awayTeamId = null, 
+        int? homeTeamId = null,
+        int? awayTeamId = null,
         int? seasonId = null,
         DateTime? matchDate = null,
         string status = "Scheduled",
@@ -391,7 +389,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
 
         Context.Teams.AddRange(homeTeam, awayTeam);
         await Context.SaveChangesAsync();
-        
+
         return (homeTeam, awayTeam);
     }
 
@@ -406,7 +404,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddDays(300),
             IsActive = true,
             LeagueName = "Test League",
-            Country = "Test Country",
+            Country = "Test Country"
         };
 
         Context.Seasons.Add(season);

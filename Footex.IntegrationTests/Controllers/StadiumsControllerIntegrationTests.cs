@@ -103,7 +103,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
 
         // Act - First call
         var response1 = await _client.GetAsync($"/api/stadiums/{stadiumId}");
-        
+
         // Act - Second call (should be cached)
         var response2 = await _client.GetAsync($"/api/stadiums/{stadiumId}");
 
@@ -114,7 +114,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }
@@ -247,7 +247,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
 
         // Act - First call
         var response1 = await _client.GetAsync("/api/stadiums?country=England");
-        
+
         // Act - Second call with same parameters (should be cached)
         var response2 = await _client.GetAsync("/api/stadiums?country=England");
 
@@ -258,7 +258,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
         // Check cache headers
         response1.Headers.Should().ContainKey("X-Cache-Hit");
         response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-        
+
         response2.Headers.Should().ContainKey("X-Cache-Hit");
         response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
     }

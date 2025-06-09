@@ -1,10 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Footex.IntegrationTests.Common;
-using System.Text.Json;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using Footex.IntegrationTests.Common;
 
 namespace Footex.PerformanceTests.Benchmarks;
 

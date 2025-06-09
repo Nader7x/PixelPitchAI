@@ -23,26 +23,26 @@ public class BenchmarkRunner
             case "api":
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<ApiBenchmarks>();
                 break;
-                
+
             case "search":
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<SearchBenchmarks>();
                 break;
-                
+
             case "cache":
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<CacheBenchmarks>();
                 break;
-                
+
             case "all":
                 Console.WriteLine("Running API Benchmarks...");
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<ApiBenchmarks>();
-                
+
                 Console.WriteLine("Running Search Benchmarks...");
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<SearchBenchmarks>();
-                
+
                 Console.WriteLine("Running Cache Benchmarks...");
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<CacheBenchmarks>();
                 break;
-                
+
             default:
                 Console.WriteLine($"Unknown benchmark suite: {args[0]}");
                 Console.WriteLine("Available options: api, search, cache, all");
