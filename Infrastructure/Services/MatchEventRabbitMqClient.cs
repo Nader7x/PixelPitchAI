@@ -192,6 +192,9 @@ public class MatchEventRabbitMqClient : BackgroundService
                     }
                 }
 
+                // Add 1-second delay to simulate realistic match event synchronization time
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                
                 await BroadcastEventToClients(matchEvent);
             }
 
