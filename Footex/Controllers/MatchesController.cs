@@ -399,7 +399,8 @@ public class MatchesController(
                     UserId = userId,
                     Content =
                         $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
-                    Type = NotificationType.SimulationStart
+                    Type = NotificationType.SimulationStart,
+                    Title = "Match Simulation Started",
                 };
                 var notificationCommand =
                     new CreateNotificationCommand { Notification = notification };
@@ -754,12 +755,14 @@ public class MatchesController(
             // Create and send notification to the user who created the match
             var notification = new Notification
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = Guid.NewGuid()
+                    .ToString(),
                 Content =
                     $"Your match simulation between {match.HomeTeam?.Name ?? "Home Team"} and {match.AwayTeam?.Name ?? "Away Team"} has completed! The match is now ready to watch.",
                 Type = NotificationType.MatchEnd,
                 UserId = match.CreatorId,
-                Time = DateTime.UtcNow
+                Time = DateTime.UtcNow,
+                Title = "Match Simulation Completed"
             };
 
             // Send notification via SignalR
@@ -793,12 +796,14 @@ public class MatchesController(
 
             var notification = new Notification
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = Guid.NewGuid()
+                    .ToString(),
                 Content =
                     $"Your match simulation between {match.HomeTeam?.Name ?? "Home Team"} and {match.AwayTeam?.Name ?? "Away Team"} has failed. Error: {errorMessage}",
                 Type = NotificationType.Error,
                 UserId = match.CreatorId,
-                Time = DateTime.UtcNow
+                Time = DateTime.UtcNow,
+                Title = "Match Simulation Failed"
             };
 
             // Send notification via SignalR  

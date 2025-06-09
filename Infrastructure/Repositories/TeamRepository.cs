@@ -75,6 +75,43 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 
+    public async Task<Team?> GetTeamWithPlayersAsync(int teamId)
+    {
+        return await _context.Teams
+            .Include(t => t.Players)
+            .FirstOrDefaultAsync(t => t.Id == teamId);
+    }
+
+    public async Task<Team?> GetTeamWithCoachesAsync(int teamId)
+    {
+        return await _context.Teams
+            .Include(t => t.Coaches)
+            .FirstOrDefaultAsync(t => t.Id == teamId);
+    }
+
+    public async Task<IEnumerable<Team>> GetByCityAsync(string city)
+    {
+        if (string.IsNullOrEmpty(city)) return [];
+
+        return await _context.Teams
+            .Where(t => t.City != null && t.City.ToLower() == city.ToLower())
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
+            .Cast<Team>()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Team>> GetTeamsFoundedAfterYearAsync(int year)
+    {
+        if (year <= 0) return [];
+
+        return await _context.Teams
+            .Where(t => t.FoundationDate != null && t.FoundationDate.Year > year)
+            .OrderBy(t => t.Name ?? "")
+            .AsNoTracking()
+            .ToListAsync(); 
+    }
+
 
     public async Task<IReadOnlyList<Team>> GetByCountryAsync(string country)
     {

@@ -13,7 +13,7 @@ public class GetTeamByIdQuery : IRequest<GetTeamByIdQueryResponse>
 public class GetTeamByIdQueryResponse
 {
     public bool Succeeded { get; set; }
-    public string? error { get; set; }
+    public string? Error { get; set; }
     public TeamDto? Team { get; set; }
 }
 
@@ -31,7 +31,7 @@ public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapp
             return new GetTeamByIdQueryResponse
             {
                 Succeeded = false,
-                error = "Team not found"
+                Error = "Team not found"
             };
         var teamDto = _teamMapper.ToTeamDto(team);
 

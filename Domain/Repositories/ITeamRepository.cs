@@ -14,4 +14,8 @@ public interface ITeamRepository : IRepository<Team>
     Task<List<Team>> GetByCountryAsync(string country);
     Task<IEnumerable<Team>> SearchAsync(string query);
     Task<Team?> GetByIdAsyncWithStadium(int id);
+    Task<Team?> GetTeamWithPlayersAsync(int teamId);
+    Task<Team?> GetTeamWithCoachesAsync(int teamId);
+    Task<IEnumerable<Team>> GetByCityAsync(string city);
+    Task<IEnumerable<Team>> GetTeamsFoundedAfterYearAsync(int year);
 }

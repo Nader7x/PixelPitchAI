@@ -1,4 +1,5 @@
 using Domain.Repositories;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Domain.Interfaces;
 
@@ -17,7 +18,7 @@ public interface IUnitOfWork : IDisposable
     INotificationRepository Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    Task BeginTransactionAsync();
+    Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
 }

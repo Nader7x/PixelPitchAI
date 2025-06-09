@@ -59,7 +59,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Team.Should().NotBeNull();
         result.Team!.Id.Should().Be(teamId);
-        result.error.Should().BeNull();
+        result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(teamId), Times.Once);
         _teamMapperMock.Verify(x => x.ToTeamDto(team), Times.Once);
@@ -82,7 +82,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeFalse();
         result.Team.Should().BeNull();
-        result.error.Should().Be("Team not found");
+        result.Error.Should().Be("Team not found");
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(teamId), Times.Once);
         _teamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
@@ -107,7 +107,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeFalse();
         result.Team.Should().BeNull();
-        result.error.Should().Be("Team not found");
+        result.Error.Should().Be("Team not found");
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(invalidId), Times.Once);
         _teamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);

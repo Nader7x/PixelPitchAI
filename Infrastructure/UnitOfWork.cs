@@ -51,9 +51,10 @@ public sealed class UnitOfWork : IUnitOfWork
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task BeginTransactionAsync()
+    public async Task<IDbContextTransaction> BeginTransactionAsync()
     {
         _transaction = await _context.Database.BeginTransactionAsync();
+        return _transaction;
     }
 
     public async Task CommitTransactionAsync()
