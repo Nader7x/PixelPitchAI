@@ -1,0 +1,137 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for Footex
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+projects: ["Footex"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Feature Request
+        Thank you for suggesting a new feature! Please provide detailed information to help us understand your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternative Solutions
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: Alternative approaches could be...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ⭐ Priority
+      description: How important is this feature to you?
+      options:
+        - Critical (Blocking current work)
+        - High (Important for productivity)
+        - Medium (Nice to have)
+        - Low (Minor improvement)
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🎯 Component
+      description: Which component would this feature affect?
+      options:
+        - API/Backend
+        - Frontend/UI
+        - Database
+        - Authentication
+        - File Upload
+        - Performance
+        - Documentation
+        - Infrastructure
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: 🎬 Use Case
+      description: Describe a specific use case for this feature.
+      placeholder: |
+        As a [user type],
+        I want [feature],
+        So that [benefit].
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups/Examples
+      description: If applicable, add mockups, screenshots, or examples of similar features.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: ✅ Acceptance Criteria
+      description: Define what would make this feature complete.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: 🔧 Implementation Complexity (Your Estimate)
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (Few hours)
+        - Medium (Few days)
+        - Complex (Few weeks)
+        - Very Complex (Months)
+        - Not sure
+      default: 4
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 📊 Impact Assessment
+      description: How would this feature impact users, performance, or the system?
+      placeholder: |
+        - Users: [positive/negative impacts]
+        - Performance: [any performance considerations]
+        - System: [architectural changes needed]
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Add any other context, research, or links about the feature request.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: ✅ Confirmation
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: This feature would benefit multiple users, not just myself
+          required: true
+        - label: I understand this is a request and not guaranteed to be implemented
+          required: true

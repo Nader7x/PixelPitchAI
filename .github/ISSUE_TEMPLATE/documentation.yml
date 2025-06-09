@@ -1,0 +1,110 @@
+name: 📖 Documentation
+description: Report issues or suggest improvements to documentation
+title: "[DOCS] "
+labels: ["documentation", "needs-triage"]
+projects: ["Footex"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📖 Documentation Issue/Improvement
+        Help us improve our documentation by reporting issues or suggesting enhancements.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 📝 Type of Documentation Issue
+      description: What type of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear instructions
+        - Outdated content
+        - Formatting issues
+        - Translation needed
+        - New documentation needed
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 📍 Documentation Location
+      description: Where is the documentation located? (URL, file path, or section)
+      placeholder: https://github.com/username/footex/blob/main/README.md or docs/api/authentication.md
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: ❌ Current Issue
+      description: What's wrong with the current documentation?
+      placeholder: Describe what's incorrect, missing, or unclear...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: ✅ Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: Describe your suggested changes...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: 👥 Target Audience
+      description: Who would benefit from this documentation improvement?
+      options:
+        - End users
+        - Developers
+        - System administrators
+        - Contributors
+        - Everyone
+      default: 4
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ⭐ Priority
+      description: How important is this documentation fix?
+      options:
+        - Critical (Blocks user success)
+        - High (Important for user experience)
+        - Medium (Nice to have)
+        - Low (Minor improvement)
+      default: 2
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🎯 Additional Context
+      description: Any additional context that would help us understand the issue?
+      placeholder: |
+        - What were you trying to accomplish?
+        - What confusion did you encounter?
+        - Links to related documentation
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: 💡 Examples
+      description: Provide examples of what the documentation should include
+      placeholder: |
+        Code examples, screenshots, step-by-step instructions, etc.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: ✅ Confirmation
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have checked if this documentation exists elsewhere
+          required: true
+        - label: I am willing to help improve this documentation if needed
+          required: false

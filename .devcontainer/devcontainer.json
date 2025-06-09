@@ -1,0 +1,156 @@
+{
+  "name": "Footex Development",
+  "dockerComposeFile": "docker-compose.dev.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    },
+    "ghcr.io/devcontainers/features/dotnet:1": {
+      "version": "6.0",
+      "installUsingApt": false
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18",
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": true
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "azureDnsAutoDetection": true,
+      "installDockerBuildx": true,
+      "version": "latest",
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "ms-vscode.vscode-json",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.test-adapter-converter",
+        "ms-dotnettools.csdevkit",
+        "kreativ-software.csharpextensions",
+        "jchannon.csharpextensions",
+        "formulahendry.dotnet-test-explorer",
+        "adrianwilczynski.namespace",
+        "k--kato.docomment",
+        "ms-vscode.powershell",
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright",
+        "ms-vscode.vscode-docker",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "ms-vscode.github-issues-prs",
+        "sonarqube.sonarlint-vscode",
+        "ms-vscode.vscode-yaml",
+        "redhat.vscode-xml",
+        "ms-vscode.vscode-markdown",
+        "bierner.markdown-mermaid",
+        "ms-vscode.vscode-json",
+        "streetsidesoftware.code-spell-checker",
+        "gruntfuggly.todo-tree",
+        "ms-vscode.vscode-rest-client",
+        "humao.rest-client"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "Footex.sln",
+        "omnisharp.enableImportCompletion": true,
+        "omnisharp.enableRoslynAnalyzers": true,
+        "csharp.semanticHighlighting.enabled": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": true,
+          "source.organizeImports": true
+        },
+        "files.exclude": {
+          "**/bin": true,
+          "**/obj": true,
+          "**/.vs": true
+        },
+        "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+        "dotnet.inlayHints.enableInlayHintsForParameters": true,
+        "dotnet.inlayHints.enableInlayHintsForLiteralParameters": true,
+        "dotnet.inlayHints.enableInlayHintsForIndexerParameters": true,
+        "dotnet.inlayHints.enableInlayHintsForObjectCreationParameters": true,
+        "dotnet.inlayHints.enableInlayHintsForOtherParameters": true,
+        "dotnet.inlayHints.suppressInlayHintsForParametersThatDifferOnlyBySuffix": true,
+        "dotnet.inlayHints.suppressInlayHintsForParametersThatMatchMethodIntent": true,
+        "dotnet.inlayHints.suppressInlayHintsForParametersThatMatchArgumentName": true,
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "git.autofetch": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [5000, 5001, 5432, 6379, 3000, 9200, 9300, 5601],
+
+  "portsAttributes": {
+    "5000": {
+      "label": "Footex API (HTTP)",
+      "onAutoForward": "notify"
+    },
+    "5001": {
+      "label": "Footex API (HTTPS)",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "Frontend Dev Server",
+      "onAutoForward": "notify"
+    },
+    "9200": {
+      "label": "Elasticsearch",
+      "onAutoForward": "silent"
+    },
+    "5601": {
+      "label": "Kibana",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "git config --global --add safe.directory /workspace",
+
+  "remoteUser": "vscode",
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached"
+  ]
+}

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Question or Discussion
+    url: https://github.com/username/footex/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔒 Security Issue
+    url: https://github.com/username/footex/security/advisories/new
+    about: Report security vulnerabilities privately
+  - name: 💬 Community Chat
+    url: https://discord.gg/footex
+    about: Join our Discord community for real-time discussions

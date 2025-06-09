@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- 
+    This file contains suppression rules for OWASP Dependency Check.
+    Use this to suppress false positives or known issues that have been accepted as risk.
+    
+    Example suppressions:
+    
+    <suppress>
+        <notes><![CDATA[
+        Suppress false positive for XYZ library - issue tracked in ABC-123
+        ]]></notes>
+        <packageUrl regex="true">^pkg:nuget/PackageName@.*$</packageUrl>
+        <cve>CVE-2023-12345</cve>
+    </suppress>
+    
+    <suppress>
+        <notes><![CDATA[
+        Development dependency only - not used in production
+        ]]></notes>
+        <packageUrl regex="true">^pkg:nuget/DevPackage@.*$</packageUrl>
+        <vulnerabilityName>Development Tool Vulnerability</vulnerabilityName>
+    </suppress>
+    -->
+    
+    <!-- Add your suppressions here -->
+    
+</suppressions>
