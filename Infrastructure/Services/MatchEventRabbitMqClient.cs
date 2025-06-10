@@ -24,8 +24,9 @@ public class MatchEventRabbitMqClient : BackgroundService
 {
     private readonly SemaphoreSlim _batchWriteSemaphore = new(1, 1);
 
-    private readonly Channel<(FootballMatchEvent Event, DateTime BroadcastAt)> _broadcastQueue =
-        Channel.CreateUnbounded<(FootballMatchEvent, DateTime)>();
+    private readonly Channel<(FootballMatchEvent Event, DateTime ReceivedAt, bool ShouldBroadcastStatistics)>
+        _broadcastQueue =
+            Channel.CreateUnbounded<(FootballMatchEvent, DateTime, bool)>();
 
     private readonly AsyncEventHandler<CallbackExceptionEventArgs> _callbackExceptionHandler;
     private readonly AsyncEventHandler<CallbackExceptionEventArgs> _channelCallbackExceptionHandler;
@@ -35,7 +36,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
     private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache = new();
-    private readonly object _matchEventsCacheLock = new(); 
+    private readonly object _matchEventsCacheLock = new();
 
     // DATABASE BATCHING: Store pending batch writes for better performance
     private readonly ConcurrentDictionary<string, List<FootballMatchEvent>> _pendingBatchWrites = new();
@@ -46,7 +47,7 @@ public class MatchEventRabbitMqClient : BackgroundService
 
     private Timer? _batchWriteTimer;
 
-    private Task? _broadcastProcessor; 
+    private Task? _broadcastProcessor;
     private IChannel? _channel;
 
     private IConnection? _connection;
@@ -220,12 +221,12 @@ public class MatchEventRabbitMqClient : BackgroundService
                     _loadedMatches.TryRemove(matchEvent.match_id, out _);
                     _logger.LogInformation("Removed match {MatchId} from cache after match end",
                         matchEvent.match_id);
-                }
+                } // PERFORMANCE IMPROVEMENT: Queue for sequential broadcast with timing intervals
 
-                // PERFORMANCE IMPROVEMENT: Queue for delayed broadcast instead of blocking
                 // This allows immediate message acknowledgment and faster queue processing
-                var broadcastTime = DateTime.UtcNow.AddSeconds(1);
-                await _broadcastQueue.Writer.WriteAsync((matchEvent, broadcastTime), stoppingToken);
+                var shouldBroadcastStatistics = IsSignificantEvent(matchEvent);
+                await _broadcastQueue.Writer.WriteAsync((matchEvent, DateTime.UtcNow, shouldBroadcastStatistics),
+                    stoppingToken);
             }
 
             if (_channel is { IsOpen: true })
@@ -266,24 +267,47 @@ public class MatchEventRabbitMqClient : BackgroundService
                         ea.DeliveryTag);
                 }
         }
-    }
+    } // --- Performance Improvement: Background broadcast processor ---
 
-    // --- Performance Improvement: Background broadcast processor ---
     private async Task ProcessBroadcastQueue(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Broadcast queue processor started");
+        DateTime lastBroadcastTime = DateTime.MinValue;
 
         try
         {
-            await foreach (var (matchEvent, broadcastAt) in _broadcastQueue.Reader.ReadAllAsync(cancellationToken))
+            await foreach (var (matchEvent, receivedAt, shouldBroadcastStatistics) in _broadcastQueue.Reader
+                               .ReadAllAsync(cancellationToken))
                 try
                 {
-                    // Calculate remaining delay
-                    var delay = broadcastAt - DateTime.UtcNow;
-                    if (delay > TimeSpan.Zero) await Task.Delay(delay, cancellationToken);
+                    // Calculate when this event should be broadcasted to maintain 1-second intervals
+                    var now = DateTime.UtcNow;
+                    var minimumBroadcastTime = lastBroadcastTime.AddSeconds(1);
+                    var actualBroadcastTime = now > minimumBroadcastTime ? now : minimumBroadcastTime;
 
-                    // Broadcast the event with the original 1-second delay respected
+                    // Wait if needed to maintain the 1-second interval between broadcasts
+                    var delay = actualBroadcastTime - now;
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken);
+                    }
+
+                    // Broadcast the event
                     await BroadcastEventToClients(matchEvent);
+                    lastBroadcastTime = DateTime.UtcNow;
+
+                    _logger.LogDebug("Broadcasted event {Index} for match {Id} at {Time}",
+                        matchEvent.event_index, matchEvent.match_id, lastBroadcastTime);
+
+                    // If this is a significant event, also broadcast the updated statistics immediately after
+                    if (!shouldBroadcastStatistics) continue;
+                    var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
+                    if (matchEntity != null)
+                    {
+                        await BroadcastMatchStatistics(matchEvent, matchEntity);
+                        _logger.LogDebug("Broadcasted statistics for significant event {Index} of match {Id}",
+                            matchEvent.event_index, matchEvent.match_id);
+                    }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -308,6 +332,52 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             _logger.LogInformation("Broadcast queue processor stopped");
         }
+    }
+
+    /// <summary>
+    /// Determines if a match event is significant enough to warrant broadcasting updated statistics.
+    /// Only significant events like goals, cards, substitutions, and period changes trigger statistics updates.
+    /// </summary>
+    /// <param name="matchEvent">The football match event to analyze</param>
+    /// <returns>True if the event should trigger a statistics broadcast, false otherwise</returns>
+    private static bool IsSignificantEvent(FootballMatchEvent matchEvent)
+    {
+        if (matchEvent?.action == null) return false;
+
+        var action = matchEvent.action.ToLowerInvariant();
+        var eventType = matchEvent.event_type?.ToLowerInvariant();
+        var outcome = matchEvent.outcome?.ToLowerInvariant();
+
+        // Goals and scoring events
+        if (action.Contains("goal") || action.Contains("score") || eventType == "goal" || outcome == "goal")
+            return true;
+
+        // Cards (yellow, red)
+        if (action.Contains("card") || action.Contains("yellow") || action.Contains("red") ||
+            eventType == "card" || eventType == "yellow_card" || eventType == "red_card")
+            return true;
+
+        // Substitutions
+        if (action.Contains("substitution") || action.Contains("sub") || eventType == "substitution")
+            return true;
+
+        // Period/match state changes
+        if (action.Contains("kickoff") || action.Contains("half") || action.Contains("half_time") ||
+            action.Contains("stoppage_time") || action.Contains("match_end") ||
+            eventType == "half_time" || eventType == "stoppage_time" ||
+            eventType == "second_half" || eventType == "match_end")
+            return true;
+
+        // Penalties
+        if (action.Contains("penalty") || eventType == "penalty")
+            return true;
+
+        // VAR decisions (significant game changes)
+        if (action.Contains("var") || action.Contains("video") || eventType == "var")
+            return true;
+
+        // Own goals
+        return action.Contains("own") && action.Contains("goal");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -347,7 +417,7 @@ public class MatchEventRabbitMqClient : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (_channel == null || !_channel.IsOpen)
+            if (_channel is not { IsOpen: true })
             {
                 _logger.LogWarning("Channel found closed in ExecuteAsync loop. Attempting re-initialization.");
                 if (!await TryInitializeRabbitMq(stoppingToken))
@@ -549,14 +619,14 @@ public class MatchEventRabbitMqClient : BackgroundService
             var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
             var matchEventsEntity = matchEntity.MatchEvents ?? new MatchEvents
             {
-                MatchId = int.Parse(matchEvent.match_id), 
+                MatchId = int.Parse(matchEvent.match_id),
                 EventsJson = "[]",
                 LastUpdated = DateTime.UtcNow,
                 TotalEvents = 0
             };
-            
+
             matchEntity.MatchEvents ??= matchEventsEntity;
-            
+
             await eventAnalysis.UpdateMatchStatistics(matchEvent, matchEventsEntity, matchEntity, false);
 
             // Add event to batch writes for better database performance
@@ -567,8 +637,6 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
 
             batchEvents.Add(matchEvent);
-
-            await BroadcastMatchStatistics(matchEvent, matchEntity);
         }
         catch (Exception ex)
         {
@@ -585,6 +653,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             var matchStatistics = new
             {
                 matchId = matchEntity.Id,
+                timeStamp = matchEvent.timestamp,
                 homeTeam = new
                 {
                     name = matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
@@ -628,7 +697,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             };
             await _hubContext.Clients.Group(matchEntity.Id.ToString())
                 .SendMatchStatisticsAsync("match_statistics_update", matchEntity.Id,
-                    matchStatistics); // Ensure IMatchHub has SendMatchStatisticsAsync
+                    matchStatistics);
         }
         catch (Exception ex)
         {
