@@ -20,6 +20,13 @@ public class PassEventProcessor : BaseEventProcessor
         // Process specific pass types
         switch (matchEvent.type)
         {
+            case "Corner":
+                if (IsHomeTeam(matchEvent, match))
+                    match.HomeTeamCorners = IncrementValue(match.HomeTeamCorners);
+                else
+                    match.AwayTeamCorners = IncrementValue(match.AwayTeamCorners);
+                break;
+                
             case "Free Kick":
                 if (IsHomeTeam(matchEvent, match))
                     match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
@@ -32,6 +39,26 @@ public class PassEventProcessor : BaseEventProcessor
                     match.HomeTeamGoalKicks = IncrementValue(match.HomeTeamGoalKicks);
                 else
                     match.AwayTeamGoalKicks = IncrementValue(match.AwayTeamGoalKicks);
+                break;
+                
+            case "Throw-in":
+                // Throw-ins are tracked in the MatchEvents entity
+                break;
+                
+            case "Kick Off":
+                // Kick off passes are tracked as normal passes
+                break;
+                
+            case "Recovery":
+                // Recovery passes usually follow a ball recovery
+                if (IsHomeTeam(matchEvent, match))
+                    match.HomeTeamRecoveries = IncrementValue(match.HomeTeamRecoveries);
+                else
+                    match.AwayTeamRecoveries = IncrementValue(match.AwayTeamRecoveries);
+                break;
+                
+            case "Interception":
+                // Interception passes usually follow an interception
                 break;
         }
 
@@ -58,7 +85,22 @@ public class PassEventProcessor : BaseEventProcessor
                     if (matchEvent.long_pass == true)
                         match.AwayAccurateLongBalls = IncrementValue(match.AwayAccurateLongBalls);
                 }
-
+                break;
+                
+            case "Incomplete":
+                // Incomplete passes are still counted in the total, but not in completed passes
+                break;
+                
+            case "Out":
+                // Passes that go out of bounds
+                break;
+                
+            case "Injury Clearance":
+                // Special case for injury-related clearances
+                break;
+                
+            case "Unknown":
+                // Unknown outcome passes are still counted in the total
                 break;
         }
 
@@ -78,6 +120,10 @@ public class PassEventProcessor : BaseEventProcessor
 
         switch (matchEvent.type)
         {
+            case "Corner":
+                matchEvents.TotalCorners++;
+                break;
+                
             case "Free Kick":
                 matchEvents.TotalFreeKicks++;
                 break;
@@ -102,9 +148,10 @@ public class PassEventProcessor : BaseEventProcessor
         switch (matchEvent.outcome)
         {
             case "Out":
+            case "Injury Clearance":
                 matchEvents.TotalOuts++;
                 break;
-
+                
             case "Pass Offside":
                 matchEvents.TotalOffsides++;
                 break;

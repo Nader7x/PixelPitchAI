@@ -1,9 +1,21 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Domain.Models;
 
 public sealed class Match
 {
+    public Match()
+    {
+    }
+
+    [SetsRequiredMembers]
+    public Match(int id, string creatorId)
+    {
+        Id = id;
+        CreatorId = creatorId;
+    }
+
     public int Id { get; init; }
 
     // Renamed from MatchSeasonId - represents the primary season of the match event itself (e.g., a tournament season)
@@ -127,4 +139,108 @@ public sealed class Match
 
     public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
+
+    public void ResetStatistics()
+    {
+        HomeTeamPossession = 0;
+        AwayTeamPossession = 0;
+        HomeTeamShots = 0;
+        AwayTeamShots = 0;
+        HomeTeamShotsOnTarget = 0;
+        AwayTeamShotsOnTarget = 0;
+        HomeTeamCorners = 0;
+        AwayTeamCorners = 0;
+        HomeTeamFouls = 0;
+        AwayTeamFouls = 0;
+        HomeTeamYellowCards = 0;
+        AwayTeamYellowCards = 0;
+        HomeTeamRedCards = 0;
+        AwayTeamRedCards = 0;
+        HomeTeamOffsides = 0;
+        AwayTeamOffsides = 0;
+        HomeTeamPasses = 0;
+        HomeTeamPassesCompleted = 0;
+        AwayTeamPassesCompleted = 0;
+        AwayTeamPasses = 0;
+        
+        // Reset possession tracking
+        HomeTeamPossessionDurationSeconds = 0;
+        AwayTeamPossessionDurationSeconds = 0;
+        LastEventTimestampSeconds = null; // Reset to null to indicate no events processed yet
+        LastEventPossessingTeamName = null;
+
+        // Reset other statistics
+        HomeTeamDribbles = 0;
+        AwayTeamDribbles = 0;
+        HomeTeamSaves = 0;
+        AwayTeamSaves = 0;
+        HomeTeamDuels = 0;
+        AwayTeamDuels = 0;
+        HomeTeamDuelsWon = 0;
+        AwayTeamDuelsWon = 0;
+        HomeTeamClearances = 0;
+        AwayTeamClearances = 0;
+        HomeTeamPossessionWon = 0;
+        AwayTeamPossessionWon = 0;
+        HomeTeamRecoveries = 0;
+        AwayTeamRecoveries = 0;
+        HomeLongBalls = 0;
+        AwayLongBalls = 0;
+        HomeAccurateLongBalls = 0;
+        AwayAccurateLongBalls = 0;
+
+        // Reset long ball accuracy
+        HomeTeamLongBallsAccuracy = null; // Reset to null to indicate no long balls processed yet
+        AwayTeamLongBallsAccuracy =
+            null; // Reset to null to indicate no long balls processed yet
+
+        HomeTeamFreeKicks = 0; // Reset free kicks
+        AwayTeamFreeKicks =
+            0; // Reset free kicks
+
+        // Reset possession tracking
+        HomeTeamPossessionDurationSeconds = 0;
+        AwayTeamPossessionDurationSeconds = 0;
+        LastEventTimestampSeconds = null; // Reset to null to indicate no events processed yet
+        LastEventPossessingTeamName = null;
+
+        // Reset other statistics
+        HomeTeamDribbles = 0;
+        AwayTeamDribbles = 0;
+        HomeTeamSaves = 0;
+        AwayTeamSaves = 0;
+        HomeTeamDuels = 0;
+        AwayTeamDuels = 0;
+        HomeTeamDuelsWon = 0;
+        AwayTeamDuelsWon = 0;
+        HomeTeamClearances = 0;
+        AwayTeamClearances = 0;
+        HomeTeamPossessionWon = 0;
+        AwayTeamPossessionWon = 0;
+        HomeTeamRecoveries = 0;
+        AwayTeamRecoveries = 0;
+        HomeLongBalls = 0;
+        AwayLongBalls = 0;
+        HomeAccurateLongBalls = 0;
+        AwayAccurateLongBalls = 0;
+
+        // Reset long ball accuracy
+        HomeTeamLongBallsAccuracy = null; // Reset to null to indicate no long balls processed yet
+        AwayTeamLongBallsAccuracy = null; // Reset to null to indicate no long balls processed yet
+
+        HomeTeamFreeKicks = 0; // Reset free kicks
+        AwayTeamFreeKicks = 0; // Reset free kicks
+        AwayTeamShotsOffTarget = 0;
+        HomeTeamShotsOffTarget = 0; // Reset shots off target
+        IsLive = false; // Reset live status
+        MatchStatus = "Scheduled"; // Reset match status to scheduled
+
+        WinningTeamId = null; // Reset winning team
+        LosingTeamId = null; // Reset losing team
+        IsDraw = null; // Reset draw status
+        MatchEvents = null; // Reset match events
+        // reset scores
+        HomeTeamScore = null;
+        AwayTeamScore = null;
+    }
 }

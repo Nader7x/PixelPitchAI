@@ -6,24 +6,27 @@ public class FoulEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "foul committed" || matchEvent.action == "foul won" ||
-               matchEvent.action == "bad behaviour";
+        return matchEvent.action is "foul committed" or "foul won";
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
         if (matchEvent.action == "foul committed")
         {
+            // Update fouls counter for the team that committed the foul
             if (IsHomeTeam(matchEvent, match))
                 match.HomeTeamFouls = IncrementValue(match.HomeTeamFouls);
             else
                 match.AwayTeamFouls = IncrementValue(match.AwayTeamFouls);
-
-            ProcessCard(matchEvent, match);
         }
-        else if (matchEvent.action == "bad behaviour")
+        
+        if (matchEvent.action == "foul won")
         {
-            ProcessCard(matchEvent, match);
+            // When a foul is won, the opposing team gets a free kick
+            if (IsHomeTeam(matchEvent, match))
+                match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
+            else
+                match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
         }
     }
 
@@ -32,58 +35,12 @@ public class FoulEventProcessor : BaseEventProcessor
         if (matchEvent.action == "foul committed")
         {
             matchEvents.TotalFouls++;
-            if (matchEvent.outcome is "Penalty" or "penalty") matchEvents.TotalPenalties++;
-
-            ProcessCardCounters(matchEvent, matchEvents);
+            
+            if (matchEvent.outcome is "Penalty" or "penalty")
+                matchEvents.TotalPenalties++;
         }
-        else if (matchEvent.action == "foul won")
-        {
+        
+        if (matchEvent.action == "foul won")
             matchEvents.TotalFreeKicks++;
-        }
-        else if (matchEvent.action == "bad behaviour")
-        {
-            ProcessCardCounters(matchEvent, matchEvents);
-        }
-    }
-
-    private static void ProcessCard(FootballMatchEvent matchEvent, Match match)
-    {
-        if (matchEvent.card == null || matchEvent.card == "No Card")
-            return;
-
-        switch (matchEvent.card)
-        {
-            case "Yellow Card":
-                if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamYellowCards = IncrementValue(match.HomeTeamYellowCards);
-                else
-                    match.AwayTeamYellowCards = IncrementValue(match.AwayTeamYellowCards);
-                break;
-
-            case "Red Card":
-                if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamRedCards = IncrementValue(match.HomeTeamRedCards);
-                else
-                    match.AwayTeamRedCards = IncrementValue(match.AwayTeamRedCards);
-                break;
-        }
-    }
-
-    private static void ProcessCardCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents)
-    {
-        if (matchEvent.card == null || matchEvent.card == "No Card")
-            return;
-
-        matchEvents.TotalCards++;
-        switch (matchEvent.card)
-        {
-            case "Yellow Card":
-                matchEvents.TotalYellowCards++;
-                break;
-
-            case "Red Card":
-                matchEvents.TotalRedCards++;
-                break;
-        }
     }
 }

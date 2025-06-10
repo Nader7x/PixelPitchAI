@@ -204,7 +204,7 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
-            _logger.LogInformation("Received match event: {Message}", message);
+            // _logger.LogInformation("Received match event: {Message}", message);
 
             // JSON SERIALIZATION OPTIMIZATION: Use source generator for better performance
             var matchEvent =
@@ -225,6 +225,9 @@ public class MatchEventRabbitMqClient : BackgroundService
 
                 // This allows immediate message acknowledgment and faster queue processing
                 var shouldBroadcastStatistics = IsSignificantEvent(matchEvent);
+                _logger.LogInformation(
+                    "Match event {Index} for match {Id} is significant: {IsSignificant}",
+                    matchEvent.event_index, matchEvent.match_id, shouldBroadcastStatistics);
                 await _broadcastQueue.Writer.WriteAsync((matchEvent, DateTime.UtcNow, shouldBroadcastStatistics),
                     stoppingToken);
             }
@@ -300,7 +303,12 @@ public class MatchEventRabbitMqClient : BackgroundService
                         matchEvent.event_index, matchEvent.match_id, lastBroadcastTime);
 
                     // If this is a significant event, also broadcast the updated statistics immediately after
-                    if (!shouldBroadcastStatistics) continue;
+                    if (!shouldBroadcastStatistics) 
+                    {
+                        _logger.LogDebug("Event {Index} of match {Id} is not significant, skipping statistics broadcast",
+                            matchEvent.event_index, matchEvent.match_id);
+                        continue;
+                    }
                     var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
                     if (matchEntity != null)
                     {
@@ -698,6 +706,8 @@ public class MatchEventRabbitMqClient : BackgroundService
             await _hubContext.Clients.Group(matchEntity.Id.ToString())
                 .SendMatchStatisticsAsync("match_statistics_update", matchEntity.Id,
                     matchStatistics);
+            _logger.LogInformation("Broadcasted match statistics for match {Id} at {Time}", matchEntity.Id,
+                DateTime.UtcNow);
         }
         catch (Exception ex)
         {
@@ -784,20 +794,28 @@ public class MatchEventRabbitMqClient : BackgroundService
             {
                 matchEventsEntity = new MatchEvents
                 {
-                    MatchId = int.Parse(matchId), EventsJson = "[]", LastUpdated = DateTime.UtcNow, TotalEvents = 0
+                    MatchId = int.Parse(matchId), 
+                    EventsJson = "[]", 
+                    LastUpdated = DateTime.UtcNow, TotalEvents = 0
                 };
                 await unitOfWork.MatchEvents.AddAsync(matchEventsEntity); // This adds to UoW context
                 matchToUpdate.MatchEvents = matchEventsEntity;
+                // await unitOfWork.SaveChangesAsync(CancellationToken.None);
             }
 
+            // Process all events for statistics updates, regardless of match source or event type
+            _logger.LogInformation("Processing {EventCount} events for statistics updates for match {MatchId}", events.Count, matchId);
+            foreach (var ev in events.OrderBy(e => e.time_seconds))
+            {
+                await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
+            }
+
+            // Handle match end events separately
             if (events.Any(e => e is { event_type: "match_end", action: "match_end" }))
             {
-                if (cachedMatch == null)
-                    foreach (var ev in events.OrderBy(e => e.time_seconds))
-                        await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
-
                 matchToUpdate.IsLive = false;
                 matchToUpdate.MatchStatus = "Completed";
+                _logger.LogInformation("Match {MatchId} completed, updated status accordingly", matchId);
             }
 
 
@@ -855,7 +873,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            if (!await _batchWriteSemaphore.WaitAsync(100)) // Don't block if another flush is in progress
+            if (!await _batchWriteSemaphore.WaitAsync(900)) // Don't block if another flush is in progress
                 return;
 
             try

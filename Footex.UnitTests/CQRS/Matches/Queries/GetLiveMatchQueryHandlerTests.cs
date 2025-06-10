@@ -4,6 +4,7 @@ using Domain.Interfaces;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using Match = Domain.Models.Match;
 
 namespace Footex.UnitTests.CQRS.Matches.Queries;
 
@@ -29,11 +30,15 @@ public class GetLiveMatchQueryHandlerTests
     {
         // Arrange
         var userId = "user123";
-        var liveMatchId = 42;
+        var liveMatch = new Match()
+        {
+            Id = 42,
+            CreatorId = "creator_id"
+        };
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(liveMatchId);
+            .ReturnsAsync(liveMatch);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -41,7 +46,7 @@ public class GetLiveMatchQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-        result.MatchId.Should().Be(liveMatchId);
+        result.LiveMatch.Id.Should().Be(liveMatch.Id);
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetLiveMatchAsync(userId), Times.Once);
@@ -55,7 +60,11 @@ public class GetLiveMatchQueryHandlerTests
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(0);
+            .ReturnsAsync(new Domain.Models.Match
+            {
+                Id = 0,
+                CreatorId = "test_creator_id" // Simulating no live match found
+            });
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -63,7 +72,7 @@ public class GetLiveMatchQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeFalse();
-        result.MatchId.Should().Be(0);
+        result.LiveMatch.Id.Should().Be(0);
         result.Error.Should().Be("No live match found for the user.");
 
         _unitOfWorkMock.Verify(x => x.Matches.GetLiveMatchAsync(userId), Times.Once);
@@ -77,7 +86,11 @@ public class GetLiveMatchQueryHandlerTests
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(null as Func<int>);
+            .ReturnsAsync(new Match()
+            {
+                Id = 0,
+                CreatorId = "creator_id" // Simulating no live match found
+            });
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -85,7 +98,7 @@ public class GetLiveMatchQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeFalse();
-        result.MatchId.Should().Be(0);
+        result.LiveMatch.Id.Should().Be(0);
         result.Error.Should().Be("No live match found for the user.");
 
         _unitOfWorkMock.Verify(x => x.Matches.GetLiveMatchAsync(userId), Times.Once);
@@ -100,7 +113,11 @@ public class GetLiveMatchQueryHandlerTests
         var query = new GetLiveMatchQuery { UserId = invalidUserId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(invalidUserId))
-            .ReturnsAsync(0);
+            .ReturnsAsync(new Match()
+            {
+                Id = 0,
+                CreatorId = "creator_id" // Simulating no live match found
+            });
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -118,11 +135,15 @@ public class GetLiveMatchQueryHandlerTests
     {
         // Arrange
         var userId = "user123";
-        var firstLiveMatchId = 1;
+        var firstLiveMatch = new Match
+        {
+            Id = 1,
+            CreatorId = "creator_id"
+        };
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(firstLiveMatchId);
+            .ReturnsAsync(firstLiveMatch);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -130,7 +151,7 @@ public class GetLiveMatchQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-        result.MatchId.Should().Be(firstLiveMatchId);
+        result.LiveMatch.Should().Be(firstLiveMatch);
         result.Error.Should().BeNull();
     }
 
@@ -142,7 +163,11 @@ public class GetLiveMatchQueryHandlerTests
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(1);
+            .ReturnsAsync(new Match
+            {
+                Id = 1,
+                CreatorId = "creator_id"
+            });
 
         // Act
         await _handler.Handle(query, CancellationToken.None);
@@ -152,17 +177,15 @@ public class GetLiveMatchQueryHandlerTests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(100)]
-    [InlineData(999)]
-    public async Task Handle_WithDifferentMatchIds_ReturnsCorrectMatchId(int expectedMatchId)
+    [MemberData(nameof(GetMatchesForTheory))]
+    public async Task Handle_WithDifferentMatchIds_ReturnsCorrectMatchId(Match expectedMatch)
     {
         // Arrange
         var userId = "user123";
         var query = new GetLiveMatchQuery { UserId = userId };
 
         _unitOfWorkMock.Setup(x => x.Matches.GetLiveMatchAsync(userId))
-            .ReturnsAsync(expectedMatchId);
+            .ReturnsAsync(expectedMatch);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -170,7 +193,14 @@ public class GetLiveMatchQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-        result.MatchId.Should().Be(expectedMatchId);
+        result.LiveMatch.Should().Be(expectedMatch);
         result.Error.Should().BeNull();
     }
+
+    public static readonly IEnumerable<object[]> GetMatchesForTheory =
+    [
+        new object[] { new Match { Id = 1, CreatorId = "creator_id" } },
+        new object[] { new Match { Id = 2, CreatorId = "creator_id" } },
+        new object[] { new Match { Id = 3, CreatorId = "creator_id" } }
+    ];
 }

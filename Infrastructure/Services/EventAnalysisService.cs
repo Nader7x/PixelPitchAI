@@ -67,5 +67,18 @@ public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors) 
                 (double)match.AwayTeamPassesCompleted.Value * 100 / match.AwayTeamPasses.Value, 2);
         else
             match.AwayTeamPassAccuracy = 0;
+        
+        // Calculate Home Long Balls Accuracy
+        if (match is { HomeLongBalls: > 0, HomeAccurateLongBalls: not null })
+            match.HomeTeamLongBallsAccuracy = Math.Round(
+                (double)match.HomeAccurateLongBalls.Value * 100 / match.HomeLongBalls.Value, 2);
+        else
+            match.HomeTeamLongBallsAccuracy = 0;
+        // Calculate Away Long Balls Accuracy
+        if (match is { AwayLongBalls: > 0, AwayAccurateLongBalls: not null })
+            match.AwayTeamLongBallsAccuracy = Math.Round(
+                (double)match.AwayAccurateLongBalls.Value * 100 / match.AwayLongBalls.Value, 2);
+        else
+            match.AwayTeamLongBallsAccuracy = 0;
     }
 }

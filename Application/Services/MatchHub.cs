@@ -26,4 +26,14 @@ public class MatchHub : Hub<IMatchHub>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
         await Clients.Caller.SendAsync("LeftMatchGroup", $"Left Match {matchId.ToString()}");
     }
+    public async Task JoinMatchStatistics(int matchId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"MatchStatistics-{matchId.ToString()}");
+        await Clients.Caller.SendAsync("JoinedMatchStatistics", $"Joined Match Statistics {matchId.ToString()}");
+    }
+    public async Task LeaveMatchStatistics(int matchId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"MatchStatistics-{matchId.ToString()}");
+        await Clients.Caller.SendAsync("LeftMatchStatistics", $"Left Match Statistics {matchId.ToString()}");
+    }
 }

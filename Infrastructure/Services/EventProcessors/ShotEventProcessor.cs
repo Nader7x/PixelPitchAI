@@ -11,13 +11,21 @@ public class ShotEventProcessor : BaseEventProcessor
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
-        // Handle free kick
-        if (matchEvent.type == "Free Kick")
+        // Handle free kick and penalty shot types
+        switch (matchEvent.type)
         {
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
-            else
-                match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
+            case "Free Kick":
+                if (IsHomeTeam(matchEvent, match))
+                    match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
+                else
+                    match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
+                break;
+            case "Penalty":
+                // Penalty shots are tracked in the matchEvents entity
+                break;
+            case "Open Play":
+                // Regular shot in open play
+                break;
         }
 
         // Update shots counter
@@ -44,8 +52,8 @@ public class ShotEventProcessor : BaseEventProcessor
                 UpdateMatchResult(match);
                 break;
 
-            case "Wayward":
             case "Off T":
+            case "Wayward":
                 if (IsHomeTeam(matchEvent, match))
                     match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
                 else
@@ -63,7 +71,32 @@ public class ShotEventProcessor : BaseEventProcessor
                     match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
                     match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
                 }
-
+                break;
+                
+            case "Blocked":
+                // Shots that are blocked are still counted as shots, but not on target
+                break;
+                
+            case "Post":
+                // Shot hit the post - counted as a shot but not on target
+                if (IsHomeTeam(matchEvent, match))
+                    match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
+                else
+                    match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
+                break;
+                
+            case "Saved Off Target":
+                // Shot saved but was going off target anyway
+                if (IsHomeTeam(matchEvent, match))
+                {
+                    match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
+                    match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
+                }
+                else
+                {
+                    match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
+                    match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
+                }
                 break;
         }
     }
@@ -72,8 +105,18 @@ public class ShotEventProcessor : BaseEventProcessor
     {
         matchEvents.TotalShots++;
 
-        if (matchEvent.type == "Free Kick") matchEvents.TotalFreeKicks++;
+        // Process shot type
+        switch (matchEvent.type)
+        {
+            case "Free Kick":
+                matchEvents.TotalFreeKicks++;
+                break;
+            case "Penalty":
+                matchEvents.TotalPenalties++;
+                break;
+        }
 
+        // Process outcome
         switch (matchEvent.outcome)
         {
             case "Blocked":
@@ -89,6 +132,7 @@ public class ShotEventProcessor : BaseEventProcessor
                 break;
 
             case "Saved":
+            case "Saved Off Target":
                 matchEvents.TotalGoalkeeperSaves++;
                 break;
         }

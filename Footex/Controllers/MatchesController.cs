@@ -282,6 +282,23 @@ public class MatchesController(
         return Ok(result);
     }
 
+    [HttpGet("LiveMatch/{userId}")]
+    [Authorize]
+    [ProducesResponseType(typeof(GetLiveMatchQueryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<GetLiveMatchQueryResponse>> GetLiveMatch(string userId)
+    {
+        var query = new GetLiveMatchQuery { UserId = userId };
+        var result = await mediator.Send(query);
+
+        if (!result.Succeeded)
+        {
+            return NotFound(result);
+        }
+
+        return Ok(result);
+    }
 
     [HttpPost("SimulateMatch/{userId}")]
     [Authorize]
@@ -672,7 +689,7 @@ public class MatchesController(
     {
         var query = new GetLiveMatchQuery { UserId = userId };
         var result = await mediator.Send(query, cancellationToken);
-        return result.Succeeded && result.MatchId != 0;
+        return result.Succeeded && result.LiveMatch.Id != 0 && result.HasLiveMatch;
     }
 
 

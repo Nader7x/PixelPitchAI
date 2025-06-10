@@ -4,6 +4,7 @@ namespace Application.Interfaces;
 
 public interface INotificationService
 {
+    Task SendAsync(string method, Notification notification);
     Task SendNotificationAsync(Notification notification);
     Task SendNotificationAsync(string title, string message, string type, IEnumerable<int> userIds);
     Task SendMatchStartNotificationAsync(Notification notification, string simulationId);

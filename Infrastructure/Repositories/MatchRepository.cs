@@ -135,11 +135,12 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
             .Where(m => m.HomeTeamSeasonId == seasonId || m.AwayTeamSeasonId == seasonId).ToListAsync();
     }
 
-    public async Task<int> GetLiveMatchAsync(string requestUserId)
+    public async Task<Match?> GetLiveMatchAsync(string requestUserId)
     {
         return await _context.Matches
-            .Where(m => m.MatchStatus == "Live" && m.CreatorId == requestUserId)
-            .Select(m => m.Id)
+            .Where(m => m.IsLive && m.CreatorId == requestUserId)
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
             .FirstOrDefaultAsync();
     }
 

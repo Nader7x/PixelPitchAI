@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.UnitTests", "Footex.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.IntegrationTests", "Footex.IntegrationTests\Footex.IntegrationTests.csproj", "{C9F60338-83FC-4514-B01C-4B75D345D5D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.PerformanceTests", "Footex.PerformanceTests\Footex.PerformanceTests.csproj", "{DA52E828-6A41-4C67-AE4A-F9B784D1C3E5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,9 +41,5 @@ Global
 		{C9F60338-83FC-4514-B01C-4B75D345D5D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9F60338-83FC-4514-B01C-4B75D345D5D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9F60338-83FC-4514-B01C-4B75D345D5D9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DA52E828-6A41-4C67-AE4A-F9B784D1C3E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DA52E828-6A41-4C67-AE4A-F9B784D1C3E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DA52E828-6A41-4C67-AE4A-F9B784D1C3E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DA52E828-6A41-4C67-AE4A-F9B784D1C3E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

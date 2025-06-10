@@ -36,6 +36,7 @@
         <Content Include="..\.dockerignore">
             <Link>.dockerignore</Link>
         </Content>
+        <Content Remove="Logs\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -45,13 +46,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Logs\"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <None Remove="Logs\log-20250522.txt"/>
         <None Remove="Logs\log-20250521.txt"/>
         <None Remove="Logs\log-20250520.txt"/>
+        <None Remove="Logs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Logs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Logs\**" />
     </ItemGroup>
 
 </Project>

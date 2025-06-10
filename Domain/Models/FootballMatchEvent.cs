@@ -27,7 +27,7 @@ public sealed class FootballMatchEvent
     public Score? Score { get; set; }
 }
 
-public abstract class Score
+public class Score
 {
     public int Home { get; set; }
     public int Away { get; set; }

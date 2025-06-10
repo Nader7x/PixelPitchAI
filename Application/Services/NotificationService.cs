@@ -11,6 +11,7 @@ public class NotificationService : Hub<INotificationService>
 {
     public override Task OnConnectedAsync()
     {
+        // This method is called when a client connects to the hub.
         var userId = Context.User.GetNameId();
         if (userId != null) Clients.User(userId).SendMessageAsync("Welcome back!");
         return base.OnConnectedAsync();

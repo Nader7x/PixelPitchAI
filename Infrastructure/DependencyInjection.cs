@@ -6,6 +6,7 @@ using Infrastructure.Configuration;
 using Infrastructure.Identity;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Infrastructure.Services.EventProcessors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -132,7 +133,28 @@ public static class DependencyInjection
 
         // Register live match statistics service
         services.AddSingleton<ILiveMatchStatisticsService, LiveMatchStatisticsService>();
-
+        // Register Event Processors 
+        services.AddSingleton<IEventProcessor, PassEventProcessor>();
+        services.AddSingleton<IEventProcessor, ShotEventProcessor>();
+        services.AddSingleton<IEventProcessor, FoulEventProcessor>();
+        services.AddSingleton<IEventProcessor, CornerEventProcessor>();
+        services.AddSingleton<IEventProcessor, OffsideEventProcessor>();
+        services.AddSingleton<IEventProcessor, CardEventProcessor>();
+        services.AddSingleton<IEventProcessor, GoalkeeperEventProcessor>();
+        services.AddSingleton<IEventProcessor, DuelEventProcessor>();
+        services.AddSingleton<IEventProcessor, ClearanceEventProcessor>();
+        services.AddSingleton<IEventProcessor, RecoveryEventProcessor>();
+        services.AddSingleton<IEventProcessor, DribbleEventProcessor>();
+        services.AddSingleton<IEventProcessor, OwnGoalEventProcessor>();
+        services.AddSingleton<IEventProcessor, InterceptionEventProcessor>();
+        services.AddSingleton<IEventProcessor, BlockEventProcessor>();
+        services.AddSingleton<IEventProcessor, SubstitutionEventProcessor>();
+        services.AddSingleton<IEventProcessor, InjuryEventProcessor>();
+        services.AddSingleton<IEventProcessor, MatchStatusEventProcessor>();
+        services.AddSingleton<IEventProcessor, BadBehaviourEventProcessor>();
+        services.AddSingleton<IEventProcessor, BallLossEventProcessor>();
+        services.AddSingleton<IEventProcessor, PressureEventProcessor>();
+        
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
