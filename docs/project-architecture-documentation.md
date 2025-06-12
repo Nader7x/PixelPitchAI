@@ -104,6 +104,7 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 │                                                             │
 │  📊 Data Access     🗄️ Caching        📨 Messaging         │
 │  • EF Core          • Redis Cache     • RabbitMQ Client     │
+
 │  • PostgreSQL       • Session Store   • Event Handlers      │
 │  • Repositories     • Performance     • Background Tasks    │
 │                                                             │
