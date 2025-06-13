@@ -11,6 +11,7 @@ using FluentAssertions;
 using Footex.Configuration;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
+using Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,9 +37,12 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
     private readonly Mock<IServiceScopeFactory> _serviceScopeFactoryMock;
     private readonly Mock<IOptions<SimulationServiceOptions>> _simulationOptionsMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly Mock<IPerformanceMonitoringService> _performanceMonitoring;
+    private readonly Mock<ILiveMatchStatisticsService> _liveMatchService;
 
     public MatchesControllerTests()
     {
+        _liveMatchService = new Mock<ILiveMatchStatisticsService>();
         _mediatorMock = new Mock<IMediator>();
         _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _matchMapperMock = new Mock<MatchMapper>();
@@ -48,6 +52,9 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         _loggerMock = new Mock<ILogger<MatchesController>>();
         _hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
         _cacheServiceMock = new Mock<ICacheService>();
+        _performanceMonitoring = new Mock<IPerformanceMonitoringService>();
+        
+        
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -69,6 +76,8 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
             _simulationOptionsMock.Object,
             _serviceScopeFactoryMock.Object,
             _unitOfWorkMock.Object,
+            _performanceMonitoring.Object,
+            _liveMatchService.Object,
             _loggerMock.Object,
             _hubContextMock.Object,
             _cacheServiceMock.Object);

@@ -186,3 +186,18 @@ public class SimulateMatchDto
     public required int HomeSeasonId { get; set; }
     public required int AwaySeasonId { get; set; }
 }
+
+public class UserMatchDto
+{
+    public int? Id { get; set; }
+    public string? HomeTeamName { get; set; }
+    public string? AwayTeamName { get; set; }
+    public int? HomeTeamScore { get; set; }
+    public int? AwayTeamScore { get; set; }
+    public DateTime ScheduledDateTimeUtc { get; set; }
+    public string? MatchStatus { get; set; }
+    public bool IsLive { get; set; }
+    public string HomeTeamLogo { get; set; } = string.Empty;
+    public string AwayTeamLogo { get; set; } = string.Empty;
+    
+}

@@ -155,4 +155,14 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
         return match;
     }
+
+    public async Task<IEnumerable<Match>> GetMatchesByUserIdAsync(string userId)
+    {
+        return await _context.Matches
+            .Where(m => m.CreatorId == userId)
+            .Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 }

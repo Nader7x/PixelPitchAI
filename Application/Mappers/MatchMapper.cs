@@ -50,4 +50,9 @@ public partial class MatchMapper
     [MapProperty(nameof(Match.HomeCoach), nameof(MatchDetailsDto.HomeCoach))]
     [MapProperty(nameof(Match.AwayCoach), nameof(MatchDetailsDto.AwayCoach))]
     public partial MatchDetailsDto ToDetailsFromMatch(Match match);
+    [MapProperty(nameof(Match.HomeTeam.Name),nameof(UserMatchDto.HomeTeamName))]
+    [MapProperty(nameof(Match.AwayTeam.Name),nameof(UserMatchDto.AwayTeamName))]
+    [MapProperty(nameof(Match.HomeTeam.Logo),nameof(UserMatchDto.HomeTeamLogo))]
+    [MapProperty(nameof(Match.AwayTeam.Logo),nameof(UserMatchDto.AwayTeamLogo))]
+    public partial List<UserMatchDto> ToUserMatchDto(IEnumerable<Match> matches);
 }

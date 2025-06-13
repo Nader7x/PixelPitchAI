@@ -1,5 +1,52 @@
-# Default ignored files
-/shelf/
+# Standard .NET .gitignore
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Rider and VS Code
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+# Visual Studio
+*.vspscc
+*.vssscc
+*.dbmdl
+*.bak
+*.backup
+*.log
+*.vs/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Others
+*.swp
+*.tmp
+*.tmp_proj
+*.log
+*.pidb
+*.svclog
+*.scc
+
+# User-specific files
+*.userprefs
+
+# Custom project ignores
 /workspace.xml
 # Rider ignored files
 /projectSettingsUpdater.xml

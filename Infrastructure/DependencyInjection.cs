@@ -139,7 +139,6 @@ public static class DependencyInjection
         services.AddSingleton<IEventProcessor, FoulEventProcessor>();
         services.AddSingleton<IEventProcessor, CornerEventProcessor>();
         services.AddSingleton<IEventProcessor, OffsideEventProcessor>();
-        services.AddSingleton<IEventProcessor, CardEventProcessor>();
         services.AddSingleton<IEventProcessor, GoalkeeperEventProcessor>();
         services.AddSingleton<IEventProcessor, DuelEventProcessor>();
         services.AddSingleton<IEventProcessor, ClearanceEventProcessor>();

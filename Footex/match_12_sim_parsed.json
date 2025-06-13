@@ -110254,27 +110254,5 @@
     "home_team": "Atlético_Madrid_2019",
     "away_team": "Barcelona_2017",
     "long_pass": null
-  },
-  {
-    "timestamp": "00:00",
-    "time_seconds": 0,
-    "minute": 0,
-    "second": 0,
-    "team": "SYSTEM",
-    "player": "SYSTEM",
-    "action": "match_start",
-    "event_type": "match_start",
-    "position": null,
-    "outcome": null,
-    "height": null,
-    "card": null,
-    "pass_target": null,
-    "shot_target": null,
-    "body_part": null,
-    "event_index": 4552,
-    "match_id": "12",
-    "home_team": "Atlético_Madrid_2019",
-    "away_team": "Barcelona_2017",
-    "long_pass": null
   }
 ]

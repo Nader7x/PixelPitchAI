@@ -1,4 +1,5 @@
 using Application.Dtos;
+using Application.Interfaces;
 using Application.Mappers;
 using Domain.Interfaces;
 using MediatR;
@@ -18,9 +19,10 @@ public class GetMatchByIdWithDetailsQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitOfWork unitOfWork)
+public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitOfWork unitOfWork, ILiveMatchStatisticsService liveMatchStatisticsService)
     : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
 {
+    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService = liveMatchStatisticsService;
     public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(GetMatchByIdWithDetailsQuery request,
         CancellationToken cancellationToken)
     {
@@ -34,8 +36,8 @@ public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitO
                     NotFound = true,
                     Error = $"Match with ID {request.MatchId} not found"
                 };
-
-            var matchDto = matchMapper.ToDetailsFromMatch(match);
+            var liveStatistics =  _liveMatchStatisticsService.GetCachedLiveMatch(request.MatchId.ToString());
+            var matchDto = matchMapper.ToDetailsFromMatch(liveStatistics ?? match);
             return new GetMatchByIdWithDetailsQueryResponse
             {
                 Succeeded = true,

@@ -72,6 +72,15 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
             stopwatch.Stop();
         }
     }
+    public Task<Match> AddMatchToLiveStatistics(Match match)
+    {
+
+        // Add the match to the live cache
+        _liveMatchesCache.AddOrUpdate(match.Id.ToString(), match, (_, _) => match);
+        _logger.LogInformation("Added match {MatchId} to live statistics cache", match.Id);
+
+        return Task.FromResult(match);
+    }
 
     /// <inheritdoc />
     public async Task<int> PreloadMultipleMatchesForLiveStatistics(IEnumerable<string> matchIds)

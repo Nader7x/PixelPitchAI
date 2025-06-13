@@ -1,5 +1,6 @@
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Application.Mappers;
 using AutoFixture;
 using Domain.Interfaces;
@@ -17,12 +18,13 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
     private readonly GetMatchByIdWithDetailsQueryHandler _handler;
     private readonly Mock<MatchMapper> _matchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly ILiveMatchStatisticsService _liveMatchStatisticsServiceMock;
 
     public GetMatchByIdWithDetailsQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _matchMapperMock = new Mock<MatchMapper>();
-        _handler = new GetMatchByIdWithDetailsQueryHandler(_matchMapperMock.Object, _unitOfWorkMock.Object);
+        _handler = new GetMatchByIdWithDetailsQueryHandler(_matchMapperMock.Object,_unitOfWorkMock.Object,_liveMatchStatisticsServiceMock);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()

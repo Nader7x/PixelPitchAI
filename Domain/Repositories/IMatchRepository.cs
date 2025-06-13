@@ -19,4 +19,5 @@ public interface IMatchRepository : IRepository<Match>
 
     Task<Match?> GetLiveMatchAsync(string requestUserId);
     Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId, CancellationToken cancellationToken);
+    Task<IEnumerable<Match>> GetMatchesByUserIdAsync(string userId);
 }

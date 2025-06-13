@@ -12,7 +12,7 @@ public class GetUserMatchesQuery : IRequest<GetUserMatchesQueryResponse>
 
 public class GetUserMatchesQueryResponse
 {
-    public List<MatchDto?>? Matches { get; init; }
+    public List<UserMatchDto?>? Matches { get; init; }
     public bool Succeeded { get; init; }
     public string? Error { get; init; }
 }
@@ -28,8 +28,8 @@ public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matc
     {
         try
         {
-            var userMatches = await _unitOfWork.Matches.GetAllAsync(m => m.CreatorId == request.UserId);
-            var matchesDtos = _matchMapper.ToDtoList(userMatches);
+            var userMatches = await _unitOfWork.Matches.GetMatchesByUserIdAsync(request.UserId);
+            var matchesDtos = _matchMapper.ToUserMatchDto(userMatches);
             return new GetUserMatchesQueryResponse
             {
                 Succeeded = true,
