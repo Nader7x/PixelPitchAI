@@ -8,10 +8,10 @@ public class RedisCacheOptions
     public string RemoteConnectionString { get; set; } = "";
     public string InstanceName { get; set; } = "Footex_";
 
-    public TimeSpan DefaultExpiration { get; set; } = TimeSpan.FromMinutes(10);
-    public TimeSpan DefaultSlidingExpiration { get; set; } = TimeSpan.FromMinutes(2);
+    public TimeSpan DefaultExpiration { get; set; } = TimeSpan.FromMinutes(1);
+    public TimeSpan DefaultSlidingExpiration { get; set; } = TimeSpan.FromSeconds(30);
 
     // Circuit breaker options
-    public TimeSpan CircuitResetInterval { get; set; } = TimeSpan.FromMinutes(1);
+    public TimeSpan CircuitResetInterval { get; set; } = TimeSpan.FromSeconds(30);
     public int FailureThreshold { get; set; } = 3;
 }

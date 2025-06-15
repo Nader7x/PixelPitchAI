@@ -169,7 +169,6 @@ public class PlayersController(
         }
 
         // Invalidate both the specific player cache and the player lists
-        await _cacheService.RemoveAsync($"player_{id}");
         await InvalidatePlayerListCaches();
 
         return Ok(result);
@@ -206,7 +205,6 @@ public class PlayersController(
         }
 
         // Invalidate both the specific player cache and the player lists
-        await _cacheService.RemoveAsync($"player_{id}");
         await InvalidatePlayerListCaches();
 
         return Ok(result);
@@ -219,6 +217,9 @@ public class PlayersController(
         // Simple implementation: use a wildcarded key pattern to clear all player list caches
         // In Redis we would do this with SCAN and DEL commands
         // Since we're using a .NET Redis client, we'll approximate by using a cache key that starts with "players_all_"
-        await _cacheService.RemoveAsync("players_all_*");
+        await _cacheService.RemoveByPatternAsync("players_all_*");
+        // If you have more specific patterns, you can add them here
+        await _cacheService.RemoveByPatternAsync("player_*");
+        await _cacheService.RemoveByPatternAsync("players_*");
     }
 }

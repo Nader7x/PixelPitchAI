@@ -85,7 +85,7 @@ public static class DependencyInjection
         services.AddStackExchangeRedisCache(options =>
         {
             options.InstanceName = configuration.GetValue<string>($"{RedisCacheOptions.SectionName}:InstanceName") ??
-                                   "Footex_";
+                                   "Footex_";           
             options.ConnectionMultiplexerFactory = () => Task.FromResult<IConnectionMultiplexer>(redis);
         });
 

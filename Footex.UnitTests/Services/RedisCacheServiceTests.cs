@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using StackExchange.Redis;
 using Xunit;
 
 namespace Footex.UnitTests.Services;
@@ -17,6 +18,7 @@ public class RedisCacheServiceTests
     private readonly Mock<IDistributedCache> _distributedCacheMock;
     private readonly Mock<ILogger<RedisCacheService>> _loggerMock;
     private readonly Mock<IOptions<RedisCacheOptions>> _optionsMock;
+    private readonly Mock<IConnectionMultiplexer> _connectionMultiplexer;
 
     public RedisCacheServiceTests()
     {
@@ -37,7 +39,8 @@ public class RedisCacheServiceTests
         _cacheService = new RedisCacheService(
             _distributedCacheMock.Object,
             _loggerMock.Object,
-            _optionsMock.Object);
+            _optionsMock.Object,
+            _connectionMultiplexer.Object);
     }
 
     [Fact]

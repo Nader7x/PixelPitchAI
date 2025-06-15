@@ -267,7 +267,7 @@ public class MatchesController(
     private async Task InvalidateMatchListCaches()
     {
         // Using a pattern to match all match list caches
-        await _cacheService.RemoveAsync("matches_all_*");
+        await _cacheService.RemoveByPatternAsync("matches_all_*");
     }
 
     [HttpGet("{userId}")]

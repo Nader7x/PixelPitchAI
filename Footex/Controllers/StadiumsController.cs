@@ -32,6 +32,7 @@ public class StadiumsController(
         [FromQuery] string? country,
         [FromQuery] string? city)
     {
+        await _cacheService.RemoveAsync("stadiums_all_*");
         // Generate a cache key based on the query parameters
         var cacheKey = $"stadiums_all_{country}_{city}";
 
@@ -56,7 +57,7 @@ public class StadiumsController(
             return BadRequest(result);
 
         // Store in cache if successful
-        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+        await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
 
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
@@ -224,5 +225,10 @@ public class StadiumsController(
     {
         // Using a pattern to match all stadium list cache keys
         await _cacheService.RemoveAsync("stadiums_all_*");
+        await _cacheService.RemoveByPatternAsync("stadiums_all_");
+        await _cacheService.RemoveByPatternAsync("stadium_*");
+        await _cacheService.RemoveByPatternAsync("stadiums_*");
+        await _cacheService.RemoveByPatternAsync("stadiums_*_all");
+        await _cacheService.RemoveByPatternAsync("stadiums_*_city_*");
     }
 }
