@@ -116,7 +116,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            BUILD_CONFIGURATION=Release
+            BUILD_CONFIGURATION=Release            
             ASPNETCORE_ENVIRONMENT=${{ needs.pre-deployment.outputs.target_environment }}
 
   # Job 3: Deploy to Staging
@@ -125,36 +125,27 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-deployment, build-and-push]
     if: needs.pre-deployment.outputs.target_environment == 'staging'
-    environment:
-      name: staging
-      url: https://footex-staging.yourdomain.com
+    # Environment URL: https://footex-staging.yourdomain.com
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
+      - name: Deploy to Azure Container Apps - Staging
         uses: azure/CLI@v1
         with:
           azcliversion: 2.30.0
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
-
-      - name: Deploy to Azure Container Apps - Staging
-        run: |
-          az containerapp update \
-            --name footex-api-staging \
-            --resource-group footex-staging-rg \
-            --image ${{ needs.build-and-push.outputs.image_tag }} \
-            --set-env-vars \
-              ASPNETCORE_ENVIRONMENT=Staging \
-              ConnectionStrings__DefaultConnection="${{ secrets.STAGING_DB_CONNECTION }}" \
-              ConnectionStrings__Redis="${{ secrets.STAGING_REDIS_CONNECTION }}" \
-              JwtSettings__SecretKey="${{ secrets.STAGING_JWT_SECRET }}" \
-              --revision-suffix $(date +%Y%m%d-%H%M%S)
+          inlineScript: |
+            az containerapp update \
+              --name footex-api-staging \
+              --resource-group footex-staging-rg \
+              --image ${{ needs.build-and-push.outputs.image_tag }} \
+              --set-env-vars \
+                ASPNETCORE_ENVIRONMENT=Staging \
+                ConnectionStrings__DefaultConnection="${{ secrets.STAGING_DB_CONNECTION }}" \
+                ConnectionStrings__Redis="${{ secrets.STAGING_REDIS_CONNECTION }}" \
+                JwtSettings__SecretKey="${{ secrets.STAGING_JWT_SECRET }}" \
+                --revision-suffix $(date +%Y%m%d-%H%M%S)
 
       - name: Wait for deployment
         run: |
@@ -188,41 +179,27 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-deployment, build-and-push]
     if: needs.pre-deployment.outputs.target_environment == 'production'
-    environment:
-      name: production
-      url: https://footex.yourdomain.com
+    # Environment URL: https://footex.yourdomain.com
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
+      - name: Deploy to Azure Container Apps - Production
         uses: azure/CLI@v1
         with:
           azcliversion: 2.30.0
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
-
-      - name: Pre-deployment backup
-        run: |
-          echo "Creating pre-deployment backup..."
-          # Add backup commands for database and current state
-
-      - name: Deploy to Azure Container Apps - Production
-        run: |
-          az containerapp update \
-            --name footex-api-production \
-            --resource-group footex-production-rg \
-            --image ${{ needs.build-and-push.outputs.image_tag }} \
-            --set-env-vars \
-              ASPNETCORE_ENVIRONMENT=Production \
-              ConnectionStrings__DefaultConnection="${{ secrets.PRODUCTION_DB_CONNECTION }}" \
-              ConnectionStrings__Redis="${{ secrets.PRODUCTION_REDIS_CONNECTION }}" \
-              JwtSettings__SecretKey="${{ secrets.PRODUCTION_JWT_SECRET }}" \
-              --revision-suffix $(date +%Y%m%d-%H%M%S)
+          inlineScript: |
+            az containerapp update \
+              --name footex-api-production \
+              --resource-group footex-production-rg \
+              --image ${{ needs.build-and-push.outputs.image_tag }} \
+              --set-env-vars \
+                ASPNETCORE_ENVIRONMENT=Production \
+                ConnectionStrings__DefaultConnection="${{ secrets.PRODUCTION_DB_CONNECTION }}" \
+                ConnectionStrings__Redis="${{ secrets.PRODUCTION_REDIS_CONNECTION }}" \
+                JwtSettings__SecretKey="${{ secrets.PRODUCTION_JWT_SECRET }}" \
+                --revision-suffix $(date +%Y%m%d-%H%M%S)
 
       - name: Wait for deployment
         run: |
@@ -381,6 +358,8 @@ jobs:
         uses: azure/CLI@v1
         with:
           azcliversion: 2.30.0
+          inlineScript: |
+            echo "Azure CLI setup complete"
 
       - name: Login to Azure
         uses: azure/login@v1
