@@ -13,10 +13,12 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
-    IHubContext<NotificationService, INotificationService> hubContext) : ControllerBase
+    IHubContext<NotificationService, INotificationService> hubContext,
+    ICacheService cacheService) : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
+    private readonly ICacheService _cacheService = cacheService;
 
     [HttpGet("user/{userId}")]
     [ProducesResponseType(typeof(GetUserNotificationsQueryResponse), StatusCodes.Status200OK)]
@@ -25,6 +27,16 @@ public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
     [Authorize(Roles = "User,Admin")]
     public async Task<IActionResult> GetAllUserNotifications(string userId)
     {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest("User ID cannot be null or empty.");
+        }
+        // Check if the user exists
+        var user = await _unitOfWork.ApplicationUser.GetByIdAsync(userId);
+        if (user == null)
+        {
+            return NotFound($"User with ID '{userId}' not found.");
+        }
         var query = new GetUserNotificationsQuery { UserId = userId };
         var result = await mediator.Send(query);
 

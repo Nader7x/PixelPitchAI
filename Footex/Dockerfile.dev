@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
 RUN dotnet tool install --global dotnet-ef --version 8.* && \
     dotnet tool install --global dotnet-watch
 ENV PATH="${PATH}:/root/.dotnet/tools"
+ENV ASPNETCORE_Kestrel__Certificates__Default__Password="00000000" \
+    ASPNETCORE_Kestrel__Certificates__Default__Path="/app/aspnetapp.pfx"
 
 # Copy project files for dependency restoration
 COPY ["Footex/Footex.csproj", "Footex/"]
@@ -38,8 +40,35 @@ EXPOSE 8081
 # Create a startup script for development
 RUN echo '#!/bin/bash\n\
 echo "Starting Footex Development Server..."\n\
+\n\
+CERT_PATH="/app/aspnetapp.pfx"\n\
+# Use the password from the environment variable set in docker-compose.yml\n\
+CERT_PASSWORD="$ASPNETCORE_Kestrel__Certificates__Default__Password"\n\
+\n\
+# Create certs directory if it does not exist\n\
+mkdir -p /app/certs\n\
+\n\
+# Always generate a fresh certificate for development\n\
+echo "Generating new self-signed certificate for development..."\n\
+# Clean any existing certificates\n\
+dotnet dev-certs https --clean\n\
+# Generate new certificate with trust\n\
+dotnet dev-certs https -ep "$CERT_PATH" -p "$CERT_PASSWORD" --trust\n\
+# Also export to the mounted certs volume for host access\n\
+dotnet dev-certs https -ep "/app/certs/aspnetapp.pfx" -p "$CERT_PASSWORD"\n\
+# Export the certificate without password for browser import\n\
+dotnet dev-certs https -ep "/app/certs/aspnetapp.crt" --format PEM\n\
+echo "Certificate generated and stored at $CERT_PATH."\n\
+echo "Certificate also exported to /app/certs/ for host access."\n\
+echo "PEM certificate exported to /app/certs/aspnetapp.crt for browser import."\n\
+\n\
 echo "Restoring packages..."\n\
 dotnet restore\n\
+echo "Adding new migration..."\n\
+# Generate a unique migration name to avoid conflicts on restart\n\
+MIGRATION_NAME="DevMigration_$(date +%Y%m%d%H%M%S)"\n\
+# Use correct relative paths from the /app/Footex working directory and a valid context name\n\
+dotnet ef migrations add "$MIGRATION_NAME" --project ../Infrastructure/Infrastructure.csproj --startup-project Footex.csproj --context Infrastructure.FootballDbContext --output-dir ../Infrastructure/Migrations\n\
 echo "Building project..."\n\
 dotnet build --no-restore\n\
 echo "Starting with hot reload..."\n\

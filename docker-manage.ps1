@@ -51,7 +51,8 @@ function Setup-Environment {
 function Start-Development {
     Write-Host "Starting development environment..." -ForegroundColor Yellow
     docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d
-    Write-Host "Development environment started!" -ForegroundColor Green    Write-Host "API: http://localhost:5025" -ForegroundColor Cyan
+    Write-Host "Development environment started!" -ForegroundColor Green   
+    Write-Host "API: http://localhost:5025" -ForegroundColor Cyan
     Write-Host "RabbitMQ Management: http://localhost:15672 (guest/guest)" -ForegroundColor Cyan
     Write-Host "Redis: localhost:6379" -ForegroundColor Cyan
 }
@@ -76,7 +77,8 @@ function Show-Development-Logs {
 function Start-Production {
     Write-Host "Starting production environment..." -ForegroundColor Yellow
     docker-compose --env-file .env up -d
-    Write-Host "Production environment started!" -ForegroundColor Green    Write-Host "API: http://localhost:8080" -ForegroundColor Cyan
+    Write-Host "Production environment started!" -ForegroundColor Green   
+    Write-Host "API: http://localhost:8080" -ForegroundColor Cyan
     Write-Host "RabbitMQ Management: http://localhost:15672" -ForegroundColor Cyan
     Write-Host "Redis: localhost:6379" -ForegroundColor Cyan
 }
@@ -131,3 +133,4 @@ switch ($Command.ToLower()) {
         Show-Help 
     }
 }
+

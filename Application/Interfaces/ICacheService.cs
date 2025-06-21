@@ -14,4 +14,6 @@ public interface ICacheService
         Func<Task<T>> factory,
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class;
+
+    Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default);
 }

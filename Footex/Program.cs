@@ -57,9 +57,20 @@ try
         // If you are unsure about your proxy's IP, you might need to log HttpContext.Connection.RemoteIpAddress
         // *before* UseForwardedHeaders to identify it.
     });
-
     // Override configuration with environment variables
     builder.Configuration.AddEnvironmentVariables();
+
+    // Configure Kestrel for HTTPS in development
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.WebHost.ConfigureKestrel(serverOptions =>
+        {
+            serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+            {
+                httpsOptions.ServerCertificate = null; // Let .NET handle certificate selection
+            });
+        });
+    }
 
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
@@ -78,10 +89,15 @@ try
             corsBuilder =>
             {
                 corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000",
-                        "https://gourav-d.github.io/SignalR-Web-Client")
+                        "https://gourav-d.github.io/SignalR-Web-Client",
+                        "https://localhost:7082",
+                        "http://localhost:5025", // HTTP API
+                        "http://localhost:5025/swagger", // Swagger UI HTTP
+                        "https://localhost:7082/swagger") // Swagger UI HTTPS
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowCredentials()
+                    .SetIsOriginAllowedToAllowWildcardSubdomains();
             });
     });
     builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
@@ -94,7 +110,9 @@ try
             Title = "Footex API",
             Version = "v1",
             Description = "Football League Management API"
-        });
+        });        // Explicitly define the server Swagger UI should use
+        c.AddServer(new OpenApiServer { Url = "http://localhost:5025", Description = "Development HTTP Server" });
+        c.AddServer(new OpenApiServer { Url = "https://localhost:7082", Description = "Development HTTPS Server" });
 
         // Add JWT Authentication to Swagger
         c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -246,7 +264,6 @@ try
         .AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
 
     var app = builder.Build();
-
     app.UseForwardedHeaders();
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())

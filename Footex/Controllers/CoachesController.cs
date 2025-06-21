@@ -147,10 +147,9 @@ public class CoachesController(
             // Upload new photo
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
         }
-
-        coachDto.PhotoUrl = photoUrl;
-
+        
         var command = _coachMapper.ToUpdateCommand(coachDto);
+        command.PhotoUrl = photoUrl;
         command.Id = id;
 
         var result = await _mediator.Send(command);
@@ -209,6 +208,11 @@ public class CoachesController(
     private async Task InvalidateCoachListCaches()
     {
         // Using a pattern to match all coach list cache keys
-        await _cacheService.RemoveAsync("coaches_all_*");
+        await _cacheService.RemoveByPatternAsync("coaches_all_*");
+        // Optionally, you can also invalidate specific
+        // coach caches if you want to ensure they are refreshed
+        await _cacheService.RemoveByPatternAsync("coach_*");
+        await _cacheService.RemoveByPatternAsync("coaches_*");
+        await _cacheService.RemoveByPatternAsync("coaches_by_team_*");
     }
 }

@@ -32,3 +32,5 @@ README.md
 **/*.log
 **/coverage/
 documentation.md
+# Exclude specific directories and files.
+Infrastructure/Migrations

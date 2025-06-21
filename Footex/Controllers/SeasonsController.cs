@@ -133,8 +133,9 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper, IC
             return BadRequest(result);
 
         // Invalidate the seasons list cache since we've added a new season
-        await _cacheService.RemoveAsync("seasons_all_*");
-
+        await InvalidateSeasonListCaches();
+        // Store the new season in cache
+        await _cacheService.SetAsync($"season_{result.Id}", result, TimeSpan.FromMinutes(15));
         return CreatedAtAction(nameof(GetSeasonById), new { id = result.Id }, result);
     }
 
@@ -160,9 +161,7 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper, IC
         }
 
         // Invalidate both the specific season cache and season list caches
-        await _cacheService.RemoveAsync($"season_{id}");
-        await _cacheService.RemoveAsync($"season_teams_{id}");
-        await _cacheService.RemoveAsync("seasons_all_*");
+        await InvalidateSeasonListCaches();
 
         return Ok(result);
     }
@@ -186,10 +185,18 @@ public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper, IC
         }
 
         // Invalidate both the specific season cache and season list caches
-        await _cacheService.RemoveAsync($"season_{id}");
-        await _cacheService.RemoveAsync($"season_teams_{id}");
-        await _cacheService.RemoveAsync("seasons_all_*");
+        await InvalidateSeasonListCaches();
+        
 
         return Ok(result);
+    }
+    [NonAction]
+    // Helper method to invalidate all season list caches
+    private async Task InvalidateSeasonListCaches()
+    {
+        await _cacheService.RemoveByPatternAsync("seasons_all_*");
+        await _cacheService.RemoveByPatternAsync("season_teams_*");
+        await _cacheService.RemoveByPatternAsync("season_*");
+        await _cacheService.RemoveByPatternAsync("seasons_*");
     }
 }

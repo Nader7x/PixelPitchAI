@@ -168,8 +168,7 @@ public class TeamsController(
             return NotFound();
 
         // Invalidate both the specific team cache and the all teams cache
-        await _cacheService.RemoveAsync($"team_{id}");
-        await _cacheService.RemoveAsync("teams_all");
+        await InvalidateTeamCaches();
 
         return NoContent();
     }
@@ -184,5 +183,17 @@ public class TeamsController(
         if (!result.Succeeded)
             return NotFound(result);
         return Ok(result);
+    }
+    [NonAction]
+    private async Task InvalidateTeamCaches()
+    {
+        // Invalidate the teams list cache
+        await _cacheService.RemoveAsync("teams_all");
+        // Invalidate all individual team caches
+        await _cacheService.RemoveByPatternAsync("team_*");
+        // Optionally, you can also invalidate team seasons cache if needed
+        await _cacheService.RemoveByPatternAsync("team_seasons_*");
+        // You can add more patterns if you have other related caches
+        await _cacheService.RemoveByPatternAsync("team_players_*");
     }
 }
