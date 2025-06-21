@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -25,7 +25,7 @@ public class GetAllMatchesQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetAllMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+public class GetAllMatchesQueryHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<GetAllMatchesQuery, GetAllMatchesQueryResponse>
 {
     public async Task<GetAllMatchesQueryResponse> Handle(GetAllMatchesQuery request,

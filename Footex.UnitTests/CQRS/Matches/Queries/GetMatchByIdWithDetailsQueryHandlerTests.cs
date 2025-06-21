@@ -1,7 +1,7 @@
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;
@@ -14,22 +14,20 @@ namespace Footex.UnitTests.CQRS.Matches.Queries;
 
 public class GetMatchByIdWithDetailsQueryHandlerTests
 {
-    private readonly Fixture _fixture;
     private readonly GetMatchByIdWithDetailsQueryHandler _handler;
-    private readonly Mock<MatchMapper> _matchMapperMock;
+    private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsServiceMock;
 
-    public GetMatchByIdWithDetailsQueryHandlerTests()
+    public GetMatchByIdWithDetailsQueryHandlerTests(ILiveMatchStatisticsService liveMatchStatisticsServiceMock)
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _matchMapperMock = new Mock<MatchMapper>();
-        _handler = new GetMatchByIdWithDetailsQueryHandler(_matchMapperMock.Object,_unitOfWorkMock.Object,_liveMatchStatisticsServiceMock);
+        _iMatchMapperMock = new Mock<IMatchMapper>();
+        _handler = new GetMatchByIdWithDetailsQueryHandler(_iMatchMapperMock.Object,_unitOfWorkMock.Object,liveMatchStatisticsServiceMock);
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        var fixture = new Fixture();
+        fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+            .ForEach(b => fixture.Behaviors.Remove(b));
+        fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
 
     [Fact]
@@ -43,7 +41,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync(match);
-        _matchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
             .Returns(matchDetailsDto);
 
         // Act
@@ -58,7 +56,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDetailsFromMatch(match), Times.Once);
+        _iMatchMapperMock.Verify(x => x.ToDetailsFromMatch(match), Times.Once);
     }
 
     [Fact]
@@ -82,7 +80,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         result.Error.Should().Contain($"Match with ID {matchId} not found");
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDetailsFromMatch(It.IsAny<Match>()), Times.Never);
+        _iMatchMapperMock.Verify(x => x.ToDetailsFromMatch(It.IsAny<Match>()), Times.Never);
     }
 
     [Fact]
@@ -107,7 +105,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDetailsFromMatch(It.IsAny<Match>()), Times.Never);
+        _iMatchMapperMock.Verify(x => x.ToDetailsFromMatch(It.IsAny<Match>()), Times.Never);
     }
 
     [Theory]
@@ -151,7 +149,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync(match);
-        _matchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
             .Returns(expectedDetailsDto);
 
         // Act
@@ -179,7 +177,7 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync(match);
-        _matchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
             .Returns(matchDetailsDto);
 
         // Act

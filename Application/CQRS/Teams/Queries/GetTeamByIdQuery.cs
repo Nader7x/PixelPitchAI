@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -17,10 +17,10 @@ public class GetTeamByIdQueryResponse
     public TeamDto? Team { get; set; }
 }
 
-public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
+public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
     : IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse>
 {
-    private readonly TeamMapper _teamMapper = teamMapper;
+    private readonly ITeamMapper _teamMapper = teamMapper;
 
 
     public async Task<GetTeamByIdQueryResponse> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)

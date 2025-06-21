@@ -1,13 +1,14 @@
 using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class UserMapper
+public partial class UserMapper : IUserMapper
 {
     // Map from ApplicationUser to UserProfileDto (or similar DTO)
     public partial UserDto ToProfileDto(ApplicationUser user);

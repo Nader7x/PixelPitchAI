@@ -12,24 +12,18 @@ public class DeleteCoachCommandResponse
 {
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class DeleteCoachCommandHandler : IRequestHandler<DeleteCoachCommand, DeleteCoachCommandResponse>
+public class DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<DeleteCoachCommand, DeleteCoachCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<DeleteCoachCommandResponse> Handle(DeleteCoachCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var coach = await _unitOfWork.Coaches.GetByIdAsync(request.Id);
+            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id);
             if (coach == null)
                 return new DeleteCoachCommandResponse
                 {
@@ -47,8 +41,8 @@ public class DeleteCoachCommandHandler : IRequestHandler<DeleteCoachCommand, Del
                 };
 
             // Check if coach is assigned to any matches
-            var matchesAsHomeCoach = await _unitOfWork.Matches.FindAsync(m => m.HomeCoachId == request.Id);
-            var matchesAsAwayCoach = await _unitOfWork.Matches.FindAsync(m => m.AwayCoachId == request.Id);
+            var matchesAsHomeCoach = await unitOfWork.Matches.FindAsync(m => m.HomeCoachId == request.Id, cancellationToken);
+            var matchesAsAwayCoach = await unitOfWork.Matches.FindAsync(m => m.AwayCoachId == request.Id, cancellationToken);
 
             if (matchesAsHomeCoach != null || matchesAsAwayCoach != null)
                 return new DeleteCoachCommandResponse
@@ -57,8 +51,8 @@ public class DeleteCoachCommandHandler : IRequestHandler<DeleteCoachCommand, Del
                     Error = "Cannot delete coach as they are assigned to one or more matches"
                 };
 
-            _unitOfWork.Coaches.DeleteAsync(coach);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Coaches.DeleteAsync(coach);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteCoachCommandResponse
             {

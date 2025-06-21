@@ -12,24 +12,18 @@ public class DeletePlayerCommandResponse
 {
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class DeletePlayerCommandHandler : IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>
+public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<DeletePlayerCommandResponse> Handle(DeletePlayerCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var player = await _unitOfWork.Players.GetByIdAsync(request.Id);
+            var player = await unitOfWork.Players.GetByIdAsync(request.Id);
             if (player == null)
                 return new DeletePlayerCommandResponse
                 {
@@ -38,8 +32,8 @@ public class DeletePlayerCommandHandler : IRequestHandler<DeletePlayerCommand, D
                     Error = $"Player with ID {request.Id} not found"
                 };
 
-            _unitOfWork.Players.DeleteAsync(player);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Players.DeleteAsync(player);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeletePlayerCommandResponse
             {

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -15,14 +15,14 @@ public class GetAllSeasonsQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetAllSeasonsQueryHandler _handler;
-    private readonly Mock<SeasonMapper> _seasonMapperMock;
+    private readonly Mock<ISeasonMapper> _iSeasonMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllSeasonsQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _seasonMapperMock = new Mock<SeasonMapper>();
-        _handler = new GetAllSeasonsQueryHandler(_unitOfWorkMock.Object, _seasonMapperMock.Object);
+        _iSeasonMapperMock = new Mock<ISeasonMapper>();
+        _handler = new GetAllSeasonsQueryHandler(_unitOfWorkMock.Object, _iSeasonMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -52,7 +52,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync())
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -66,7 +66,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -104,7 +104,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -142,7 +142,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -180,7 +180,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -227,7 +227,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -276,7 +276,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -306,7 +306,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -330,7 +330,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync())
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -344,7 +344,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     [Fact]
@@ -367,7 +367,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public class GetAllSeasonsQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync())
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -436,7 +436,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -462,7 +462,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -499,7 +499,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync())
             .ReturnsAsync(seasons);
-        _seasonMapperMock.Setup(x => x.ToDtoList(seasons))
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons))
             .Returns(expectedSeasonDtos);
 
         // Act
@@ -520,7 +520,7 @@ public class GetAllSeasonsQueryHandlerTests
         seasonDto.IsActive.Should().BeTrue();
         seasonDto.TotalRounds.Should().Be(38);
 
-        _seasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
     private Season CreateValidSeason(int id)

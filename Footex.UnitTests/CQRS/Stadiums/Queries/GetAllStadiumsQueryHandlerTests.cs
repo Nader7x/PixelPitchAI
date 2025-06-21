@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -15,14 +15,14 @@ public class GetAllStadiumsQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetAllStadiumsQueryHandler _handler;
-    private readonly Mock<StadiumMapper> _stadiumMapperMock;
+    private readonly Mock<IStadiumMapper> _iStadiumMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllStadiumsQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _stadiumMapperMock = new Mock<StadiumMapper>();
-        _handler = new GetAllStadiumsQueryHandler(_unitOfWorkMock.Object, _stadiumMapperMock.Object);
+        _iStadiumMapperMock = new Mock<IStadiumMapper>();
+        _handler = new GetAllStadiumsQueryHandler(_unitOfWorkMock.Object, _iStadiumMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -52,7 +52,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync())
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -66,7 +66,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()))
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -104,7 +104,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()))
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -142,7 +142,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()))
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -180,7 +180,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync())
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -207,7 +207,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Stadium>>()), Times.Never);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Stadium>>()), Times.Never);
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class GetAllStadiumsQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Stadium>>()), Times.Never);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Stadium>>()), Times.Never);
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync())
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -300,7 +300,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()))
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -326,7 +326,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync(It.IsAny<Expression<Func<Stadium, bool>>>()))
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -363,7 +363,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetAllAsync())
             .ReturnsAsync(stadiums);
-        _stadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
+        _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums))
             .Returns(expectedStadiumDtos);
 
         // Act
@@ -384,7 +384,7 @@ public class GetAllStadiumsQueryHandlerTests
         stadiumDto.SurfaceType.Should().Be("Grass");
         stadiumDto.Description.Should().Be("A test stadium");
 
-        _stadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDtoList(stadiums), Times.Once);
     }
 
     private Stadium CreateValidStadium(int id)

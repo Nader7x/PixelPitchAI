@@ -118,7 +118,6 @@ jobs:
           build-args: |
             BUILD_CONFIGURATION=Release            
             ASPNETCORE_ENVIRONMENT=${{ needs.pre-deployment.outputs.target_environment }}
-
   # Job 3: Deploy to Staging
   deploy-staging:
     name: Deploy to Staging
@@ -130,6 +129,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Allow Azure CLI dynamic extension install
+        run: az config set extension.use_dynamic_install=yes_without_prompt
 
       - name: Deploy to Azure Container Apps - Staging
         uses: azure/CLI@v1
@@ -184,6 +186,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Allow Azure CLI dynamic extension install
+        run: az config set extension.use_dynamic_install=yes_without_prompt
 
       - name: Deploy to Azure Container Apps - Production
         uses: azure/CLI@v1

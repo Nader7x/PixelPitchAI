@@ -35,27 +35,21 @@ public class UpdateSeasonCommandResponse
 {
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Error { get; set; }
+    public int? Id { get; set; }
+    public string? Name { get; set; }
+    public string? Error { get; set; }
 }
 
-public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse>
+public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<UpdateSeasonCommandResponse> Handle(UpdateSeasonCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
             // Check if season exists
-            var season = await _unitOfWork.Seasons.GetByIdAsync(request.Id);
+            var season = await unitOfWork.Seasons.GetByIdAsync(request.Id);
             if (season == null)
                 return new UpdateSeasonCommandResponse
                 {
@@ -75,7 +69,7 @@ public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, U
             // Check if name is already used by another season
             if (season.Name != request.Name)
             {
-                var existingSeason = await _unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
+                var existingSeason = await unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
                 if (existingSeason != null && existingSeason.Id != request.Id)
                     return new UpdateSeasonCommandResponse
                     {
@@ -87,7 +81,7 @@ public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, U
             // Check if active season already exists for the same league (if this one is being set to active)
             if (request.IsActive && !season.IsActive)
             {
-                var activeSeasons = await _unitOfWork.Seasons.GetAllAsync(s =>
+                var activeSeasons = await unitOfWork.Seasons.GetAllAsync(s =>
                     s.LeagueName == request.LeagueName &&
                     s.Country == request.Country &&
                     s.IsActive);
@@ -121,8 +115,8 @@ public class UpdateSeasonCommandHandler : IRequestHandler<UpdateSeasonCommand, U
             season.StartDate = request.StartDate;
             season.EndDate = request.EndDate;
 
-            _unitOfWork.Seasons.UpdateAsync(season);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Seasons.UpdateAsync(season);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateSeasonCommandResponse
             {

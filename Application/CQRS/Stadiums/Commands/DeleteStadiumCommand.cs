@@ -1,4 +1,5 @@
 using Domain.Interfaces;
+using Domain.Models;
 using MediatR;
 
 namespace Application.CQRS.Stadiums.Commands;
@@ -12,24 +13,18 @@ public class DeleteStadiumCommandResponse
 {
     public bool Succeeded { get; set; }
     public bool NotFound { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class DeleteStadiumCommandHandler : IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>
+public class DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<DeleteStadiumCommandResponse> Handle(DeleteStadiumCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var stadium = await _unitOfWork.Stadiums.GetByIdAsync(request.Id);
+            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id);
             if (stadium == null)
                 return new DeleteStadiumCommandResponse
                 {
@@ -39,16 +34,17 @@ public class DeleteStadiumCommandHandler : IRequestHandler<DeleteStadiumCommand,
                 };
 
             // Check if stadium is being used by matches
-            var matches = await _unitOfWork.Matches.GetAllAsync(m => m.StadiumId == request.Id);
-            if (matches.Any())
+            var matches = await unitOfWork.Matches.GetAllAsync(m => m.StadiumId == request.Id);
+            var matchesEnumerator = matches as Match[] ?? matches.ToArray();
+            if (matchesEnumerator.Length != 0)
                 return new DeleteStadiumCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Cannot delete stadium as it is being used by {matches.Count()} match(es)"
+                    Error = $"Cannot delete stadium as it is being used by {matchesEnumerator.Count()} match(es)"
                 };
 
-            _unitOfWork.Stadiums.DeleteAsync(stadium);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Stadiums.DeleteAsync(stadium);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteStadiumCommandResponse
             {

@@ -41,25 +41,19 @@ public class UpdateStadiumCommandResponse
     public bool NotFound { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class UpdateStadiumCommandHandler : IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>
+public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<UpdateStadiumCommandResponse> Handle(UpdateStadiumCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
             // Check if stadium exists
-            var stadium = await _unitOfWork.Stadiums.GetByIdAsync(request.Id);
+            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id);
             if (stadium == null)
                 return new UpdateStadiumCommandResponse
                 {
@@ -71,7 +65,7 @@ public class UpdateStadiumCommandHandler : IRequestHandler<UpdateStadiumCommand,
             // Check for name conflicts
             if (stadium.Name != request.Name)
             {
-                var existingStadium = await _unitOfWork.Stadiums.GetAllAsync(s => s.Name == request.Name);
+                var existingStadium = await unitOfWork.Stadiums.GetAllAsync(s => s.Name == request.Name);
                 if (existingStadium.First().Id != request.Id)
                     return new UpdateStadiumCommandResponse
                     {
@@ -94,8 +88,8 @@ public class UpdateStadiumCommandHandler : IRequestHandler<UpdateStadiumCommand,
             stadium.Facilities = request.Facilities;
             stadium.BuiltDate = request.BuiltDate;
 
-            _unitOfWork.Stadiums.UpdateAsync(stadium);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Stadiums.UpdateAsync(stadium);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateStadiumCommandResponse
             {

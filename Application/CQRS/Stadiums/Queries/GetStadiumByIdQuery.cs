@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -18,23 +18,15 @@ public class GetStadiumByIdQueryResponse
     public string Error { get; set; }
 }
 
-public class GetStadiumByIdQueryHandler : IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>
+public class GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, IStadiumMapper stadiumMapper)
+    : IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>
 {
-    private readonly StadiumMapper _stadiumMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _stadiumMapper = stadiumMapper;
-    }
-
     public async Task<GetStadiumByIdQueryResponse> Handle(GetStadiumByIdQuery request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var stadium = await _unitOfWork.Stadiums.GetByIdAsync(request.Id);
+            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id);
             if (stadium == null)
                 return new GetStadiumByIdQueryResponse
                 {
@@ -43,7 +35,7 @@ public class GetStadiumByIdQueryHandler : IRequestHandler<GetStadiumByIdQuery, G
                     Error = $"Stadium with ID {request.Id} not found"
                 };
 
-            var stadiumDto = _stadiumMapper.ToDto(stadium);
+            var stadiumDto = stadiumMapper.ToDto(stadium);
 
             return new GetStadiumByIdQueryResponse
             {

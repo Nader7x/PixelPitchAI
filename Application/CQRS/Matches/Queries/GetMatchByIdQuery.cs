@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -18,7 +18,7 @@ public class GetMatchByIdQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>
 {
     public async Task<GetMatchByIdQueryResponse> Handle(GetMatchByIdQuery request, CancellationToken cancellationToken)

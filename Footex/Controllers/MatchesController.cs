@@ -27,7 +27,7 @@ namespace Footex.Controllers;
 public class MatchesController(
     IMediator mediator,
     IHttpClientFactory httpClientFactory,
-    MatchMapper matchMapper,
+    IMatchMapper matchMapper,
     IOptions<SimulationServiceOptions> simulationOptions,
     IServiceScopeFactory serviceScopeFactory,
     IUnitOfWork unitOfWork,
@@ -40,7 +40,7 @@ public class MatchesController(
     private readonly ICacheService _cacheService = cacheService;
     private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
     private readonly ILogger<MatchesController> _logger = logger;
-    private readonly MatchMapper _matchMapper = matchMapper;
+    private readonly IMatchMapper _matchMapper = matchMapper;
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;

@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -17,10 +17,9 @@ public class GetUserMatchesQueryResponse
     public string? Error { get; init; }
 }
 
-public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<GetUserMatchesQuery, GetUserMatchesQueryResponse>
 {
-    private readonly MatchMapper _matchMapper = matchMapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<GetUserMatchesQueryResponse> Handle(GetUserMatchesQuery request,
@@ -29,7 +28,7 @@ public class GetUserMatchesQueryHandler(IUnitOfWork unitOfWork, MatchMapper matc
         try
         {
             var userMatches = await _unitOfWork.Matches.GetMatchesByUserIdAsync(request.UserId);
-            var matchesDtos = _matchMapper.ToUserMatchDto(userMatches);
+            var matchesDtos = matchMapper.ToUserMatchDto(userMatches);
             return new GetUserMatchesQueryResponse
             {
                 Succeeded = true,

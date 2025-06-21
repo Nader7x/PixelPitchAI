@@ -14,21 +14,15 @@ public class DeleteTeamCommandResponse
     public string? Error { get; set; } // Nullable to avoid warnings
 }
 
-public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
+public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<DeleteTeamCommandResponse> Handle(DeleteTeamCommand request, CancellationToken cancellationToken)
     {
         try
         {
             // Check if team exists
-            var team = await _unitOfWork.Teams.GetByIdAsync(request.Id);
+            var team = await unitOfWork.Teams.GetByIdAsync(request.Id);
             if (team == null)
                 return new DeleteTeamCommandResponse
                 {
@@ -37,21 +31,21 @@ public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, Delet
                 };
 
             // Begin transaction to ensure atomic operation
-            await _unitOfWork.BeginTransactionAsync();
+            await unitOfWork.BeginTransactionAsync();
 
             try
             {
                 // Set TeamId to null for all related coaches
-                var coaches = await _unitOfWork.Coaches.GetAllAsync(c => c.TeamId == team.Id);
+                var coaches = await unitOfWork.Coaches.GetAllAsync(c => c.TeamId == team.Id);
                 coaches.ToList().ForEach(c => c.TeamId = null);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
 
                 // Delete team
-                _unitOfWork.Teams.DeleteAsync(team);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                unitOfWork.Teams.DeleteAsync(team);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
 
                 // Commit transaction
-                await _unitOfWork.CommitTransactionAsync();
+                await unitOfWork.CommitTransactionAsync();
 
                 return new DeleteTeamCommandResponse
                 {
@@ -61,7 +55,7 @@ public class DeleteTeamCommandHandler : IRequestHandler<DeleteTeamCommand, Delet
             catch (Exception ex)
             {
                 // Rollback transaction on error
-                await _unitOfWork.RollbackTransactionAsync();
+                await unitOfWork.RollbackTransactionAsync();
                 throw new Exception($"Failed to delete team: {ex.Message}", ex);
             }
         }

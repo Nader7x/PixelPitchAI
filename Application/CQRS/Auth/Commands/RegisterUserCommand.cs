@@ -1,4 +1,4 @@
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -28,11 +28,11 @@ public class RegisterUserCommandResponse
 public class RegisterUserCommandHandler(
     IIdentityService identityService,
     IUnitOfWork unitOfWork,
-    UserMapper userMapper)
+    IUserMapper userMapper)
     : IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly UserMapper _userMapper = userMapper;
+    private readonly IUserMapper _userMapper = userMapper;
 
     public async Task<RegisterUserCommandResponse> Handle(RegisterUserCommand request,
         CancellationToken cancellationToken)

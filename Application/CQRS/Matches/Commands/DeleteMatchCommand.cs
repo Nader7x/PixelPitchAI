@@ -15,21 +15,15 @@ public class DeleteMatchCommandResponse
     public string Error { get; set; }
 }
 
-public class DeleteMatchCommandHandler : IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse>
+public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<DeleteMatchCommandResponse> Handle(DeleteMatchCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var match = await _unitOfWork.Matches.GetByIdAsync(request.Id);
+            var match = await unitOfWork.Matches.GetByIdAsync(request.Id);
             if (match == null)
                 return new DeleteMatchCommandResponse
                 {
@@ -49,8 +43,8 @@ public class DeleteMatchCommandHandler : IRequestHandler<DeleteMatchCommand, Del
             // Check for related events or data that would be affected by deletion
             // Example: Check for match events, match statistics, etc.
 
-            _unitOfWork.Matches.DeleteAsync(match);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Matches.DeleteAsync(match);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteMatchCommandResponse
             {

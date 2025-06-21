@@ -1,13 +1,14 @@
 using Application.CQRS.Teams.Commands;
 using Application.CQRS.Teams.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class TeamMapper
+public partial class TeamMapper : ITeamMapper
 {
     // Map from list of Team to list of TeamDto
     public partial List<TeamDto> ToDtoList(IEnumerable<Team> teams);

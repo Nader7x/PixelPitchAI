@@ -1,6 +1,6 @@
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -14,14 +14,14 @@ public class GetStadiumByIdQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetStadiumByIdQueryHandler _handler;
-    private readonly Mock<StadiumMapper> _stadiumMapperMock;
+    private readonly Mock<IStadiumMapper> _iStadiumMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetStadiumByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _stadiumMapperMock = new Mock<StadiumMapper>();
-        _handler = new GetStadiumByIdQueryHandler(_unitOfWorkMock.Object, _stadiumMapperMock.Object);
+        _iStadiumMapperMock = new Mock<IStadiumMapper>();
+        _handler = new GetStadiumByIdQueryHandler(_unitOfWorkMock.Object, _iStadiumMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -47,7 +47,7 @@ public class GetStadiumByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
             .ReturnsAsync(stadium);
-        _stadiumMapperMock.Setup(x => x.ToDto(stadium))
+        _iStadiumMapperMock.Setup(x => x.ToDto(stadium))
             .Returns(expectedStadiumDto);
 
         // Act
@@ -62,7 +62,7 @@ public class GetStadiumByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDto(stadium), Times.Once);
+        _iStadiumMapperMock.Verify(x => x.ToDto(stadium), Times.Once);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class GetStadiumByIdQueryHandlerTests
         result.Error.Should().Be($"Stadium with ID {stadiumId} not found");
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
+        _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class GetStadiumByIdQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
+        _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
     [Theory]
@@ -137,7 +137,7 @@ public class GetStadiumByIdQueryHandlerTests
         result.Error.Should().Be($"Stadium with ID {invalidId} not found");
 
         _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(invalidId), Times.Once);
-        _stadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
+        _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class GetStadiumByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
             .ReturnsAsync(stadium);
-        _stadiumMapperMock.Setup(x => x.ToDto(stadium))
+        _iStadiumMapperMock.Setup(x => x.ToDto(stadium))
             .Returns(expectedStadiumDto);
 
         // Act

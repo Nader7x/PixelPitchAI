@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -18,22 +18,14 @@ public class GetCoachByIdQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
+public class GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
+    : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
 {
-    private readonly CoachMapper _coachMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _coachMapper = coachMapper;
-    }
-
     public async Task<GetCoachByIdQueryResponse> Handle(GetCoachByIdQuery request, CancellationToken cancellationToken)
     {
         try
         {
-            var coach = await _unitOfWork.Coaches.GetByIdAsync(request.Id);
+            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id);
             if (coach == null)
                 return new GetCoachByIdQueryResponse
                 {
@@ -41,7 +33,7 @@ public class GetCoachByIdQueryHandler : IRequestHandler<GetCoachByIdQuery, GetCo
                     NotFound = true,
                     Error = "Coach not found"
                 };
-            var coachDto = _coachMapper.ToDto(coach);
+            var coachDto = coachMapper.ToDto(coach);
 
             return new GetCoachByIdQueryResponse
             {

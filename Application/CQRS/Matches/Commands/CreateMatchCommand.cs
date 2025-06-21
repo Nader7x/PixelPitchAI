@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -46,7 +46,7 @@ public class CreateMatchCommandResponse
     public StartMatchResponse? ApiResponse { get; set; }
 }
 
-public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, MatchMapper matchMapper)
+public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>
 {
     public async Task<CreateMatchCommandResponse> Handle(CreateMatchCommand request,

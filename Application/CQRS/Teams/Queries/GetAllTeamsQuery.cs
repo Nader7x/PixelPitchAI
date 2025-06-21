@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -15,24 +15,16 @@ public class GetAllTeamsQuery : IRequest<GetAllTeamsQueryResponse>
 public class GetAllTeamsQueryResponse
 {
     public bool Succeeded { get; set; }
-    public string? error { get; set; }
-    public List<TeamDto> Teams { get; set; }
+    public string? Error { get; set; }
+    public List<TeamDto> Teams { get; set; } = new();
 }
 
-public class GetAllTeamsQueryHandler : IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>
+public class GetAllTeamsQueryHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
+    : IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>
 {
-    private readonly TeamMapper _teamMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetAllTeamsQueryHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _teamMapper = teamMapper;
-    }
-
     public async Task<GetAllTeamsQueryResponse> Handle(GetAllTeamsQuery request, CancellationToken cancellationToken)
     {
-        var teams = await _unitOfWork.Teams.GetAllAsync();
+        var teams = await unitOfWork.Teams.GetAllAsync();
 
         // Apply filters if provided
         if (!string.IsNullOrEmpty(request.Country)) teams = teams.Where(t => t.Country == request.Country).ToList();
@@ -41,7 +33,7 @@ public class GetAllTeamsQueryHandler : IRequestHandler<GetAllTeamsQuery, GetAllT
 
         return new GetAllTeamsQueryResponse
         {
-            Teams = _teamMapper.ToDtoList(teams)
+            Teams = teamMapper.ToDtoList(teams)
         };
     }
 }

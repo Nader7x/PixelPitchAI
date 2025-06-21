@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -17,10 +17,10 @@ public class GetAllCoachesQueryResponse
 {
     public bool Succeeded { get; set; }
     public List<CoachDto>? Coaches { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
+public class GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
     : IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>
 {
     public async Task<GetAllCoachesQueryResponse> Handle(GetAllCoachesQuery request,

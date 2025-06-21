@@ -1,6 +1,6 @@
 using Application.CQRS.Coaches.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -12,7 +12,7 @@ namespace Footex.UnitTests.CQRS.Coaches.Queries;
 
 public class GetCoachByIdQueryHandlerTests
 {
-    private readonly Mock<CoachMapper> _coachMapperMock;
+    private readonly Mock<ICoachMapper> _iCoachMapperMock;
     private readonly Fixture _fixture;
     private readonly GetCoachByIdQueryHandler _handler;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -20,8 +20,8 @@ public class GetCoachByIdQueryHandlerTests
     public GetCoachByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _coachMapperMock = new Mock<CoachMapper>();
-        _handler = new GetCoachByIdQueryHandler(_unitOfWorkMock.Object, _coachMapperMock.Object);
+        _iCoachMapperMock = new Mock<ICoachMapper>();
+        _handler = new GetCoachByIdQueryHandler(_unitOfWorkMock.Object, _iCoachMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -47,7 +47,7 @@ public class GetCoachByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
             .ReturnsAsync(coach);
-        _coachMapperMock.Setup(x => x.ToDto(coach))
+        _iCoachMapperMock.Setup(x => x.ToDto(coach))
             .Returns(expectedCoachDto);
 
         // Act
@@ -62,7 +62,7 @@ public class GetCoachByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
-        _coachMapperMock.Verify(x => x.ToDto(coach), Times.Once);
+        _iCoachMapperMock.Verify(x => x.ToDto(coach), Times.Once);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class GetCoachByIdQueryHandlerTests
         result.Error.Should().Be("Coach not found");
 
         _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
-        _coachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
+        _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class GetCoachByIdQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
-        _coachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
+        _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
     [Theory]
@@ -137,7 +137,7 @@ public class GetCoachByIdQueryHandlerTests
         result.Error.Should().Be("Coach not found");
 
         _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(invalidId), Times.Once);
-        _coachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
+        _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class GetCoachByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
             .ReturnsAsync(coach);
-        _coachMapperMock.Setup(x => x.ToDto(coach))
+        _iCoachMapperMock.Setup(x => x.ToDto(coach))
             .Returns(expectedCoachDto);
 
         // Act

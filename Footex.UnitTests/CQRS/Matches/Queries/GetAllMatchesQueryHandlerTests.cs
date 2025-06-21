@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;
@@ -16,14 +16,14 @@ public class GetAllMatchesQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetAllMatchesQueryHandler _handler;
-    private readonly Mock<MatchMapper> _matchMapperMock;
+    private readonly Mock<IMatchMapper> _IMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllMatchesQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _matchMapperMock = new Mock<MatchMapper>();
-        _handler = new GetAllMatchesQueryHandler(_unitOfWorkMock.Object, _matchMapperMock.Object);
+        _IMatchMapperMock = new Mock<IMatchMapper>();
+        _handler = new GetAllMatchesQueryHandler(_unitOfWorkMock.Object, _IMatchMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -46,7 +46,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -59,7 +59,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -89,7 +89,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -119,7 +119,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -149,7 +149,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -181,7 +181,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -216,7 +216,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -249,7 +249,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -262,7 +262,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -279,7 +279,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -292,7 +292,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -322,7 +322,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -353,7 +353,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -371,7 +371,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -384,7 +384,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -417,7 +417,7 @@ public class GetAllMatchesQueryHandlerTests
         // Should call GetAllWithDetailsAsync instead of filtered method since empty string is treated as no filter
         _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Never);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -440,7 +440,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Never);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Never);
     }
 
     [Fact]
@@ -456,7 +456,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns((List<MatchDto?>)null!);
 
         // Act
@@ -469,7 +469,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -507,7 +507,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -525,7 +525,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -540,7 +540,7 @@ public class GetAllMatchesQueryHandlerTests
         // Should call GetAllWithDetailsAsync instead of filtered method since TeamId 0 is treated as no filter
         _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Never);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -558,7 +558,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -572,7 +572,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
         _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Never);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
@@ -594,7 +594,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matches);
-        _matchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
             .Returns(matchDtos);
 
         // Act
@@ -607,7 +607,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     #region Additional Edge Case Tests
@@ -631,7 +631,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matchesEnumerable);
-        _matchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -664,7 +664,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matchesEnumerable);
-        _matchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -696,7 +696,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
             .ReturnsAsync(matchesEnumerable);
-        _matchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -728,7 +728,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
             .ReturnsAsync(matchesReadOnly);
-        _matchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act

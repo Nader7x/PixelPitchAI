@@ -1,13 +1,14 @@
 using Application.CQRS.Stadiums.Commands;
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class StadiumMapper
+public partial class StadiumMapper : IStadiumMapper
 {
     // Map from Stadium to StadiumDto
     public partial StadiumDto ToDto(Stadium stadium);

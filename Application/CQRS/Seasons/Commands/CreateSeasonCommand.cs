@@ -30,19 +30,13 @@ public class CreateSeasonCommandResponse
 {
     public bool Succeeded { get; set; }
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string Error { get; set; }
+    public string? Name { get; set; }
+    public string? Error { get; set; }
 }
 
-public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, CreateSeasonCommandResponse>
+public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
+    : IRequestHandler<CreateSeasonCommand, CreateSeasonCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
     public async Task<CreateSeasonCommandResponse> Handle(CreateSeasonCommand request,
         CancellationToken cancellationToken)
     {
@@ -57,7 +51,7 @@ public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, C
                 };
 
             // Check if season with the same name already exists
-            var existingSeason = await _unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
+            var existingSeason = await unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
             if (existingSeason != null)
                 return new CreateSeasonCommandResponse
                 {
@@ -68,7 +62,7 @@ public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, C
             // Check if active season already exists for the same league
             if (request.IsActive)
             {
-                var activeSeasons = await _unitOfWork.Seasons.FindAsync(s =>
+                var activeSeasons = await unitOfWork.Seasons.FindAsync(s =>
                     s.LeagueName == request.LeagueName &&
                     s.Country == request.Country &&
                     s.IsActive);
@@ -94,8 +88,8 @@ public class CreateSeasonCommandHandler : IRequestHandler<CreateSeasonCommand, C
                 EndDate = request.EndDate
             };
 
-            await _unitOfWork.Seasons.AddAsync(season);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Seasons.AddAsync(season);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new CreateSeasonCommandResponse
             {

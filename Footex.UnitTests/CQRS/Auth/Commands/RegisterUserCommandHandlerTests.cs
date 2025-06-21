@@ -1,5 +1,5 @@
 using Application.CQRS.Auth.Commands;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -16,19 +16,19 @@ public class RegisterUserCommandHandlerTests
     private readonly RegisterUserCommandHandler _handler;
     private readonly Mock<IIdentityService> _mockIdentityService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-    private readonly Mock<UserMapper> _mockUserMapper;
+    private readonly Mock<IUserMapper> _mockIUserMapper;
 
     public RegisterUserCommandHandlerTests()
     {
         _mockIdentityService = new Mock<IIdentityService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
-        _mockUserMapper = new Mock<UserMapper>();
+        _mockIUserMapper = new Mock<IUserMapper>();
         _fixture = new Fixture();
 
         _handler = new RegisterUserCommandHandler(
             _mockIdentityService.Object,
             _mockUnitOfWork.Object,
-            _mockUserMapper.Object);
+            _mockIUserMapper.Object);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class RegisterUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var identityResult = IdentityResult.Success;
 
-        _mockUserMapper.Setup(x => x.ToUserFromRegister(command))
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
             .Returns(user);
 
         _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
@@ -72,7 +72,7 @@ public class RegisterUserCommandHandlerTests
         var identityErrors = new[] { new IdentityError { Description = errorMessage } };
         var identityResult = IdentityResult.Failed(identityErrors);
 
-        _mockUserMapper.Setup(x => x.ToUserFromRegister(command))
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
             .Returns(user);
 
         _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
@@ -99,7 +99,7 @@ public class RegisterUserCommandHandlerTests
         var command = _fixture.Create<RegisterUserCommand>();
         var user = _fixture.Create<ApplicationUser>();
 
-        _mockUserMapper.Setup(x => x.ToUserFromRegister(command))
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
             .Returns(user);
 
         _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
@@ -116,7 +116,7 @@ public class RegisterUserCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidRegistration_CallsUserMapperCorrectly()
+    public async Task Handle_ValidRegistration_CallsIUserMapperCorrectly()
     {
         // Arrange
         var command = _fixture.Create<RegisterUserCommand>();
@@ -124,7 +124,7 @@ public class RegisterUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var identityResult = IdentityResult.Success;
 
-        _mockUserMapper.Setup(x => x.ToUserFromRegister(command))
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
             .Returns(user);
 
         _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
@@ -137,6 +137,6 @@ public class RegisterUserCommandHandlerTests
         await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        _mockUserMapper.Verify(x => x.ToUserFromRegister(command), Times.Once);
+        _mockIUserMapper.Verify(x => x.ToUserFromRegister(command), Times.Once);
     }
 }

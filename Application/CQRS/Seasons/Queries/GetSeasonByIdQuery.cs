@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -18,7 +18,7 @@ public class GetSeasonByIdQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetSeasonByIdQueryHandler(IUnitOfWork unitOfWork, SeasonMapper seasonMapper)
+public class GetSeasonByIdQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper seasonMapper)
     : IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>
 {
     public async Task<GetSeasonByIdQueryResponse> Handle(GetSeasonByIdQuery request,

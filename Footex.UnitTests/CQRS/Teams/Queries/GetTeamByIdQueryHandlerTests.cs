@@ -1,6 +1,6 @@
 using Application.CQRS.Teams.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -14,14 +14,14 @@ public class GetTeamByIdQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetTeamByIdQueryHandler _handler;
-    private readonly Mock<TeamMapper> _teamMapperMock;
+    private readonly Mock<ITeamMapper> _iTeamMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetTeamByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _teamMapperMock = new Mock<TeamMapper>();
-        _handler = new GetTeamByIdQueryHandler(_unitOfWorkMock.Object, _teamMapperMock.Object);
+        _iTeamMapperMock = new Mock<ITeamMapper>();
+        _handler = new GetTeamByIdQueryHandler(_unitOfWorkMock.Object, _iTeamMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -48,7 +48,7 @@ public class GetTeamByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
             .ReturnsAsync(team);
-        _teamMapperMock.Setup(x => x.ToTeamDto(team))
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
             .Returns(expectedTeamDto);
 
         // Act
@@ -62,7 +62,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(teamId), Times.Once);
-        _teamMapperMock.Verify(x => x.ToTeamDto(team), Times.Once);
+        _iTeamMapperMock.Verify(x => x.ToTeamDto(team), Times.Once);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Error.Should().Be("Team not found");
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(teamId), Times.Once);
-        _teamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
+        _iTeamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
     }
 
     [Theory]
@@ -110,7 +110,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Error.Should().Be("Team not found");
 
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(invalidId), Times.Once);
-        _teamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
+        _iTeamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class GetTeamByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
             .ReturnsAsync(team);
-        _teamMapperMock.Setup(x => x.ToTeamDto(team))
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
             .Returns(expectedTeamDto);
 
         // Act
@@ -169,7 +169,7 @@ public class GetTeamByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
             .ReturnsAsync(team);
-        _teamMapperMock.Setup(x => x.ToTeamDto(team))
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
             .Returns(teamDto);
 
         // Act
@@ -178,7 +178,7 @@ public class GetTeamByIdQueryHandlerTests
         // Assert
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsyncWithStadium(teamId), Times.Once);
         _unitOfWorkMock.Verify(x => x.Teams.GetByIdAsync(It.IsAny<int>()), Times.Never);
-        _teamMapperMock.Verify(x => x.ToTeamDto(team), Times.Once);
+        _iTeamMapperMock.Verify(x => x.ToTeamDto(team), Times.Once);
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public class GetTeamByIdQueryHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Team.Should().BeNull();
 
-        _teamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
+        _iTeamMapperMock.Verify(x => x.ToTeamDto(It.IsAny<Team>()), Times.Never);
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public class GetTeamByIdQueryHandlerTests
 
             _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
                 .ReturnsAsync(team);
-            _teamMapperMock.Setup(x => x.ToTeamDto(team))
+            _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
                 .Returns(teamDto);
 
             // Act

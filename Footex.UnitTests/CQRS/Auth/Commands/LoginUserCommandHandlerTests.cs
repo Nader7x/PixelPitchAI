@@ -1,5 +1,5 @@
 using Application.CQRS.Auth.Commands;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -15,7 +15,6 @@ public class LoginUserCommandHandlerTests
     private readonly LoginUserCommandHandler _handler;
     private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-    private readonly Mock<UserMapper> _mockUserMapper;
     private readonly Mock<IApplicationUserRepository> _mockUserRepository;
 
     public LoginUserCommandHandlerTests()
@@ -23,14 +22,14 @@ public class LoginUserCommandHandlerTests
         _mockUserRepository = new Mock<IApplicationUserRepository>();
         _mockTokenService = new Mock<ITokenService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
-        _mockUserMapper = new Mock<UserMapper>();
+        var mockIUserMapper = new Mock<IUserMapper>();
         _fixture = new Fixture();
 
         _handler = new LoginUserCommandHandler(
             _mockUserRepository.Object,
             _mockTokenService.Object,
             _mockUnitOfWork.Object,
-            _mockUserMapper.Object);
+            mockIUserMapper.Object);
     }
 
     [Fact]

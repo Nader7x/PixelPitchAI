@@ -1,6 +1,6 @@
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;
@@ -15,14 +15,14 @@ public class GetMatchByIdQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetMatchByIdQueryHandler _handler;
-    private readonly Mock<MatchMapper> _matchMapperMock;
+    private readonly Mock<IMatchMapper> _IMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetMatchByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _matchMapperMock = new Mock<MatchMapper>();
-        _handler = new GetMatchByIdQueryHandler(_unitOfWorkMock.Object, _matchMapperMock.Object);
+        _IMatchMapperMock = new Mock<IMatchMapper>();
+        _handler = new GetMatchByIdQueryHandler(_unitOfWorkMock.Object, _IMatchMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -41,7 +41,7 @@ public class GetMatchByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync(match);
-        _matchMapperMock.Setup(x => x.ToDto(match))
+        _IMatchMapperMock.Setup(x => x.ToDto(match))
             .Returns(matchDto);
 
         // Act
@@ -56,7 +56,7 @@ public class GetMatchByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDto(match), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDto(match), Times.Once);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class GetMatchByIdQueryHandlerTests
         result.Error.Should().Contain($"Match with ID {matchId} not found");
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDto(It.IsAny<Match>()), Times.Never);
+        _IMatchMapperMock.Verify(x => x.ToDto(It.IsAny<Match>()), Times.Never);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class GetMatchByIdQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Matches.GetByIdWithDetailsAsync(matchId), Times.Once);
-        _matchMapperMock.Verify(x => x.ToDto(It.IsAny<Match>()), Times.Never);
+        _IMatchMapperMock.Verify(x => x.ToDto(It.IsAny<Match>()), Times.Never);
     }
 
     [Theory]
@@ -148,7 +148,7 @@ public class GetMatchByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync(match);
-        _matchMapperMock.Setup(x => x.ToDto(match))
+        _IMatchMapperMock.Setup(x => x.ToDto(match))
             .Returns(expectedMatchDto);
 
         // Act

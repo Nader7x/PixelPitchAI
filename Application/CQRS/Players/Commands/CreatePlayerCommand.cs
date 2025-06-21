@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -16,7 +16,7 @@ public class CreatePlayerCommand : IRequest<CreatePlayerCommandResponse>
     [StringLength(50)] public string? Nationality { get; set; }
 
 
-    [StringLength(20)] public string PreferredFoot { get; set; }
+    [StringLength(20)] public string? PreferredFoot { get; set; }
 
     [StringLength(500)] public string? PhotoUrl { get; set; }
 
@@ -31,10 +31,10 @@ public class CreatePlayerCommandResponse
     public bool Succeeded { get; set; }
     public int Id { get; set; }
     public string? FullName { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
+public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     : IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse>
 {
     public async Task<CreatePlayerCommandResponse> Handle(CreatePlayerCommand request,

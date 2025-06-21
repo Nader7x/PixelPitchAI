@@ -12,15 +12,15 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
     [StringLength(100, MinimumLength = 2)]
     public string? FullName { get; set; }
 
-    public string KnownName { get; set; }
+    public string? KnownName { get; set; }
 
     [StringLength(50)] public string? Nationality { get; set; }
 
-    [StringLength(50)] public string Position { get; set; }
+    [StringLength(50)] public string? Position { get; set; }
 
-    [StringLength(20)] public string PreferredFoot { get; set; }
+    [StringLength(20)] public string? PreferredFoot { get; set; }
 
-    [StringLength(500)] public string PhotoUrl { get; set; }
+    [StringLength(500)] public string? PhotoUrl { get; set; }
 
     public int? TeamId { get; set; }
 
@@ -33,7 +33,7 @@ public class UpdatePlayerCommandResponse
     public bool NotFound { get; set; }
     public int Id { get; set; }
     public string? FullName { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
 public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)

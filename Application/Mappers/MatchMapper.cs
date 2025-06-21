@@ -1,13 +1,14 @@
 using Application.CQRS.Matches.Commands;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper(UseDeepCloning = true)] // Added UseDeepCloning for potentially complex object graphs
-public partial class MatchMapper
+public partial class MatchMapper : IMatchMapper
 {
     // Map from Match to MatchDto
     public partial MatchDto ToDto(Match match);

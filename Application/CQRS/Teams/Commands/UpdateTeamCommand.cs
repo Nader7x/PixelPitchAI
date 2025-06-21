@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -42,36 +42,30 @@ public class UpdateTeamCommandResponse
     public bool NotFound { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, UpdateTeamCommandResponse>
+public class UpdateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
+    : IRequestHandler<UpdateTeamCommand, UpdateTeamCommandResponse>
 {
-    private readonly TeamMapper _teamMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public UpdateTeamCommandHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _teamMapper = teamMapper;
-    }
+    private readonly ITeamMapper _teamMapper = teamMapper;
 
     public async Task<UpdateTeamCommandResponse> Handle(UpdateTeamCommand request, CancellationToken cancellationToken)
     {
         try
         {
             // Check if team exists
-            var team = await _unitOfWork.Teams.GetByIdAsync(request.Id);
+            var team = await unitOfWork.Teams.GetByIdAsync(request.Id);
             if (request.CoachId != null)
             {
-                var teamCoach = await _unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
-                if (teamCoach.TeamId.HasValue && teamCoach.TeamId != request.Id)
+                var teamCoach = await unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
+                if (teamCoach is { TeamId: not null } && teamCoach.TeamId != request.Id)
                     return new UpdateTeamCommandResponse
                     {
                         Succeeded = false,
                         Error = $"Coach with ID {request.CoachId} is already assigned to another team."
                     };
-                teamCoach.TeamId = request.Id;
+                if (teamCoach != null) teamCoach.TeamId = request.Id;
             }
 
             if (team == null)
@@ -85,7 +79,7 @@ public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, Updat
             // Check for name conflicts
             if (team.Name != request.Name)
             {
-                var existingTeam = await _unitOfWork.Teams.GetByNameAsync(request.Name);
+                var existingTeam = await unitOfWork.Teams.GetByNameAsync(request.Name);
                 if (existingTeam != null && existingTeam.Id != request.Id)
                     return new UpdateTeamCommandResponse
                     {
@@ -107,8 +101,8 @@ public class UpdateTeamCommandHandler : IRequestHandler<UpdateTeamCommand, Updat
             team.StadiumId = request.StadiumId;
             team.City = request.City;
 
-            _unitOfWork.Teams.UpdateAsync(team);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            unitOfWork.Teams.UpdateAsync(team);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateTeamCommandResponse
             {

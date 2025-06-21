@@ -1,13 +1,14 @@
 using Application.CQRS.Players.Commands;
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class PlayerMapper
+public partial class PlayerMapper : IPlayerMapper
 {
     // Map from Player to PlayerDto
     public partial PlayerDto ToDto(Player player);

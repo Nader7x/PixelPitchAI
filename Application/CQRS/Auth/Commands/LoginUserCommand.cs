@@ -1,4 +1,4 @@
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -28,10 +28,10 @@ public class LoginUserCommandHandler(
     IApplicationUserRepository userRepository,
     ITokenService tokenService,
     IUnitOfWork unitOfWork,
-    UserMapper userMapper)
+    IUserMapper userMapper)
     : IRequestHandler<LoginUserCommand, LoginUserCommandResponse>
 {
-    private readonly UserMapper _userMapper = userMapper;
+    private readonly IUserMapper _userMapper = userMapper;
 
     public async Task<LoginUserCommandResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
     {

@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -24,10 +24,10 @@ public class GetAllPlayersQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
+public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     : IRequestHandler<GetAllPlayersQuery, GetAllPlayersQueryResponse>
 {
-    private readonly PlayerMapper _playerMapper = playerMapper;
+    private readonly IPlayerMapper _playerMapper = playerMapper;
 
     public async Task<GetAllPlayersQueryResponse> Handle(GetAllPlayersQuery request,
         CancellationToken cancellationToken)

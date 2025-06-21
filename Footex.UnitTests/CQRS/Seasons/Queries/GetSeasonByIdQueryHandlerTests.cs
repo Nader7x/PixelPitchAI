@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -15,14 +15,14 @@ public class GetSeasonByIdQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetSeasonByIdQueryHandler _handler;
-    private readonly Mock<SeasonMapper> _seasonMapperMock;
+    private readonly Mock<ISeasonMapper> _iSeasonMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetSeasonByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _seasonMapperMock = new Mock<SeasonMapper>();
-        _handler = new GetSeasonByIdQueryHandler(_unitOfWorkMock.Object, _seasonMapperMock.Object);
+        _iSeasonMapperMock = new Mock<ISeasonMapper>();
+        _handler = new GetSeasonByIdQueryHandler(_unitOfWorkMock.Object, _iSeasonMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -51,7 +51,7 @@ public class GetSeasonByIdQueryHandlerTests
             .ReturnsAsync(season);
         _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _seasonMapperMock.Setup(x => x.ToDto(season))
+        _iSeasonMapperMock.Setup(x => x.ToDto(season))
             .Returns(expectedSeasonDto);
 
         // Act
@@ -68,7 +68,7 @@ public class GetSeasonByIdQueryHandlerTests
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
         _unitOfWorkMock.Verify(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
             Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDto(season), Times.Once);
+        _iSeasonMapperMock.Verify(x => x.ToDto(season), Times.Once);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class GetSeasonByIdQueryHandlerTests
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
         _unitOfWorkMock.Verify(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
             Times.Never);
-        _seasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
+        _iSeasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class GetSeasonByIdQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
+        _iSeasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
     }
 
     [Theory]
@@ -145,7 +145,7 @@ public class GetSeasonByIdQueryHandlerTests
         result.Error.Should().Be($"Season with ID {invalidId} not found");
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(invalidId), Times.Once);
-        _seasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
+        _iSeasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class GetSeasonByIdQueryHandlerTests
             .ReturnsAsync(season);
         _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _seasonMapperMock.Setup(x => x.ToDto(season))
+        _iSeasonMapperMock.Setup(x => x.ToDto(season))
             .Returns(expectedSeasonDto);
 
         // Act
@@ -214,7 +214,7 @@ public class GetSeasonByIdQueryHandlerTests
             .ReturnsAsync(season);
         _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _seasonMapperMock.Setup(x => x.ToDto(season))
+        _iSeasonMapperMock.Setup(x => x.ToDto(season))
             .Returns(expectedSeasonDto);
 
         // Act

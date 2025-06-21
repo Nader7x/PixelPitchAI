@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -39,27 +39,19 @@ public class CreateStadiumCommandResponse
     public bool Succeeded { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
-public class CreateStadiumCommandHandler : IRequestHandler<CreateStadiumCommand, CreateStadiumCommandResponse>
+public class CreateStadiumCommandHandler(IUnitOfWork unitOfWork, IStadiumMapper stadiumMapper)
+    : IRequestHandler<CreateStadiumCommand, CreateStadiumCommandResponse>
 {
-    private readonly StadiumMapper _stadiumMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateStadiumCommandHandler(IUnitOfWork unitOfWork, StadiumMapper stadiumMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _stadiumMapper = stadiumMapper;
-    }
-
     public async Task<CreateStadiumCommandResponse> Handle(CreateStadiumCommand request,
         CancellationToken cancellationToken)
     {
         try
         {
             // Check if stadium with the same name already exists
-            var existingStadium = await _unitOfWork.Stadiums.FindAsync(s => s.Name == request.Name);
+            var existingStadium = await unitOfWork.Stadiums.FindAsync(s => s.Name == request.Name, cancellationToken);
             if (existingStadium != null)
                 return new CreateStadiumCommandResponse
                 {
@@ -68,10 +60,10 @@ public class CreateStadiumCommandHandler : IRequestHandler<CreateStadiumCommand,
                 };
 
             // Create new stadium
-            var stadium = _stadiumMapper.ToStadiumFromCreate(request);
+            var stadium = stadiumMapper.ToStadiumFromCreate(request);
 
-            await _unitOfWork.Stadiums.AddAsync(stadium);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.Stadiums.AddAsync(stadium);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new CreateStadiumCommandResponse
             {

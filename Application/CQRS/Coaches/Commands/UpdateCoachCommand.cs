@@ -20,7 +20,7 @@ public class UpdateCoachCommand : IRequest<UpdateCoachCommandResponse>
 
     [StringLength(50)] public string? Nationality { get; set; }
 
-    [StringLength(50)] public string Role { get; set; }
+    [StringLength(50)] public string? Role { get; set; }
 
     public int? TeamId { get; set; }
 

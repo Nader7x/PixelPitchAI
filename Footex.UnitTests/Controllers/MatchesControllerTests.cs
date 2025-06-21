@@ -3,7 +3,7 @@ using Application.CQRS.Matches.Commands;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
+using Application.Interfaces;
 using Application.Services;
 using AutoFixture;
 using Domain.Interfaces;
@@ -26,33 +26,27 @@ namespace Footex.UnitTests.Controllers;
 
 public class MatchesControllerTests : IClassFixture<TestFixtureBase>
 {
+    private readonly Footex.UnitTests.Common.TestFixtureBase _testFixtureBase;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly MatchesController _controller;
     private readonly Fixture _fixture;
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
-    private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
-    private readonly Mock<ILogger<MatchesController>> _loggerMock;
-    private readonly Mock<MatchMapper> _matchMapperMock;
+    private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IServiceScopeFactory> _serviceScopeFactoryMock;
-    private readonly Mock<IOptions<SimulationServiceOptions>> _simulationOptionsMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private readonly Mock<IPerformanceMonitoringService> _performanceMonitoring;
-    private readonly Mock<ILiveMatchStatisticsService> _liveMatchService;
 
-    public MatchesControllerTests()
+    public MatchesControllerTests(TestFixtureBase testFixtureBase)
     {
-        _liveMatchService = new Mock<ILiveMatchStatisticsService>();
+        _testFixtureBase = testFixtureBase;
+        var liveMatchService = new Mock<ILiveMatchStatisticsService>();
         _mediatorMock = new Mock<IMediator>();
-        _httpClientFactoryMock = new Mock<IHttpClientFactory>();
-        _matchMapperMock = new Mock<MatchMapper>();
-        _simulationOptionsMock = new Mock<IOptions<SimulationServiceOptions>>();
-        _serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
-        _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _loggerMock = new Mock<ILogger<MatchesController>>();
-        _hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        _iMatchMapperMock = new Mock<IMatchMapper>();
+        var simulationOptionsMock = new Mock<IOptions<SimulationServiceOptions>>();
+        var serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+        var loggerMock = new Mock<ILogger<MatchesController>>();
+        var hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
         _cacheServiceMock = new Mock<ICacheService>();
-        _performanceMonitoring = new Mock<IPerformanceMonitoringService>();
+        var performanceMonitoring = new Mock<IPerformanceMonitoringService>();
         
         
 
@@ -67,19 +61,19 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
             BaseUrl = "http://localhost:5000",
             ApiKey = "test-key"
         };
-        _simulationOptionsMock.Setup(x => x.Value).Returns(simulationOptions);
+        simulationOptionsMock.Setup(x => x.Value).Returns(simulationOptions);
 
         _controller = new MatchesController(
             _mediatorMock.Object,
-            _httpClientFactoryMock.Object,
-            _matchMapperMock.Object,
-            _simulationOptionsMock.Object,
-            _serviceScopeFactoryMock.Object,
-            _unitOfWorkMock.Object,
-            _performanceMonitoring.Object,
-            _liveMatchService.Object,
-            _loggerMock.Object,
-            _hubContextMock.Object,
+            httpClientFactoryMock.Object,
+            _iMatchMapperMock.Object,
+            simulationOptionsMock.Object,
+            serviceScopeFactoryMock.Object,
+            unitOfWorkMock.Object,
+            performanceMonitoring.Object,
+            liveMatchService.Object,
+            loggerMock.Object,
+            hubContextMock.Object,
             _cacheServiceMock.Object);
 
         // Setup controller context
@@ -108,10 +102,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         var expectedResponse = new GetAllMatchesQueryResponse
         {
             Succeeded = true,
-            Matches = new List<MatchDto>
-            {
-                new() { Id = 1, HomeTeamName = "Arsenal", AwayTeamName = "Chelsea" }
-            }
+            Matches = [new MatchDto { Id = 1, HomeTeamName = "Arsenal", AwayTeamName = "Chelsea" }]
         };
 
         _cacheServiceMock.Setup(x => x.GetAsync<GetAllMatchesQueryResponse>(It.IsAny<string>(), CancellationToken.None))
@@ -146,10 +137,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         var cachedResponse = new GetAllMatchesQueryResponse
         {
             Succeeded = true,
-            Matches = new List<MatchDto>
-            {
-                new() { Id = 1, HomeTeamName = "Arsenal", AwayTeamName = "Chelsea" }
-            }
+            Matches = [new MatchDto { Id = 1, HomeTeamName = "Arsenal", AwayTeamName = "Chelsea" }]
         };
 
         _cacheServiceMock.Setup(x => x.GetAsync<GetAllMatchesQueryResponse>(It.IsAny<string>(), CancellationToken.None))
@@ -245,7 +233,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
             Id = _fixture.Create<int>()
         };
 
-        _matchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto))
+        _iMatchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto))
             .Returns(createCommand);
 
         _mediatorMock.Setup(x => x.Send(createCommand, CancellationToken.None))
@@ -280,7 +268,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
             Error = "Validation failed"
         };
 
-        _matchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto))
+        _iMatchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto))
             .Returns(createCommand);
 
         _mediatorMock.Setup(x => x.Send(createCommand, default))

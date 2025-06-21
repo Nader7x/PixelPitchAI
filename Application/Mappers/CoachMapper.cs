@@ -1,13 +1,14 @@
 using Application.CQRS.Coaches.Commands;
 using Application.CQRS.Coaches.Queries;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class CoachMapper
+public partial class CoachMapper : ICoachMapper
 {
     // Map from Coach to CoachDto
     public partial CoachDto ToDto(Coach coach);

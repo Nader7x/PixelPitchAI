@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -41,7 +41,7 @@ public class CreateCoachCommandResponse
     public string Error { get; set; }
 }
 
-public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, CoachMapper coachMapper)
+public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
     : IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>
 {
     public async Task<CreateCoachCommandResponse> Handle(CreateCoachCommand request,

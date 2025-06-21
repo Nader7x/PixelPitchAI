@@ -1,6 +1,6 @@
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -19,7 +19,7 @@ public class GetMatchByIdWithDetailsQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetMatchByIdWithDetailsQueryHandler(MatchMapper matchMapper, IUnitOfWork unitOfWork, ILiveMatchStatisticsService liveMatchStatisticsService)
+public class GetMatchByIdWithDetailsQueryHandler(IMatchMapper matchMapper, IUnitOfWork unitOfWork, ILiveMatchStatisticsService liveMatchStatisticsService)
     : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
 {
     private readonly ILiveMatchStatisticsService _liveMatchStatisticsService = liveMatchStatisticsService;

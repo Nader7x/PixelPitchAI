@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -23,10 +23,10 @@ public class GetAllSeasonsQueryResponse
 
 public class GetAllSeasonsQueryHandler : IRequestHandler<GetAllSeasonsQuery, GetAllSeasonsQueryResponse>
 {
-    private readonly SeasonMapper _seasonMapper;
+    private readonly ISeasonMapper _seasonMapper;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetAllSeasonsQueryHandler(IUnitOfWork unitOfWork, SeasonMapper seasonMapper)
+    public GetAllSeasonsQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper seasonMapper)
     {
         _unitOfWork = unitOfWork;
         _seasonMapper = seasonMapper;

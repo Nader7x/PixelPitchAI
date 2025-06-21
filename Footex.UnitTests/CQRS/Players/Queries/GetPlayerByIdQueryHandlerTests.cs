@@ -1,6 +1,6 @@
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -14,14 +14,14 @@ public class GetPlayerByIdQueryHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly GetPlayerByIdQueryHandler _handler;
-    private readonly Mock<PlayerMapper> _playerMapperMock;
+    private readonly Mock<IPlayerMapper> _iPlayerMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetPlayerByIdQueryHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _playerMapperMock = new Mock<PlayerMapper>();
-        _handler = new GetPlayerByIdQueryHandler(_unitOfWorkMock.Object, _playerMapperMock.Object);
+        _iPlayerMapperMock = new Mock<IPlayerMapper>();
+        _handler = new GetPlayerByIdQueryHandler(_unitOfWorkMock.Object, _iPlayerMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -46,7 +46,7 @@ public class GetPlayerByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
             .ReturnsAsync(player);
-        _playerMapperMock.Setup(x => x.ToDto(player))
+        _iPlayerMapperMock.Setup(x => x.ToDto(player))
             .Returns(expectedPlayerDto);
 
         // Act
@@ -61,7 +61,7 @@ public class GetPlayerByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
-        _playerMapperMock.Verify(x => x.ToDto(player), Times.Once);
+        _iPlayerMapperMock.Verify(x => x.ToDto(player), Times.Once);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class GetPlayerByIdQueryHandlerTests
         result.Error.Should().Be($"Player with ID {playerId} not found");
 
         _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
-        _playerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
+        _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class GetPlayerByIdQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
-        _playerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
+        _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
     [Theory]
@@ -136,7 +136,7 @@ public class GetPlayerByIdQueryHandlerTests
         result.Error.Should().Be($"Player with ID {invalidId} not found");
 
         _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(invalidId), Times.Once);
-        _playerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
+        _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class GetPlayerByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
             .ReturnsAsync(player);
-        _playerMapperMock.Setup(x => x.ToDto(player))
+        _iPlayerMapperMock.Setup(x => x.ToDto(player))
             .Returns(expectedPlayerDto);
 
         // Act

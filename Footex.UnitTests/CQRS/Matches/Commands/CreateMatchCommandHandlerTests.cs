@@ -1,5 +1,5 @@
 using Application.CQRS.Matches.Commands;
-using Application.Mappers;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -16,14 +16,14 @@ public class CreateMatchCommandHandlerTests
 {
     private readonly Fixture _fixture;
     private readonly CreateMatchCommandHandler _handler;
-    private readonly Mock<MatchMapper> _matchMapperMock;
+    private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public CreateMatchCommandHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _matchMapperMock = new Mock<MatchMapper>();
-        _handler = new CreateMatchCommandHandler(_unitOfWorkMock.Object, _matchMapperMock.Object);
+        _iMatchMapperMock = new Mock<IMatchMapper>();
+        _handler = new CreateMatchCommandHandler(_unitOfWorkMock.Object, _iMatchMapperMock.Object);
 
         _fixture = new Fixture();
         _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
@@ -51,7 +51,7 @@ public class CreateMatchCommandHandlerTests
         _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.AwayTeamId))
             .ReturnsAsync(awayTeam);
 
-        _matchMapperMock.Setup(x => x.ToMatchFromCreate(command))
+        _iMatchMapperMock.Setup(x => x.ToMatchFromCreate(command))
             .Returns(match);
 
         _unitOfWorkMock.Setup(x => x.Matches.AddAsync(It.IsAny<Match>()))
@@ -261,7 +261,7 @@ public class CreateMatchCommandHandlerTests
         _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(command.AwayCoachId.Value))
             .ReturnsAsync(awayCoach);
 
-        _matchMapperMock.Setup(x => x.ToMatchFromCreate(command))
+        _iMatchMapperMock.Setup(x => x.ToMatchFromCreate(command))
             .Returns(match);
 
         _unitOfWorkMock.Setup(x => x.Matches.AddAsync(It.IsAny<Match>()))

@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
@@ -39,10 +39,10 @@ public class CreateTeamCommandResponse
     public bool Succeeded { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Error { get; set; }
+    public string Error { get; set; } = string.Empty;
 }
 
-public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, TeamMapper teamMapper)
+public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
     : IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse>
 {
     public async Task<CreateTeamCommandResponse> Handle(CreateTeamCommand request, CancellationToken cancellationToken)

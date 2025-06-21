@@ -1,5 +1,5 @@
 using Application.Dtos;
-using Application.Mappers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -20,10 +20,10 @@ public class GetPlayerByIdQueryResponse
 
 public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
 {
-    private readonly PlayerMapper _playerMapper;
+    private readonly IPlayerMapper _playerMapper;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, PlayerMapper playerMapper)
+    public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     {
         _unitOfWork = unitOfWork;
         _playerMapper = playerMapper;

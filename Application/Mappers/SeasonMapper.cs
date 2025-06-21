@@ -1,12 +1,13 @@
 using Application.CQRS.Seasons.Commands;
 using Application.Dtos;
+using Application.Interfaces;
 using Domain.Models;
 using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
 [Mapper]
-public partial class SeasonMapper
+public partial class SeasonMapper : ISeasonMapper
 {
     // Map from Season to SeasonDto
     public partial SeasonDto ToDto(Season season);
