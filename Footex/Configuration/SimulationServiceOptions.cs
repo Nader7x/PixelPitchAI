@@ -2,8 +2,6 @@ namespace Footex.Configuration;
 
 public class SimulationServiceOptions
 {
-    public const string SectionName = "SimulationService";
-
-    public string BaseUrl { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = "http://localhost:8000";
     public string ApiKey { get; set; } = string.Empty;
 }
