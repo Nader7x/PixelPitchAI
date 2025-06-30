@@ -70,5 +70,4 @@ ScaffoldingReadMe.txt
 .env
 .env.*
 /scripts/
-Infrastructure/Migrations
 certs

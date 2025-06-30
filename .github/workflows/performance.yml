@@ -45,6 +45,13 @@ jobs:
           POSTGRES_DB: footex_perf_test
           POSTGRES_USER: perf_user
           POSTGRES_PASSWORD: perf_password
+          ConnectionStrings__DefaultConnection: ${{ secrets.DEFAULT_CONNECTION }}
+          ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
+          ConnectionStrings__RemoteRedisConnection: ${{ secrets.REMOTE_REDIS_CONNECTION }}
+          JWT__Secret: ${{ secrets.JWT_SECRET }}
+          AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
+          SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
+          SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

@@ -24,6 +24,12 @@ env:
   DOTNET_VERSION: "8.0.x"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
+  ConnectionStrings__RemoteRedisConnection: ${{ secrets.REMOTE_REDIS_CONNECTION }}
+  JWT__Secret: ${{ secrets.JWT_SECRET }}
+  AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
+  SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
+  SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
 
 jobs:
   # Job 1: Pre-deployment checks
