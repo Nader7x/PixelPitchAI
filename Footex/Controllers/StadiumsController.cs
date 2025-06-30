@@ -13,7 +13,7 @@ namespace Footex.Controllers;
 [Route("api/[controller]")]
 public class StadiumsController(
     IMediator mediator,
-    StadiumMapper stadiumMapper,
+    IStadiumMapper stadiumMapper,
     IFileStorageService fileStorageService,
     ICacheService cacheService)
     : ControllerBase
@@ -22,7 +22,7 @@ public class StadiumsController(
     private readonly ICacheService _cacheService = cacheService;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IMediator _mediator = mediator;
-    private readonly StadiumMapper _stadiumMapper = stadiumMapper;
+    private readonly IStadiumMapper _stadiumMapper = stadiumMapper;
 
 
     [HttpGet]

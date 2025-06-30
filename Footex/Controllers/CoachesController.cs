@@ -14,12 +14,12 @@ namespace Footex.Controllers;
 public class CoachesController(
     IMediator mediator,
     IFileStorageService fileStorageService,
-    CoachMapper coachMapper,
+    ICoachMapper coachMapper,
     ICacheService cacheService)
     : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
-    private readonly CoachMapper _coachMapper = coachMapper;
+    private readonly ICoachMapper _coachMapper = coachMapper;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IMediator _mediator = mediator;
     private readonly string CONTAINER_NAME = "coaches";

@@ -14,13 +14,13 @@ namespace Footex.Controllers;
 public class PlayersController(
     IMediator mediator,
     IFileStorageService fileStorageService,
-    PlayerMapper playerMapper,
+    IPlayerMapper playerMapper,
     ICacheService cacheService) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IMediator _mediator = mediator;
-    private readonly PlayerMapper _playerMapper = playerMapper;
+    private readonly IPlayerMapper _playerMapper = playerMapper;
     private readonly string CONTAINER_NAME = "players";
 
     [HttpGet]

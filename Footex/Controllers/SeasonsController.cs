@@ -11,11 +11,11 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SeasonsController(IMediator mediator, SeasonMapper seasonMapper, ICacheService cacheService)
+public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, ICacheService cacheService)
     : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
-    private readonly SeasonMapper _seasonMapper = seasonMapper;
+    private readonly ISeasonMapper _seasonMapper = seasonMapper;
 
     [HttpGet]
     [ProducesResponseType(typeof(GetAllSeasonsQueryResponse), StatusCodes.Status200OK)]

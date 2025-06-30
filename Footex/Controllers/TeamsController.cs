@@ -2,7 +2,6 @@ using Application.CQRS.Teams.Commands;
 using Application.CQRS.Teams.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +12,13 @@ namespace Footex.Controllers;
 [Route("api/[controller]")]
 public class TeamsController(
     IMediator mediator,
-    TeamMapper teamMapper,
+    ITeamMapper teamMapper,
     IFileStorageService azureBlobStorageService,
     ICacheService cacheService) : ControllerBase
 {
     private readonly IFileStorageService _azureBlobStorageService = azureBlobStorageService;
     private readonly ICacheService _cacheService = cacheService;
-    private readonly TeamMapper _teamMapper = teamMapper;
+    private readonly ITeamMapper _teamMapper = teamMapper;
     private readonly string CONTAINER_NAME = "teams";
 
     /// <summary>

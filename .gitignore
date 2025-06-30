@@ -26,6 +26,7 @@ Thumbs.db
 !**/packages/build/
 !**/packages/repositories.config
 
+
 # Visual Studio
 *.vspscc
 *.vssscc
@@ -71,3 +72,4 @@ ScaffoldingReadMe.txt
 .env.*
 /scripts/
 Infrastructure/Migrations
+certs

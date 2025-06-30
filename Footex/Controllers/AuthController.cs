@@ -12,18 +12,18 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IMediator mediator, UserMapper usermapper, IFileStorageService blobStorageService)
+public class AuthController(IMediator mediator, IUserMapper userMapper, IFileStorageService blobStorageService)
     : ControllerBase
 {
     private readonly IFileStorageService _blobStorageService = blobStorageService;
     private readonly IMediator _mediator = mediator;
-    private readonly UserMapper _usermapper = usermapper;
+    private readonly IUserMapper _userMapper = userMapper;
     private readonly string CONTAINER_NAME = "users";
 
     [HttpPost("register")]
     public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromForm] RegisterUserDto dto)
     {
-        var command = _usermapper.ToRegisterCommandFromDto(dto);
+        var command = _userMapper.ToRegisterCommandFromDto(dto);
         command.ImageUrl = dto.Image != null
             ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME)
             : null;
@@ -286,7 +286,7 @@ public class AuthController(IMediator mediator, UserMapper usermapper, IFileStor
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser([FromForm] UpdateUserDto dto)
     {
-        var command = _usermapper.ToUpdateCommand(dto);
+        var command = _userMapper.ToUpdateCommand(dto);
         if (dto.Image != null)
         {
             // delete old image if it exists
