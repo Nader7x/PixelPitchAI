@@ -41,6 +41,7 @@ public static class DependencyInjection
         configuration.GetSection(RedisCacheOptions.SectionName).Bind(redisOptions);
 
         var remoteConnectionString = redisOptions.RemoteConnectionString;
+        var remoteRedisPassword = configuration.GetConnectionString("RemoteRedisPassword") ?? "";
         if (string.IsNullOrEmpty(remoteConnectionString))
             remoteConnectionString = configuration.GetConnectionString("RemoteRedisConnection") ?? "";
 
@@ -57,7 +58,7 @@ public static class DependencyInjection
                 {
                     EndPoints = { { remoteConnectionString, 17264 } },
                     User = "default",
-                    Password = "[REMOVED-DB-PASSWORD]",
+                    Password = remoteRedisPassword,
                     AbortOnConnectFail = false,
                     ConnectRetry = 3,
                     ConnectTimeout = 5000

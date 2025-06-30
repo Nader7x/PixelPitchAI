@@ -52,6 +52,8 @@ jobs:
           AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
           SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
           SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
+          ConnectionStrings__RemoteRedisPassword: ${{ secrets.REMOTE_REDIS_PASSWORD }}
+
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

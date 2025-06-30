@@ -26,6 +26,7 @@ env:
   AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
   SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
   SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
+  ConnectionStrings__RemoteRedisPassword: ${{ secrets.REMOTE_REDIS_PASSWORD }}
 
 permissions:
   contents: write
