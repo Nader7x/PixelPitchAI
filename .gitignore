@@ -43,7 +43,6 @@ ScaffoldingReadMe.txt
 *.swp
 *.tmp
 *.tmp_proj
-*.log
 *.pidb
 *.svclog
 *.scc
