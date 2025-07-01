@@ -1,6 +1,447 @@
 @Footex_HostAddress = http://localhost:5025
+@accessToken = your_jwt_token_here
 
-GET {{Footex_HostAddress}}/weatherforecast/
+### Health Check
+GET {{Footex_HostAddress}}/
 Accept: application/json
 
 ###
+
+# ================================
+# Authentication Endpoints
+# ================================
+
+### Register User
+POST {{Footex_HostAddress}}/api/auth/register
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="FirstName"
+
+John
+--boundary123
+Content-Disposition: form-data; name="LastName"
+
+Doe
+--boundary123
+Content-Disposition: form-data; name="Email"
+
+john.doe@example.com
+--boundary123
+Content-Disposition: form-data; name="Password"
+
+Password123!
+--boundary123
+Content-Disposition: form-data; name="ConfirmPassword"
+
+Password123!
+--boundary123
+Content-Disposition: form-data; name="DateOfBirth"
+
+1990-01-01
+--boundary123
+Content-Disposition: form-data; name="PreferredFootballPosition"
+
+Midfielder
+--boundary123--
+
+### Login User
+POST {{Footex_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "Password123!"
+}
+
+### Refresh Token
+POST {{Footex_HostAddress}}/api/auth/refresh-token
+Authorization: Bearer {{accessToken}}
+
+### Manual Refresh Token
+POST {{Footex_HostAddress}}/api/auth/manual-refresh
+Content-Type: application/json
+
+"your_refresh_token_here"
+
+### Forgot Password
+POST {{Footex_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com"
+}
+
+### Reset Password
+POST {{Footex_HostAddress}}/api/auth/reset-password?email=john.doe%40example.com&token=reset_token_here
+Content-Type: application/json
+
+{
+  "newPassword": "NewPassword123!"
+}
+
+### Confirm Email
+POST {{Footex_HostAddress}}/api/auth/confirm-email?userId=user_id_here&token=confirmation_token_here
+
+### Resend Email Confirmation
+POST {{Footex_HostAddress}}/api/auth/resend-email-confirmation
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com"
+}
+
+### Get User Profile
+GET {{Footex_HostAddress}}/api/auth/profile/user_id_here
+Authorization: Bearer {{accessToken}}
+
+### Update User Profile
+PUT {{Footex_HostAddress}}/api/auth/update
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="Id"
+
+user_id_here
+--boundary123
+Content-Disposition: form-data; name="FirstName"
+
+Jane
+--boundary123
+Content-Disposition: form-data; name="LastName"
+
+Doe
+--boundary123--
+
+###
+
+# ================================
+# Teams Endpoints
+# ================================
+
+### Get All Teams
+GET {{Footex_HostAddress}}/api/teams
+
+### Get Team by ID
+GET {{Footex_HostAddress}}/api/teams/1
+
+### Create Team (Admin only)
+POST {{Footex_HostAddress}}/api/teams
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="Name"
+
+Manchester United
+--boundary123
+Content-Disposition: form-data; name="City"
+
+Manchester
+--boundary123
+Content-Disposition: form-data; name="Country"
+
+England
+--boundary123
+Content-Disposition: form-data; name="YearFounded"
+
+1878
+--boundary123
+Content-Disposition: form-data; name="StadiumName"
+
+Old Trafford
+--boundary123--
+
+### Update Team (Admin only)
+PUT {{Footex_HostAddress}}/api/teams/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Manchester United FC",
+  "city": "Manchester",
+  "country": "England",
+  "yearFounded": 1878,
+  "stadiumName": "Old Trafford"
+}
+
+###
+
+# ================================
+# Players Endpoints
+# ================================
+
+### Get All Players
+GET {{Footex_HostAddress}}/api/players
+
+### Get All Players with filters
+GET {{Footex_HostAddress}}/api/players?nationality=Brazil&preferredFoot=Right&teamId=1&pageNumber=1&pageSize=10
+
+### Get Player by ID
+GET {{Footex_HostAddress}}/api/players/1
+
+### Create Player (Admin only)
+POST {{Footex_HostAddress}}/api/players
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="FirstName"
+
+Cristiano
+--boundary123
+Content-Disposition: form-data; name="LastName"
+
+Ronaldo
+--boundary123
+Content-Disposition: form-data; name="DateOfBirth"
+
+1985-02-05
+--boundary123
+Content-Disposition: form-data; name="Nationality"
+
+Portugal
+--boundary123
+Content-Disposition: form-data; name="Position"
+
+Forward
+--boundary123
+Content-Disposition: form-data; name="PreferredFoot"
+
+Right
+--boundary123
+Content-Disposition: form-data; name="Height"
+
+187
+--boundary123
+Content-Disposition: form-data; name="Weight"
+
+84
+--boundary123
+Content-Disposition: form-data; name="TeamId"
+
+1
+--boundary123--
+
+###
+
+# ================================
+# Matches Endpoints
+# ================================
+
+### Get All Matches
+GET {{Footex_HostAddress}}/api/matches
+
+### Get All Matches with filters
+GET {{Footex_HostAddress}}/api/matches?seasonId=1&teamId=1&status=Scheduled&fromDate=2024-01-01&toDate=2024-12-31&matchWeek=1
+
+### Get Match by ID
+GET {{Footex_HostAddress}}/api/matches/1
+
+### Create Match (Admin/Manager only)
+POST {{Footex_HostAddress}}/api/matches
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "homeTeamId": 1,
+  "awayTeamId": 2,
+  "seasonId": 1,
+  "stadiumId": 1,
+  "matchDate": "2024-12-25T15:00:00Z",
+  "matchWeek": 15,
+  "creatorId": "user_id_here"
+}
+
+### Update Match (Admin/Manager only)
+PUT {{Footex_HostAddress}}/api/matches/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "seasonId": 1,
+  "homeTeamId": 1,
+  "awayTeamId": 2,
+  "stadiumId": 1,
+  "matchDate": "2024-12-25T16:00:00Z",
+  "matchWeek": 15
+}
+
+### Start Match Simulation (Admin/Manager only)
+POST {{Footex_HostAddress}}/api/matches/1/start-simulation
+Authorization: Bearer {{accessToken}}
+
+### Stop Match Simulation (Admin/Manager only)
+POST {{Footex_HostAddress}}/api/matches/1/stop-simulation
+Authorization: Bearer {{accessToken}}
+
+### Get Match Statistics
+GET {{Footex_HostAddress}}/api/matches/1/statistics
+
+### Get Live Match Statistics
+GET {{Footex_HostAddress}}/api/matches/1/live-statistics
+
+###
+
+# ================================
+# Seasons Endpoints
+# ================================
+
+### Get All Seasons
+GET {{Footex_HostAddress}}/api/seasons
+
+### Get All Seasons with filters
+GET {{Footex_HostAddress}}/api/seasons?leagueName=Premier League&country=England&isActive=true
+
+### Get Season by ID
+GET {{Footex_HostAddress}}/api/seasons/1
+
+### Create Season (Admin only)
+POST {{Footex_HostAddress}}/api/seasons
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Premier League 2024/25",
+  "startDate": "2024-08-17",
+  "endDate": "2025-05-25",
+  "leagueName": "Premier League",
+  "country": "England",
+  "isActive": true
+}
+
+###
+
+# ================================
+# Stadiums Endpoints
+# ================================
+
+### Get All Stadiums
+GET {{Footex_HostAddress}}/api/stadiums
+
+### Get Stadium by ID
+GET {{Footex_HostAddress}}/api/stadiums/1
+
+### Create Stadium (Admin only)
+POST {{Footex_HostAddress}}/api/stadiums
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="Name"
+
+Old Trafford
+--boundary123
+Content-Disposition: form-data; name="City"
+
+Manchester
+--boundary123
+Content-Disposition: form-data; name="Country"
+
+England
+--boundary123
+Content-Disposition: form-data; name="Capacity"
+
+74310
+--boundary123
+Content-Disposition: form-data; name="YearBuilt"
+
+1910
+--boundary123--
+
+###
+
+# ================================
+# Coaches Endpoints
+# ================================
+
+### Create Coach (Admin only)
+POST {{Footex_HostAddress}}/api/coaches
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="FirstName"
+
+Pep
+--boundary123
+Content-Disposition: form-data; name="LastName"
+
+Guardiola
+--boundary123
+Content-Disposition: form-data; name="DateOfBirth"
+
+1971-01-18
+--boundary123
+Content-Disposition: form-data; name="Nationality"
+
+Spain
+--boundary123
+Content-Disposition: form-data; name="TeamId"
+
+1
+--boundary123--
+
+###
+
+# ================================
+# Search Endpoints
+# ================================
+
+### Global Search
+GET {{Footex_HostAddress}}/api/search?query=Manchester&page=1&pageSize=10
+
+### Advanced Search with Strategy
+GET {{Footex_HostAddress}}/api/search/strategy?query=Ronaldo&strategy=Auto&page=1&pageSize=10
+
+### Search Teams
+GET {{Footex_HostAddress}}/api/search/teams?query=United&page=1&pageSize=10
+
+### Search Players
+GET {{Footex_HostAddress}}/api/search/players?query=Cristiano&page=1&pageSize=10
+
+### Search Matches
+GET {{Footex_HostAddress}}/api/search/matches?query=Premier&page=1&pageSize=10
+
+### Search Seasons
+GET {{Footex_HostAddress}}/api/search/seasons?query=2024&page=1&pageSize=10
+
+### Search Stadiums
+GET {{Footex_HostAddress}}/api/search/stadiums?query=Old Trafford&page=1&pageSize=10
+
+### Search Coaches
+GET {{Footex_HostAddress}}/api/search/coaches?query=Guardiola&page=1&pageSize=10
+
+### Fuzzy Search
+GET {{Footex_HostAddress}}/api/search/fuzzy?query=Mancester&page=1&pageSize=10
+
+### Search Suggestions
+GET {{Footex_HostAddress}}/api/search/suggestions?query=Man&maxSuggestions=5
+
+###
+
+# ================================
+# Notifications Endpoints
+# ================================
+
+### Get User Notifications
+GET {{Footex_HostAddress}}/api/notifications/user/user_id_here
+Authorization: Bearer {{accessToken}}
+
+### Get Unread Notifications Count
+GET {{Footex_HostAddress}}/api/notifications/user/user_id_here/unread-count
+Authorization: Bearer {{accessToken}}
+
+### Mark Notification as Read
+POST {{Footex_HostAddress}}/api/notifications/mark-as-read/notification_id_here
+Authorization: Bearer {{accessToken}}
+
+### Mark All Notifications as Read
+POST {{Footex_HostAddress}}/api/notifications/user/user_id_here/mark-all-as-read
+Authorization: Bearer {{accessToken}}
+
+###
+# ================================

@@ -22,6 +22,7 @@ public class RedisCacheServiceTests
 
     public RedisCacheServiceTests()
     {
+        _connectionMultiplexer = new Mock<IConnectionMultiplexer>();
         _distributedCacheMock = new Mock<IDistributedCache>();
         _loggerMock = new Mock<ILogger<RedisCacheService>>();
         _optionsMock = new Mock<IOptions<RedisCacheOptions>>();
