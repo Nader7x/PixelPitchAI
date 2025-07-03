@@ -13,8 +13,8 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ISeasonRepository _seasonRepository;
 
-
-    public SeasonRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public SeasonRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _seasonRepository = ServiceProvider.GetRequiredService<ISeasonRepository>();
     }
@@ -33,7 +33,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -73,7 +73,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 12
+            CurrentRound = 12,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -103,7 +103,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 20
+            CurrentRound = 20,
         };
 
         var activeSeason2 = new Season
@@ -114,7 +114,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 18
+            CurrentRound = 18,
         };
 
         var inactiveSeason = new Season
@@ -125,7 +125,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2022, 8, 13),
             EndDate = new DateTime(2023, 6, 4),
             IsActive = false,
-            CurrentRound = 38
+            CurrentRound = 38,
         };
 
         await _seasonRepository.AddAsync(activeSeason1);
@@ -156,7 +156,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         var englishSeason2 = new Season
@@ -167,7 +167,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 5),
             EndDate = new DateTime(2024, 5, 4),
             IsActive = true,
-            CurrentRound = 25
+            CurrentRound = 25,
         };
 
         var spanishSeason = new Season
@@ -178,7 +178,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 12
+            CurrentRound = 12,
         };
 
         await _seasonRepository.AddAsync(englishSeason1);
@@ -209,7 +209,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         var premierLeague2022 = new Season
@@ -220,7 +220,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2022, 8, 6),
             EndDate = new DateTime(2023, 5, 28),
             IsActive = false,
-            CurrentRound = 38
+            CurrentRound = 38,
         };
 
         var laLiga = new Season
@@ -231,7 +231,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 12
+            CurrentRound = 12,
         };
 
         await _seasonRepository.AddAsync(premierLeague2023);
@@ -262,7 +262,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         var season2 = new Season
@@ -273,7 +273,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 12
+            CurrentRound = 12,
         };
 
         await _seasonRepository.AddAsync(season1);
@@ -301,7 +301,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2024, 8, 24),
             EndDate = new DateTime(2025, 5, 17),
             IsActive = true,
-            CurrentRound = 1
+            CurrentRound = 1,
         };
 
         // Act
@@ -334,7 +334,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 10
+            CurrentRound = 10,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -370,7 +370,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = false,
-            CurrentRound = 38
+            CurrentRound = 38,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -401,7 +401,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
                 StartDate = new DateTime(2023, 8, 12),
                 EndDate = new DateTime(2024, 5, 19),
                 IsActive = true,
-                CurrentRound = 15
+                CurrentRound = 15,
             },
             new()
             {
@@ -411,7 +411,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
                 StartDate = new DateTime(2023, 8, 18),
                 EndDate = new DateTime(2024, 5, 25),
                 IsActive = true,
-                CurrentRound = 12
+                CurrentRound = 12,
             },
             new()
             {
@@ -421,11 +421,12 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
                 StartDate = new DateTime(2023, 8, 20),
                 EndDate = new DateTime(2024, 5, 26),
                 IsActive = false,
-                CurrentRound = 38
-            }
+                CurrentRound = 38,
+            },
         };
 
-        foreach (var season in seasons) await _seasonRepository.AddAsync(season);
+        foreach (var season in seasons)
+            await _seasonRepository.AddAsync(season);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -450,7 +451,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 5
+            CurrentRound = 5,
         };
 
         // Act
@@ -483,7 +484,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -516,7 +517,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 12
+            CurrentRound = 12,
         };
 
         await _seasonRepository.AddAsync(season);
@@ -549,7 +550,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 5
+            CurrentRound = 5,
         };
 
         var season2 = new Season
@@ -560,7 +561,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 18),
             EndDate = new DateTime(2024, 5, 25),
             IsActive = true,
-            CurrentRound = 25
+            CurrentRound = 25,
         };
 
         var season3 = new Season
@@ -571,7 +572,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 20),
             EndDate = new DateTime(2024, 5, 26),
             IsActive = true,
-            CurrentRound = 15
+            CurrentRound = 15,
         };
 
         await _seasonRepository.AddAsync(season1);
@@ -608,7 +609,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 8, 12),
             EndDate = new DateTime(2024, 5, 19),
             IsActive = true,
-            CurrentRound = 20
+            CurrentRound = 20,
         };
 
         var futureSeason = new Season
@@ -619,7 +620,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2024, 8, 17),
             EndDate = new DateTime(2025, 5, 25),
             IsActive = false,
-            CurrentRound = 0
+            CurrentRound = 0,
         };
 
         var pastSeason = new Season
@@ -630,7 +631,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2022, 8, 6),
             EndDate = new DateTime(2023, 5, 28),
             IsActive = false,
-            CurrentRound = 38
+            CurrentRound = 38,
         };
 
         await _seasonRepository.AddAsync(currentSeason);
@@ -640,7 +641,8 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act - Find active seasons with CurrentRound > 10
         var activeAdvancedSeasons = await _seasonRepository.GetAsync(s =>
-            s.IsActive && s.CurrentRound > 10);
+            s.IsActive && s.CurrentRound > 10
+        );
 
         // Assert
         activeAdvancedSeasons.Should().HaveCount(1);

@@ -75,7 +75,7 @@ public class PerformanceSummary
             1 => "B",
             2 => "C",
             3 => "D",
-            _ => "F"
+            _ => "F",
         };
     }
 }

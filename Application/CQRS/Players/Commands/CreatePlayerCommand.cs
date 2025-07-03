@@ -13,12 +13,14 @@ public class CreatePlayerCommand : IRequest<CreatePlayerCommandResponse>
 
     public string? KnownName { get; set; }
 
-    [StringLength(50)] public string? Nationality { get; set; }
+    [StringLength(50)]
+    public string? Nationality { get; set; }
 
+    [StringLength(20)]
+    public string? PreferredFoot { get; set; }
 
-    [StringLength(20)] public string? PreferredFoot { get; set; }
-
-    [StringLength(500)] public string? PhotoUrl { get; set; }
+    [StringLength(500)]
+    public string? PhotoUrl { get; set; }
 
     public int? TeamId { get; set; }
 
@@ -37,8 +39,10 @@ public class CreatePlayerCommandResponse
 public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     : IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse>
 {
-    public async Task<CreatePlayerCommandResponse> Handle(CreatePlayerCommand request,
-        CancellationToken cancellationToken)
+    public async Task<CreatePlayerCommandResponse> Handle(
+        CreatePlayerCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -48,7 +52,7 @@ public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, IPlayerMapper pl
                 return new CreatePlayerCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Player with name '{request.FullName}' already exists"
+                    Error = $"Player with name '{request.FullName}' already exists",
                 };
 
             // Create new player
@@ -61,16 +65,12 @@ public class CreatePlayerCommandHandler(IUnitOfWork unitOfWork, IPlayerMapper pl
             {
                 Succeeded = true,
                 Id = player.Id,
-                FullName = player.FullName
+                FullName = player.FullName,
             };
         }
         catch (Exception ex)
         {
-            return new CreatePlayerCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new CreatePlayerCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

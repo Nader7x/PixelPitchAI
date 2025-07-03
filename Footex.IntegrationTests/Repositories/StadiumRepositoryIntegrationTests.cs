@@ -13,8 +13,8 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IStadiumsRepository _stadiumRepository;
 
-
-    public StadiumRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public StadiumRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _stadiumRepository = ServiceProvider.GetRequiredService<IStadiumsRepository>();
     }
@@ -32,7 +32,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             City = "Test City",
             Country = "Test Country",
             BuiltDate = new DateTime(1990, 1, 1),
-            Description = "A test stadium for integration testing"
+            Description = "A test stadium for integration testing",
         };
 
         // Act
@@ -61,7 +61,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Retrieved Stadium",
             Capacity = 75000,
             City = "Stadium City",
-            Country = "Stadium Country"
+            Country = "Stadium Country",
         };
 
         await _stadiumRepository.AddAsync(stadium);
@@ -98,7 +98,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Stadium One",
             Capacity = 40000,
             City = "City One",
-            Country = "Country One"
+            Country = "Country One",
         };
 
         var stadium2 = new Stadium
@@ -106,7 +106,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Stadium Two",
             Capacity = 60000,
             City = "City Two",
-            Country = "Country Two"
+            Country = "Country Two",
         };
 
         var stadium3 = new Stadium
@@ -114,7 +114,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Stadium Three",
             Capacity = 80000,
             City = "City Three",
-            Country = "Country Three"
+            Country = "Country Three",
         };
 
         await _stadiumRepository.AddAsync(stadium1);
@@ -138,15 +138,18 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var stadiums = new List<Stadium>();
         for (var i = 1; i <= 10; i++)
-            stadiums.Add(new Stadium
-            {
-                Name = $"Stadium {i:D2}",
-                Capacity = 30000 + i * 1000,
-                City = $"City {i}",
-                Country = "Test Country"
-            });
+            stadiums.Add(
+                new Stadium
+                {
+                    Name = $"Stadium {i:D2}",
+                    Capacity = 30000 + i * 1000,
+                    City = $"City {i}",
+                    Country = "Test Country",
+                }
+            );
 
-        foreach (var stadium in stadiums) await _stadiumRepository.AddAsync(stadium);
+        foreach (var stadium in stadiums)
+            await _stadiumRepository.AddAsync(stadium);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -168,7 +171,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 45000,
             City = "Original City",
             Country = "Original Country",
-            BuiltDate = new DateTime(1985, 1, 1)
+            BuiltDate = new DateTime(1985, 1, 1),
         };
 
         await _stadiumRepository.AddAsync(stadium);
@@ -204,7 +207,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Stadium To Delete",
             Capacity = 35000,
             City = "Delete City",
-            Country = "Delete Country"
+            Country = "Delete Country",
         };
 
         await _stadiumRepository.AddAsync(stadium);
@@ -230,7 +233,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Large Stadium 1",
             Capacity = 70000,
             City = "Big City 1",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         var largeStadium2 = new Stadium
@@ -238,7 +241,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Large Stadium 2",
             Capacity = 80000,
             City = "Big City 2",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         var smallStadium = new Stadium
@@ -246,7 +249,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Small Stadium",
             Capacity = 25000,
             City = "Small City",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         await _stadiumRepository.AddAsync(largeStadium1);
@@ -273,7 +276,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "UK Stadium 1",
             Capacity = 50000,
             City = "London",
-            Country = "United Kingdom"
+            Country = "United Kingdom",
         };
 
         var stadium2 = new Stadium
@@ -281,7 +284,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "UK Stadium 2",
             Capacity = 60000,
             City = "Manchester",
-            Country = "United Kingdom"
+            Country = "United Kingdom",
         };
 
         var stadium3 = new Stadium
@@ -289,7 +292,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "US Stadium",
             Capacity = 70000,
             City = "New York",
-            Country = "United States"
+            Country = "United States",
         };
 
         await _stadiumRepository.AddAsync(stadium1);
@@ -298,7 +301,9 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.SaveChangesAsync();
 
         // Act
-        var ukStadiumsCount = await _stadiumRepository.CountAsync(s => s.Country == "United Kingdom");
+        var ukStadiumsCount = await _stadiumRepository.CountAsync(s =>
+            s.Country == "United Kingdom"
+        );
         var largeStadiumsCount = await _stadiumRepository.CountAsync(s => s.Capacity >= 60000);
 
         // Assert
@@ -315,7 +320,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Transaction Stadium",
             Capacity = 45000,
             City = "Transaction City",
-            Country = "Transaction Country"
+            Country = "Transaction Country",
         };
 
         // Act
@@ -342,7 +347,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Rollback Stadium",
             Capacity = 55000,
             City = "Rollback City",
-            Country = "Rollback Country"
+            Country = "Rollback Country",
         };
 
         // Act
@@ -373,7 +378,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 60000,
             City = "Modern City 1",
             Country = "Test Country",
-            BuiltDate = new DateTime(2010, 1, 1)
+            BuiltDate = new DateTime(2010, 1, 1),
         };
 
         var modernStadium2 = new Stadium
@@ -382,7 +387,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 70000,
             City = "Modern City 2",
             Country = "Test Country",
-            BuiltDate = new DateTime(2015, 1, 1)
+            BuiltDate = new DateTime(2015, 1, 1),
         };
 
         var oldStadium = new Stadium
@@ -391,7 +396,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 40000,
             City = "Old City",
             Country = "Test Country",
-            BuiltDate = new DateTime(1980, 1, 1)
+            BuiltDate = new DateTime(1980, 1, 1),
         };
 
         await _stadiumRepository.AddAsync(modernStadium1);
@@ -400,7 +405,9 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.SaveChangesAsync();
 
         // Act
-        var modernStadiums = await _stadiumRepository.GetAllAsync(s => s.BuiltDate >= new DateTime(2000, 1, 1));
+        var modernStadiums = await _stadiumRepository.GetAllAsync(s =>
+            s.BuiltDate >= new DateTime(2000, 1, 1)
+        );
 
         // Assert
         modernStadiums.Should().HaveCount(2);
@@ -418,7 +425,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Minimal Stadium",
             Capacity = 30000,
             City = "Minimal City",
-            Country = "Minimal Country"
+            Country = "Minimal Country",
             // BuiltDate and Description are optional and left null
         };
 
@@ -448,7 +455,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             City = "Complete City",
             Country = "Complete Country",
             BuiltDate = new DateTime(2020, 1, 1),
-            Description = "A complete stadium with all fields filled"
+            Description = "A complete stadium with all fields filled",
         };
 
         // Act
@@ -476,7 +483,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 80000,
             City = "Premium City",
             Country = "Premium Country",
-            BuiltDate = new DateTime(2018, 1, 1)
+            BuiltDate = new DateTime(2018, 1, 1),
         };
 
         var stadium2 = new Stadium
@@ -485,7 +492,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 45000,
             City = "Standard City",
             Country = "Standard Country",
-            BuiltDate = new DateTime(2010, 1, 1)
+            BuiltDate = new DateTime(2010, 1, 1),
         };
 
         var stadium3 = new Stadium
@@ -494,7 +501,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
             Capacity = 35000,
             City = "Legacy City",
             Country = "Legacy Country",
-            BuiltDate = new DateTime(1995, 1, 1)
+            BuiltDate = new DateTime(1995, 1, 1),
         };
 
         await _stadiumRepository.AddAsync(stadium1);
@@ -504,7 +511,8 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act - Find stadiums with capacity >= 40000 AND built after 2005
         var premiumModernStadiums = await _stadiumRepository.GetAsync(s =>
-            s.Capacity >= 40000 && s.BuiltDate >= new DateTime(2005, 1, 1));
+            s.Capacity >= 40000 && s.BuiltDate >= new DateTime(2005, 1, 1)
+        );
 
         // Assert
         premiumModernStadiums.Should().HaveCount(2);

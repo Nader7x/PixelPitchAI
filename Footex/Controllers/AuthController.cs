@@ -12,8 +12,11 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IMediator mediator, IUserMapper userMapper, IFileStorageService blobStorageService)
-    : ControllerBase
+public class AuthController(
+    IMediator mediator,
+    IUserMapper userMapper,
+    IFileStorageService blobStorageService
+) : ControllerBase
 {
     private readonly IFileStorageService _blobStorageService = blobStorageService;
     private readonly IMediator _mediator = mediator;
@@ -21,12 +24,15 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     private readonly string CONTAINER_NAME = "users";
 
     [HttpPost("register")]
-    public async Task<ActionResult<RegisterUserCommandResponse>> Register([FromForm] RegisterUserDto dto)
+    public async Task<ActionResult<RegisterUserCommandResponse>> Register(
+        [FromForm] RegisterUserDto dto
+    )
     {
         var command = _userMapper.ToRegisterCommandFromDto(dto);
-        command.ImageUrl = dto.Image != null
-            ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME)
-            : null;
+        command.ImageUrl =
+            dto.Image != null
+                ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME)
+                : null;
         var result = await _mediator.Send(command);
 
         if (!result.Succeeded)
@@ -43,7 +49,7 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
             Email = dto.Email,
             Password = dto.Password,
             // Get client IP address
-            IpAddress = GetIpAddress()
+            IpAddress = GetIpAddress(),
         };
 
         var result = await _mediator.Send(command);
@@ -69,7 +75,7 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
         var command = new RefreshTokenCommand
         {
             RefreshToken = refreshToken,
-            IpAddress = GetIpAddress()
+            IpAddress = GetIpAddress(),
         };
 
         var result = await _mediator.Send(command);
@@ -86,12 +92,11 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [HttpPost("forgot-password")]
     [ProducesResponseType(typeof(ForgotPasswordCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ForgotPasswordCommandResponse>> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    public async Task<ActionResult<ForgotPasswordCommandResponse>> ForgotPassword(
+        [FromBody] ForgotPasswordDto dto
+    )
     {
-        var command = new ForgotPasswordCommand
-        {
-            Email = dto.Email
-        };
+        var command = new ForgotPasswordCommand { Email = dto.Email };
 
         var result = await _mediator.Send(command);
 
@@ -104,14 +109,17 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [HttpPost("reset-password")]
     [ProducesResponseType(typeof(ResetPasswordCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ResetPasswordCommandResponse>> ResetPassword([FromBody] ResetPasswordDto dto,
-        [FromQuery] string email, [FromQuery] string token)
+    public async Task<ActionResult<ResetPasswordCommandResponse>> ResetPassword(
+        [FromBody] ResetPasswordDto dto,
+        [FromQuery] string email,
+        [FromQuery] string token
+    )
     {
         var command = new ResetPasswordCommand
         {
             Email = HttpUtility.UrlDecode(email),
             Token = HttpUtility.UrlDecode(token),
-            NewPassword = dto.NewPassword
+            NewPassword = dto.NewPassword,
         };
 
         var result = await _mediator.Send(command);
@@ -125,14 +133,12 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [HttpPost("confirm-email")]
     [ProducesResponseType(typeof(ConfirmEmailCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ConfirmEmailCommandResponse>> ConfirmEmail([FromQuery] string userId,
-        [FromQuery] string token)
+    public async Task<ActionResult<ConfirmEmailCommandResponse>> ConfirmEmail(
+        [FromQuery] string userId,
+        [FromQuery] string token
+    )
     {
-        var command = new ConfirmEmailCommand
-        {
-            UserId = userId,
-            Token = token
-        };
+        var command = new ConfirmEmailCommand { UserId = userId, Token = token };
 
         var result = await _mediator.Send(command);
 
@@ -146,12 +152,10 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [ProducesResponseType(typeof(ResendEmailConfirmationCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResendEmailConfirmationCommandResponse>> ResendEmailConfirmation(
-        [FromBody] ResendEmailConfirmationDto dto)
+        [FromBody] ResendEmailConfirmationDto dto
+    )
     {
-        var command = new ResendEmailConfirmationCommand
-        {
-            Email = dto.Email
-        };
+        var command = new ResendEmailConfirmationCommand { Email = dto.Email };
 
         var result = await _mediator.Send(command);
 
@@ -186,7 +190,9 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [Authorize]
     public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfile()
     {
-        var userId = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+        var userId = User.FindFirst(
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        )?.Value;
         Console.WriteLine(userId);
 
         if (string.IsNullOrEmpty(userId))
@@ -226,7 +232,9 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
 
         if (ipAddress != null)
             // Map to IPv4 if it's an IPv4-mapped IPv6 address
-            return ipAddress.IsIPv4MappedToIPv6 ? ipAddress.MapToIPv4().ToString() : ipAddress.ToString();
+            return ipAddress.IsIPv4MappedToIPv6
+                ? ipAddress.MapToIPv4().ToString()
+                : ipAddress.ToString();
 
         return "unknown";
     }
@@ -238,7 +246,7 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
             HttpOnly = true,
             Expires = DateTime.UtcNow.AddDays(7),
             SameSite = SameSiteMode.Strict,
-            Secure = true // Set to true in production
+            Secure = true, // Set to true in production
         };
 
         Response.Cookies.Append("refreshToken", token, cookieOptions);
@@ -258,16 +266,14 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [HttpPost("manual-refresh")]
     [ProducesResponseType(typeof(RefreshTokenCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RefreshTokenCommandResponse>> ManualRefreshToken([FromBody] string token)
+    public async Task<ActionResult<RefreshTokenCommandResponse>> ManualRefreshToken(
+        [FromBody] string token
+    )
     {
         if (string.IsNullOrEmpty(token))
             return BadRequest(new { message = "Refresh token is required" });
 
-        var command = new RefreshTokenCommand
-        {
-            RefreshToken = token,
-            IpAddress = GetIpAddress()
-        };
+        var command = new RefreshTokenCommand { RefreshToken = token, IpAddress = GetIpAddress() };
 
         var result = await _mediator.Send(command);
 
@@ -284,7 +290,9 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
     [Authorize]
     [ProducesResponseType(typeof(UpdateUserCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser([FromForm] UpdateUserDto dto)
+    public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser(
+        [FromForm] UpdateUserDto dto
+    )
     {
         var command = _userMapper.ToUpdateCommand(dto);
         if (dto.Image != null)
@@ -294,7 +302,10 @@ public class AuthController(IMediator mediator, IUserMapper userMapper, IFileSto
             if (!existingUser.Succeeded == false && !string.IsNullOrEmpty(existingUser.ImageUrl))
                 await _blobStorageService.DeleteImageAsync(existingUser.ImageUrl, CONTAINER_NAME);
             // upload new image
-            command.ImageUrl = await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
+            command.ImageUrl = await _blobStorageService.UploadImageAsync(
+                dto.Image,
+                CONTAINER_NAME
+            );
         }
 
         var result = await _mediator.Send(command);

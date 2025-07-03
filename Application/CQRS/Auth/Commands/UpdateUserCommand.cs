@@ -28,12 +28,17 @@ public class UpdateUserCommandResponse
     public string? ImageUrl { get; set; }
 }
 
-public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<ApplicationUser> usermanager)
-    : IRequestHandler<UpdateUserCommand, UpdateUserCommandResponse>
+public class UpdateUserCommandHandler(
+    IUnitOfWork unitOfWork,
+    UserManager<ApplicationUser> usermanager
+) : IRequestHandler<UpdateUserCommand, UpdateUserCommandResponse>
 {
     private readonly UserManager<ApplicationUser> _usermanager = usermanager;
 
-    public async Task<UpdateUserCommandResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateUserCommandResponse> Handle(
+        UpdateUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -43,41 +48,43 @@ public class UpdateUserCommandHandler(IUnitOfWork unitOfWork, UserManager<Applic
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"User with ID {request.Id} not found"
+                    Error = $"User with ID {request.Id} not found",
                 };
-            if (!string.IsNullOrEmpty(request.CurrentPassword) && !string.IsNullOrEmpty(request.NewPassword))
-                await _usermanager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (
+                !string.IsNullOrEmpty(request.CurrentPassword)
+                && !string.IsNullOrEmpty(request.NewPassword)
+            )
+                await _usermanager.ChangePasswordAsync(
+                    user,
+                    request.CurrentPassword,
+                    request.NewPassword
+                );
 
-            if (!string.IsNullOrEmpty(request.FirstName)) user.FirstName = request.FirstName;
-            if (!string.IsNullOrEmpty(request.LastName)) user.LastName = request.LastName;
-            if (!string.IsNullOrEmpty(request.Email)) user.Email = request.Email;
+            if (!string.IsNullOrEmpty(request.FirstName))
+                user.FirstName = request.FirstName;
+            if (!string.IsNullOrEmpty(request.LastName))
+                user.LastName = request.LastName;
+            if (!string.IsNullOrEmpty(request.Email))
+                user.Email = request.Email;
             if (request.Age != 0)
                 if (request.Age != null)
                     user.Age = request.Age.Value;
-            if (!string.IsNullOrEmpty(request.PhoneNumber)) user.PhoneNumber = request.PhoneNumber;
-            if (!string.IsNullOrEmpty(request.Gender)) user.Gender = request.Gender;
-            if (!string.IsNullOrEmpty(request.ImageUrl)) user.ImageUrl = request.ImageUrl;
+            if (!string.IsNullOrEmpty(request.PhoneNumber))
+                user.PhoneNumber = request.PhoneNumber;
+            if (!string.IsNullOrEmpty(request.Gender))
+                user.Gender = request.Gender;
+            if (!string.IsNullOrEmpty(request.ImageUrl))
+                user.ImageUrl = request.ImageUrl;
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             if (user.ImageUrl != null)
-                return new UpdateUserCommandResponse
-                {
-                    Succeeded = true,
-                    ImageUrl = user.ImageUrl
-                };
-            return new UpdateUserCommandResponse
-            {
-                Succeeded = true
-            };
+                return new UpdateUserCommandResponse { Succeeded = true, ImageUrl = user.ImageUrl };
+            return new UpdateUserCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new UpdateUserCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new UpdateUserCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

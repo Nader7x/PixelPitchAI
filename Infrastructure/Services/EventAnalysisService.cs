@@ -4,15 +4,23 @@ using Infrastructure.Services.EventProcessors;
 
 namespace Infrastructure.Services;
 
-public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors) : IEventAnalysisService
+public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors)
+    : IEventAnalysisService
 {
-    public async Task<MatchEvents> UpdateMatchStatistics(FootballMatchEvent matchEvent, MatchEvents matchEventsEntity,
-        Match match, bool withCounters = true)
+    public async Task<MatchEvents> UpdateMatchStatistics(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEventsEntity,
+        Match match,
+        bool withCounters = true
+    )
     {
         if (match == null)
             throw new ArgumentNullException(nameof(match), "Match object cannot be null.");
         if (matchEventsEntity == null)
-            throw new ArgumentNullException(nameof(matchEventsEntity), "MatchEvents object cannot be null.");
+            throw new ArgumentNullException(
+                nameof(matchEventsEntity),
+                "MatchEvents object cannot be null."
+            );
 
         // First, update the match statistics
         await UpdateMatchStatistics(matchEvent, match);
@@ -55,29 +63,45 @@ public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors) 
     private static void CalculatePassAccuracy(Match match)
     {
         // Home team pass accuracy
-        if (match.HomeTeamPasses.HasValue && match.HomeTeamPassesCompleted.HasValue && match.HomeTeamPasses > 0)
+        if (
+            match.HomeTeamPasses.HasValue
+            && match.HomeTeamPassesCompleted.HasValue
+            && match.HomeTeamPasses > 0
+        )
             match.HomeTeamPassAccuracy = Math.Round(
-                (double)match.HomeTeamPassesCompleted.Value * 100 / match.HomeTeamPasses.Value, 2);
+                (double)match.HomeTeamPassesCompleted.Value * 100 / match.HomeTeamPasses.Value,
+                2
+            );
         else
             match.HomeTeamPassAccuracy = 0;
 
         // Away team pass accuracy (missing in original code, added for completeness)
-        if (match.AwayTeamPasses.HasValue && match.AwayTeamPassesCompleted.HasValue && match.AwayTeamPasses > 0)
+        if (
+            match.AwayTeamPasses.HasValue
+            && match.AwayTeamPassesCompleted.HasValue
+            && match.AwayTeamPasses > 0
+        )
             match.AwayTeamPassAccuracy = Math.Round(
-                (double)match.AwayTeamPassesCompleted.Value * 100 / match.AwayTeamPasses.Value, 2);
+                (double)match.AwayTeamPassesCompleted.Value * 100 / match.AwayTeamPasses.Value,
+                2
+            );
         else
             match.AwayTeamPassAccuracy = 0;
-        
+
         // Calculate Home Long Balls Accuracy
         if (match is { HomeLongBalls: > 0, HomeAccurateLongBalls: not null })
             match.HomeTeamLongBallsAccuracy = Math.Round(
-                (double)match.HomeAccurateLongBalls.Value * 100 / match.HomeLongBalls.Value, 2);
+                (double)match.HomeAccurateLongBalls.Value * 100 / match.HomeLongBalls.Value,
+                2
+            );
         else
             match.HomeTeamLongBallsAccuracy = 0;
         // Calculate Away Long Balls Accuracy
         if (match is { AwayLongBalls: > 0, AwayAccurateLongBalls: not null })
             match.AwayTeamLongBallsAccuracy = Math.Round(
-                (double)match.AwayAccurateLongBalls.Value * 100 / match.AwayLongBalls.Value, 2);
+                (double)match.AwayAccurateLongBalls.Value * 100 / match.AwayLongBalls.Value,
+                2
+            );
         else
             match.AwayTeamLongBallsAccuracy = 0;
     }

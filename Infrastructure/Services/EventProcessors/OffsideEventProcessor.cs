@@ -6,8 +6,8 @@ public class OffsideEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "offside" ||
-               (matchEvent.action == "pass" && matchEvent.outcome == "Pass Offside");
+        return matchEvent.action == "offside"
+            || (matchEvent.action == "pass" && matchEvent.outcome == "Pass Offside");
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -18,7 +18,11 @@ public class OffsideEventProcessor : BaseEventProcessor
             match.AwayTeamOffsides = IncrementValue(match.AwayTeamOffsides);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalOffsides++;
     }

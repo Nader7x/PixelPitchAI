@@ -11,7 +11,8 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
     private readonly CreateCoachCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateCoachCommandHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public CreateCoachCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<CreateCoachCommandHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -34,7 +35,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
             TeamId = team.Id,
             PreferredFormation = "4-3-3",
             CoachingStyle = "Possession-based",
-            Biography = "One of the greatest tactical minds in football"
+            Biography = "One of the greatest tactical minds in football",
         };
 
         // Act
@@ -67,11 +68,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         await _unitOfWork.Teams.AddAsync(team);
         await _unitOfWork.SaveChangesAsync();
 
-        var command = new CreateCoachCommand
-        {
-            FirstName = "Mikel Arteta",
-            TeamId = team.Id
-        };
+        var command = new CreateCoachCommand { FirstName = "Mikel Arteta", TeamId = team.Id };
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -108,7 +105,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
             PreferredFormation = "4-3-3",
             CoachingStyle = "Gegenpressing",
             Biography = "Former Borussia Dortmund and Liverpool manager",
-            YearsOfExperience = 25
+            YearsOfExperience = 25,
         };
 
         // Act
@@ -131,7 +128,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         var command = new CreateCoachCommand
         {
             FirstName = "Test Coach",
-            TeamId = nonExistentTeamId
+            TeamId = nonExistentTeamId,
         };
 
         // Act
@@ -152,7 +149,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         {
             FirstName = "Free Agent Coach",
             Nationality = "English",
-            Role = "Assistant Coach"
+            Role = "Assistant Coach",
             // No TeamId provided
         };
 
@@ -187,7 +184,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1995, 5, 15), // Young coach
             TeamId = team.Id,
             Role = "Assistant Coach",
-            YearsOfExperience = 3
+            YearsOfExperience = 3,
         };
 
         // Act
@@ -216,7 +213,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1950, 3, 10), // Experienced coach
             TeamId = team.Id,
             Role = "Head Coach",
-            YearsOfExperience = 45
+            YearsOfExperience = 45,
         };
 
         // Act
@@ -241,9 +238,24 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
 
         var commands = new[]
         {
-            new CreateCoachCommand { FirstName = "Head Coach", Role = "Head Coach", TeamId = team.Id },
-            new CreateCoachCommand { FirstName = "Assistant Coach 1", Role = "Assistant Coach", TeamId = team.Id },
-            new CreateCoachCommand { FirstName = "Assistant Coach 2", Role = "Assistant Coach", TeamId = team.Id }
+            new CreateCoachCommand
+            {
+                FirstName = "Head Coach",
+                Role = "Head Coach",
+                TeamId = team.Id,
+            },
+            new CreateCoachCommand
+            {
+                FirstName = "Assistant Coach 1",
+                Role = "Assistant Coach",
+                TeamId = team.Id,
+            },
+            new CreateCoachCommand
+            {
+                FirstName = "Assistant Coach 2",
+                Role = "Assistant Coach",
+                TeamId = team.Id,
+            },
         };
 
         var results = new List<CreateCoachCommandResponse>();
@@ -272,11 +284,7 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_DatabaseException_ReturnsErrorResponse()
     {
         // Arrange
-        var command = new CreateCoachCommand
-        {
-            FirstName = "Test Coach",
-            Role = "Head Coach"
-        };
+        var command = new CreateCoachCommand { FirstName = "Test Coach", Role = "Head Coach" };
 
         // Dispose context to simulate database error
         await DisposeContext();

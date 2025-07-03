@@ -14,7 +14,8 @@ public class TeamsController(
     IMediator mediator,
     ITeamMapper teamMapper,
     IFileStorageService azureBlobStorageService,
-    ICacheService cacheService) : ControllerBase
+    ICacheService cacheService
+) : ControllerBase
 {
     private readonly IFileStorageService _azureBlobStorageService = azureBlobStorageService;
     private readonly ICacheService _cacheService = cacheService;
@@ -44,7 +45,8 @@ public class TeamsController(
         var result = await mediator.Send(query);
 
         // Store in cache if successful
-        if (result.Succeeded) await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+        if (result.Succeeded)
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
 
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
@@ -95,7 +97,10 @@ public class TeamsController(
     {
         if (dto.Image != null)
         {
-            var imageUrl = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
+            var imageUrl = await _azureBlobStorageService.UploadImageAsync(
+                dto.Image,
+                CONTAINER_NAME
+            );
             dto.Logo = imageUrl;
         }
 
@@ -122,14 +127,23 @@ public class TeamsController(
     [ProducesResponseType(typeof(UpdateTeamCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UpdateTeamCommandResponse>> Update(int id, [FromForm] UpdateTeamDto dto)
+    public async Task<ActionResult<UpdateTeamCommandResponse>> Update(
+        int id,
+        [FromForm] UpdateTeamDto dto
+    )
     {
         dto.Id = id;
         if (dto.Image != null)
         {
             var existingTeam = await mediator.Send(new GetTeamByIdQuery { Id = id });
-            if (existingTeam is { Succeeded: true, Team: not null } && !string.IsNullOrEmpty(existingTeam.Team.Logo))
-                await _azureBlobStorageService.DeleteImageAsync(existingTeam.Team.Logo, CONTAINER_NAME);
+            if (
+                existingTeam is { Succeeded: true, Team: not null }
+                && !string.IsNullOrEmpty(existingTeam.Team.Logo)
+            )
+                await _azureBlobStorageService.DeleteImageAsync(
+                    existingTeam.Team.Logo,
+                    CONTAINER_NAME
+                );
             dto.Logo = await _azureBlobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME);
         }
 
@@ -183,6 +197,7 @@ public class TeamsController(
             return NotFound(result);
         return Ok(result);
     }
+
     [NonAction]
     private async Task InvalidateTeamCaches()
     {

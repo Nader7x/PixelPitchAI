@@ -15,8 +15,8 @@ public class CoachesController(
     IMediator mediator,
     IFileStorageService fileStorageService,
     ICoachMapper coachMapper,
-    ICacheService cacheService)
-    : ControllerBase
+    ICacheService cacheService
+) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly ICoachMapper _coachMapper = coachMapper;
@@ -24,13 +24,13 @@ public class CoachesController(
     private readonly IMediator _mediator = mediator;
     private readonly string CONTAINER_NAME = "coaches";
 
-
     [HttpGet("filter")]
     [ProducesResponseType(typeof(GetAllCoachesQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetAllCoachesQueryResponse>> GetAllCoaches(
         [FromQuery] string? nationality,
-        [FromQuery] int? teamId)
+        [FromQuery] int? teamId
+    )
     {
         // Generate a cache key based on the query parameters
         var cacheKey = $"coaches_all_{nationality}_{teamId}";
@@ -45,11 +45,7 @@ public class CoachesController(
         }
 
         // Cache miss, fetch from database
-        var query = new GetAllCoachesQuery
-        {
-            Nationality = nationality,
-            TeamId = teamId
-        };
+        var query = new GetAllCoachesQuery { Nationality = nationality, TeamId = teamId };
 
         var result = await _mediator.Send(query);
 
@@ -102,7 +98,9 @@ public class CoachesController(
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateCoachCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateCoachCommandResponse>> CreateCoach([FromForm] CreateCoachDto coachDto)
+    public async Task<ActionResult<CreateCoachCommandResponse>> CreateCoach(
+        [FromForm] CreateCoachDto coachDto
+    )
     {
         // Handle file upload if present
         var photoUrl = coachDto.PhotoUrl;
@@ -127,7 +125,10 @@ public class CoachesController(
     [ProducesResponseType(typeof(UpdateCoachCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateCoachCommandResponse>> UpdateCoach(int id, [FromForm] UpdateCoachDto coachDto)
+    public async Task<ActionResult<UpdateCoachCommandResponse>> UpdateCoach(
+        int id,
+        [FromForm] UpdateCoachDto coachDto
+    )
     {
         // Get existing coach
         var getQuery = new GetCoachByIdQuery { Id = id };
@@ -142,12 +143,15 @@ public class CoachesController(
         {
             // Delete old photo if it exists
             if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
-                await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
+                await _fileStorageService.DeleteImageAsync(
+                    existingResult.Coach.PhotoUrl,
+                    CONTAINER_NAME
+                );
 
             // Upload new photo
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
         }
-        
+
         var command = _coachMapper.ToUpdateCommand(coachDto);
         command.PhotoUrl = photoUrl;
         command.Id = id;
@@ -184,7 +188,10 @@ public class CoachesController(
 
         // Delete photo if it exists
         if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
-            await _fileStorageService.DeleteImageAsync(existingResult.Coach.PhotoUrl, CONTAINER_NAME);
+            await _fileStorageService.DeleteImageAsync(
+                existingResult.Coach.PhotoUrl,
+                CONTAINER_NAME
+            );
 
         var command = new DeleteCoachCommand { Id = id };
         var result = await _mediator.Send(command);

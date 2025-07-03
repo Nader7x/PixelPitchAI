@@ -45,7 +45,9 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         await SeedTestDataAsync();
 
         // Act
-        var response = await _client.GetAsync("/api/seasons?leagueName=Premier League&country=England&isActive=true");
+        var response = await _client.GetAsync(
+            "/api/seasons?leagueName=Premier League&country=England&isActive=true"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -162,7 +164,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
             Country = "England",
             StartDate = new DateTime(2024, 8, 1),
             EndDate = new DateTime(2025, 5, 31),
-            IsActive = true
+            IsActive = true,
         };
 
         // Act
@@ -189,7 +191,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             Name = "", // Invalid: empty name
             LeagueName = "Premier League",
-            Country = "England"
+            Country = "England",
         };
 
         // Act
@@ -209,7 +211,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
             Name = "Updated Season",
             LeagueName = "La Liga",
             Country = "Spain",
-            IsActive = false
+            IsActive = false,
         };
 
         // Act
@@ -233,7 +235,7 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             Name = "Updated Season",
             LeagueName = "La Liga",
-            Country = "Spain"
+            Country = "Spain",
         };
 
         // Act

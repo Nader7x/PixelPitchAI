@@ -23,25 +23,30 @@ public class OwnGoalEventProcessor : BaseEventProcessor
             // Away team scored an own goal, so home team gets the point
             match.HomeTeamScore = IncrementValue(match.HomeTeamScore);
         }
-        
+
         // Update match result after goal
         UpdateMatchResult(match);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalGoals++;
-        
+
         // For own goals, increment the score for the opposing team
         if (IsHomeTeam(matchEvent, match))
             matchEvents.GoalsAwayTeam++;
         else
             matchEvents.GoalsHomeTeam++;
     }
-    
+
     private static void UpdateMatchResult(Match match)
     {
-        if (match is not { HomeTeamScore: not null, AwayTeamScore: not null }) return;
+        if (match is not { HomeTeamScore: not null, AwayTeamScore: not null })
+            return;
 
         if (match.HomeTeamScore > match.AwayTeamScore)
         {

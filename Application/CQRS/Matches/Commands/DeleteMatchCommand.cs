@@ -18,8 +18,10 @@ public class DeleteMatchCommandResponse
 public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse>
 {
-    public async Task<DeleteMatchCommandResponse> Handle(DeleteMatchCommand request,
-        CancellationToken cancellationToken)
+    public async Task<DeleteMatchCommandResponse> Handle(
+        DeleteMatchCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -29,7 +31,7 @@ public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Match with ID {request.Id} not found"
+                    Error = $"Match with ID {request.Id} not found",
                 };
 
             // Check if match can be deleted (e.g. if it's already completed, maybe don't allow deletion)
@@ -37,7 +39,7 @@ public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
                 return new DeleteMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Cannot delete a match that is {match.MatchStatus}"
+                    Error = $"Cannot delete a match that is {match.MatchStatus}",
                 };
 
             // Check for related events or data that would be affected by deletion
@@ -46,18 +48,11 @@ public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
             unitOfWork.Matches.DeleteAsync(match);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new DeleteMatchCommandResponse
-            {
-                Succeeded = true
-            };
+            return new DeleteMatchCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new DeleteMatchCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new DeleteMatchCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

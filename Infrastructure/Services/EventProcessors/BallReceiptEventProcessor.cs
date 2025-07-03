@@ -18,7 +18,11 @@ public class BallReceiptEventProcessor : BaseEventProcessor
         // They're primarily used for tracking possession
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         // Track in event counters for completeness
         matchEvents.TotalEvents++;

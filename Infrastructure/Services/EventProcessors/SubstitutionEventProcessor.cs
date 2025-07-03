@@ -6,9 +6,9 @@ public class SubstitutionEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "substitution" ||
-               matchEvent.action == "player on" ||
-               matchEvent.action == "player off";
+        return matchEvent.action == "substitution"
+            || matchEvent.action == "player on"
+            || matchEvent.action == "player off";
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -17,7 +17,11 @@ public class SubstitutionEventProcessor : BaseEventProcessor
         // They're tracked in the MatchEvents entity
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         // Only count substitutions once (when the "substitution" action occurs)
         // "player on" and "player off" are part of the same substitution process

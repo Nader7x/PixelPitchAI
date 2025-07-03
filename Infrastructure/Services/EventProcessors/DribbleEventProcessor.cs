@@ -18,7 +18,11 @@ public class DribbleEventProcessor : BaseEventProcessor
             match.AwayTeamDribbles = IncrementValue(match.AwayTeamDribbles);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalDribbles++;
     }

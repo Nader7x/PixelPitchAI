@@ -11,7 +11,8 @@ public class MatchHub : Hub<IMatchHub>
     public override Task OnConnectedAsync()
     {
         var userId = Context.User?.FindFirst("nameid")?.Value;
-        if (userId != null) Clients.User(userId).SendAsync("Welcome", "Welcome to the Match Hub!");
+        if (userId != null)
+            Clients.User(userId).SendAsync("Welcome", "Welcome to the Match Hub!");
         return base.OnConnectedAsync();
     }
 
@@ -26,14 +27,25 @@ public class MatchHub : Hub<IMatchHub>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{matchId.ToString()}");
         await Clients.Caller.SendAsync("LeftMatchGroup", $"Left Match {matchId.ToString()}");
     }
+
     public async Task JoinMatchStatistics(int matchId)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"MatchStatistics-{matchId.ToString()}");
-        await Clients.Caller.SendAsync("JoinedMatchStatistics", $"Joined Match Statistics {matchId.ToString()}");
+        await Clients.Caller.SendAsync(
+            "JoinedMatchStatistics",
+            $"Joined Match Statistics {matchId.ToString()}"
+        );
     }
+
     public async Task LeaveMatchStatistics(int matchId)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"MatchStatistics-{matchId.ToString()}");
-        await Clients.Caller.SendAsync("LeftMatchStatistics", $"Left Match Statistics {matchId.ToString()}");
+        await Groups.RemoveFromGroupAsync(
+            Context.ConnectionId,
+            $"MatchStatistics-{matchId.ToString()}"
+        );
+        await Clients.Caller.SendAsync(
+            "LeftMatchStatistics",
+            $"Left Match Statistics {matchId.ToString()}"
+        );
     }
 }

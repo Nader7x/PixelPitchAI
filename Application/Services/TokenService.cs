@@ -13,8 +13,8 @@ namespace Application.Services;
 public class TokenService(
     IConfiguration configuration,
     UserManager<ApplicationUser> userManager,
-    IApplicationUserRepository userRepository)
-    : ITokenService
+    IApplicationUserRepository userRepository
+) : ITokenService
 {
     public async Task<string> CreateTokenAsync(ApplicationUser user)
     {
@@ -23,7 +23,8 @@ public class TokenService(
         var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
         var hasClaims = userManager.GetClaimsAsync(user).Result.Any();
 
-        if (hasClaims) return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
+        if (hasClaims)
+            return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
         // Add claims to user
         var claimsIdentity = new ClaimsIdentity(claims);
         await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
@@ -42,16 +43,17 @@ public class TokenService(
             Token = Convert.ToBase64String(randomBytes),
             Expires = DateTime.UtcNow.AddDays(7),
             Created = DateTime.UtcNow,
-            CreatedByIp = ipAddress
+            CreatedByIp = ipAddress,
         };
     }
 
-    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokenAsync(ApplicationUser user,
-        string ipAddress)
+    public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokenAsync(
+        ApplicationUser user,
+        string ipAddress
+    )
     {
         var token = await CreateTokenAsync(user);
         var refreshToken = GenerateRefreshToken(ipAddress);
-
 
         // Add refresh token to user
         await userRepository.AddRefreshTokenAsync(user, refreshToken);
@@ -59,7 +61,10 @@ public class TokenService(
         return (token, refreshToken);
     }
 
-    public async Task<(string Token, RefreshToken RefreshToken)> RefreshTokenAsync(string token, string ipAddress)
+    public async Task<(string Token, RefreshToken RefreshToken)> RefreshTokenAsync(
+        string token,
+        string ipAddress
+    )
     {
         var refreshToken = await userRepository.GetRefreshTokenAsync(token);
         Console.WriteLine(refreshToken);
@@ -69,7 +74,8 @@ public class TokenService(
         var user = refreshToken.User;
 
         // Generate new tokens
-        if (user == null) return (string.Empty, null)!;
+        if (user == null)
+            return (string.Empty, null)!;
         var newToken = await CreateTokenAsync(user);
         var newRefreshToken = GenerateRefreshToken(ipAddress);
 
@@ -104,22 +110,29 @@ public class TokenService(
             new(ClaimTypes.Name, user.UserName),
             new(ClaimTypes.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.NameIdentifier, user.Id)
+            new(ClaimTypes.NameIdentifier, user.Id),
         };
 
         var roles = await userManager.GetRolesAsync(user);
-        foreach (var role in roles) claims.Add(new Claim(ClaimTypes.Role, role));
+        foreach (var role in roles)
+            claims.Add(new Claim(ClaimTypes.Role, role));
 
         // Add custom claims if needed
-        if (user.FavoriteTeamId.HasValue) claims.Add(new Claim("FavoriteTeamId", user.FavoriteTeamId.Value.ToString()));
+        if (user.FavoriteTeamId.HasValue)
+            claims.Add(new Claim("FavoriteTeamId", user.FavoriteTeamId.Value.ToString()));
 
         return claims;
     }
 
-    private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
+    private JwtSecurityToken GenerateTokenOptions(
+        SigningCredentials signingCredentials,
+        List<Claim> claims
+    )
     {
         var isAdmin = claims.Any(c => c is { Type: ClaimTypes.Role, Value: "Admin" });
-        var baseExpiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(configuration["JWT:ExpiryInMinutes"]));
+        var baseExpiration = DateTime.UtcNow.AddMinutes(
+            Convert.ToDouble(configuration["JWT:ExpiryInMinutes"])
+        );
         var expiration = isAdmin ? baseExpiration.AddDays(10) : baseExpiration;
 
         var tokenOptions = new JwtSecurityToken(

@@ -5,6 +5,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Moq;
 using Xunit;
 
@@ -12,7 +13,7 @@ namespace Footex.UnitTests.CQRS.Teams.Queries;
 
 public class GetTeamByIdQueryHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly GetTeamByIdQueryHandler _handler;
     private readonly Mock<ITeamMapper> _iTeamMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -23,8 +24,10 @@ public class GetTeamByIdQueryHandlerTests
         _iTeamMapperMock = new Mock<ITeamMapper>();
         _handler = new GetTeamByIdQueryHandler(_unitOfWorkMock.Object, _iTeamMapperMock.Object);
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture = new NoRecursionFixture();
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -43,13 +46,11 @@ public class GetTeamByIdQueryHandlerTests
             ShortName = team.ShortName,
             Country = team.Country,
             City = team.City,
-            League = team.League
+            League = team.League,
         };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
-            .ReturnsAsync(team);
-        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
-            .Returns(expectedTeamDto);
+        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId)).ReturnsAsync(team);
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team)).Returns(expectedTeamDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -72,7 +73,8 @@ public class GetTeamByIdQueryHandlerTests
         var teamId = 999;
         var query = new GetTeamByIdQuery { Id = teamId };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
             .ReturnsAsync((Team?)null);
 
         // Act
@@ -97,7 +99,8 @@ public class GetTeamByIdQueryHandlerTests
         // Arrange
         var query = new GetTeamByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(invalidId))
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetByIdAsyncWithStadium(invalidId))
             .ReturnsAsync((Team?)null);
 
         // Act
@@ -131,13 +134,11 @@ public class GetTeamByIdQueryHandlerTests
             League = team.League,
             PrimaryColor = team.PrimaryColor,
             SecondaryColor = team.SecondaryColor,
-            FoundationDate = team.FoundationDate
+            FoundationDate = team.FoundationDate,
         };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
-            .ReturnsAsync(team);
-        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
-            .Returns(expectedTeamDto);
+        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId)).ReturnsAsync(team);
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team)).Returns(expectedTeamDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -167,10 +168,8 @@ public class GetTeamByIdQueryHandlerTests
         var team = CreateValidTeam(teamId);
         var teamDto = new TeamDto { Id = teamId, Name = team.Name };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
-            .ReturnsAsync(team);
-        _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
-            .Returns(teamDto);
+        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId)).ReturnsAsync(team);
+        _iTeamMapperMock.Setup(x => x.ToTeamDto(team)).Returns(teamDto);
 
         // Act
         await _handler.Handle(query, CancellationToken.None);
@@ -188,7 +187,8 @@ public class GetTeamByIdQueryHandlerTests
         var teamId = 1;
         var query = new GetTeamByIdQuery { Id = teamId };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
             .ReturnsAsync((Team?)null);
 
         // Act
@@ -214,10 +214,8 @@ public class GetTeamByIdQueryHandlerTests
             var team = CreateValidTeam(teamId);
             var teamDto = new TeamDto { Id = teamId, Name = $"Team {teamId}" };
 
-            _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId))
-                .ReturnsAsync(team);
-            _iTeamMapperMock.Setup(x => x.ToTeamDto(team))
-                .Returns(teamDto);
+            _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsyncWithStadium(teamId)).ReturnsAsync(team);
+            _iTeamMapperMock.Setup(x => x.ToTeamDto(team)).Returns(teamDto);
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);

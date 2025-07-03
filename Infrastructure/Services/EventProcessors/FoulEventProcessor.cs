@@ -35,7 +35,7 @@ public class FoulEventProcessor : BaseEventProcessor
                     break;
             }
         }
-        
+
         if (matchEvent.action == "foul won")
         {
             // When a foul is won, the opposing team gets a free kick
@@ -46,14 +46,18 @@ public class FoulEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         switch (matchEvent.action)
         {
             case "foul committed":
             {
                 matchEvents.TotalFouls++;
-            
+
                 if (matchEvent.outcome is "Penalty" or "penalty")
                     matchEvents.TotalPenalties++;
                 if (matchEvent.card is not null)

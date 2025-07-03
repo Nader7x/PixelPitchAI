@@ -12,7 +12,8 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly INotificationRepository _notificationRepository;
 
-    public NotificationRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public NotificationRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _notificationRepository = ServiceProvider.GetRequiredService<INotificationRepository>();
     }
@@ -28,7 +29,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
             Content = "Test notification content",
             Type = NotificationType.Info,
             IsRead = false,
-            Title = "Test Notification Title"
+            Title = "Test Notification Title",
         }; // Act
         var result = await _notificationRepository.AddAsync(notification);
         await Context.SaveChangesAsync();
@@ -78,7 +79,11 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         var user1 = await SeedUserAsync();
         var user2 = await SeedUserAsync();
         var notification1 = await SeedNotificationAsync(user1.Id, "Notification 1");
-        var notification2 = await SeedNotificationAsync(user1.Id, "Notification 2", NotificationType.MatchUpdate);
+        var notification2 = await SeedNotificationAsync(
+            user1.Id,
+            "Notification 2",
+            NotificationType.MatchUpdate
+        );
         var notification3 = await SeedNotificationAsync(user2.Id, "Notification 3");
 
         // Act
@@ -235,7 +240,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
             FirstName = "Test",
             LastName = "User",
             Age = 25,
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
         Context.Users.Add(user);
         await Context.SaveChangesAsync();
@@ -246,7 +251,8 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         string? userId = null,
         string content = "Test notification",
         NotificationType type = NotificationType.Info,
-        bool isRead = false)
+        bool isRead = false
+    )
     {
         userId ??= (await SeedUserAsync()).Id;
 
@@ -257,7 +263,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
             Type = type,
             IsRead = isRead,
             Time = DateTime.UtcNow,
-            Title = "Test Notification Title"
+            Title = "Test Notification Title",
         };
 
         Context.Notifications.Add(notification);

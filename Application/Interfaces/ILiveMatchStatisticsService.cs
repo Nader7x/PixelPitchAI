@@ -65,6 +65,7 @@ public interface ILiveMatchStatisticsService
     /// </summary>
     /// <returns>Cache status information</returns>
     object GetCacheStatus();
+
     /// <summary>
     ///     Adds a match to the live statistics cache for real-time tracking.
     ///     This should be called when a new match needs to be tracked live.
@@ -72,5 +73,4 @@ public interface ILiveMatchStatisticsService
     /// <param name="match">The match object to add to the live statistics cache</param>
     /// <returns>The added match object with any cache-specific updates</returns>
     Task<Match> AddMatchToLiveStatistics(Match match);
-
 }

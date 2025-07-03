@@ -21,22 +21,20 @@ public class GetTeamSeasonsQueryResponse
 public class GetTeamSeasonsQueryResponseHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<GetTeamSeasonsQuery, GetTeamSeasonsQueryResponse>
 {
-    public async Task<GetTeamSeasonsQueryResponse> Handle(GetTeamSeasonsQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetTeamSeasonsQueryResponse> Handle(
+        GetTeamSeasonsQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var team = await unitOfWork.Teams.GetByIdAsync(request.TeamId);
         if (team == null)
-            return new GetTeamSeasonsQueryResponse
-            {
-                Succeeded = false,
-                Error = "Team not found"
-            };
+            return new GetTeamSeasonsQueryResponse { Succeeded = false, Error = "Team not found" };
 
         var seasons = await unitOfWork.TeamSeasons.GetSeasonsByTeamIdAsync(team.Id);
         var teamSeasonsDtos = seasons.Select(ts => new TeamSeasonsDto
         {
             SeasonId = ts.SeasonId,
-            SeasonName = ts.Season.Name
+            SeasonName = ts.Season.Name,
         });
 
         return new GetTeamSeasonsQueryResponse
@@ -44,7 +42,7 @@ public class GetTeamSeasonsQueryResponseHandler(IUnitOfWork unitOfWork)
             TeamId = team.Id,
             TeamName = team.Name,
             Succeeded = true,
-            Seasons = teamSeasonsDtos.ToList()
+            Seasons = teamSeasonsDtos.ToList(),
         };
     }
 }

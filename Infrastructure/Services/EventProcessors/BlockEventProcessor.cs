@@ -6,8 +6,8 @@ public class BlockEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "block" || 
-               (matchEvent.action == "shot" && matchEvent.outcome == "Blocked");
+        return matchEvent.action == "block"
+            || (matchEvent.action == "shot" && matchEvent.outcome == "Blocked");
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -16,7 +16,11 @@ public class BlockEventProcessor : BaseEventProcessor
         // They're tracked in the MatchEvents entity
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalBlocks++;
     }

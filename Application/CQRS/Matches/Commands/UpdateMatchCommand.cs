@@ -6,17 +6,23 @@ namespace Application.CQRS.Matches.Commands;
 
 public class UpdateMatchCommand : IRequest<UpdateMatchCommandResponse>
 {
-    [Required] public int Id { get; set; }
+    [Required]
+    public int Id { get; set; }
 
-    [Required] public int HomeSeasonId { get; init; }
+    [Required]
+    public int HomeSeasonId { get; init; }
 
-    [Required] public int AwaySeasonId { get; set; }
+    [Required]
+    public int AwaySeasonId { get; set; }
 
-    [Required] public int HomeTeamId { get; set; }
+    [Required]
+    public int HomeTeamId { get; set; }
 
-    [Required] public int AwayTeamId { get; set; }
+    [Required]
+    public int AwayTeamId { get; set; }
 
-    [Required] public DateTime ScheduledDateTimeUtc { get; set; }
+    [Required]
+    public DateTime ScheduledDateTimeUtc { get; set; }
 
     public int? StadiumId { get; set; }
 
@@ -38,7 +44,8 @@ public class UpdateMatchCommand : IRequest<UpdateMatchCommandResponse>
     public bool IsDraw { get; set; }
 
     // Match status
-    [StringLength(50)] public string? MatchStatus { get; set; }
+    [StringLength(50)]
+    public string? MatchStatus { get; set; }
 
     // Match statistics
     public int? HomeTeamPossession { get; set; }
@@ -71,8 +78,10 @@ public class UpdateMatchCommandResponse
 public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse>
 {
-    public async Task<UpdateMatchCommandResponse> Handle(UpdateMatchCommand request,
-        CancellationToken cancellationToken)
+    public async Task<UpdateMatchCommandResponse> Handle(
+        UpdateMatchCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -83,7 +92,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Match with ID {request.Id} not found"
+                    Error = $"Match with ID {request.Id} not found",
                 };
 
             // Validate Season exists
@@ -92,7 +101,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Season with ID {request.HomeSeasonId} not found"
+                    Error = $"Season with ID {request.HomeSeasonId} not found",
                 };
 
             // Validate HomeTeam exists
@@ -101,7 +110,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Home Team with ID {request.HomeTeamId} not found"
+                    Error = $"Home Team with ID {request.HomeTeamId} not found",
                 };
 
             // Validate AwayTeam exists
@@ -110,7 +119,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Away Team with ID {request.AwayTeamId} not found"
+                    Error = $"Away Team with ID {request.AwayTeamId} not found",
                 };
 
             // Validate Stadium if provided
@@ -121,7 +130,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Stadium with ID {request.StadiumId} not found"
+                        Error = $"Stadium with ID {request.StadiumId} not found",
                     };
             }
 
@@ -133,7 +142,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Home Coach with ID {request.HomeCoachId} not found"
+                        Error = $"Home Coach with ID {request.HomeCoachId} not found",
                     };
             }
 
@@ -145,7 +154,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Away Coach with ID {request.AwayCoachId} not found"
+                        Error = $"Away Coach with ID {request.AwayCoachId} not found",
                     };
             }
 
@@ -154,9 +163,8 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateMatchCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Home team and away team must be different"
+                    Error = "Home team and away team must be different",
                 };
-
 
             // Validate match statistics
             if (request.HomeTeamPossession.HasValue && request.AwayTeamPossession.HasValue)
@@ -164,7 +172,7 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                     return new UpdateMatchCommandResponse
                     {
                         Succeeded = false,
-                        Error = "Home team and away team possession must sum to 100%"
+                        Error = "Home team and away team possession must sum to 100%",
                     };
 
             // Update match properties
@@ -207,16 +215,12 @@ public class UpdateMatchCommandHandler(IUnitOfWork unitOfWork)
                 Id = match.Id,
                 HomeTeamName = homeTeam.Name,
                 AwayTeamName = awayTeam.Name,
-                ScheduledDateTime = match.ScheduledDateTimeUtc
+                ScheduledDateTime = match.ScheduledDateTimeUtc,
             };
         }
         catch (Exception ex)
         {
-            return new UpdateMatchCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new UpdateMatchCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

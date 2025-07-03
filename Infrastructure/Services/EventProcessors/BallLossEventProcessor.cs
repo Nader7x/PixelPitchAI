@@ -6,9 +6,9 @@ public class BallLossEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "miscontrol" || 
-               matchEvent.action == "dispossessed" ||
-               matchEvent.action == "error";
+        return matchEvent.action == "miscontrol"
+            || matchEvent.action == "dispossessed"
+            || matchEvent.action == "error";
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -18,7 +18,11 @@ public class BallLossEventProcessor : BaseEventProcessor
         // but they're tracked in the match events counters
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         if (matchEvent.action == "miscontrol")
             matchEvents.TotalOuts++; // Miscontrol often leads to ball going out
@@ -26,7 +30,7 @@ public class BallLossEventProcessor : BaseEventProcessor
             matchEvents.TotalPossessionWon++; // When a player is dispossessed, the other team wins possession
         else if (matchEvent.action == "error")
             matchEvents.TotalErrors++;
-            
+
         matchEvents.TotalEvents++; // Increment the total events counter
     }
 }

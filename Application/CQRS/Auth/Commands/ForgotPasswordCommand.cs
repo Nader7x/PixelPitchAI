@@ -22,12 +22,13 @@ public class ForgotPasswordCommandHandler(
     IIdentityService identityService,
     IEmailService emailService,
     IConfiguration configuration,
-    UserManager<ApplicationUser> userManager)
-    : IRequestHandler<ForgotPasswordCommand, ForgotPasswordCommandResponse>
+    UserManager<ApplicationUser> userManager
+) : IRequestHandler<ForgotPasswordCommand, ForgotPasswordCommandResponse>
 {
     public async Task<ForgotPasswordCommandResponse> Handle(
         ForgotPasswordCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -42,7 +43,8 @@ public class ForgotPasswordCommandHandler(
                 return new ForgotPasswordCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Email is not confirmed. Please confirm your email before resetting your password."
+                    Error =
+                        "Email is not confirmed. Please confirm your email before resetting your password.",
                 };
 
             // Generate password reset token
@@ -57,17 +59,14 @@ public class ForgotPasswordCommandHandler(
             await emailService.SendEmailAsync(
                 user.Email,
                 "Reset Your Password",
-                $"Please reset your password by clicking <a href='{resetLink}'>here</a>.");
+                $"Please reset your password by clicking <a href='{resetLink}'>here</a>."
+            );
 
             return new ForgotPasswordCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new ForgotPasswordCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new ForgotPasswordCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

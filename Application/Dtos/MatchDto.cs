@@ -51,13 +51,15 @@ public class CreateMatchDto
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
 
-    [JsonIgnore] public DateTime ScheduledDateTimeUtc { get; set; } = DateTime.UtcNow;
+    [JsonIgnore]
+    public DateTime ScheduledDateTimeUtc { get; set; } = DateTime.UtcNow;
 
     public int? StadiumId { get; set; }
     public int? HomeSeasonId { get; set; }
     public int? AwaySeasonId { get; set; }
 
-    [JsonIgnore] public string? MatchStatus { get; set; } = "Scheduled";
+    [JsonIgnore]
+    public string? MatchStatus { get; set; } = "Scheduled";
 
     public string? CreatorId { get; set; }
 }
@@ -199,5 +201,4 @@ public class UserMatchDto
     public bool IsLive { get; set; }
     public string HomeTeamLogo { get; set; } = string.Empty;
     public string AwayTeamLogo { get; set; } = string.Empty;
-    
 }

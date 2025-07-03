@@ -129,7 +129,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
             Country = "England",
             City = "London",
             Capacity = 50000,
-            BuiltDate = new DateTime(2000, 1, 1)
+            BuiltDate = new DateTime(2000, 1, 1),
         };
 
         // Act
@@ -156,7 +156,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
         {
             Name = "", // Invalid: empty name
             Country = "England",
-            City = "London"
+            City = "London",
         };
 
         // Act
@@ -176,7 +176,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
             Name = "Updated Stadium",
             Country = "Spain",
             City = "Madrid",
-            Capacity = 60000
+            Capacity = 60000,
         };
 
         // Act
@@ -200,7 +200,7 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
         {
             Name = "Updated Stadium",
             Country = "Spain",
-            City = "Madrid"
+            City = "Madrid",
         };
 
         // Act

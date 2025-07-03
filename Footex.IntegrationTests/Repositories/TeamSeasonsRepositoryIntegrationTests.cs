@@ -11,7 +11,8 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ITeamSeasonsRepository _repository;
 
-    public TeamSeasonsRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public TeamSeasonsRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _repository = ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
     }
@@ -110,7 +111,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamSeason = await SeedTeamSeasonAsync();
 
         // Act
-        var result = await _repository.GetByTeamAndSeasonIdAsync(teamSeason.TeamId, teamSeason.SeasonId);
+        var result = await _repository.GetByTeamAndSeasonIdAsync(
+            teamSeason.TeamId,
+            teamSeason.SeasonId
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -245,7 +249,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamSeason2 = CreateValidTeamSeason(team.Id, season.Id);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(async () => { await _repository.AddAsync(teamSeason2); });
+        var exception = await Assert.ThrowsAsync<Exception>(async () =>
+        {
+            await _repository.AddAsync(teamSeason2);
+        });
 
         exception.Should().NotBeNull();
     }
@@ -323,7 +330,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         {
             TeamId = teamId,
             SeasonId = seasonId,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
         };
     }
 
@@ -336,7 +343,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
             FoundationDate = new DateTime(1990, 1, 1),
             Logo = "http://example.com/logo.png",
             Country = "Test Country",
-            League = "Test League"
+            League = "Test League",
         };
 
         Context.Teams.Add(team);
@@ -345,7 +352,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         return team;
     }
 
-    private async Task<Season> SeedSeasonAsync(string name = "Test Season 2024", DateTime? startDate = null)
+    private async Task<Season> SeedSeasonAsync(
+        string name = "Test Season 2024",
+        DateTime? startDate = null
+    )
     {
         var season = new Season
         {
@@ -356,7 +366,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddMonths(6),
             IsActive = true,
             TotalRounds = 38,
-            CurrentRound = 1
+            CurrentRound = 1,
         };
 
         Context.Seasons.Add(season);

@@ -30,8 +30,10 @@ public class GetUserProfileQueryResponse
 public class GetUserProfileQueryHandler(IApplicationUserRepository userRepository)
     : IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse>
 {
-    public async Task<GetUserProfileQueryResponse> Handle(GetUserProfileQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetUserProfileQueryResponse> Handle(
+        GetUserProfileQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -41,7 +43,7 @@ public class GetUserProfileQueryHandler(IApplicationUserRepository userRepositor
                 return new GetUserProfileQueryResponse
                 {
                     Succeeded = false,
-                    Error = "User not found"
+                    Error = "User not found",
                 };
 
             // Get user roles
@@ -63,16 +65,12 @@ public class GetUserProfileQueryHandler(IApplicationUserRepository userRepositor
                 Age = user.Age,
                 PhoneNumber = user.PhoneNumber,
                 Roles = roles,
-                Error = null
+                Error = null,
             };
         }
         catch (Exception ex)
         {
-            return new GetUserProfileQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetUserProfileQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

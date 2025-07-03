@@ -21,7 +21,10 @@ public class GetMatchByIdQueryResponse
 public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>
 {
-    public async Task<GetMatchByIdQueryResponse> Handle(GetMatchByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetMatchByIdQueryResponse> Handle(
+        GetMatchByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -31,23 +34,15 @@ public class GetMatchByIdQueryHandler(IUnitOfWork unitOfWork, IMatchMapper match
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Match with ID {request.Id} not found"
+                    Error = $"Match with ID {request.Id} not found",
                 };
 
             var matchDto = matchMapper.ToDto(match);
-            return new GetMatchByIdQueryResponse
-            {
-                Succeeded = true,
-                Match = matchDto
-            };
+            return new GetMatchByIdQueryResponse { Succeeded = true, Match = matchDto };
         }
         catch (Exception ex)
         {
-            return new GetMatchByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetMatchByIdQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

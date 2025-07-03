@@ -6,7 +6,8 @@ namespace Application.CQRS.Seasons.Commands;
 
 public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
 {
-    [Required] public int Id { get; set; }
+    [Required]
+    public int Id { get; set; }
 
     [Required]
     [StringLength(100, MinimumLength = 2)]
@@ -16,7 +17,9 @@ public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
     [StringLength(100, MinimumLength = 2)]
     public string LeagueName { get; set; }
 
-    [Required] [StringLength(50)] public string Country { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string Country { get; set; }
 
     public int? CurrentRound { get; set; }
 
@@ -26,9 +29,11 @@ public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
 
     public bool IsCompleted { get; set; }
 
-    [Required] public DateTime StartDate { get; set; }
+    [Required]
+    public DateTime StartDate { get; set; }
 
-    [Required] public DateTime EndDate { get; set; }
+    [Required]
+    public DateTime EndDate { get; set; }
 }
 
 public class UpdateSeasonCommandResponse
@@ -43,8 +48,10 @@ public class UpdateSeasonCommandResponse
 public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse>
 {
-    public async Task<UpdateSeasonCommandResponse> Handle(UpdateSeasonCommand request,
-        CancellationToken cancellationToken)
+    public async Task<UpdateSeasonCommandResponse> Handle(
+        UpdateSeasonCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -55,7 +62,7 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Season with ID {request.Id} not found"
+                    Error = $"Season with ID {request.Id} not found",
                 };
 
             // Validate date range
@@ -63,18 +70,20 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateSeasonCommandResponse
                 {
                     Succeeded = false,
-                    Error = "End date must be after start date"
+                    Error = "End date must be after start date",
                 };
 
             // Check if name is already used by another season
             if (season.Name != request.Name)
             {
-                var existingSeason = await unitOfWork.Seasons.FindAsync(s => s.Name == request.Name);
+                var existingSeason = await unitOfWork.Seasons.FindAsync(s =>
+                    s.Name == request.Name
+                );
                 if (existingSeason != null && existingSeason.Id != request.Id)
                     return new UpdateSeasonCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Season with name '{request.Name}' already exists"
+                        Error = $"Season with name '{request.Name}' already exists",
                     };
             }
 
@@ -82,15 +91,15 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
             if (request.IsActive && !season.IsActive)
             {
                 var activeSeasons = await unitOfWork.Seasons.GetAllAsync(s =>
-                    s.LeagueName == request.LeagueName &&
-                    s.Country == request.Country &&
-                    s.IsActive);
+                    s.LeagueName == request.LeagueName && s.Country == request.Country && s.IsActive
+                );
 
                 if (activeSeasons.Any(s => s.Id != request.Id))
                     return new UpdateSeasonCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"An active season for {request.LeagueName} in {request.Country} already exists"
+                        Error =
+                            $"An active season for {request.LeagueName} in {request.Country} already exists",
                     };
             }
 
@@ -99,7 +108,7 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 return new UpdateSeasonCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Current round cannot be greater than total rounds"
+                    Error = "Current round cannot be greater than total rounds",
                 };
 
             // Update season properties
@@ -107,7 +116,8 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
             season.LeagueName = request.LeagueName;
             season.Country = request.Country;
 
-            if (request.CurrentRound.HasValue) season.CurrentRound = request.CurrentRound.Value;
+            if (request.CurrentRound.HasValue)
+                season.CurrentRound = request.CurrentRound.Value;
 
             season.TotalRounds = request.TotalRounds;
             season.IsActive = request.IsActive;
@@ -122,16 +132,12 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
             {
                 Succeeded = true,
                 Id = season.Id,
-                Name = season.Name
+                Name = season.Name,
             };
         }
         catch (Exception ex)
         {
-            return new UpdateSeasonCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new UpdateSeasonCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

@@ -15,15 +15,19 @@ public class CreateSeasonCommand : IRequest<CreateSeasonCommandResponse>
     [StringLength(100, MinimumLength = 2)]
     public string LeagueName { get; set; }
 
-    [Required] [StringLength(50)] public string Country { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string Country { get; set; }
 
     public int TotalRounds { get; set; }
 
     public bool IsActive { get; set; }
 
-    [Required] public DateTime StartDate { get; set; }
+    [Required]
+    public DateTime StartDate { get; set; }
 
-    [Required] public DateTime EndDate { get; set; }
+    [Required]
+    public DateTime EndDate { get; set; }
 }
 
 public class CreateSeasonCommandResponse
@@ -37,8 +41,10 @@ public class CreateSeasonCommandResponse
 public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<CreateSeasonCommand, CreateSeasonCommandResponse>
 {
-    public async Task<CreateSeasonCommandResponse> Handle(CreateSeasonCommand request,
-        CancellationToken cancellationToken)
+    public async Task<CreateSeasonCommandResponse> Handle(
+        CreateSeasonCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -47,7 +53,7 @@ public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 return new CreateSeasonCommandResponse
                 {
                     Succeeded = false,
-                    Error = "End date must be after start date"
+                    Error = "End date must be after start date",
                 };
 
             // Check if season with the same name already exists
@@ -56,22 +62,22 @@ public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 return new CreateSeasonCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Season with name '{request.Name}' already exists"
+                    Error = $"Season with name '{request.Name}' already exists",
                 };
 
             // Check if active season already exists for the same league
             if (request.IsActive)
             {
                 var activeSeasons = await unitOfWork.Seasons.FindAsync(s =>
-                    s.LeagueName == request.LeagueName &&
-                    s.Country == request.Country &&
-                    s.IsActive);
+                    s.LeagueName == request.LeagueName && s.Country == request.Country && s.IsActive
+                );
 
                 if (activeSeasons != null)
                     return new CreateSeasonCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"An active season for {request.LeagueName} in {request.Country} already exists"
+                        Error =
+                            $"An active season for {request.LeagueName} in {request.Country} already exists",
                     };
             }
 
@@ -85,7 +91,7 @@ public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 IsActive = request.IsActive,
                 IsCompleted = false, // A new season is not completed
                 StartDate = request.StartDate,
-                EndDate = request.EndDate
+                EndDate = request.EndDate,
             };
 
             await unitOfWork.Seasons.AddAsync(season);
@@ -95,16 +101,12 @@ public class CreateSeasonCommandHandler(IUnitOfWork unitOfWork)
             {
                 Succeeded = true,
                 Id = season.Id,
-                Name = season.Name
+                Name = season.Name,
             };
         }
         catch (Exception ex)
         {
-            return new CreateSeasonCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new CreateSeasonCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

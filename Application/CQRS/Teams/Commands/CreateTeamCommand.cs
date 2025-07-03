@@ -16,19 +16,28 @@ public class CreateTeamCommand : IRequest<CreateTeamCommandResponse>
     [StringLength(10, MinimumLength = 2)]
     public string? ShortName { get; set; }
 
-    [StringLength(500)] public string? Logo { get; set; }
+    [StringLength(500)]
+    public string? Logo { get; set; }
 
-    [Required] [StringLength(50)] public string? Country { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string? Country { get; set; }
 
-    [Required] [StringLength(100)] public string? City { get; set; }
+    [Required]
+    [StringLength(100)]
+    public string? City { get; set; }
 
-    [Required] [StringLength(50)] public string? League { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string? League { get; set; }
 
     public DateTime FoundationDate { get; set; }
 
-    [StringLength(20)] public string? PrimaryColor { get; set; }
+    [StringLength(20)]
+    public string? PrimaryColor { get; set; }
 
-    [StringLength(20)] public string? SecondaryColor { get; set; }
+    [StringLength(20)]
+    public string? SecondaryColor { get; set; }
 
     public int? StadiumId { get; set; }
     public int? CoachId { get; set; }
@@ -45,7 +54,10 @@ public class CreateTeamCommandResponse
 public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
     : IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse>
 {
-    public async Task<CreateTeamCommandResponse> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
+    public async Task<CreateTeamCommandResponse> Handle(
+        CreateTeamCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -59,7 +71,7 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
                     return new CreateTeamCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Coach with ID '{request.CoachId}' does not exist"
+                        Error = $"Coach with ID '{request.CoachId}' does not exist",
                     };
             }
 
@@ -67,7 +79,7 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
                 return new CreateTeamCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Team with name '{request.Name}' already exists"
+                    Error = $"Team with name '{request.Name}' already exists",
                 };
 
             // Create new team
@@ -75,23 +87,20 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
 
             await unitOfWork.Teams.AddAsync(team);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            if (teamCoach != null) teamCoach.TeamId = team.Id;
+            if (teamCoach != null)
+                teamCoach.TeamId = team.Id;
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new CreateTeamCommandResponse
             {
                 Succeeded = true,
                 Id = team.Id,
-                Name = team.Name
+                Name = team.Name,
             };
         }
         catch (Exception ex)
         {
-            return new CreateTeamCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new CreateTeamCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

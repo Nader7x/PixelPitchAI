@@ -8,8 +8,12 @@ public interface IAdvancedSearchService : ISearchService
     /// <summary>
     ///     Enhanced search with configurable search strategies
     /// </summary>
-    Task<SearchResultDto> SearchWithStrategyAsync(string query, SearchStrategy strategy = SearchStrategy.Auto,
-        int page = 1, int pageSize = 10);
+    Task<SearchResultDto> SearchWithStrategyAsync(
+        string query,
+        SearchStrategy strategy = SearchStrategy.Auto,
+        int page = 1,
+        int pageSize = 10
+    );
 
     /// <summary>
     ///     Get search suggestions with relevance ranking
@@ -24,7 +28,11 @@ public interface IAdvancedSearchService : ISearchService
     /// <summary>
     ///     Search for matches with advanced ranking
     /// </summary>
-    Task<List<Match>> SearchMatchesAsync(string query, int limit = 10, bool enableFuzzySearch = false);
+    Task<List<Match>> SearchMatchesAsync(
+        string query,
+        int limit = 10,
+        bool enableFuzzySearch = false
+    );
 
     /// <summary>
     ///     Advanced team search with ranking and scoring
@@ -49,8 +57,12 @@ public interface IAdvancedSearchService : ISearchService
     /// <summary>
     ///     Multi-entity search with unified ranking
     /// </summary>
-    Task<SearchResultDto> UnifiedSearchAsync(string query, List<string>? entityTypes = null, int page = 1,
-        int pageSize = 10);
+    Task<SearchResultDto> UnifiedSearchAsync(
+        string query,
+        List<string>? entityTypes = null,
+        int page = 1,
+        int pageSize = 10
+    );
 
     /// <summary>
     ///     Get search analytics and statistics
@@ -63,7 +75,7 @@ public enum SearchStrategy
     Auto, // Automatically choose based on query and data
     FullText, // PostgreSQL full-text search
     Fuzzy, // Levenshtein distance-based fuzzy search
-    Hybrid // Combination of both strategies
+    Hybrid, // Combination of both strategies
 }
 
 public class SearchFiltersDto

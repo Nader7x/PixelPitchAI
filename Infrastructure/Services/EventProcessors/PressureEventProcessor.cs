@@ -15,7 +15,11 @@ public class PressureEventProcessor : BaseEventProcessor
         // The current Match model doesn't have specific fields for tracking pressure
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         // Track pressure events in the counter
         matchEvents.TotalEvents++;

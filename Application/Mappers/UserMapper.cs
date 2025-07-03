@@ -32,7 +32,9 @@ public partial class UserMapper : IUserMapper
     public partial ConfirmEmailCommand ToConfirmEmailCommand(ConfirmEmailDto dto);
 
     // Map from ResendEmailConfirmationDto to ResendEmailConfirmationCommand
-    public partial ResendEmailConfirmationCommand ToResendConfirmationCommand(ResendEmailConfirmationDto dto);
+    public partial ResendEmailConfirmationCommand ToResendConfirmationCommand(
+        ResendEmailConfirmationDto dto
+    );
 
     public partial ApplicationUser ToUserFromRegister(RegisterUserCommand request);
 

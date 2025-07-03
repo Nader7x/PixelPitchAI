@@ -17,14 +17,17 @@ public class ConfirmEmailCommandResponse
     public string Error { get; set; }
 }
 
-public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, ConfirmEmailCommandResponse>
+public class ConfirmEmailCommandHandler
+    : IRequestHandler<ConfirmEmailCommand, ConfirmEmailCommandResponse>
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IApplicationUserRepository _userRepository;
 
     public ConfirmEmailCommandHandler(
         IApplicationUserRepository userRepository,
-        IIdentityService identityService, UserManager<ApplicationUser> userManager)
+        IIdentityService identityService,
+        UserManager<ApplicationUser> userManager
+    )
     {
         _userRepository = userRepository;
         _userManager = userManager;
@@ -32,7 +35,8 @@ public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, C
 
     public async Task<ConfirmEmailCommandResponse> Handle(
         ConfirmEmailCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -41,7 +45,7 @@ public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, C
                 return new ConfirmEmailCommandResponse
                 {
                     Succeeded = false,
-                    Error = "User not found."
+                    Error = "User not found.",
                 };
 
             var result = await _userManager.ConfirmEmailAsync(user, request.Token);
@@ -50,18 +54,14 @@ public class ConfirmEmailCommandHandler : IRequestHandler<ConfirmEmailCommand, C
                 return new ConfirmEmailCommandResponse
                 {
                     Succeeded = false,
-                    Error = string.Join(", ", result.Errors.Select(e => e.Description))
+                    Error = string.Join(", ", result.Errors.Select(e => e.Description)),
                 };
 
             return new ConfirmEmailCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new ConfirmEmailCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new ConfirmEmailCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

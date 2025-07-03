@@ -14,17 +14,14 @@ public class TestFixtureBase : IDisposable
 
     public TestFixtureBase()
     {
-        Fixture = new Fixture();
-
-        // Configure AutoFixture to handle circular references
-        Fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
-            .ForEach(b => Fixture.Behaviors.Remove(b));
-        Fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        Fixture = new NoRecursionFixture();
+        Fixture.Customizations.Add(new IFormFileSpecimenBuilder());
 
         var services = new ServiceCollection();
 
         services.AddDbContext<FootballDbContext>(options =>
-            options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString())
+        );
 
         services.AddLogging();
 
@@ -49,7 +46,7 @@ public class TestFixtureBase : IDisposable
             FoundationDate = Fixture.Create<DateTime>(),
             Country = Fixture.Create<string>(),
             City = Fixture.Create<string>(),
-            Logo = Fixture.Create<string>()
+            Logo = Fixture.Create<string>(),
         };
 
         Context.Teams.Add(team);
@@ -65,7 +62,7 @@ public class TestFixtureBase : IDisposable
             StartDate = DateTime.UtcNow.AddMonths(-6),
             EndDate = DateTime.UtcNow.AddMonths(6),
             Country = "England",
-            LeagueName = "Premier League"
+            LeagueName = "Premier League",
         };
 
         Context.Seasons.Add(season);
@@ -73,8 +70,11 @@ public class TestFixtureBase : IDisposable
         return season;
     }
 
-    protected async Task<Match> CreateTestMatchAsync(int? homeTeamId = null, int? awayTeamId = null,
-        int? seasonId = null)
+    protected async Task<Match> CreateTestMatchAsync(
+        int? homeTeamId = null,
+        int? awayTeamId = null,
+        int? seasonId = null
+    )
     {
         var homeTeam = homeTeamId.HasValue
             ? await Context.Teams.FindAsync(homeTeamId.Value)
@@ -98,7 +98,7 @@ public class TestFixtureBase : IDisposable
             MatchStatus = "Scheduled",
             CreatorId = Guid.NewGuid().ToString(),
             HomeTeamInMatchName = $"{homeTeam.Name}_2024",
-            AwayTeamInMatchName = $"{awayTeam.Name}_2024"
+            AwayTeamInMatchName = $"{awayTeam.Name}_2024",
         };
 
         Context.Matches.Add(match);

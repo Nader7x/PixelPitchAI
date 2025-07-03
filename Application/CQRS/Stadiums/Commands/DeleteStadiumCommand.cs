@@ -19,8 +19,10 @@ public class DeleteStadiumCommandResponse
 public class DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>
 {
-    public async Task<DeleteStadiumCommandResponse> Handle(DeleteStadiumCommand request,
-        CancellationToken cancellationToken)
+    public async Task<DeleteStadiumCommandResponse> Handle(
+        DeleteStadiumCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -30,7 +32,7 @@ public class DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Stadium with ID {request.Id} not found"
+                    Error = $"Stadium with ID {request.Id} not found",
                 };
 
             // Check if stadium is being used by matches
@@ -40,24 +42,18 @@ public class DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
                 return new DeleteStadiumCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Cannot delete stadium as it is being used by {matchesEnumerator.Count()} match(es)"
+                    Error =
+                        $"Cannot delete stadium as it is being used by {matchesEnumerator.Count()} match(es)",
                 };
 
             unitOfWork.Stadiums.DeleteAsync(stadium);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new DeleteStadiumCommandResponse
-            {
-                Succeeded = true
-            };
+            return new DeleteStadiumCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new DeleteStadiumCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new DeleteStadiumCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

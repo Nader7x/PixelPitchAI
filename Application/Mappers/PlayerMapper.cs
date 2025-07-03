@@ -23,8 +23,12 @@ public partial class PlayerMapper : IPlayerMapper
     public partial UpdatePlayerCommand ToUpdateCommand(UpdatePlayerDto dto);
 
     // Map from GetAllPlayersQuery parameters
-    public partial GetAllPlayersQuery ToGetAllQuery(string nationality, string position, string? preferredFoot,
-        int? teamId);
+    public partial GetAllPlayersQuery ToGetAllQuery(
+        string nationality,
+        string position,
+        string? preferredFoot,
+        int? teamId
+    );
 
     // Map from GetPlayerByIdQuery parameter
     public partial GetPlayerByIdQuery ToGetByIdQuery(int id);

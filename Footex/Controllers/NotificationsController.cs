@@ -12,12 +12,16 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
+public class NotificationsController(
+    IMediator mediator,
+    IUnitOfWork unitOfWork,
     IHubContext<NotificationService, INotificationService> hubContext,
-    ICacheService cacheService) : ControllerBase
+    ICacheService cacheService
+) : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IHubContext<NotificationService, INotificationService> _hubContext = hubContext;
+    private readonly IHubContext<NotificationService, INotificationService> _hubContext =
+        hubContext;
     private readonly ICacheService _cacheService = cacheService;
 
     [HttpGet("user/{userId}")]
@@ -61,8 +65,8 @@ public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
     public async Task<IActionResult> MarkNotificationsAsRead(string notificationId)
     {
         var notification = await _unitOfWork.Notifications.GetByIdAsync(notificationId);
-        Console.WriteLine(notification.Content);
-        if (notification == null) return NotFound();
+        if (notification == null)
+            return NotFound();
         notification.IsRead = true;
         _unitOfWork.Notifications.UpdateAsync(notification);
         await _unitOfWork.SaveChangesAsync();
@@ -95,7 +99,8 @@ public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
     public async Task<IActionResult> DeleteNotification(string notificationId)
     {
         var notification = await _unitOfWork.Notifications.GetByIdAsync(notificationId);
-        if (notification == null) return NotFound();
+        if (notification == null)
+            return NotFound();
         _unitOfWork.Notifications.DeleteAsync(notification);
         await _unitOfWork.SaveChangesAsync();
         return NoContent();
@@ -110,35 +115,11 @@ public class NotificationsController(IMediator mediator, IUnitOfWork unitOfWork,
     {
         var notifications = await _unitOfWork.Notifications.GetNotificationsAsync(userId);
         var notificationsEnumerate = notifications as Notification[] ?? notifications.ToArray();
-        if (notificationsEnumerate.Length == 0) return NotFound();
-        foreach (var notification in notificationsEnumerate) _unitOfWork.Notifications.DeleteAsync(notification);
+        if (notificationsEnumerate.Length == 0)
+            return NotFound();
+        foreach (var notification in notificationsEnumerate)
+            _unitOfWork.Notifications.DeleteAsync(notification);
         await _unitOfWork.SaveChangesAsync();
-        return NoContent();
-    }
-    [HttpPost("publishNotification/{userId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> PublishNotification(string userId)
-    {
-        var notification = new Notification
-        {
-            Title = "Match Started",
-            Content = "A new match has started. Check it out!",
-            Type = NotificationType.MatchStart,
-            UserId = userId
-        };
-        
-        await _unitOfWork.Notifications.AddAsync(notification);
-        await _unitOfWork.SaveChangesAsync();
-        await _hubContext.Clients.User(userId).SendNotificationAsync(notification);
-        await _hubContext.Clients.User(userId).SendMatchStartNotificationAsync(notification,Guid.Empty.ToString());
-        await _hubContext.Clients.User(userId).SendMatchEndNotificationAsync(notification,Guid.Empty.ToString());
-        await _hubContext.Clients.User(userId).SendMatchUpdateNotificationAsync(notification,Guid.Empty.ToString());
-        await _hubContext.Clients.User(userId).SendSimulationUpdateNotificationAsync(notification,Guid.Empty.ToString());
-        await _hubContext.Clients.User(userId).SendMessageAsync("Notifications published successfully.");
-
         return NoContent();
     }
 }

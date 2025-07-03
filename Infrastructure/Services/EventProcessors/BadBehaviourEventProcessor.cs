@@ -28,18 +28,22 @@ public class BadBehaviourEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         if (matchEvent.card != null && matchEvent.card != "No Card")
         {
             matchEvents.TotalCards++;
-            
+
             if (matchEvent.card == "Yellow Card")
                 matchEvents.TotalYellowCards++;
             else if (matchEvent.card == "Red Card")
                 matchEvents.TotalRedCards++;
         }
-        
+
         matchEvents.TotalEvents++;
     }
 }

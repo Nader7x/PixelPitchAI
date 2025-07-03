@@ -31,7 +31,10 @@ public class AzureBlobStorageService : IFileStorageService
 
         // Upload the file
         using var stream = file.OpenReadStream();
-        await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
+        await blobClient.UploadAsync(
+            stream,
+            new BlobHttpHeaders { ContentType = file.ContentType }
+        );
 
         // Return the URL to the blob
         return blobClient.Uri.ToString();

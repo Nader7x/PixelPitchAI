@@ -12,7 +12,7 @@ public partial class SeasonMapper : ISeasonMapper
     // Map from Season to SeasonDto
     public partial SeasonDto ToDto(Season season);
 
-    // Map from list of Season to list of SeasonDto 
+    // Map from list of Season to list of SeasonDto
     public partial List<SeasonDto> ToDtoList(IEnumerable<Season> seasons);
 
     // Map from CreateSeasonDto to CreateSeasonCommand

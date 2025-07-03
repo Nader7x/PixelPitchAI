@@ -9,7 +9,11 @@ public abstract class BaseEventProcessor : IEventProcessor
 {
     public abstract bool CanProcess(FootballMatchEvent matchEvent);
     public abstract void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match);
-    public abstract void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match);
+    public abstract void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    );
 
     /// <summary>
     ///     Helper method to safely increment a nullable int value

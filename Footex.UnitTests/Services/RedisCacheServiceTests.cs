@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Infrastructure.Configuration;
@@ -32,7 +33,7 @@ public class RedisCacheServiceTests
             DefaultExpiration = TimeSpan.FromMinutes(10),
             DefaultSlidingExpiration = TimeSpan.FromMinutes(2),
             FailureThreshold = 3,
-            CircuitResetInterval = TimeSpan.FromMinutes(1)
+            CircuitResetInterval = TimeSpan.FromMinutes(1),
         };
 
         _optionsMock.Setup(x => x.Value).Returns(_cacheOptions);
@@ -41,7 +42,8 @@ public class RedisCacheServiceTests
             _distributedCacheMock.Object,
             _loggerMock.Object,
             _optionsMock.Object,
-            _connectionMultiplexer.Object);
+            _connectionMultiplexer.Object
+        );
     }
 
     [Fact]
@@ -53,8 +55,8 @@ public class RedisCacheServiceTests
         var serializedValue = JsonSerializer.Serialize(testObject);
 
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serializedValue);
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(serializedValue));
 
         // Act
         var result = await _cacheService.GetAsync<TestCacheObject>(key);
@@ -73,8 +75,10 @@ public class RedisCacheServiceTests
 
         // Assert
         result.Should().BeNull();
-        _distributedCacheMock.Verify(x => x.GetStringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        _distributedCacheMock.Verify(
+            x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -85,8 +89,10 @@ public class RedisCacheServiceTests
 
         // Assert
         result.Should().BeNull();
-        _distributedCacheMock.Verify(x => x.GetStringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        _distributedCacheMock.Verify(
+            x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -95,7 +101,7 @@ public class RedisCacheServiceTests
         // Arrange
         const string key = "test-key";
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Cache error"));
 
         // Act
@@ -117,11 +123,18 @@ public class RedisCacheServiceTests
         await _cacheService.SetAsync(key, testObject, expiration);
 
         // Assert
-        _distributedCacheMock.Verify(x => x.SetStringAsync(
-            key,
-            It.Is<string>(s => s.Contains("Test")),
-            It.Is<DistributedCacheEntryOptions>(o => o.AbsoluteExpirationRelativeToNow == expiration),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _distributedCacheMock.Verify(
+            x =>
+                x.SetAsync(
+                    key,
+                    It.Is<byte[]>(b => Encoding.UTF8.GetString(b).Contains("Test")),
+                    It.Is<DistributedCacheEntryOptions>(o =>
+                        o.AbsoluteExpirationRelativeToNow == expiration
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -134,11 +147,16 @@ public class RedisCacheServiceTests
         await _cacheService.SetAsync(null!, testObject);
 
         // Assert
-        _distributedCacheMock.Verify(x => x.SetStringAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _distributedCacheMock.Verify(
+            x =>
+                x.SetAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<DistributedCacheEntryOptions>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -151,11 +169,16 @@ public class RedisCacheServiceTests
         await _cacheService.SetAsync<TestCacheObject>(key, null!);
 
         // Assert
-        _distributedCacheMock.Verify(x => x.SetStringAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _distributedCacheMock.Verify(
+            x =>
+                x.SetAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<byte[]>(),
+                    It.IsAny<DistributedCacheEntryOptions>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -168,7 +191,10 @@ public class RedisCacheServiceTests
         await _cacheService.RemoveAsync(key);
 
         // Assert
-        _distributedCacheMock.Verify(x => x.RemoveAsync(key, It.IsAny<CancellationToken>()), Times.Once);
+        _distributedCacheMock.Verify(
+            x => x.RemoveAsync(key, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -178,8 +204,10 @@ public class RedisCacheServiceTests
         await _cacheService.RemoveAsync(null!);
 
         // Assert
-        _distributedCacheMock.Verify(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        _distributedCacheMock.Verify(
+            x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -192,15 +220,18 @@ public class RedisCacheServiceTests
         var factoryCalled = false;
 
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serializedValue);
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(serializedValue));
 
         // Act
-        var result = await _cacheService.GetOrCreateAsync(key, () =>
-        {
-            factoryCalled = true;
-            return Task.FromResult(new TestCacheObject { Id = 2, Name = "Factory" });
-        });
+        var result = await _cacheService.GetOrCreateAsync(
+            key,
+            () =>
+            {
+                factoryCalled = true;
+                return Task.FromResult(new TestCacheObject { Id = 2, Name = "Factory" });
+            }
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -218,15 +249,18 @@ public class RedisCacheServiceTests
         var factoryCalled = false;
 
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         // Act
-        var result = await _cacheService.GetOrCreateAsync(key, () =>
-        {
-            factoryCalled = true;
-            return Task.FromResult(factoryObject);
-        });
+        var result = await _cacheService.GetOrCreateAsync(
+            key,
+            () =>
+            {
+                factoryCalled = true;
+                return Task.FromResult(factoryObject);
+            }
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -235,11 +269,16 @@ public class RedisCacheServiceTests
         factoryCalled.Should().BeTrue();
 
         // Verify that the result was cached
-        _distributedCacheMock.Verify(x => x.SetStringAsync(
-            key,
-            It.Is<string>(s => s.Contains("Factory")),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        _distributedCacheMock.Verify(
+            x =>
+                x.SetAsync(
+                    key,
+                    It.Is<byte[]>(b => Encoding.UTF8.GetString(b).Contains("Factory")),
+                    It.IsAny<DistributedCacheEntryOptions>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -248,30 +287,33 @@ public class RedisCacheServiceTests
         // Arrange
         const string key = "test-key";
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Cache error"));
 
         // Act - Trigger failures to reach threshold
-        for (var i = 0; i < _cacheOptions.FailureThreshold; i++) await _cacheService.GetAsync<TestCacheObject>(key);
+        for (var i = 0; i < _cacheOptions.FailureThreshold; i++)
+            await _cacheService.GetAsync<TestCacheObject>(key);
 
         // Reset mock to return valid data
         _distributedCacheMock.Reset();
         _distributedCacheMock
-            .Setup(x => x.GetStringAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("valid data");
+            .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes("valid data"));
 
         // Circuit should be open now, so this call should not reach the cache
         var result = await _cacheService.GetAsync<TestCacheObject>(key);
 
         // Assert
         result.Should().BeNull();
-        _distributedCacheMock.Verify(x => x.GetStringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        _distributedCacheMock.Verify(
+            x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     private class TestCacheObject
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public int Id { get; init; }
+        public string Name { get; init; } = string.Empty;
     }
 }

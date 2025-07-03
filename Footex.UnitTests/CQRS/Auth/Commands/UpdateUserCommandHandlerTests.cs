@@ -3,6 +3,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using Xunit;
@@ -11,7 +12,7 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class UpdateUserCommandHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly UpdateUserCommandHandler _handler;
     private readonly Mock<IApplicationUserRepository> _mockApplicationUserRepository;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
@@ -19,17 +20,27 @@ public class UpdateUserCommandHandlerTests
 
     public UpdateUserCommandHandlerTests()
     {
-        _fixture = new Fixture();
+        _fixture = new NoRecursionFixture();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockApplicationUserRepository = new Mock<IApplicationUserRepository>();
 
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            mockUserStore.Object, null, null, null, null, null, null, null, null);
+            mockUserStore.Object,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
 
         // Setup UnitOfWork to return the mock repository
-        _mockUnitOfWork.Setup(x => x.ApplicationUser)
+        _mockUnitOfWork
+            .Setup(x => x.ApplicationUser)
             .Returns(_mockApplicationUserRepository.Object);
 
         _handler = new UpdateUserCommandHandler(_mockUnitOfWork.Object, _mockUserManager.Object);
@@ -40,7 +51,8 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "John")
             .With(x => x.LastName, "Doe")
@@ -53,16 +65,17 @@ public class UpdateUserCommandHandlerTests
             .Without(x => x.NewPassword)
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
+        var user = _fixture
+            .Build<ApplicationUser>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "OldFirst")
             .With(x => x.LastName, "OldLast")
             .Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         // Act
@@ -93,11 +106,10 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
-            .With(x => x.Id, userId)
-            .Create();
+        var command = _fixture.Build<UpdateUserCommand>().With(x => x.Id, userId).Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
+        _mockApplicationUserRepository
+            .Setup(x => x.GetByIdAsync(userId))
             .ReturnsAsync((ApplicationUser)null);
 
         // Act
@@ -118,55 +130,23 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.CurrentPassword, "OldPassword123!")
             .With(x => x.NewPassword, "NewPassword123!")
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
-            .With(x => x.Id, userId)
-            .Create();
+        var user = _fixture.Build<ApplicationUser>().With(x => x.Id, userId).Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword))
+        _mockUserManager
+            .Setup(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword))
             .ReturnsAsync(IdentityResult.Success);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Succeeded.Should().BeTrue();
-
-        _mockUserManager.Verify(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_WithOnlyCurrentPassword_ShouldNotChangePassword()
-    {
-        // Arrange
-        var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
-            .With(x => x.Id, userId)
-            .With(x => x.CurrentPassword, "OldPassword123!")
-            .Without(x => x.NewPassword)
-            .Create();
-
-        var user = _fixture.Build<ApplicationUser>()
-            .With(x => x.Id, userId)
-            .Create();
-
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
-
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         // Act
@@ -177,8 +157,47 @@ public class UpdateUserCommandHandlerTests
         result.Succeeded.Should().BeTrue();
 
         _mockUserManager.Verify(
-            x => x.ChangePasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
+            x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task Handle_WithOnlyCurrentPassword_ShouldNotChangePassword()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var command = _fixture
+            .Build<UpdateUserCommand>()
+            .With(x => x.Id, userId)
+            .With(x => x.CurrentPassword, "OldPassword123!")
+            .Without(x => x.NewPassword)
+            .Create();
+
+        var user = _fixture.Build<ApplicationUser>().With(x => x.Id, userId).Create();
+
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
+
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Succeeded.Should().BeTrue();
+
+        _mockUserManager.Verify(
+            x =>
+                x.ChangePasswordAsync(
+                    It.IsAny<ApplicationUser>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -189,7 +208,8 @@ public class UpdateUserCommandHandlerTests
         var originalFirstName = "OriginalFirst";
         var originalLastName = "OriginalLast";
 
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "")
             .With(x => x.LastName, "")
@@ -199,16 +219,17 @@ public class UpdateUserCommandHandlerTests
             .With(x => x.ImageUrl, "")
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
+        var user = _fixture
+            .Build<ApplicationUser>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, originalFirstName)
             .With(x => x.LastName, originalLastName)
             .Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         // Act
@@ -230,20 +251,22 @@ public class UpdateUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var originalAge = 25;
 
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.Age, 0)
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
+        var user = _fixture
+            .Build<ApplicationUser>()
             .With(x => x.Id, userId)
             .With(x => x.Age, originalAge)
             .Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         // Act
@@ -262,12 +285,11 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
-            .With(x => x.Id, userId)
-            .Create();
+        var command = _fixture.Build<UpdateUserCommand>().With(x => x.Id, userId).Create();
 
         var exceptionMessage = "Database connection failed";
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
+        _mockApplicationUserRepository
+            .Setup(x => x.GetByIdAsync(userId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -284,21 +306,23 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "John")
             .Without(x => x.ImageUrl)
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
+        var user = _fixture
+            .Build<ApplicationUser>()
             .With(x => x.Id, userId)
             .Without(x => x.ImageUrl)
             .Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         // Act
@@ -315,19 +339,18 @@ public class UpdateUserCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var command = _fixture.Build<UpdateUserCommand>()
+        var command = _fixture
+            .Build<UpdateUserCommand>()
             .With(x => x.Id, userId)
             .With(x => x.FirstName, "John")
             .Create();
 
-        var user = _fixture.Build<ApplicationUser>()
-            .With(x => x.Id, userId)
-            .Create();
+        var user = _fixture.Build<ApplicationUser>().With(x => x.Id, userId).Create();
 
-        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync(user);
+        _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mockUnitOfWork.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(0); // No changes saved
 
         // Act

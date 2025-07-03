@@ -8,8 +8,8 @@ namespace Infrastructure.Repositories;
 
 public class ApplicationUserRepository(
     FootballDbContext context,
-    UserManager<ApplicationUser> userManager)
-    : Repository<ApplicationUser>(context), IApplicationUserRepository
+    UserManager<ApplicationUser> userManager
+) : Repository<ApplicationUser>(context), IApplicationUserRepository
 {
     private readonly FootballDbContext _context = context;
 
@@ -30,7 +30,8 @@ public class ApplicationUserRepository(
 
     public async Task<IEnumerable<string>> GetUserRolesAsync(ApplicationUser? user)
     {
-        if (user != null) return await userManager.GetRolesAsync(user);
+        if (user != null)
+            return await userManager.GetRolesAsync(user);
         return [];
     }
 
@@ -41,15 +42,16 @@ public class ApplicationUserRepository(
 
     public async Task<bool> AddToRoleAsync(ApplicationUser? user, string role)
     {
-        if (user == null) return false;
+        if (user == null)
+            return false;
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded;
     }
 
     public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
     {
-        return await _context.RefreshTokens
-            .Include(r => r.User)
+        return await _context
+            .RefreshTokens.Include(r => r.User)
             .SingleOrDefaultAsync(t => t.Token == token);
     }
 
@@ -62,8 +64,11 @@ public class ApplicationUserRepository(
             refreshToken.Created = DateTime.UtcNow;
             refreshToken.Expires = DateTime.UtcNow.AddDays(7);
             if (user != null)
-                refreshToken.JwtId = await userManager.GetClaimsAsync(user)
-                    .ContinueWith(t => t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value);
+                refreshToken.JwtId = await userManager
+                    .GetClaimsAsync(user)
+                    .ContinueWith(t =>
+                        t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value
+                    );
             _context.RefreshTokens.Add(refreshToken);
         }
 
@@ -86,8 +91,8 @@ public class ApplicationUserRepository(
 
     public async Task<bool> HasRefreshTokensAsync(string userId)
     {
-        var refreshTokens = await _context.RefreshTokens
-            .Where(t => t.UserId == userId)
+        var refreshTokens = await _context
+            .RefreshTokens.Where(t => t.UserId == userId)
             .ToListAsync();
 
         return refreshTokens.Count != 0;
@@ -95,8 +100,8 @@ public class ApplicationUserRepository(
 
     public async Task<ApplicationUser?> GetByIdAsyncWithTeam(string userId)
     {
-        return await _context.Users
-            .Include(u => u.FavoriteTeam)
+        return await _context
+            .Users.Include(u => u.FavoriteTeam)
             .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Id == userId);
     }

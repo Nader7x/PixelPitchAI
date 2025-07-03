@@ -54,11 +54,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
 
         var pageNumber = 1;
         var pageSize = 2;
-        var query = new GetAllPlayersQuery
-        {
-            PageNumber = pageNumber,
-            PageSize = pageSize
-        };
+        var query = new GetAllPlayersQuery { PageNumber = pageNumber, PageSize = pageSize };
 
         // Act
         var result = await _mediator.Send(query);
@@ -82,10 +78,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var testNationality = "Brazil";
         await TestData.SeedPlayersWithNationality(scope.ServiceProvider, testNationality, 2);
 
-        var query = new GetAllPlayersQuery
-        {
-            Nationality = testNationality
-        };
+        var query = new GetAllPlayersQuery { Nationality = testNationality };
 
         // Act
         var result = await _mediator.Send(query);
@@ -110,10 +103,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var testPreferredFoot = "Left";
         await TestData.SeedPlayersWithPreferredFoot(scope.ServiceProvider, testPreferredFoot, 2);
 
-        var query = new GetAllPlayersQuery
-        {
-            PreferredFoot = testPreferredFoot
-        };
+        var query = new GetAllPlayersQuery { PreferredFoot = testPreferredFoot };
 
         // Act
         var result = await _mediator.Send(query);
@@ -138,10 +128,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var testTeamId = 1;
         await TestData.SeedPlayersForTeam(scope.ServiceProvider, testTeamId, 3);
 
-        var query = new GetAllPlayersQuery
-        {
-            TeamId = testTeamId
-        };
+        var query = new GetAllPlayersQuery { TeamId = testTeamId };
 
         // Act
         var result = await _mediator.Send(query);
@@ -162,10 +149,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         using var scope = _factory.Services.CreateScope();
         await TestData.SeedTestData(scope.ServiceProvider);
 
-        var query = new GetAllPlayersQuery
-        {
-            Nationality = "NonExistentCountry"
-        };
+        var query = new GetAllPlayersQuery { Nationality = "NonExistentCountry" };
 
         // Act
         var result = await _mediator.Send(query);
@@ -193,7 +177,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         {
             Nationality = testNationality,
             PreferredFoot = testPreferredFoot,
-            TeamId = 1
+            TeamId = 1,
         };
 
         // Act
@@ -220,7 +204,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var query = new GetAllPlayersQuery
         {
             Nationality = "",
-            PreferredFoot = "   " // whitespace only
+            PreferredFoot = "   ", // whitespace only
         };
 
         // Act
@@ -248,7 +232,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var query = new GetAllPlayersQuery
         {
             PreferredFoot = testPreferredFoot,
-            TeamId = 1 // This should be ignored since PreferredFoot has higher priority
+            TeamId = 1, // This should be ignored since PreferredFoot has higher priority
         };
 
         // Act
@@ -270,11 +254,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         using var scope = _factory.Services.CreateScope();
         await TestData.SeedTestData(scope.ServiceProvider);
 
-        var query = new GetAllPlayersQuery
-        {
-            PageNumber = 1,
-            PageSize = 1
-        };
+        var query = new GetAllPlayersQuery { PageNumber = 1, PageSize = 1 };
 
         // Act
         var result = await _mediator.Send(query);

@@ -28,7 +28,8 @@ public partial class TeamMapper : ITeamMapper
     // Map for Delete command
     public partial DeleteTeamCommand ToDeleteCommand(int id);
 
-    // map from createcommand to a team 
+    // map from createcommand to a team
     public partial Team ToTeamfromCreate(CreateTeamCommand command);
+
     public partial TeamDto ToTeamDto(Team team);
 }

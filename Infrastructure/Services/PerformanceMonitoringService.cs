@@ -23,9 +23,15 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
 
     public void RecordDatabaseCall(string operation, double durationMs)
     {
-        _databaseCalls.AddOrUpdate(operation,
+        _databaseCalls.AddOrUpdate(
+            operation,
             new PerformanceCounter
-                { Count = 1, TotalDurationMs = durationMs, MinDurationMs = durationMs, MaxDurationMs = durationMs },
+            {
+                Count = 1,
+                TotalDurationMs = durationMs,
+                MinDurationMs = durationMs,
+                MaxDurationMs = durationMs,
+            },
             (key, existing) =>
             {
                 existing.Count++;
@@ -33,7 +39,8 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
                 existing.MinDurationMs = Math.Min(existing.MinDurationMs, durationMs);
                 existing.MaxDurationMs = Math.Max(existing.MaxDurationMs, durationMs);
                 return existing;
-            });
+            }
+        );
     }
 
     public void RecordCacheHit(string operation)
@@ -51,7 +58,8 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
         var totalCacheHits = _cacheHits.Values.Sum();
         var totalCacheMisses = _cacheMisses.Values.Sum();
         var totalCacheOperations = totalCacheHits + totalCacheMisses;
-        var cacheHitRatio = totalCacheOperations > 0 ? (double)totalCacheHits / totalCacheOperations : 0;
+        var cacheHitRatio =
+            totalCacheOperations > 0 ? (double)totalCacheHits / totalCacheOperations : 0;
 
         return new PerformanceMetrics
         {
@@ -63,7 +71,7 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
             CacheHitRatio = cacheHitRatio,
             TotalDatabaseCalls = _databaseCalls.Values.Sum(pc => pc.Count),
             TotalCacheHits = totalCacheHits,
-            TotalCacheMisses = totalCacheMisses
+            TotalCacheMisses = totalCacheMisses,
         };
     }
 
@@ -82,16 +90,19 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
             StartTime = _startTime,
             CurrentTime = DateTime.UtcNow,
             UpTime = upTime,
-            DatabaseCalls = baseMetrics.DatabaseCalls.Select(kvp => new DatabaseCallMetric
-            {
-                OperationType = kvp.Key,
-                Count = kvp.Value.Count,
-                TotalDurationMs = kvp.Value.TotalDurationMs,
-                AverageDurationMs = kvp.Value.AverageDurationMs,
-                MinDurationMs = kvp.Value.MinDurationMs,
-                MaxDurationMs = kvp.Value.MaxDurationMs,
-                CallsPerSecond = upTime.TotalSeconds > 0 ? kvp.Value.Count / upTime.TotalSeconds : 0
-            }).ToList(),
+            DatabaseCalls = baseMetrics
+                .DatabaseCalls.Select(kvp => new DatabaseCallMetric
+                {
+                    OperationType = kvp.Key,
+                    Count = kvp.Value.Count,
+                    TotalDurationMs = kvp.Value.TotalDurationMs,
+                    AverageDurationMs = kvp.Value.AverageDurationMs,
+                    MinDurationMs = kvp.Value.MinDurationMs,
+                    MaxDurationMs = kvp.Value.MaxDurationMs,
+                    CallsPerSecond =
+                        upTime.TotalSeconds > 0 ? kvp.Value.Count / upTime.TotalSeconds : 0,
+                })
+                .ToList(),
             CacheMetrics = new CacheMetrics
             {
                 TotalHits = baseMetrics.TotalCacheHits,
@@ -99,31 +110,45 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
                 HitRatio = baseMetrics.CacheHitRatio,
                 MissRatio = 1.0 - baseMetrics.CacheHitRatio,
                 TotalOperations = baseMetrics.TotalCacheHits + baseMetrics.TotalCacheMisses,
-                HitsPerSecond = upTime.TotalSeconds > 0 ? baseMetrics.TotalCacheHits / upTime.TotalSeconds : 0,
-                OperationsPerSecond = upTime.TotalSeconds > 0
-                    ? (baseMetrics.TotalCacheHits + baseMetrics.TotalCacheMisses) / upTime.TotalSeconds
-                    : 0,
-                OperationBreakdown = baseMetrics.CacheHits.Select(kvp => new CacheOperationMetric
-                {
-                    OperationType = kvp.Key,
-                    Hits = kvp.Value,
-                    Misses = baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0),
-                    HitRatio = kvp.Value + baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0) > 0
-                        ? (double)kvp.Value / (kvp.Value + baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0))
-                        : 0
-                }).ToList()
+                HitsPerSecond =
+                    upTime.TotalSeconds > 0 ? baseMetrics.TotalCacheHits / upTime.TotalSeconds : 0,
+                OperationsPerSecond =
+                    upTime.TotalSeconds > 0
+                        ? (baseMetrics.TotalCacheHits + baseMetrics.TotalCacheMisses)
+                            / upTime.TotalSeconds
+                        : 0,
+                OperationBreakdown = baseMetrics
+                    .CacheHits.Select(kvp => new CacheOperationMetric
+                    {
+                        OperationType = kvp.Key,
+                        Hits = kvp.Value,
+                        Misses = baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0),
+                        HitRatio =
+                            kvp.Value + baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0) > 0
+                                ? (double)kvp.Value
+                                    / (
+                                        kvp.Value
+                                        + baseMetrics.CacheMisses.GetValueOrDefault(kvp.Key, 0)
+                                    )
+                                : 0,
+                    })
+                    .ToList(),
             },
             SystemMetrics = new SystemMetrics
             {
                 TotalDatabaseCallsPerSecond =
-                    upTime.TotalSeconds > 0 ? baseMetrics.TotalDatabaseCalls / upTime.TotalSeconds : 0,
+                    upTime.TotalSeconds > 0
+                        ? baseMetrics.TotalDatabaseCalls / upTime.TotalSeconds
+                        : 0,
                 AverageDatabaseCallDuration = baseMetrics.DatabaseCalls.Values.Any()
                     ? baseMetrics.DatabaseCalls.Values.Average(pc => pc.AverageDurationMs)
                     : 0,
-                DatabaseEfficiencyRatio = baseMetrics.TotalCacheHits + baseMetrics.TotalDatabaseCalls > 0
-                    ? (double)baseMetrics.TotalCacheHits / (baseMetrics.TotalCacheHits + baseMetrics.TotalDatabaseCalls)
-                    : 0
-            }
+                DatabaseEfficiencyRatio =
+                    baseMetrics.TotalCacheHits + baseMetrics.TotalDatabaseCalls > 0
+                        ? (double)baseMetrics.TotalCacheHits
+                            / (baseMetrics.TotalCacheHits + baseMetrics.TotalDatabaseCalls)
+                        : 0,
+            },
         };
     }
 

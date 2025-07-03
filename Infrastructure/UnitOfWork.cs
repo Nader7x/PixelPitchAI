@@ -13,8 +13,11 @@ public sealed class UnitOfWork : IUnitOfWork
     private bool _disposed;
     private IDbContextTransaction? _transaction;
 
-
-    public UnitOfWork(FootballDbContext context, UserManager<ApplicationUser> userManager, IStadiumsRepository stadiums)
+    public UnitOfWork(
+        FootballDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IStadiumsRepository stadiums
+    )
     {
         _context = context;
         Stadiums = stadiums;
@@ -45,7 +48,6 @@ public sealed class UnitOfWork : IUnitOfWork
     public ICompetitionRepository Competitions { get; }
     public INotificationRepository Notifications { get; }
 
-
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);
@@ -61,11 +63,13 @@ public sealed class UnitOfWork : IUnitOfWork
     {
         try
         {
-            if (_transaction != null) await _transaction.CommitAsync();
+            if (_transaction != null)
+                await _transaction.CommitAsync();
         }
         catch
         {
-            if (_transaction != null) await _transaction.RollbackAsync();
+            if (_transaction != null)
+                await _transaction.RollbackAsync();
             throw;
         }
         finally
@@ -79,7 +83,8 @@ public sealed class UnitOfWork : IUnitOfWork
     {
         try
         {
-            if (_transaction != null) await _transaction.RollbackAsync();
+            if (_transaction != null)
+                await _transaction.RollbackAsync();
         }
         finally
         {

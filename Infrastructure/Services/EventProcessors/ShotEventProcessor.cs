@@ -72,11 +72,11 @@ public class ShotEventProcessor : BaseEventProcessor
                     match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
                 }
                 break;
-                
+
             case "Blocked":
                 // Shots that are blocked are still counted as shots, but not on target
                 break;
-                
+
             case "Post":
                 // Shot hit the post - counted as a shot but not on target
                 if (IsHomeTeam(matchEvent, match))
@@ -84,7 +84,7 @@ public class ShotEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
                 break;
-                
+
             case "Saved Off Target":
                 // Shot saved but was going off target anyway
                 if (IsHomeTeam(matchEvent, match))
@@ -101,7 +101,11 @@ public class ShotEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalShots++;
 
@@ -140,7 +144,8 @@ public class ShotEventProcessor : BaseEventProcessor
 
     private static void UpdateMatchResult(Match match)
     {
-        if (match is not { HomeTeamScore: not null, AwayTeamScore: not null }) return;
+        if (match is not { HomeTeamScore: not null, AwayTeamScore: not null })
+            return;
 
         if (match.HomeTeamScore > match.AwayTeamScore)
         {

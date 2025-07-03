@@ -6,6 +6,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Moq;
 using Xunit;
 
@@ -13,7 +14,7 @@ namespace Footex.UnitTests.CQRS.Seasons.Queries;
 
 public class GetSeasonByIdQueryHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly GetSeasonByIdQueryHandler _handler;
     private readonly Mock<ISeasonMapper> _iSeasonMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -24,8 +25,10 @@ public class GetSeasonByIdQueryHandlerTests
         _iSeasonMapperMock = new Mock<ISeasonMapper>();
         _handler = new GetSeasonByIdQueryHandler(_unitOfWorkMock.Object, _iSeasonMapperMock.Object);
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture = new NoRecursionFixture();
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -44,15 +47,14 @@ public class GetSeasonByIdQueryHandlerTests
             Name = season.Name,
             LeagueName = season.LeagueName,
             Country = season.Country,
-            IsActive = season.IsActive
+            IsActive = season.IsActive,
         };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId))
-            .ReturnsAsync(season);
-        _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
+        _unitOfWorkMock
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _iSeasonMapperMock.Setup(x => x.ToDto(season))
-            .Returns(expectedSeasonDto);
+        _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -66,8 +68,10 @@ public class GetSeasonByIdQueryHandlerTests
         result.Error.Should().BeNull();
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
-        _unitOfWorkMock.Verify(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
-            Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
+            Times.Once
+        );
         _iSeasonMapperMock.Verify(x => x.ToDto(season), Times.Once);
     }
 
@@ -78,8 +82,7 @@ public class GetSeasonByIdQueryHandlerTests
         var seasonId = 999;
         var query = new GetSeasonByIdQuery { Id = seasonId };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId))
-            .ReturnsAsync((Season?)null);
+        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync((Season?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -92,8 +95,10 @@ public class GetSeasonByIdQueryHandlerTests
         result.Error.Should().Be($"Season with ID {seasonId} not found");
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
-        _unitOfWorkMock.Verify(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
-            Times.Never);
+        _unitOfWorkMock.Verify(
+            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
+            Times.Never
+        );
         _iSeasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
     }
 
@@ -105,7 +110,8 @@ public class GetSeasonByIdQueryHandlerTests
         var query = new GetSeasonByIdQuery { Id = seasonId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId))
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetByIdAsync(seasonId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -131,8 +137,7 @@ public class GetSeasonByIdQueryHandlerTests
         // Arrange
         var query = new GetSeasonByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(invalidId))
-            .ReturnsAsync((Season?)null);
+        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(invalidId)).ReturnsAsync((Season?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -167,15 +172,14 @@ public class GetSeasonByIdQueryHandlerTests
             IsActive = season.IsActive,
             IsCompleted = season.IsCompleted.Value,
             StartDate = season.StartDate,
-            EndDate = season.EndDate
+            EndDate = season.EndDate,
         };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId))
-            .ReturnsAsync(season);
-        _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
+        _unitOfWorkMock
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _iSeasonMapperMock.Setup(x => x.ToDto(season))
-            .Returns(expectedSeasonDto);
+        _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -206,16 +210,15 @@ public class GetSeasonByIdQueryHandlerTests
         var teamStats = new List<TeamSeasons>
         {
             new() { SeasonId = seasonId, TeamId = 1 },
-            new() { SeasonId = seasonId, TeamId = 2 }
+            new() { SeasonId = seasonId, TeamId = 2 },
         };
         var expectedSeasonDto = new SeasonDto { Id = seasonId, Name = season.Name };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId))
-            .ReturnsAsync(season);
-        _unitOfWorkMock.Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
+        _unitOfWorkMock
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
             .ReturnsAsync(teamStats);
-        _iSeasonMapperMock.Setup(x => x.ToDto(season))
-            .Returns(expectedSeasonDto);
+        _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -224,8 +227,13 @@ public class GetSeasonByIdQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
 
-        _unitOfWorkMock.Verify(x => x.TeamSeasons.GetAllAsync(
-            It.Is<Expression<Func<TeamSeasons, bool>>>(expr => expr != null)), Times.Once);
+        _unitOfWorkMock.Verify(
+            x =>
+                x.TeamSeasons.GetAllAsync(
+                    It.Is<Expression<Func<TeamSeasons, bool>>>(expr => expr != null)
+                ),
+            Times.Once
+        );
     }
 
     private Season CreateValidSeason(int id)

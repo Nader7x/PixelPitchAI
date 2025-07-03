@@ -18,14 +18,21 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
-    public GetMatchByIdWithDetailsQueryHandlerTests(ILiveMatchStatisticsService liveMatchStatisticsServiceMock)
+    public GetMatchByIdWithDetailsQueryHandlerTests()
     {
+        var liveMatchStatisticsServiceMock = new Mock<ILiveMatchStatisticsService>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _iMatchMapperMock = new Mock<IMatchMapper>();
-        _handler = new GetMatchByIdWithDetailsQueryHandler(_iMatchMapperMock.Object,_unitOfWorkMock.Object,liveMatchStatisticsServiceMock);
+        _handler = new GetMatchByIdWithDetailsQueryHandler(
+            _iMatchMapperMock.Object,
+            _unitOfWorkMock.Object,
+            liveMatchStatisticsServiceMock.Object
+        );
 
         var fixture = new Fixture();
-        fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => fixture.Behaviors.Remove(b));
         fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -39,10 +46,8 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         var match = TestDataBuilder.CreateValidMatch(matchId);
         var matchDetailsDto = new MatchDetailsDto { Id = matchId };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
-            .ReturnsAsync(match);
-        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
-            .Returns(matchDetailsDto);
+        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId)).ReturnsAsync(match);
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match)).Returns(matchDetailsDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -66,7 +71,8 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         var matchId = 999;
         var query = new GetMatchByIdWithDetailsQuery { MatchId = matchId };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ReturnsAsync((Match?)null);
 
         // Act
@@ -91,7 +97,8 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         var query = new GetMatchByIdWithDetailsQuery { MatchId = matchId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -117,7 +124,8 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         // Arrange
         var query = new GetMatchByIdWithDetailsQuery { MatchId = invalidMatchId };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(invalidMatchId))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdWithDetailsAsync(invalidMatchId))
             .ReturnsAsync((Match?)null);
 
         // Act
@@ -144,13 +152,11 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
             HomeTeamScore = match.HomeTeamScore,
             AwayTeamScore = match.AwayTeamScore,
             MatchStatus = match.MatchStatus,
-            ScheduledDateTimeUtc = match.ScheduledDateTimeUtc
+            ScheduledDateTimeUtc = match.ScheduledDateTimeUtc,
         };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
-            .ReturnsAsync(match);
-        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
-            .Returns(expectedDetailsDto);
+        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId)).ReturnsAsync(match);
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match)).Returns(expectedDetailsDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -175,10 +181,8 @@ public class GetMatchByIdWithDetailsQueryHandlerTests
         var match = TestDataBuilder.CreateValidMatch(matchId);
         var matchDetailsDto = new MatchDetailsDto { Id = matchId };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
-            .ReturnsAsync(match);
-        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match))
-            .Returns(matchDetailsDto);
+        _unitOfWorkMock.Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId)).ReturnsAsync(match);
+        _iMatchMapperMock.Setup(x => x.ToDetailsFromMatch(match)).Returns(matchDetailsDto);
 
         // Act
         await _handler.Handle(query, CancellationToken.None);

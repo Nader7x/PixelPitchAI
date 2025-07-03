@@ -14,7 +14,8 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
     private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public RegisterUserCommandHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public RegisterUserCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<RegisterUserCommandHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -31,7 +32,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "Doe",
             Email = "john.doe@example.com",
             Password = "StrongPassword123!",
-            UserName = "JohnDoe"
+            UserName = "JohnDoe",
         };
 
         // Act
@@ -65,7 +66,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "existing@example.com",
             UserName = "existinguser",
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
 
         await _userManager.CreateAsync(existingUser, "Password123!");
@@ -76,7 +77,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "existing@example.com", // Same email
             Password = "StrongPassword123!",
-            UserName = "NewUser"
+            UserName = "NewUser",
         };
 
         // Act
@@ -98,7 +99,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "existing@example.com",
             UserName = "duplicateusername",
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
 
         await _userManager.CreateAsync(existingUser, "Password123!");
@@ -109,7 +110,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "new@example.com",
             Password = "StrongPassword123!",
-            UserName = "NewUser"
+            UserName = "NewUser",
         };
 
         // Act
@@ -131,7 +132,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "weak@example.com",
             Password = "123", // Weak password
-            UserName = "TestUser"
+            UserName = "TestUser",
         };
 
         // Act
@@ -153,7 +154,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "mismatch@example.com",
             Password = "StrongPassword123!",
-            UserName = "TestUser" // Different confirmation
+            UserName = "TestUser", // Different confirmation
         };
 
         // Act
@@ -175,7 +176,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "invalid-email-format", // Invalid email
             Password = "StrongPassword123!",
-            UserName = "TestUser"
+            UserName = "TestUser",
         };
 
         // Act
@@ -197,7 +198,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "", // Empty
             Email = "", // Empty
             Password = "StrongPassword123!",
-            UserName = ""
+            UserName = "",
         };
 
         // Act
@@ -219,7 +220,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "long@example.com",
             Password = "StrongPassword123!",
-            UserName = "TestUser"
+            UserName = "TestUser",
         };
 
         // Act
@@ -248,7 +249,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "García-López",
             Email = "jose.garcia@example.com",
             Password = "StrongPassword123!",
-            UserName = "JoseGarcia"
+            UserName = "JoseGarcia",
         };
 
         // Act
@@ -275,7 +276,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
                 LastName = "Test",
                 Email = "user1@example.com",
                 Password = "Password123!",
-                UserName = "User1Test"
+                UserName = "User1Test",
             },
             new RegisterUserCommand
             {
@@ -283,7 +284,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
                 LastName = "Test",
                 Email = "user2@example.com",
                 UserName = "user2",
-                Password = "Password123!"
+                Password = "Password123!",
             },
             new RegisterUserCommand
             {
@@ -291,8 +292,8 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
                 LastName = "Test",
                 Email = "user3@example.com",
                 UserName = "user3",
-                Password = "Password123!"
-            }
+                Password = "Password123!",
+            },
         };
 
         var results = new List<RegisterUserCommandResponse>();
@@ -326,7 +327,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "test@example.com",
             UserName = "testuser",
-            Password = "StrongPassword123!"
+            Password = "StrongPassword123!",
         };
 
         // Dispose context to simulate database error

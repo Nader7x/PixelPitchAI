@@ -11,7 +11,8 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
     private readonly CreateStadiumCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public CreateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<CreateStadiumCommandHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -27,7 +28,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             City = "Manchester, England",
             Capacity = 74879,
             BuiltDate = new DateTime(1910, 1, 1),
-            Description = "The Theatre of Dreams"
+            Description = "The Theatre of Dreams",
         };
 
         // Act
@@ -57,7 +58,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         {
             Name = "Simple Stadium",
             City = "Test City",
-            Capacity = 1000
+            Capacity = 1000,
         };
 
         // Act
@@ -89,7 +90,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             BuiltDate = new DateTime(1957, 1, 1),
             Description = "Home of FC Barcelona",
             ImageUrl = "https://example.com/camp-nou.jpg",
-            SurfaceType = "Natural Grass"
+            SurfaceType = "Natural Grass",
         };
 
         // Act
@@ -117,7 +118,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         {
             Name = "Wembley Stadium",
             City = "London, England",
-            Capacity = 90000
+            Capacity = 90000,
         };
 
         // Act
@@ -146,7 +147,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Rungrado 1st of May Stadium",
             City = "Pyongyang, North Korea",
             Capacity = 114000, // World's largest stadium by capacity
-            BuiltDate = new DateTime(1989, 1, 1)
+            BuiltDate = new DateTime(1989, 1, 1),
         };
 
         // Act
@@ -170,7 +171,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Historic Stadium",
             City = "Old City",
             Capacity = 25000,
-            BuiltDate = new DateTime(1888, 1, 1) // Very old stadium
+            BuiltDate = new DateTime(1888, 1, 1), // Very old stadium
         };
 
         // Act
@@ -190,9 +191,24 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         // Arrange
         var commands = new[]
         {
-            new CreateStadiumCommand { Name = "Stadium 1", City = "City 1", Capacity = 50000 },
-            new CreateStadiumCommand { Name = "Stadium 2", City = "City 2", Capacity = 45000 },
-            new CreateStadiumCommand { Name = "Stadium 3", City = "City 3", Capacity = 40000 }
+            new CreateStadiumCommand
+            {
+                Name = "Stadium 1",
+                City = "City 1",
+                Capacity = 50000,
+            },
+            new CreateStadiumCommand
+            {
+                Name = "Stadium 2",
+                City = "City 2",
+                Capacity = 45000,
+            },
+            new CreateStadiumCommand
+            {
+                Name = "Stadium 3",
+                City = "City 3",
+                Capacity = 40000,
+            },
         };
 
         var results = new List<CreateStadiumCommandResponse>();
@@ -228,7 +244,7 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         {
             Name = "Test Stadium",
             City = "Test City",
-            Capacity = 30000
+            Capacity = 30000,
         };
 
         // Dispose the context to simulate database error

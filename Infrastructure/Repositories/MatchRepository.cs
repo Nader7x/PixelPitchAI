@@ -1,18 +1,20 @@
+using System.Linq.Expressions;
 using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class MatchRepository(FootballDbContext context) : Repository<Match>(context), IMatchRepository
+public class MatchRepository(FootballDbContext context)
+    : Repository<Match>(context),
+        IMatchRepository
 {
     private readonly FootballDbContext _context = context;
 
-
     public async Task<IReadOnlyList<Match>> GetBySeasonIdAsync(int homeSeasonId, int awaySeasonId)
     {
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -23,8 +25,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetByTeamIdAsync(int teamId)
     {
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Where(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId)
@@ -34,8 +36,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetByDateRangeAsync(DateTime start, DateTime end)
     {
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -47,8 +49,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
     public async Task<IReadOnlyList<Match>> GetUpcomingMatchesAsync(int count)
     {
         var now = DateTime.UtcNow;
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -61,8 +63,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
     public async Task<IReadOnlyList<Match>> GetRecentMatchesAsync(int count)
     {
         var now = DateTime.UtcNow;
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -74,10 +76,11 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetByStatusAsync(string status)
     {
-        if (string.IsNullOrEmpty(status)) return new List<Match>();
+        if (string.IsNullOrEmpty(status))
+            return new List<Match>();
 
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -89,7 +92,9 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetAllWithDetailsAsync()
     {
-        return await _context.Matches
+        var query = _context.Matches.AsQueryable();
+        // Apply any additional filters or sorting if needed
+        return await query
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
@@ -100,8 +105,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<Match?> GetByIdWithDetailsAsync(int matchId)
     {
-        return await _context.Matches
-            .Include(m => m.HomeTeam)
+        return await _context
+            .Matches.Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
@@ -113,14 +118,24 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IEnumerable<Match>> SearchAsync(string query)
     {
-        if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<Match>();
+        if (string.IsNullOrWhiteSpace(query))
+            return Enumerable.Empty<Match>();
 
         var searchTerm = query.ToLower().Trim();
 
-        return await _context.Matches
-            .Where(m =>
-                (m.HomeTeam != null && m.HomeTeam.Name != null && m.HomeTeam.Name.ToLower().Contains(searchTerm)) ||
-                (m.AwayTeam != null && m.AwayTeam.Name != null && m.AwayTeam.Name.ToLower().Contains(searchTerm)))
+        return await _context
+            .Matches.Where(m =>
+                (
+                    m.HomeTeam != null
+                    && m.HomeTeam.Name != null
+                    && m.HomeTeam.Name.ToLower().Contains(searchTerm)
+                )
+                || (
+                    m.AwayTeam != null
+                    && m.AwayTeam.Name != null
+                    && m.AwayTeam.Name.ToLower().Contains(searchTerm)
+                )
+            )
             .AsSplitQuery()
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
@@ -131,24 +146,32 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IReadOnlyList<Match>> GetMatchesBySeasonIdAsync(int seasonId)
     {
-        return await _context.Matches
-            .Where(m => m.HomeTeamSeasonId == seasonId || m.AwayTeamSeasonId == seasonId).ToListAsync();
+        return await _context
+            .Matches.Where(m => m.HomeTeamSeasonId == seasonId || m.AwayTeamSeasonId == seasonId)
+            .ToListAsync();
     }
 
     public async Task<Match?> GetLiveMatchAsync(string requestUserId)
     {
-        return await _context.Matches
-            .Where(m => m.IsLive && m.CreatorId == requestUserId)
+        return await _context
+            .Matches.Where(m => m.IsLive && m.CreatorId == requestUserId)
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .FirstOrDefaultAsync();
     }
 
-    public async Task<Match?> UpdateSimulationIdAsync(int matchId, string simulationId,
-        CancellationToken cancellationToken)
+    public async Task<Match?> UpdateSimulationIdAsync(
+        int matchId,
+        string simulationId,
+        CancellationToken cancellationToken
+    )
     {
-        var match = await _context.Matches.FindAsync([matchId, cancellationToken], cancellationToken);
-        if (match == null) return null;
+        var match = await _context.Matches.FindAsync(
+            [matchId, cancellationToken],
+            cancellationToken
+        );
+        if (match == null)
+            return null;
         match.SimulationId = simulationId;
         _context.Matches.Update(match);
         await _context.SaveChangesAsync(cancellationToken);
@@ -158,8 +181,8 @@ public class MatchRepository(FootballDbContext context) : Repository<Match>(cont
 
     public async Task<IEnumerable<Match>> GetMatchesByUserIdAsync(string userId)
     {
-        return await _context.Matches
-            .Where(m => m.CreatorId == userId)
+        return await _context
+            .Matches.Where(m => m.CreatorId == userId)
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .AsNoTracking()

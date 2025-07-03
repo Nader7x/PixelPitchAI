@@ -14,5 +14,5 @@ public enum PlayerPosition
     LeftWinger,
     RightWinger,
     Striker,
-    CenterForward
+    CenterForward,
 }

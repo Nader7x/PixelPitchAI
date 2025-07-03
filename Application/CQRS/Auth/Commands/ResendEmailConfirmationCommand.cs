@@ -18,9 +18,8 @@ public class ResendEmailConfirmationCommandResponse
     public string Error { get; set; }
 }
 
-public class
-    ResendEmailConfirmationCommandHandler : IRequestHandler<ResendEmailConfirmationCommand,
-    ResendEmailConfirmationCommandResponse>
+public class ResendEmailConfirmationCommandHandler
+    : IRequestHandler<ResendEmailConfirmationCommand, ResendEmailConfirmationCommandResponse>
 {
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
@@ -30,7 +29,9 @@ public class
     public ResendEmailConfirmationCommandHandler(
         IIdentityService identityService,
         IEmailService emailService,
-        IConfiguration configuration, UserManager<ApplicationUser> userManager)
+        IConfiguration configuration,
+        UserManager<ApplicationUser> userManager
+    )
     {
         _identityService = identityService;
         _emailService = emailService;
@@ -40,12 +41,12 @@ public class
 
     public async Task<ResendEmailConfirmationCommandResponse> Handle(
         ResendEmailConfirmationCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
             var user = await _identityService.GetUserByEmailAsync(request.Email);
-            Console.WriteLine(user.Email);
             if (user == null)
                 // Don't reveal that the user does not exist
                 return new ResendEmailConfirmationCommandResponse { Succeeded = true };
@@ -56,23 +57,24 @@ public class
                 return new ResendEmailConfirmationCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Email is already confirmed."
+                    Error = "Email is already confirmed.",
                 };
 
             // Generate email confirmation token
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            Console.WriteLine(token);
 
             // Create confirmation link
-            var appUrl = _configuration["AppUrl"] ?? "https://Footex.AI";
-            var confirmationLink = $"{appUrl}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+            var appUrl = _configuration["AppUrl"] ?? "https://localhost:3000";
+            var confirmationLink =
+                $"{appUrl}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
 
             // Send email
             if (user.Email != null)
                 await _emailService.SendEmailAsync(
                     user.Email,
                     "Confirm Your Email",
-                    $"Please confirm your email by clicking <a href='{confirmationLink}'>here</a>.");
+                    $"Please confirm your email by clicking <a href='{confirmationLink}'>here</a>."
+                );
 
             return new ResendEmailConfirmationCommandResponse { Succeeded = true };
         }
@@ -81,7 +83,7 @@ public class
             return new ResendEmailConfirmationCommandResponse
             {
                 Succeeded = false,
-                Error = ex.Message
+                Error = ex.Message,
             };
         }
     }

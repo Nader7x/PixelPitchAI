@@ -5,6 +5,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Moq;
 using Xunit;
 
@@ -12,7 +13,7 @@ namespace Footex.UnitTests.CQRS.Stadiums.Queries;
 
 public class GetStadiumByIdQueryHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly GetStadiumByIdQueryHandler _handler;
     private readonly Mock<IStadiumMapper> _iStadiumMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -21,10 +22,15 @@ public class GetStadiumByIdQueryHandlerTests
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _iStadiumMapperMock = new Mock<IStadiumMapper>();
-        _handler = new GetStadiumByIdQueryHandler(_unitOfWorkMock.Object, _iStadiumMapperMock.Object);
+        _handler = new GetStadiumByIdQueryHandler(
+            _unitOfWorkMock.Object,
+            _iStadiumMapperMock.Object
+        );
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture = new NoRecursionFixture();
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -42,13 +48,11 @@ public class GetStadiumByIdQueryHandlerTests
             Name = stadium.Name,
             City = stadium.City,
             Country = stadium.Country,
-            Capacity = stadium.Capacity
+            Capacity = stadium.Capacity,
         };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
-            .ReturnsAsync(stadium);
-        _iStadiumMapperMock.Setup(x => x.ToDto(stadium))
-            .Returns(expectedStadiumDto);
+        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync(stadium);
+        _iStadiumMapperMock.Setup(x => x.ToDto(stadium)).Returns(expectedStadiumDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -72,8 +76,7 @@ public class GetStadiumByIdQueryHandlerTests
         var stadiumId = 999;
         var query = new GetStadiumByIdQuery { Id = stadiumId };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
-            .ReturnsAsync((Stadium?)null);
+        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync((Stadium?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -97,7 +100,8 @@ public class GetStadiumByIdQueryHandlerTests
         var query = new GetStadiumByIdQuery { Id = stadiumId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
+        _unitOfWorkMock
+            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -123,8 +127,7 @@ public class GetStadiumByIdQueryHandlerTests
         // Arrange
         var query = new GetStadiumByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(invalidId))
-            .ReturnsAsync((Stadium?)null);
+        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(invalidId)).ReturnsAsync((Stadium?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -160,13 +163,11 @@ public class GetStadiumByIdQueryHandlerTests
             Longitude = stadium.Longitude,
             Description = stadium.Description,
             Facilities = stadium.Facilities,
-            BuiltDate = stadium.BuiltDate
+            BuiltDate = stadium.BuiltDate,
         };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
-            .ReturnsAsync(stadium);
-        _iStadiumMapperMock.Setup(x => x.ToDto(stadium))
-            .Returns(expectedStadiumDto);
+        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync(stadium);
+        _iStadiumMapperMock.Setup(x => x.ToDto(stadium)).Returns(expectedStadiumDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

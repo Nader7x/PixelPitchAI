@@ -19,12 +19,19 @@ public class GetMatchByIdWithDetailsQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetMatchByIdWithDetailsQueryHandler(IMatchMapper matchMapper, IUnitOfWork unitOfWork, ILiveMatchStatisticsService liveMatchStatisticsService)
-    : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
+public class GetMatchByIdWithDetailsQueryHandler(
+    IMatchMapper matchMapper,
+    IUnitOfWork unitOfWork,
+    ILiveMatchStatisticsService liveMatchStatisticsService
+) : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
 {
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService = liveMatchStatisticsService;
-    public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(GetMatchByIdWithDetailsQuery request,
-        CancellationToken cancellationToken)
+    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService =
+        liveMatchStatisticsService;
+
+    public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(
+        GetMatchByIdWithDetailsQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -34,22 +41,20 @@ public class GetMatchByIdWithDetailsQueryHandler(IMatchMapper matchMapper, IUnit
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Match with ID {request.MatchId} not found"
+                    Error = $"Match with ID {request.MatchId} not found",
                 };
-            var liveStatistics =  _liveMatchStatisticsService.GetCachedLiveMatch(request.MatchId.ToString());
+            var liveStatistics = _liveMatchStatisticsService.GetCachedLiveMatch(
+                request.MatchId.ToString()
+            );
             var matchDto = matchMapper.ToDetailsFromMatch(liveStatistics ?? match);
-            return new GetMatchByIdWithDetailsQueryResponse
-            {
-                Succeeded = true,
-                Match = matchDto
-            };
+            return new GetMatchByIdWithDetailsQueryResponse { Succeeded = true, Match = matchDto };
         }
         catch (Exception ex)
         {
             return new GetMatchByIdWithDetailsQueryResponse
             {
                 Succeeded = false,
-                Error = ex.Message
+                Error = ex.Message,
             };
         }
     }

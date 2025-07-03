@@ -18,11 +18,13 @@ public sealed class ApplicationUser : IdentityUser
     public Team? FavoriteTeam { get; init; }
 
     // Add this property to the ApplicationUser class
-    [MaxLength(50)] public string? Gender { get; set; }
+    [MaxLength(50)]
+    public string? Gender { get; set; }
 
     public int Age { get; set; }
 
-    [MaxLength(2000)] public string? ImageUrl { get; set; }
+    [MaxLength(2000)]
+    public string? ImageUrl { get; set; }
 
     public ICollection<Match> Matches { get; init; } = [];
 

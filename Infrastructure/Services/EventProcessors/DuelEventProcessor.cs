@@ -6,9 +6,9 @@ public class DuelEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "duel" || 
-               matchEvent.action == "50/50" || 
-               matchEvent.action == "shield";
+        return matchEvent.action == "duel"
+            || matchEvent.action == "50/50"
+            || matchEvent.action == "shield";
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -27,7 +27,11 @@ public class DuelEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalDuels++;
     }

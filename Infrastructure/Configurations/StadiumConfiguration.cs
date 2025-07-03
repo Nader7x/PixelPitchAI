@@ -27,23 +27,21 @@ public class StadiumConfiguration : IEntityTypeConfiguration<Stadium>
         builder.Property(s => s.Longitude).HasPrecision(9, 6);
 
         // Use 'date' type for BuiltDate and LastRenovation
-        builder.Property(s => s.BuiltDate)
-            .HasColumnType("date");
-        builder.Property(s => s.LastRenovation)
-            .HasColumnType("date");
+        builder.Property(s => s.BuiltDate).HasColumnType("date");
+        builder.Property(s => s.LastRenovation).HasColumnType("date");
         builder.Property(s => s.CostMillionsEuros).HasPrecision(10, 2);
 
         // Use B-tree indexes for exact matches
-        builder.HasIndex(s => s.Name)
-            .HasMethod("btree")
-            .HasDatabaseName("IX_Stadium_Name");
+        builder.HasIndex(s => s.Name).HasMethod("btree").HasDatabaseName("IX_Stadium_Name");
 
-        builder.HasIndex(s => new { s.City, s.Country })
+        builder
+            .HasIndex(s => new { s.City, s.Country })
             .HasMethod("btree")
             .HasDatabaseName("IX_Stadium_Location");
 
         // Add JSONB path operation index for facilities searches
-        builder.HasIndex(s => s.Facilities)
+        builder
+            .HasIndex(s => s.Facilities)
             .HasMethod("gin")
             .HasDatabaseName("IX_Stadium_Facilities");
 

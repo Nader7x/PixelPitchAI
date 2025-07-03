@@ -57,7 +57,8 @@ public static class TestConfigurationHelper
 
     public static void EnsureDirectoryExists(string path)
     {
-        if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
     }
 
     public static string GetResultsDirectory(string testType)

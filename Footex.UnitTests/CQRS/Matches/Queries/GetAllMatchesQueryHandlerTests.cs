@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
@@ -6,8 +5,10 @@ using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
+using Xunit.Abstractions;
 using Match = Domain.Models.Match;
 
 namespace Footex.UnitTests.CQRS.Matches.Queries;
@@ -18,17 +19,46 @@ public class GetAllMatchesQueryHandlerTests
     private readonly GetAllMatchesQueryHandler _handler;
     private readonly Mock<IMatchMapper> _IMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly ITestOutputHelper _testOutputHelper;
 
-    public GetAllMatchesQueryHandlerTests()
+    public GetAllMatchesQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _IMatchMapperMock = new Mock<IMatchMapper>();
         _handler = new GetAllMatchesQueryHandler(_unitOfWorkMock.Object, _IMatchMapperMock.Object);
 
         _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+    }
+
+    private static Match CreateMatch(
+        int id,
+        int homeTeamSeasonId = 1,
+        int awayTeamSeasonId = 1,
+        int homeTeamId = 1,
+        int awayTeamId = 2,
+        string status = "Scheduled",
+        int matchWeek = 1,
+        DateTime? scheduledDate = null
+    )
+    {
+        return new Match
+        {
+            Id = id,
+            HomeTeamSeasonId = homeTeamSeasonId,
+            AwayTeamSeasonId = awayTeamSeasonId,
+            HomeTeamId = homeTeamId,
+            AwayTeamId = awayTeamId,
+            MatchStatus = status,
+            MatchWeek = matchWeek,
+            ScheduledDateTimeUtc = scheduledDate ?? DateTime.UtcNow,
+            CreatorId = Guid.Empty.ToString(),
+        };
     }
 
     [Fact]
@@ -40,13 +70,15 @@ public class GetAllMatchesQueryHandlerTests
         {
             TestDataBuilder.CreateValidMatch(1),
             TestDataBuilder.CreateValidMatch(2),
-            TestDataBuilder.CreateValidMatch(3)
+            TestDataBuilder.CreateValidMatch(3),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        // Mock the queryable and its extension methods
+        var mockQueryable = matches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -58,8 +90,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(3);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -67,20 +99,33 @@ public class GetAllMatchesQueryHandlerTests
     {
         // Arrange
         var query = new GetAllMatchesQuery { HomeSeasonId = 1 };
-        var matches = new List<Match>
+        var allMatches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
-        var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        // Only matches with HomeSeasonId = 1 should be returned
+        var filteredMatches = allMatches.Where(m => m.HomeTeamSeasonId == 1).ToList();
+        var matchDtos = filteredMatches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        // Mock the queryable and its extension methods
+        var mockQueryable = allMatches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        // Check if the result is successful
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
+        if (!result.Succeeded)
+        {
+            // If the test fails, this will show us the actual error
+            throw new Exception($"Handler failed with error: {result.Error}");
+        }
 
         // Assert
         result.Should().NotBeNull();
@@ -88,25 +133,36 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable());
+        _IMatchMapperMock.Verify(
+            x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)),
+            Times.Once
+        );
     }
 
     [Fact]
     public async Task Handle_WithTeamFilter_ReturnsFilteredMatches()
     {
         // Arrange
-        var query = new GetAllMatchesQuery { TeamId = 1 };
-        var matches = new List<Match>
+        var teamId = 1;
+        var query = new GetAllMatchesQuery { TeamId = teamId };
+        var allMatches = new List<Match>
         {
-            TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            CreateMatch(1, homeTeamId: teamId),
+            CreateMatch(2, awayTeamId: teamId),
+            CreateMatch(3, homeTeamId: 3, awayTeamId: 4),
         };
-        var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        // Only matches with HomeTeamId = 1 or AwayTeamId = 1 should be returned
+        var filteredMatches = allMatches
+            .Where(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId)
+            .ToList();
+        var matchDtos = filteredMatches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        // Mock the queryable and its extension methods
+        var mockQueryable = allMatches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
             .Returns(matchDtos);
 
         // Act
@@ -118,8 +174,11 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(
+            x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -129,18 +188,25 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery { Status = "Completed" };
         var matches = new List<Match>
         {
-            TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatchWithStatus(1, "Completed"),
+            TestDataBuilder.CreateValidMatchWithStatus(2, "Completed"),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        var mockQueryable = matches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -148,8 +214,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -162,17 +228,23 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns(matchDtos);
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -180,7 +252,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -193,21 +265,26 @@ public class GetAllMatchesQueryHandlerTests
             HomeSeasonId = 1,
             TeamId = 2,
             Status = "Completed",
-            MatchWeek = 1
+            MatchWeek = 1,
         };
-        var matches = new List<Match>
-        {
-            TestDataBuilder.CreateValidMatch(1)
-        };
+        var matches = new List<Match> { TestDataBuilder.CreateValidMatch(1) };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -215,8 +292,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(1);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -226,8 +303,9 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery();
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ThrowsAsync(new Exception(exceptionMessage));
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -246,14 +324,22 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery { TeamId = 999 }; // Non-existent team
         var matches = new List<Match>();
         var matchDtos = new List<MatchDto?>();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -261,8 +347,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().BeEmpty();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -273,17 +359,25 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -291,8 +385,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -303,13 +397,14 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -321,8 +416,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -334,13 +429,14 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -352,8 +448,8 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
@@ -365,13 +461,14 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var mockQueryable = matches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -383,30 +480,37 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_WithEmptyStringStatus_ShouldUseGetAllWithDetailsAsync()
+    public async Task Handle_WithEmptyStringStatus()
     {
         // Arrange
         var query = new GetAllMatchesQuery { Status = "" };
         var matches = new List<Match>
         {
-            TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2),
-            TestDataBuilder.CreateValidMatch(3)
+            TestDataBuilder.CreateValidMatchWithStatus(1, "Scheduled"),
+            TestDataBuilder.CreateValidMatchWithStatus(2, "InProgress"),
+            TestDataBuilder.CreateValidMatchWithStatus(3, "Completed"),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        // Mock the queryable and its extension methods
+        var mockQueryable = matches.AsQueryable().BuildMock();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns(matchDtos);
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -414,9 +518,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(3);
         result.Error.Should().BeNull();
 
-        // Should call GetAllWithDetailsAsync instead of filtered method since empty string is treated as no filter
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -427,8 +529,9 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery { Status = "Completed" };
         var exceptionMessage = "Database query failed";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ThrowsAsync(new Exception(exceptionMessage));
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -439,7 +542,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Error.Should().Be(exceptionMessage);
         result.Matches.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Never);
     }
 
@@ -451,13 +554,13 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns((List<MatchDto?>)null!);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns((List<MatchDto?>)null!);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -468,7 +571,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().BeNull();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -476,25 +579,81 @@ public class GetAllMatchesQueryHandlerTests
     public async Task Handle_AllFiltersProvided_ReturnsFilteredMatches()
     {
         // Arrange
+        var now = DateTime.UtcNow;
+        var fromDate = now.AddDays(-7);
+        var toDate = now.AddDays(7);
         var query = new GetAllMatchesQuery
         {
             HomeSeasonId = 1,
             AwaySeasonId = 2,
-            TeamId = 3,
+            TeamId = 3, // Adding TeamId filter to test all filters
             Status = "Live",
-            FromDate = DateTime.UtcNow.AddDays(-7),
-            ToDate = DateTime.UtcNow.AddDays(7),
-            MatchWeek = 5
+            FromDate = fromDate,
+            ToDate = toDate,
+            MatchWeek = 5,
         };
-        var matches = new List<Match>
-        {
-            TestDataBuilder.CreateValidMatch(1)
-        };
-        var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
+        var allMatches = new List<Match>
+        {
+            // Match that meets all criteria
+            CreateMatch(
+                id: 1,
+                homeTeamSeasonId: 1,
+                awayTeamSeasonId: 2,
+                homeTeamId: 3,
+                status: "Live",
+                matchWeek: 5,
+                scheduledDate: now
+            ),
+            // Matches that fail different filter criteria
+            CreateMatch(id: 2, homeTeamSeasonId: 2, awayTeamSeasonId: 2), // Wrong homeSeasonId
+            CreateMatch(id: 3, homeTeamSeasonId: 1, awayTeamSeasonId: 3), // Wrong awaySeasonId
+            CreateMatch(
+                id: 4,
+                homeTeamSeasonId: 1,
+                awayTeamSeasonId: 2,
+                homeTeamId: 4,
+                awayTeamId: 5
+            ), // Wrong teamId
+            CreateMatch(
+                id: 5,
+                homeTeamSeasonId: 1,
+                awayTeamSeasonId: 2,
+                homeTeamId: 3,
+                status: "Scheduled"
+            ), // Wrong status
+            CreateMatch(
+                id: 6,
+                homeTeamSeasonId: 1,
+                awayTeamSeasonId: 2,
+                homeTeamId: 3,
+                status: "Live",
+                matchWeek: 6
+            ), // Wrong matchWeek
+            CreateMatch(
+                id: 7,
+                homeTeamSeasonId: 1,
+                awayTeamSeasonId: 2,
+                homeTeamId: 3,
+                status: "Live",
+                matchWeek: 5,
+                scheduledDate: now.AddDays(-10)
+            ), // Outside date range
+        };
+
+        // The expected filtered result (only the match that meets all criteria)
+        var expectedFilteredMatch = allMatches.First();
+        var matchDtos = new List<MatchDto> { new MatchDto { Id = expectedFilteredMatch.Id } };
+
+        // Create a mock queryable
+        var mockQueryable = allMatches.AsQueryable().BuildMock();
+
+        // Setup the repository mock to return our queryable
+        _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
+
+        // Setup the mapper to return our expected DTOs - be more lenient with the setup
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -502,31 +661,37 @@ public class GetAllMatchesQueryHandlerTests
 
         // Assert
         result.Should().NotBeNull();
+        if (!result.Succeeded)
+        {
+            // If the test fails, this will show us the actual error
+            throw new Exception($"Handler failed with error: {result.Error}");
+        }
         result.Succeeded.Should().BeTrue();
+        result.Matches.Should().NotBeNull();
         result.Matches.Should().HaveCount(1);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
+        _IMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_ZeroTeamId_ShouldTreatAsNoFilter()
     {
-        // Arrange  
+        // Arrange
         var query = new GetAllMatchesQuery { TeamId = 0 };
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
             TestDataBuilder.CreateValidMatch(2),
-            TestDataBuilder.CreateValidMatch(3)
+            TestDataBuilder.CreateValidMatch(3),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns(matchDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -537,9 +702,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(3);
         result.Error.Should().BeNull();
 
-        // Should call GetAllWithDetailsAsync instead of filtered method since TeamId 0 is treated as no filter
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -552,14 +715,14 @@ public class GetAllMatchesQueryHandlerTests
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns(matchDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -570,8 +733,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -582,20 +744,20 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery
         {
             HomeSeasonId = 1,
-            Status = "Scheduled"
+            Status = "Scheduled",
             // Other filters are null/default
         };
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matches);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(matches))
-            .Returns(matchDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -606,7 +768,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
         _IMatchMapperMock.Verify(x => x.ToDtoList(matches), Times.Once);
     }
 
@@ -620,18 +782,17 @@ public class GetAllMatchesQueryHandlerTests
         {
             TeamId = 1,
             FromDate = null,
-            ToDate = null
+            ToDate = null,
         };
-        var matches = new List<Match>
-        {
-            TestDataBuilder.CreateValidMatch(1)
-        };
+        var matches = new List<Match> { TestDataBuilder.CreateValidMatch(1) };
         var matchesEnumerable = matches.AsEnumerable();
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matchesEnumerable);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -642,7 +803,7 @@ public class GetAllMatchesQueryHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Matches.Should().HaveCount(1);
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
     }
 
     [Fact]
@@ -653,50 +814,50 @@ public class GetAllMatchesQueryHandlerTests
         {
             HomeSeasonId = null,
             AwaySeasonId = null,
-            Status = "Live"
+            Status = "Live",
         };
-        var matches = new List<Match>
-        {
-            TestDataBuilder.CreateValidMatch(1)
-        };
-        var matchesEnumerable = matches.AsEnumerable();
+        var matches = new List<Match> { TestDataBuilder.CreateValidMatchWithStatus(1, "Live") };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matchesEnumerable);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
+        _testOutputHelper.WriteLine(
+            $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
+        );
 
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Matches.Should().HaveCount(1);
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
     }
 
     [Fact]
     public async Task Handle_WithNullMatchWeek_ShouldTreatAsNoMatchWeekFilter()
     {
         // Arrange
-        var query = new GetAllMatchesQuery
-        {
-            MatchWeek = null,
-            Status = "Scheduled"
-        };
-        var matches = new List<Match>
-        {
-            TestDataBuilder.CreateValidMatch(1)
-        };
+        var query = new GetAllMatchesQuery { MatchWeek = null, Status = "Scheduled" };
+        var matches = new List<Match> { TestDataBuilder.CreateValidMatch(1) };
         var matchesEnumerable = matches.AsEnumerable();
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
-            .ReturnsAsync(matchesEnumerable);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matches.AsQueryable().BuildMock());
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
@@ -707,41 +868,45 @@ public class GetAllMatchesQueryHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Matches.Should().HaveCount(1);
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
     }
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_WithInvalidStatusValues_ShouldUseGetAllWithDetailsAsync(string? status)
+    public async Task Handle_WithInvalidStatusValues(string? status)
     {
         // Arrange
         var query = new GetAllMatchesQuery { Status = status };
         var matches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
         var matchesReadOnly = matches.AsReadOnly() as IReadOnlyList<Match>;
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllWithDetailsAsync())
-            .ReturnsAsync(matchesReadOnly);
-        _IMatchMapperMock.Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetQueryable())
+            .Returns(matchesReadOnly.AsQueryable().BuildMock());
+        _IMatchMapperMock
+            .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        if (!result.Succeeded)
+        {
+            throw new Exception(result.Error);
+        }
 
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Matches.Should().HaveCount(2);
 
-        // Should use GetAllWithDetailsAsync for invalid status values
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllWithDetailsAsync(), Times.Once);
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.GetQueryable(), Times.Once);
     }
 
     #endregion

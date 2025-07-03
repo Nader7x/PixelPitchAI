@@ -6,11 +6,13 @@ namespace Infrastructure.Identity;
 
 public class IdentityService(
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole> roleManager)
-    : IIdentityService
+    RoleManager<IdentityRole> roleManager
+) : IIdentityService
 {
-    public async Task<(bool Succeeded, string UserId, IdentityResult result)> CreateUserAsync(ApplicationUser user,
-        string password)
+    public async Task<(bool Succeeded, string UserId, IdentityResult result)> CreateUserAsync(
+        ApplicationUser user,
+        string password
+    )
     {
         var result = await userManager.CreateAsync(user, password);
         return (result.Succeeded, user.Id, result);
@@ -19,7 +21,8 @@ public class IdentityService(
     public async Task<bool> DeleteUserAsync(string userId)
     {
         var user = await userManager.FindByIdAsync(userId);
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         var result = await userManager.DeleteAsync(user);
         return result.Succeeded;
@@ -42,7 +45,8 @@ public class IdentityService(
 
     public async Task<bool> AddUserToRoleAsync(ApplicationUser user, string role)
     {
-        if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole(role));
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
 
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded;
@@ -51,7 +55,8 @@ public class IdentityService(
     public async Task<bool> IsInRoleAsync(string userId, string role)
     {
         var user = await userManager.FindByIdAsync(userId);
-        if (user == null) return false;
+        if (user == null)
+            return false;
 
         return await userManager.IsInRoleAsync(user, role);
     }

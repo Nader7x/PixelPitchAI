@@ -118,10 +118,18 @@ public class SearchSettings
     ///     Common search queries for testing
     /// </summary>
     public string[] CommonQueries { get; set; } =
-    {
-        "manchester", "liverpool", "barcelona", "madrid", "juventus",
-        "messi", "ronaldo", "neymar", "mbappe", "haaland"
-    };
+        {
+            "manchester",
+            "liverpool",
+            "barcelona",
+            "madrid",
+            "juventus",
+            "messi",
+            "ronaldo",
+            "neymar",
+            "mbappe",
+            "haaland",
+        };
 
     /// <summary>
     ///     Search result limits to test

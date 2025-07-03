@@ -18,7 +18,8 @@ public class GetPlayerByIdQueryResponse
     public string Error { get; set; }
 }
 
-public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
+public class GetPlayerByIdQueryHandler
+    : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
 {
     private readonly IPlayerMapper _playerMapper;
     private readonly IUnitOfWork _unitOfWork;
@@ -29,8 +30,10 @@ public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, Get
         _playerMapper = playerMapper;
     }
 
-    public async Task<GetPlayerByIdQueryResponse> Handle(GetPlayerByIdQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetPlayerByIdQueryResponse> Handle(
+        GetPlayerByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -40,24 +43,16 @@ public class GetPlayerByIdQueryHandler : IRequestHandler<GetPlayerByIdQuery, Get
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Player with ID {request.Id} not found"
+                    Error = $"Player with ID {request.Id} not found",
                 };
 
             var playerDto = _playerMapper.ToDto(player);
 
-            return new GetPlayerByIdQueryResponse
-            {
-                Succeeded = true,
-                Player = playerDto
-            };
+            return new GetPlayerByIdQueryResponse { Succeeded = true, Player = playerDto };
         }
         catch (Exception ex)
         {
-            return new GetPlayerByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetPlayerByIdQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

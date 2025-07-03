@@ -41,7 +41,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             PhotoUrl = "http://example.com/photo.jpg",
             Position = nameof(PlayerPosition.AttackingMidfielder),
             TeamId = team.Id,
-            ShirtNumber = 10
+            ShirtNumber = 10,
         };
 
         // Act
@@ -74,7 +74,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "England",
             Position = nameof(PlayerPosition.AttackingMidfielder),
             TeamId = 999999, // Invalid team ID
-            ShirtNumber = 10
+            ShirtNumber = 10,
         };
 
         // Act
@@ -106,7 +106,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "England",
             Position = nameof(PlayerPosition.CentralMidfielder),
             ShirtNumber = 10, // Duplicate jersey number
-            TeamId = team.Id
+            TeamId = team.Id,
         };
 
         // Act
@@ -133,7 +133,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "Spain",
             Position = nameof(PlayerPosition.CenterForward),
             ShirtNumber = 9,
-            TeamId = team.Id
+            TeamId = team.Id,
             // Optional fields not provided
         };
 
@@ -171,7 +171,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
                 Nationality = "England",
                 Position = nameof(position),
                 ShirtNumber = jerseyNumber,
-                TeamId = team.Id
+                TeamId = team.Id,
             };
 
             // Act
@@ -201,7 +201,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "England",
             Position = nameof(PlayerPosition.CentralMidfielder),
             ShirtNumber = 0, // Invalid jersey number
-            TeamId = team.Id
+            TeamId = team.Id,
         };
 
         // Act
@@ -228,7 +228,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             Nationality = "Brazil",
             Position = nameof(PlayerPosition.Goalkeeper),
             ShirtNumber = 1,
-            TeamId = team.Id
+            TeamId = team.Id,
         };
 
         // Act

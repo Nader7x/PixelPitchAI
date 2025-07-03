@@ -25,7 +25,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
             From = new MailAddress(from),
             Subject = subject,
             Body = htmlMessage,
-            IsBodyHtml = true
+            IsBodyHtml = true,
         };
 
         mailMessage.To.Add(to);

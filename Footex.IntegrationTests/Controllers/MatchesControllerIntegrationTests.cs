@@ -130,7 +130,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             AwaySeasonId = 1,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchStatus = "Scheduled",
-            CreatorId = Guid.Empty.ToString()
+            CreatorId = Guid.Empty.ToString(),
         };
 
         // Act
@@ -153,7 +153,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             SeasonId = 1,
             ScheduledDateTimeUTC = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            MatchStatus = "Scheduled"
+            MatchStatus = "Scheduled",
         };
 
         // Act
@@ -202,7 +202,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             HomeTeamSeason = "2023/24",
             AwayTeamSeason = "2023/24",
             HomeSeasonId = 7,
-            AwaySeasonId = 7
+            AwaySeasonId = 7,
         };
 
         // Act
@@ -227,7 +227,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             StartDate = DateTime.UtcNow.AddMonths(-6),
             EndDate = DateTime.UtcNow.AddMonths(6),
             LeagueName = "Premier League",
-            Country = "England"
+            Country = "England",
         };
         context.Seasons.Add(season);
         await context.SaveChangesAsync();
@@ -239,7 +239,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             FoundationDate = DateTime.UtcNow.AddYears(-100),
             Country = "England",
             City = "London",
-            Logo = "https://example.com/arsenal-logo.png"
+            Logo = "https://example.com/arsenal-logo.png",
         };
 
         var awayTeam = new Team
@@ -248,7 +248,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             FoundationDate = DateTime.UtcNow.AddYears(-100),
             Country = "England",
             City = "London",
-            Logo = "https://example.com/chelsea-logo.png"
+            Logo = "https://example.com/chelsea-logo.png",
         };
 
         context.Teams.AddRange(homeTeam, awayTeam);
@@ -266,7 +266,7 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             MatchWeek = 1,
             CreatorId = "test-user-id",
             HomeTeamInMatchName = "Arsenal_2024",
-            AwayTeamInMatchName = "Chelsea_2024"
+            AwayTeamInMatchName = "Chelsea_2024",
         };
 
         context.Matches.Add(match);

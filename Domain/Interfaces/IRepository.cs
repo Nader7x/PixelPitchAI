@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Domain.Interfaces;
 
-public interface IRepository<T> where T : class
+public interface IRepository<T>
+    where T : class
 {
     Task<IEnumerable<T>> GetAllAsync();
     Task<IEnumerable<T>> GetAllAsync(int? pageNumber, int? pageSize);
@@ -18,8 +19,8 @@ public interface IRepository<T> where T : class
     Task<T?> FindAsync(Expression<Func<T, bool>> predicate);
     Task<T?> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken);
 
-
     Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate);
     Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate);
     Task<int> CountAsync(Expression<Func<T, bool>> predicate);
+    IQueryable<T> GetQueryable();
 }

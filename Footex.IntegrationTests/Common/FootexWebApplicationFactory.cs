@@ -29,7 +29,8 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     public new async Task DisposeAsync()
     {
-        if (_postgreSqlContainer != null) await _postgreSqlContainer.DisposeAsync();
+        if (_postgreSqlContainer != null)
+            await _postgreSqlContainer.DisposeAsync();
         await base.DisposeAsync();
     }
 
@@ -38,10 +39,12 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         builder.ConfigureServices(services =>
         {
             // Remove the existing DbContext registration
-            var descriptor =
-                services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<FootballDbContext>));
+            var descriptor = services.SingleOrDefault(d =>
+                d.ServiceType == typeof(DbContextOptions<FootballDbContext>)
+            );
 
-            if (descriptor != null) services.Remove(descriptor);
+            if (descriptor != null)
+                services.Remove(descriptor);
 
             // Add a database context using PostgreSQL test container
             if (_postgreSqlContainer != null)

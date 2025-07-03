@@ -21,8 +21,10 @@ public class GetSeasonByIdQueryResponse
 public class GetSeasonByIdQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper seasonMapper)
     : IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>
 {
-    public async Task<GetSeasonByIdQueryResponse> Handle(GetSeasonByIdQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetSeasonByIdQueryResponse> Handle(
+        GetSeasonByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -32,28 +34,22 @@ public class GetSeasonByIdQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper sea
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Season with ID {request.Id} not found"
+                    Error = $"Season with ID {request.Id} not found",
                 };
 
             // Get team standings summary for the season
-            var teamStats = await unitOfWork.TeamSeasons.GetAllAsync(ts => ts.SeasonId == request.Id);
+            var teamStats = await unitOfWork.TeamSeasons.GetAllAsync(ts =>
+                ts.SeasonId == request.Id
+            );
 
             // Count the matches for this season
             var seasonDto = seasonMapper.ToDto(season);
 
-            return new GetSeasonByIdQueryResponse
-            {
-                Succeeded = true,
-                Season = seasonDto
-            };
+            return new GetSeasonByIdQueryResponse { Succeeded = true, Season = seasonDto };
         }
         catch (Exception ex)
         {
-            return new GetSeasonByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetSeasonByIdQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

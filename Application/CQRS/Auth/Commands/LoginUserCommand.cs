@@ -28,12 +28,15 @@ public class LoginUserCommandHandler(
     IApplicationUserRepository userRepository,
     ITokenService tokenService,
     IUnitOfWork unitOfWork,
-    IUserMapper userMapper)
-    : IRequestHandler<LoginUserCommand, LoginUserCommandResponse>
+    IUserMapper userMapper
+) : IRequestHandler<LoginUserCommand, LoginUserCommandResponse>
 {
     private readonly IUserMapper _userMapper = userMapper;
 
-    public async Task<LoginUserCommandResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
+    public async Task<LoginUserCommandResponse> Handle(
+        LoginUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -43,7 +46,7 @@ public class LoginUserCommandHandler(
                 return new LoginUserCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Invalid email or password"
+                    Error = "Invalid email or password",
                 };
 
             // Verify password
@@ -52,13 +55,16 @@ public class LoginUserCommandHandler(
                 return new LoginUserCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Invalid email or password"
+                    Error = "Invalid email or password",
                 };
 
             // Update last login time
             user.LastLogin = DateTime.UtcNow;
             // Generate JWT token and refresh token
-            var (accessToken, refreshToken) = await tokenService.GenerateTokenAsync(user, request.IpAddress);
+            var (accessToken, refreshToken) = await tokenService.GenerateTokenAsync(
+                user,
+                request.IpAddress
+            );
             await unitOfWork.SaveChangesAsync(cancellationToken);
             // get usr roles
             var roles = await userRepository.GetUserRolesAsync(user);
@@ -72,16 +78,12 @@ public class LoginUserCommandHandler(
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
                 Roles = roles,
-                TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")) // Should match JWT expiration
+                TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")), // Should match JWT expiration
             };
         }
         catch (Exception ex)
         {
-            return new LoginUserCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new LoginUserCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

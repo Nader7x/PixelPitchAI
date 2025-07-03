@@ -18,12 +18,16 @@ public class ResetPasswordCommandResponse
     public string Error { get; set; }
 }
 
-public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand, ResetPasswordCommandResponse>
+public class ResetPasswordCommandHandler
+    : IRequestHandler<ResetPasswordCommand, ResetPasswordCommandResponse>
 {
     private readonly IIdentityService _identityService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public ResetPasswordCommandHandler(IIdentityService identityService, UserManager<ApplicationUser> userManager)
+    public ResetPasswordCommandHandler(
+        IIdentityService identityService,
+        UserManager<ApplicationUser> userManager
+    )
     {
         _identityService = identityService;
         _userManager = userManager;
@@ -31,7 +35,8 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
 
     public async Task<ResetPasswordCommandResponse> Handle(
         ResetPasswordCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -40,27 +45,27 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
                 return new ResetPasswordCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Invalid email address."
+                    Error = "Invalid email address.",
                 };
 
-            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+            var result = await _userManager.ResetPasswordAsync(
+                user,
+                request.Token,
+                request.NewPassword
+            );
 
             if (!result.Succeeded)
                 return new ResetPasswordCommandResponse
                 {
                     Succeeded = false,
-                    Error = string.Join(", ", result.Errors.Select(e => e.Description))
+                    Error = string.Join(", ", result.Errors.Select(e => e.Description)),
                 };
 
             return new ResetPasswordCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new ResetPasswordCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new ResetPasswordCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

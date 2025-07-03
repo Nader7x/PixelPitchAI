@@ -57,7 +57,9 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var query = "Test Player";
 
         // Act
-        var response = await _client.GetAsync($"/api/search/players?query={query}&limit=10&enableFuzzySearch=true");
+        var response = await _client.GetAsync(
+            $"/api/search/players?query={query}&limit=10&enableFuzzySearch=true"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -75,7 +77,9 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var query = "Test Coach";
 
         // Act
-        var response = await _client.GetAsync($"/api/search/coaches?query={query}&limit=10&advanced=true");
+        var response = await _client.GetAsync(
+            $"/api/search/coaches?query={query}&limit=10&advanced=true"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -147,7 +151,9 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var query = "Test";
 
         // Act
-        var response = await _client.GetAsync($"/api/search/unified?query={query}&page=1&pageSize=10");
+        var response = await _client.GetAsync(
+            $"/api/search/unified?query={query}&page=1&pageSize=10"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -171,8 +177,9 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var entityTypes = "Team,Player";
 
         // Act
-        var response =
-            await _client.GetAsync($"/api/search/unified?query={query}&entityTypes={entityTypes}&page=1&pageSize=10");
+        var response = await _client.GetAsync(
+            $"/api/search/unified?query={query}&entityTypes={entityTypes}&page=1&pageSize=10"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -206,7 +213,7 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
             Country = "England",
             League = "Premier League",
             Page = 1,
-            PageSize = 10
+            PageSize = 10,
         };
 
         // Act
@@ -276,7 +283,9 @@ public class SearchControllerIntegrationTests : IClassFixture<FootexWebApplicati
         var query = "Test";
 
         // Act
-        var response = await _client.GetAsync($"/api/search/unified?query={query}&page=1&pageSize=5");
+        var response = await _client.GetAsync(
+            $"/api/search/unified?query={query}&page=1&pageSize=5"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

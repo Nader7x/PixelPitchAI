@@ -13,7 +13,6 @@ namespace Infrastructure.Services;
 [JsonSourceGenerationOptions(
     WriteIndented = false,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    GenerationMode = JsonSourceGenerationMode.Default)]
-public partial class MatchEventJsonContext : JsonSerializerContext
-{
-}
+    GenerationMode = JsonSourceGenerationMode.Default
+)]
+public partial class MatchEventJsonContext : JsonSerializerContext { }

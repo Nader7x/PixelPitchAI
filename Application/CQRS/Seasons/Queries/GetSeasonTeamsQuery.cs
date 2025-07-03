@@ -21,20 +21,18 @@ public class GetSeasonTeamsQueryHandler(IUnitOfWork unitOfWork)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<GetSeasonTeamsQueryResponse> Handle(GetSeasonTeamsQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetSeasonTeamsQueryResponse> Handle(
+        GetSeasonTeamsQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var seasonTeams = await _unitOfWork.TeamSeasons.GetTeamsBySeasonIdAsync(request.SeasonId);
         if (seasonTeams.Count == 0)
             return new GetSeasonTeamsQueryResponse
             {
                 Succeeded = false,
-                error = "Season not found"
+                error = "Season not found",
             };
-        return new GetSeasonTeamsQueryResponse
-        {
-            Succeeded = true,
-            TeamSeasons = seasonTeams
-        };
+        return new GetSeasonTeamsQueryResponse { Succeeded = true, TeamSeasons = seasonTeams };
     }
 }

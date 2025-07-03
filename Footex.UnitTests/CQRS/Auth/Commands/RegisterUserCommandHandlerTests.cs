@@ -4,6 +4,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using Xunit;
@@ -12,7 +13,7 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class RegisterUserCommandHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly RegisterUserCommandHandler _handler;
     private readonly Mock<IIdentityService> _mockIdentityService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
@@ -23,12 +24,13 @@ public class RegisterUserCommandHandlerTests
         _mockIdentityService = new Mock<IIdentityService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockIUserMapper = new Mock<IUserMapper>();
-        _fixture = new Fixture();
+        _fixture = new NoRecursionFixture();
 
         _handler = new RegisterUserCommandHandler(
             _mockIdentityService.Object,
             _mockUnitOfWork.Object,
-            _mockIUserMapper.Object);
+            _mockIUserMapper.Object
+        );
     }
 
     [Fact]
@@ -40,14 +42,13 @@ public class RegisterUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var identityResult = IdentityResult.Success;
 
-        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
-            .Returns(user);
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command)).Returns(user);
 
-        _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
+        _mockIdentityService
+            .Setup(x => x.CreateUserAsync(user, command.Password))
             .ReturnsAsync((true, userId, identityResult));
 
-        _mockIdentityService.Setup(x => x.AddUserToRoleAsync(user, "User"))
-            .ReturnsAsync(true);
+        _mockIdentityService.Setup(x => x.AddUserToRoleAsync(user, "User")).ReturnsAsync(true);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -72,11 +73,11 @@ public class RegisterUserCommandHandlerTests
         var identityErrors = new[] { new IdentityError { Description = errorMessage } };
         var identityResult = IdentityResult.Failed(identityErrors);
 
-        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
-            .Returns(user);
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command)).Returns(user);
 
-        _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
-            .ReturnsAsync((false, null, identityResult));
+        _mockIdentityService
+            .Setup(x => x.CreateUserAsync(user, command.Password))
+            .ReturnsAsync((false, (string?)null, identityResult));
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -87,8 +88,10 @@ public class RegisterUserCommandHandlerTests
         result.UserId.Should().BeNull();
         result.Error.Should().Be(errorMessage);
 
-        _mockIdentityService.Verify(x => x.AddUserToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
-            Times.Never);
+        _mockIdentityService.Verify(
+            x => x.AddUserToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never
+        );
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -99,10 +102,10 @@ public class RegisterUserCommandHandlerTests
         var command = _fixture.Create<RegisterUserCommand>();
         var user = _fixture.Create<ApplicationUser>();
 
-        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
-            .Returns(user);
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command)).Returns(user);
 
-        _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
+        _mockIdentityService
+            .Setup(x => x.CreateUserAsync(user, command.Password))
             .ThrowsAsync(new Exception("Database connection failed"));
 
         // Act
@@ -124,14 +127,13 @@ public class RegisterUserCommandHandlerTests
         var userId = Guid.NewGuid().ToString();
         var identityResult = IdentityResult.Success;
 
-        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command))
-            .Returns(user);
+        _mockIUserMapper.Setup(x => x.ToUserFromRegister(command)).Returns(user);
 
-        _mockIdentityService.Setup(x => x.CreateUserAsync(user, command.Password))
+        _mockIdentityService
+            .Setup(x => x.CreateUserAsync(user, command.Password))
             .ReturnsAsync((true, userId, identityResult));
 
-        _mockIdentityService.Setup(x => x.AddUserToRoleAsync(user, "User"))
-            .ReturnsAsync(true);
+        _mockIdentityService.Setup(x => x.AddUserToRoleAsync(user, "User")).ReturnsAsync(true);
 
         // Act
         await _handler.Handle(command, CancellationToken.None);

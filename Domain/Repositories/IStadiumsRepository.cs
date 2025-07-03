@@ -3,6 +3,4 @@ using Domain.Models;
 
 namespace Domain.Repositories;
 
-public interface IStadiumsRepository : IRepository<Stadium>
-{
-}
+public interface IStadiumsRepository : IRepository<Stadium> { }

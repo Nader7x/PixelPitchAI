@@ -8,7 +8,10 @@ public class PerformanceTestAnalyzer
     private readonly ILogger<PerformanceTestAnalyzer> _logger;
     private readonly PerformanceTestSettings _settings;
 
-    public PerformanceTestAnalyzer(ILogger<PerformanceTestAnalyzer> logger, PerformanceTestSettings settings)
+    public PerformanceTestAnalyzer(
+        ILogger<PerformanceTestAnalyzer> logger,
+        PerformanceTestSettings settings
+    )
     {
         _logger = logger;
         _settings = settings;
@@ -16,13 +19,16 @@ public class PerformanceTestAnalyzer
 
     public async Task<PerformanceTestReport> AnalyzeTestResults(string resultsDirectory)
     {
-        _logger.LogInformation("Analyzing performance test results in {Directory}", resultsDirectory);
+        _logger.LogInformation(
+            "Analyzing performance test results in {Directory}",
+            resultsDirectory
+        );
 
         var report = new PerformanceTestReport
         {
             TestDate = DateTime.UtcNow,
             ResultsDirectory = resultsDirectory,
-            TestConfiguration = _settings
+            TestConfiguration = _settings,
         };
 
         try
@@ -65,7 +71,7 @@ public class PerformanceTestAnalyzer
             var testResult = new LoadTestResult
             {
                 TestName = Path.GetFileNameWithoutExtension(csvFile),
-                FilePath = csvFile
+                FilePath = csvFile,
             };
 
             // Parse CSV and extract key metrics
@@ -79,7 +85,8 @@ public class PerformanceTestAnalyzer
         try
         {
             var lines = await File.ReadAllLinesAsync(csvFile);
-            if (lines.Length < 2) return;
+            if (lines.Length < 2)
+                return;
 
             // Skip header line and process data
             for (var i = 1; i < lines.Length; i++)
@@ -98,10 +105,11 @@ public class PerformanceTestAnalyzer
                         MeanMs = double.TryParse(fields[6], out var mean) ? mean : 0,
                         MinMs = double.TryParse(fields[7], out var min) ? min : 0,
                         MaxMs = double.TryParse(fields[8], out var max) ? max : 0,
-                        P95Ms = double.TryParse(fields[9], out var p95) ? p95 : 0
+                        P95Ms = double.TryParse(fields[9], out var p95) ? p95 : 0,
                     };
 
-                    if (fields.Length > 10) metric.P99Ms = double.TryParse(fields[10], out var p99) ? p99 : 0;
+                    if (fields.Length > 10)
+                        metric.P99Ms = double.TryParse(fields[10], out var p99) ? p99 : 0;
 
                     result.Metrics.Add(metric);
                 }
@@ -113,17 +121,27 @@ public class PerformanceTestAnalyzer
         }
     }
 
-    private async Task AnalyzeBenchmarkResults(string resultsDirectory, PerformanceTestReport report)
+    private async Task AnalyzeBenchmarkResults(
+        string resultsDirectory,
+        PerformanceTestReport report
+    )
     {
         var benchmarkResultsPath = Path.Combine(resultsDirectory, "BenchmarkDotNet.Artifacts");
         if (!Directory.Exists(benchmarkResultsPath))
         {
-            _logger.LogWarning("BenchmarkDotNet results directory not found: {Path}", benchmarkResultsPath);
+            _logger.LogWarning(
+                "BenchmarkDotNet results directory not found: {Path}",
+                benchmarkResultsPath
+            );
             return;
         }
 
         // Look for JSON result files
-        var jsonFiles = Directory.GetFiles(benchmarkResultsPath, "*-report-full.json", SearchOption.AllDirectories);
+        var jsonFiles = Directory.GetFiles(
+            benchmarkResultsPath,
+            "*-report-full.json",
+            SearchOption.AllDirectories
+        );
 
         foreach (var jsonFile in jsonFiles)
         {
@@ -145,24 +163,38 @@ public class PerformanceTestAnalyzer
                     var benchmarkResult = new BenchmarkResult
                     {
                         TestName = benchmark.GetProperty("DisplayInfo").GetString() ?? "Unknown",
-                        MethodName = benchmark.GetProperty("Target").GetProperty("Method").GetProperty("Name")
-                            .GetString() ?? "Unknown"
+                        MethodName =
+                            benchmark
+                                .GetProperty("Target")
+                                .GetProperty("Method")
+                                .GetProperty("Name")
+                                .GetString() ?? "Unknown",
                     };
 
                     if (benchmark.TryGetProperty("Statistics", out var stats))
                     {
                         benchmarkResult.MeanNs = stats.GetProperty("Mean").GetDouble();
-                        benchmarkResult.StdDevNs = stats.GetProperty("StandardDeviation").GetDouble();
+                        benchmarkResult.StdDevNs = stats
+                            .GetProperty("StandardDeviation")
+                            .GetDouble();
                         benchmarkResult.MinNs = stats.GetProperty("Min").GetDouble();
                         benchmarkResult.MaxNs = stats.GetProperty("Max").GetDouble();
                     }
 
                     if (benchmark.TryGetProperty("Memory", out var memory))
                     {
-                        benchmarkResult.AllocatedBytes = memory.GetProperty("BytesAllocatedPerOperation").GetInt64();
-                        benchmarkResult.Gen0Collections = memory.GetProperty("Gen0CollectionsPerOperation").GetInt32();
-                        benchmarkResult.Gen1Collections = memory.GetProperty("Gen1CollectionsPerOperation").GetInt32();
-                        benchmarkResult.Gen2Collections = memory.GetProperty("Gen2CollectionsPerOperation").GetInt32();
+                        benchmarkResult.AllocatedBytes = memory
+                            .GetProperty("BytesAllocatedPerOperation")
+                            .GetInt64();
+                        benchmarkResult.Gen0Collections = memory
+                            .GetProperty("Gen0CollectionsPerOperation")
+                            .GetInt32();
+                        benchmarkResult.Gen1Collections = memory
+                            .GetProperty("Gen1CollectionsPerOperation")
+                            .GetInt32();
+                        benchmarkResult.Gen2Collections = memory
+                            .GetProperty("Gen2CollectionsPerOperation")
+                            .GetInt32();
                     }
 
                     report.BenchmarkResults.Add(benchmarkResult);
@@ -190,9 +222,11 @@ public class PerformanceTestAnalyzer
             report.Summary.MaxResponseTime = allMetrics.Max(m => m.MaxMs);
             report.Summary.P95ResponseTime = allMetrics.Average(m => m.P95Ms);
 
-            report.Summary.SuccessRate = report.Summary.TotalRequests > 0
-                ? (double)(report.Summary.TotalRequests - report.Summary.TotalFailures) / report.Summary.TotalRequests
-                : 0;
+            report.Summary.SuccessRate =
+                report.Summary.TotalRequests > 0
+                    ? (double)(report.Summary.TotalRequests - report.Summary.TotalFailures)
+                        / report.Summary.TotalRequests
+                    : 0;
         }
 
         // Performance thresholds validation
@@ -209,18 +243,23 @@ public class PerformanceTestAnalyzer
 
         // Check average response time
         if (report.Summary.AverageResponseTime > 1000) // 1 second
-            issues.Add($"High average response time: {report.Summary.AverageResponseTime:F2}ms (expected: ≤1000ms)");
+            issues.Add(
+                $"High average response time: {report.Summary.AverageResponseTime:F2}ms (expected: ≤1000ms)"
+            );
 
         // Check P95 response time
         if (report.Summary.P95ResponseTime > 2000) // 2 seconds
-            issues.Add($"High P95 response time: {report.Summary.P95ResponseTime:F2}ms (expected: ≤2000ms)");
+            issues.Add(
+                $"High P95 response time: {report.Summary.P95ResponseTime:F2}ms (expected: ≤2000ms)"
+            );
 
         report.Summary.PerformanceIssues = issues;
 
         if (issues.Any())
         {
             _logger.LogWarning("Performance issues detected:");
-            foreach (var issue in issues) _logger.LogWarning("- {Issue}", issue);
+            foreach (var issue in issues)
+                _logger.LogWarning("- {Issue}", issue);
         }
         else
         {

@@ -7,7 +7,9 @@ using Domain.Interfaces;
 using FluentAssertions;
 using Footex.UnitTests.Common;
 using Moq;
+using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 using Match = Domain.Models.Match;
 
 namespace Footex.UnitTests.CQRS.Matches.Queries;
@@ -17,15 +19,19 @@ public class GetUserMatchesQueryHandlerTests
     private readonly GetUserMatchesQueryHandler _handler;
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly ITestOutputHelper _testOutputHelper;
 
-    public GetUserMatchesQueryHandlerTests()
+    public GetUserMatchesQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _iMatchMapperMock = new Mock<IMatchMapper>();
         _handler = new GetUserMatchesQueryHandler(_unitOfWorkMock.Object, _iMatchMapperMock.Object);
 
         var fixture = new Fixture();
-        fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => fixture.Behaviors.Remove(b));
         fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -40,18 +46,20 @@ public class GetUserMatchesQueryHandlerTests
         {
             TestDataBuilder.CreateValidMatch(1),
             TestDataBuilder.CreateValidMatch(2),
-            TestDataBuilder.CreateValidMatch(3)
+            TestDataBuilder.CreateValidMatch(3),
         };
-        var matchDtos = userMatches.Select(m => new MatchDto
-        {
-            Id = m.Id,
-            ScheduledDateTimeUtc = m.ScheduledDateTimeUtc
-        }).ToList();
+        var matchDtos = userMatches
+            .Select(m => new UserMatchDto
+            {
+                Id = m.Id,
+                ScheduledDateTimeUtc = m.ScheduledDateTimeUtc,
+            })
+            .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
             .ReturnsAsync(userMatches);
-        _iMatchMapperMock.Setup(x => x.ToDtoList(userMatches))
-            .Returns(matchDtos);
+        _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(userMatches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -72,8 +80,8 @@ public class GetUserMatchesQueryHandlerTests
             currentDate.Should().BeOnOrBefore(previousDate);
         }
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _iMatchMapperMock.Verify(x => x.ToDtoList(userMatches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(userId), Times.Once);
+        _iMatchMapperMock.Verify(x => x.ToUserMatchesDtoS(userMatches), Times.Once);
     }
 
     [Fact]
@@ -83,12 +91,12 @@ public class GetUserMatchesQueryHandlerTests
         var userId = "nonexistent-user";
         var query = new GetUserMatchesQuery { UserId = userId };
         var emptyMatches = new List<Match>();
-        var emptyMatchDtos = new List<MatchDto?>();
+        var emptyMatchDtos = new List<UserMatchDto?>();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
             .ReturnsAsync(emptyMatches);
-        _iMatchMapperMock.Setup(x => x.ToDtoList(emptyMatches))
-            .Returns(emptyMatchDtos);
+        _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(emptyMatches)).Returns(emptyMatchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -100,8 +108,8 @@ public class GetUserMatchesQueryHandlerTests
         result.Matches!.Should().BeEmpty();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _iMatchMapperMock.Verify(x => x.ToDtoList(emptyMatches), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(userId), Times.Once);
+        _iMatchMapperMock.Verify(x => x.ToUserMatchesDtoS(emptyMatches), Times.Once);
     }
 
     [Fact]
@@ -112,7 +120,8 @@ public class GetUserMatchesQueryHandlerTests
         var query = new GetUserMatchesQuery { UserId = userId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -124,8 +133,11 @@ public class GetUserMatchesQueryHandlerTests
         result.Matches.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
-        _iMatchMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(userId), Times.Once);
+        _iMatchMapperMock.Verify(
+            x => x.ToUserMatchesDtoS(It.IsAny<IEnumerable<Match>>()),
+            Times.Never
+        );
     }
 
     [Theory]
@@ -137,12 +149,12 @@ public class GetUserMatchesQueryHandlerTests
         // Arrange
         var query = new GetUserMatchesQuery { UserId = invalidUserId! };
         var emptyMatches = new List<Match>();
-        var emptyMatchDtos = new List<MatchDto?>();
+        var emptyMatchDtos = new List<UserMatchDto?>();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId))
             .ReturnsAsync(emptyMatches);
-        _iMatchMapperMock.Setup(x => x.ToDtoList(emptyMatches))
-            .Returns(emptyMatchDtos);
+        _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(emptyMatches)).Returns(emptyMatchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -153,7 +165,7 @@ public class GetUserMatchesQueryHandlerTests
         result.Matches.Should().NotBeNull();
         result.Matches!.Should().BeEmpty();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId), Times.Once);
     }
 
     [Fact]
@@ -165,21 +177,22 @@ public class GetUserMatchesQueryHandlerTests
         var userMatches = new List<Match>
         {
             TestDataBuilder.CreateValidMatch(1),
-            TestDataBuilder.CreateValidMatch(2)
+            TestDataBuilder.CreateValidMatch(2),
         };
 
         // Set up matches to have the correct CreatorId
         userMatches.ForEach(m => m.CreatorId = userId);
 
-        var matchDtos = userMatches.Select(m => new MatchDto { Id = m.Id }).ToList();
+        var matchDtos = userMatches.Select(m => new UserMatchDto { Id = m.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
             .ReturnsAsync(userMatches);
-        _iMatchMapperMock.Setup(x => x.ToDtoList(userMatches))
-            .Returns(matchDtos!);
+        _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(userMatches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
+        _testOutputHelper.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
 
         // Assert
         result.Should().NotBeNull();
@@ -187,8 +200,7 @@ public class GetUserMatchesQueryHandlerTests
         result.Matches.Should().HaveCount(2);
 
         // Verify that the repository was called with the correct filter expression
-        _unitOfWorkMock.Verify(x => x.Matches.GetAllAsync(
-            It.IsAny<Expression<Func<Match, bool>>>()), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(userId), Times.Once);
     }
 
     [Fact]
@@ -202,7 +214,7 @@ public class GetUserMatchesQueryHandlerTests
         {
             TestDataBuilder.CreateValidMatch(1),
             TestDataBuilder.CreateValidMatch(2),
-            TestDataBuilder.CreateValidMatch(3)
+            TestDataBuilder.CreateValidMatch(3),
         };
 
         // Set different scheduled dates
@@ -210,16 +222,18 @@ public class GetUserMatchesQueryHandlerTests
         userMatches[1].ScheduledDateTimeUtc = now.AddDays(-3);
         userMatches[2].ScheduledDateTimeUtc = now.AddDays(-2);
 
-        var matchDtos = userMatches.Select(m => new MatchDto
-        {
-            Id = m.Id,
-            ScheduledDateTimeUtc = m.ScheduledDateTimeUtc
-        }).ToList();
+        var matchDtos = userMatches
+            .Select(m => new UserMatchDto
+            {
+                Id = m.Id,
+                ScheduledDateTimeUtc = m.ScheduledDateTimeUtc,
+            })
+            .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetAllAsync(It.IsAny<Expression<Func<Match, bool>>>()))
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
             .ReturnsAsync(userMatches);
-        _iMatchMapperMock.Setup(x => x.ToDtoList(userMatches))
-            .Returns(matchDtos);
+        _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(userMatches)).Returns(matchDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

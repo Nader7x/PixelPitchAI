@@ -74,7 +74,9 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
     public async Task GetUnreadNotificationsCount_WithInvalidUserId_ReturnsNotFound()
     {
         // Act
-        var response = await _client.GetAsync("/api/notifications/user/invalid-user-id/unread-count");
+        var response = await _client.GetAsync(
+            "/api/notifications/user/invalid-user-id/unread-count"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -88,7 +90,10 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
         var notificationId = await SeedNotificationsAsync(userId);
 
         // Act
-        var response = await _client.PostAsync($"/api/notifications/mark-as-read/{notificationId}", null);
+        var response = await _client.PostAsync(
+            $"/api/notifications/mark-as-read/{notificationId}",
+            null
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -98,7 +103,10 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
     public async Task MarkNotificationAsRead_WithInvalidId_ReturnsNotFound()
     {
         // Act
-        var response = await _client.PostAsync("/api/notifications/mark-as-read/invalid-notification-id", null);
+        var response = await _client.PostAsync(
+            "/api/notifications/mark-as-read/invalid-notification-id",
+            null
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -112,7 +120,10 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
         await SeedNotificationsAsync(userId);
 
         // Act
-        var response = await _client.PostAsync($"/api/notifications/user/{userId}/mark-all-read", null);
+        var response = await _client.PostAsync(
+            $"/api/notifications/user/{userId}/mark-all-read",
+            null
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -122,7 +133,10 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
     public async Task MarkAllNotificationsAsRead_WithInvalidUserId_ReturnsNotFound()
     {
         // Act
-        var response = await _client.PostAsync("/api/notifications/user/invalid-user-id/mark-all-read", null);
+        var response = await _client.PostAsync(
+            "/api/notifications/user/invalid-user-id/mark-all-read",
+            null
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -188,17 +202,24 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Act & Assert - Get unread count
-        var countResponse = await _client.GetAsync($"/api/notifications/user/{userId}/unread-count");
+        var countResponse = await _client.GetAsync(
+            $"/api/notifications/user/{userId}/unread-count"
+        );
         countResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var initialCount = int.Parse(await countResponse.Content.ReadAsStringAsync());
         initialCount.Should().BeGreaterThan(0);
 
         // Act & Assert - Mark as read
-        var markReadResponse = await _client.PostAsync($"/api/notifications/mark-as-read/{notificationId}", null);
+        var markReadResponse = await _client.PostAsync(
+            $"/api/notifications/mark-as-read/{notificationId}",
+            null
+        );
         markReadResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Act & Assert - Verify count decreased
-        var newCountResponse = await _client.GetAsync($"/api/notifications/user/{userId}/unread-count");
+        var newCountResponse = await _client.GetAsync(
+            $"/api/notifications/user/{userId}/unread-count"
+        );
         newCountResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var newCount = int.Parse(await newCountResponse.Content.ReadAsStringAsync());
         newCount.Should().BeLessThan(initialCount);
@@ -216,17 +237,24 @@ public class NotificationsControllerIntegrationTests : IClassFixture<FootexWebAp
         await SeedMultipleNotificationsAsync(userId, 5);
 
         // Act & Assert - Get initial unread count
-        var initialCountResponse = await _client.GetAsync($"/api/notifications/user/{userId}/unread-count");
+        var initialCountResponse = await _client.GetAsync(
+            $"/api/notifications/user/{userId}/unread-count"
+        );
         initialCountResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var initialCount = int.Parse(await initialCountResponse.Content.ReadAsStringAsync());
         initialCount.Should().BeGreaterThan(0);
 
         // Act & Assert - Mark all as read
-        var markAllReadResponse = await _client.PostAsync($"/api/notifications/user/{userId}/mark-all-read", null);
+        var markAllReadResponse = await _client.PostAsync(
+            $"/api/notifications/user/{userId}/mark-all-read",
+            null
+        );
         markAllReadResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Act & Assert - Verify all marked as read
-        var newCountResponse = await _client.GetAsync($"/api/notifications/user/{userId}/unread-count");
+        var newCountResponse = await _client.GetAsync(
+            $"/api/notifications/user/{userId}/unread-count"
+        );
         newCountResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var newCount = int.Parse(await newCountResponse.Content.ReadAsStringAsync());
         newCount.Should().Be(0);

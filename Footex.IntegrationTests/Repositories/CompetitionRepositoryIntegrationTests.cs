@@ -12,7 +12,8 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ICompetitionRepository _repository;
 
-    public CompetitionRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public CompetitionRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _repository = ServiceProvider.GetRequiredService<ICompetitionRepository>();
     }
@@ -199,7 +200,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Required Competition Name",
             Description = null,
             Country = "",
-            Logo = null
+            Logo = null,
         };
 
         // Act
@@ -224,7 +225,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Competition with Long Description",
             Description = longDescription,
             Country = "Test Country",
-            Logo = "http://example.com/logo.png"
+            Logo = "http://example.com/logo.png",
         };
 
         // Act
@@ -247,7 +248,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
             Name = specialName,
             Description = "Competition with special characters",
             Country = "España",
-            Logo = "http://example.com/logo.png"
+            Logo = "http://example.com/logo.png",
         };
 
         // Act
@@ -268,9 +269,14 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var season = await SeedSeasonAsync(competition.Id);
 
         // Act
-        var result = await Context.Competitions
-            .Where(c => c.Id == competition.Id)
-            .Select(c => new { c.Id, c.Name, SeasonCount = c.Seasons!.Count() })
+        var result = await Context
+            .Competitions.Where(c => c.Id == competition.Id)
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                SeasonCount = c.Seasons!.Count(),
+            })
             .FirstOrDefaultAsync();
 
         // Assert
@@ -296,7 +302,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
             Name = name,
             Description = $"Description for {name}",
             Country = "Test Country",
-            Logo = "http://example.com/logo.png"
+            Logo = "http://example.com/logo.png",
         };
     }
 
@@ -312,7 +318,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
             IsActive = true,
             TotalRounds = 38,
             CurrentRound = 1,
-            CompetitionId = competitionId
+            CompetitionId = competitionId,
         };
 
         Context.Seasons.Add(season);

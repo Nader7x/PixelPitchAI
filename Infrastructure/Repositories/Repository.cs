@@ -18,14 +18,13 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
     public async Task<IEnumerable<T>> GetAllAsync(int? pageNumber, int? pageSize)
     {
         if (pageNumber > 0 && pageSize > 0)
-            return await _context.Set<T>()
+            return await _context
+                .Set<T>()
                 .AsNoTracking()
                 .Skip((pageNumber.Value - 1) * pageSize.Value)
                 .Take(pageSize.Value * 3)
                 .ToListAsync();
-        return await _context.Set<T>()
-            .AsNoTracking()
-            .ToListAsync();
+        return await _context.Set<T>().AsNoTracking().ToListAsync();
     }
 
     public async Task<T?> GetByIdAsync(int id)
@@ -63,9 +62,13 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
         return await Task.FromResult(_context.Set<T>().FirstOrDefault(predicate));
     }
 
-    public async Task<T?> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken)
+    public async Task<T?> FindAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken
+    )
     {
-        return await _context.Set<T>()
+        return await _context
+            .Set<T>()
             .AsQueryable()
             .FirstOrDefaultAsync(predicate, cancellationToken);
         ;
@@ -84,5 +87,10 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
     public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
     {
         return await _context.Set<T>().CountAsync(predicate);
+    }
+
+    public IQueryable<T> GetQueryable()
+    {
+        return _context.Set<T>();
     }
 }

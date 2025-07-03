@@ -25,7 +25,12 @@ public partial class MatchMapper : IMatchMapper
     public partial UpdateMatchCommand ToUpdateCommand(UpdateMatchDto dto);
 
     // Map from GetAllMatchesQuery parameters (assuming these are likely filters)
-    public partial GetAllMatchesQuery ToGetAllQuery(int? seasonId, int? teamId, DateTime? fromDate, DateTime? toDate);
+    public partial GetAllMatchesQuery ToGetAllQuery(
+        int? seasonId,
+        int? teamId,
+        DateTime? fromDate,
+        DateTime? toDate
+    );
 
     // Map from GetMatchByIdQuery parameter
     public partial GetMatchByIdQuery ToGetByIdQuery(int id);
@@ -51,9 +56,12 @@ public partial class MatchMapper : IMatchMapper
     [MapProperty(nameof(Match.HomeCoach), nameof(MatchDetailsDto.HomeCoach))]
     [MapProperty(nameof(Match.AwayCoach), nameof(MatchDetailsDto.AwayCoach))]
     public partial MatchDetailsDto ToDetailsFromMatch(Match match);
-    [MapProperty(nameof(Match.HomeTeam.Name),nameof(UserMatchDto.HomeTeamName))]
-    [MapProperty(nameof(Match.AwayTeam.Name),nameof(UserMatchDto.AwayTeamName))]
-    [MapProperty(nameof(Match.HomeTeam.Logo),nameof(UserMatchDto.HomeTeamLogo))]
-    [MapProperty(nameof(Match.AwayTeam.Logo),nameof(UserMatchDto.AwayTeamLogo))]
-    public partial List<UserMatchDto> ToUserMatchDto(IEnumerable<Match> matches);
+
+    [MapProperty(nameof(Match.HomeTeam.Name), nameof(UserMatchDto.HomeTeamName))]
+    [MapProperty(nameof(Match.AwayTeam.Name), nameof(UserMatchDto.AwayTeamName))]
+    [MapProperty(nameof(Match.HomeTeam.Logo), nameof(UserMatchDto.HomeTeamLogo))]
+    [MapProperty(nameof(Match.AwayTeam.Logo), nameof(UserMatchDto.AwayTeamLogo))]
+    public partial List<UserMatchDto> ToUserMatchesDtoS(IEnumerable<Match> matches);
+
+    public partial LiveMatchDto ToLiveMatchDto(Match match);
 }

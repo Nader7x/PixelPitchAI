@@ -17,7 +17,11 @@ public class ClearanceEventProcessor : BaseEventProcessor
             match.AwayTeamClearances = IncrementValue(match.AwayTeamClearances);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalClearances++;
     }

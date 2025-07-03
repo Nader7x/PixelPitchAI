@@ -35,7 +35,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
             City = "Test City",
             Country = "Test Country",
             PrimaryColor = "#FF0000",
-            SecondaryColor = "#0000FF"
+            SecondaryColor = "#0000FF",
         };
 
         // Act
@@ -72,7 +72,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
             ShortName = "DUP",
             FoundationDate = new DateTime(1900, 1, 1),
             City = "Test City",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         // Act
@@ -94,7 +94,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
             ShortName = "TST",
             FoundationDate = new DateTime(1900, 1, 1),
             City = "Test City",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         // Act
@@ -120,7 +120,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
             ShortName = existingTeam.ShortName, // Duplicate short name
             FoundationDate = new DateTime(1900, 1, 1),
             City = "Test City",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         // Act
@@ -142,7 +142,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
             ShortName = "MIN",
             FoundationDate = new DateTime(2000, 1, 1),
             City = "City",
-            Country = "Country"
+            Country = "Country",
             // Optional fields not provided
         };
 

@@ -21,40 +21,48 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
         builder.Property(s => s.StartDate).HasColumnType("date");
         builder.Property(s => s.EndDate).HasColumnType("date");
 
-
         // Set timestamp for audit fields
-        builder.Property(s => s.CreatedAt)
+        builder
+            .Property(s => s.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
 
-        builder.Property(s => s.UpdatedAt)
+        builder
+            .Property(s => s.UpdatedAt)
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
 
         // Create unique index on league and country combination
-        builder.HasIndex(s => new { s.LeagueName, s.Country, s.Name })
+        builder
+            .HasIndex(s => new
+            {
+                s.LeagueName,
+                s.Country,
+                s.Name,
+            })
             .IsUnique()
             .HasMethod("btree")
             .HasDatabaseName("IX_Season_LeagueSeason");
 
         // Create index for active seasons
-        builder.HasIndex(s => s.IsActive)
-            .HasMethod("btree")
-            .HasDatabaseName("IX_Season_Active");
+        builder.HasIndex(s => s.IsActive).HasMethod("btree").HasDatabaseName("IX_Season_Active");
 
         // Index for finding the current round of active seasons
-        builder.HasIndex(s => new { s.IsActive, s.CurrentRound })
+        builder
+            .HasIndex(s => new { s.IsActive, s.CurrentRound })
             .HasMethod("btree")
             .HasDatabaseName("IX_Season_CurrentRound")
             .HasFilter("\"IsActive\" = 'true'");
         // Relationships
 
-        builder.HasMany(s => s.SeasonTeams)
+        builder
+            .HasMany(s => s.SeasonTeams)
             .WithOne(t => t.Season)
             .HasForeignKey(t => t.SeasonId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(s => s.Competition)
+        builder
+            .HasOne(s => s.Competition)
             .WithMany(c => c.Seasons)
             .HasForeignKey(s => s.CompetitionId)
             .OnDelete(DeleteBehavior.Cascade);

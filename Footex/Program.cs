@@ -29,9 +29,7 @@ else
     Env.Load();
 
 // Initialize Serilog first
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
 try
 {
@@ -75,98 +73,135 @@ try
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
     {
-        options.BaseUrl = builder.Configuration["SimulationService:BaseUrl"] ??
-                          Environment.GetEnvironmentVariable("SIMULATION_SERVICE_URL") ?? "http://localhost:8000";
-        options.ApiKey = Environment.GetEnvironmentVariable("SIMULATION_API_KEY") ??
-                         builder.Configuration["SimulationService:ApiKey"] ?? "";
+        options.BaseUrl =
+            builder.Configuration["SimulationService:BaseUrl"]
+            ?? Environment.GetEnvironmentVariable("SIMULATION_SERVICE_URL")
+            ?? "http://localhost:8000";
+        options.ApiKey =
+            Environment.GetEnvironmentVariable("SIMULATION_API_KEY")
+            ?? builder.Configuration["SimulationService:ApiKey"]
+            ?? "";
     });
 
     // Add services to the container.
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowSomeOrigins",
+        options.AddPolicy(
+            "AllowSomeOrigins",
             corsBuilder =>
             {
-                corsBuilder.WithOrigins("http://localhost:3000", "https://localhost:3000",
+                corsBuilder
+                    .WithOrigins(
+                        "http://localhost:3000",
+                        "https://localhost:3000",
                         "https://gourav-d.github.io/SignalR-Web-Client",
                         "https://localhost:7082",
                         "http://localhost:5025", // HTTP API
                         "http://localhost:5025/swagger", // Swagger UI HTTP
-                        "https://localhost:7082/swagger") // Swagger UI HTTPS
+                        "https://localhost:7082/swagger"
+                    ) // Swagger UI HTTPS
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
                     .SetIsOriginAllowedToAllowWildcardSubdomains();
-            });
+            }
+        );
     });
-    builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
+    builder.Services.Configure<RouteOptions>(options =>
+    {
+        options.LowercaseUrls = true;
+    });
 
     // Configure Swagger with JWT support
     builder.Services.AddSwaggerGen(c =>
     {
-        c.SwaggerDoc("v1", new OpenApiInfo
-        {
-            Title = "Footex API",
-            Version = "v1",
-            Description = "Football League Management API"
-        });        // Explicitly define the server Swagger UI should use
-        c.AddServer(new OpenApiServer { Url = "http://localhost:5025", Description = "Development HTTP Server" });
-        c.AddServer(new OpenApiServer { Url = "https://localhost:7082", Description = "Development HTTPS Server" });
+        c.SwaggerDoc(
+            "v1",
+            new OpenApiInfo
+            {
+                Title = "Footex API",
+                Version = "v1",
+                Description = "Football League Management API",
+            }
+        ); // Explicitly define the server Swagger UI should use
+        c.AddServer(
+            new OpenApiServer
+            {
+                Url = "http://localhost:5025",
+                Description = "Development HTTP Server",
+            }
+        );
+        c.AddServer(
+            new OpenApiServer
+            {
+                Url = "https://localhost:7082",
+                Description = "Development HTTPS Server",
+            }
+        );
 
         // Add JWT Authentication to Swagger
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-        {
-            Description =
-                "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-            Name = "Authorization",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.Http,
-            Scheme = "Bearer"
-        });
-
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
+        c.AddSecurityDefinition(
+            "Bearer",
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                []
+                Description =
+                    "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "Bearer",
             }
-        });
+        );
+
+        c.AddSecurityRequirement(
+            new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer",
+                        },
+                    },
+                    []
+                },
+            }
+        );
     });
 
     // Configure Serilog
-    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
-    {
-        loggerConfiguration
-            .ReadFrom.Configuration(context.Configuration)
-            .ReadFrom.Services(services);
+    builder.Host.UseSerilog(
+        (context, services, loggerConfiguration) =>
+        {
+            loggerConfiguration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services);
 
-        // Get a column writers dictionary if configured in DI
-        if (services.GetService(typeof(IDictionary<string, ColumnWriterBase>)) is not
-            IDictionary<string, ColumnWriterBase>
-            columnWriters) return;
-        // Apply custom column writers for PostgresSQL sink
-        var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
-        loggerConfiguration.WriteTo.PostgreSQL(
-            connectionString,
-            "Logs",
-            columnWriters,
-            needAutoCreateTable: true);
-    });
+            // Get a column writers dictionary if configured in DI
+            if (
+                services.GetService(typeof(IDictionary<string, ColumnWriterBase>))
+                is not IDictionary<string, ColumnWriterBase> columnWriters
+            )
+                return;
+            // Apply custom column writers for PostgresSQL sink
+            var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
+            loggerConfiguration.WriteTo.PostgreSQL(
+                connectionString,
+                "Logs",
+                columnWriters,
+                needAutoCreateTable: true
+            );
+        }
+    );
 
     // Add application and infrastructure services
-    builder.Services
-        .AddApplication()
-        .AddInfrastructure(builder.Configuration);
+    builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
     // Add Identity configuration
-    builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    builder
+        .Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             // Password settings
             options.Password.RequireDigit = true;
@@ -193,7 +228,8 @@ try
     var jwtSettings = builder.Configuration.GetSection("JWT");
     var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? string.Empty);
 
-    builder.Services.AddAuthentication(options =>
+    builder
+        .Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -215,7 +251,7 @@ try
                 ValidIssuer = jwtSettings["ValidIssuer"],
                 ValidAudience = jwtSettings["ValidAudience"],
                 IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero,
             };
             options.Events = new JwtBearerEvents
             {
@@ -223,33 +259,40 @@ try
                 {
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/Notify") ||
-                                                               path.StartsWithSegments("/matchSimulationHub")))
+                    if (
+                        !string.IsNullOrEmpty(accessToken)
+                        && (
+                            path.StartsWithSegments("/Notify")
+                            || path.StartsWithSegments("/matchSimulationHub")
+                        )
+                    )
                         // Read the token out of the query string
                         context.Token = accessToken;
 
                     return Task.CompletedTask;
-                }
+                },
             };
             options.IncludeErrorDetails = true;
             options.SaveToken = true;
         });
 
     // Add Authorization Policies
-    builder.Services.AddAuthorizationBuilder()
+    builder
+        .Services.AddAuthorizationBuilder()
         // Add Authorization Policies
         .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
         // Add Authorization Policies
         .AddPolicy("PremiumUser", policy => policy.RequireRole("Premium"));
 
-
-    builder.Services.AddControllers()
+    builder
+        .Services.AddControllers()
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
-    builder.Services.AddSignalR(options =>
+    builder
+        .Services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = true;
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
@@ -257,10 +300,13 @@ try
         .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
     // Add Health Checks
-    builder.Services.AddHealthChecks()
-        .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+    builder
+        .Services.AddHealthChecks()
+        .AddNpgSql(
+            builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
             name: "PostgresSQL",
-            tags: ["db", "postgres"])
+            tags: ["db", "postgres"]
+        )
         .AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
 
     var app = builder.Build();
@@ -283,10 +329,10 @@ try
     app.UseAuthorization();
 
     // Map health check endpoint
-    app.MapHealthChecks("/api/health", new HealthCheckOptions
-    {
-        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-    });
+    app.MapHealthChecks(
+        "/api/health",
+        new HealthCheckOptions { ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse }
+    );
 
     app.MapControllers();
 
@@ -318,12 +364,15 @@ try
                         Email = adminEmail,
                         FirstName = "Admin",
                         LastName = "User",
-                        EmailConfirmed = true
+                        EmailConfirmed = true,
                     };
 
-                    var result = await userManager.CreateAsync(admin,
-                        builder.Configuration["AdminUser:Password"] ?? string.Empty);
-                    if (result.Succeeded) await userManager.AddToRoleAsync(admin, "Admin");
+                    var result = await userManager.CreateAsync(
+                        admin,
+                        builder.Configuration["AdminUser:Password"] ?? string.Empty
+                    );
+                    if (result.Succeeded)
+                        await userManager.AddToRoleAsync(admin, "Admin");
                 }
             }
         }
@@ -334,10 +383,20 @@ try
         }
     }
 
-    app.MapHub<NotificationService>("/Notify",
-        options => { options.Transports = HttpTransportType.WebSockets; });
-    app.MapHub<MatchHub>("/matchSimulationHub",
-        options => { options.Transports = HttpTransportType.WebSockets; });
+    app.MapHub<NotificationService>(
+        "/Notify",
+        options =>
+        {
+            options.Transports = HttpTransportType.WebSockets;
+        }
+    );
+    app.MapHub<MatchHub>(
+        "/matchSimulationHub",
+        options =>
+        {
+            options.Transports = HttpTransportType.WebSockets;
+        }
+    );
     app.Run();
 }
 catch (Exception ex)

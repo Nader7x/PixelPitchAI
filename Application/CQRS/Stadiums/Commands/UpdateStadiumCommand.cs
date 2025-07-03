@@ -6,31 +6,42 @@ namespace Application.CQRS.Stadiums.Commands;
 
 public class UpdateStadiumCommand : IRequest<UpdateStadiumCommandResponse>
 {
-    [Required] public int Id { get; set; }
+    [Required]
+    public int Id { get; set; }
 
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string? Name { get; set; }
 
-    [Required] [StringLength(100)] public string? City { get; set; }
+    [Required]
+    [StringLength(100)]
+    public string? City { get; set; }
 
-    [Required] [StringLength(50)] public string? Country { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string? Country { get; set; }
 
-    [Required] public int Capacity { get; set; }
+    [Required]
+    public int Capacity { get; set; }
 
-    [StringLength(50)] public string? SurfaceType { get; set; }
+    [StringLength(50)]
+    public string? SurfaceType { get; set; }
 
-    [StringLength(200)] public string? Address { get; set; }
+    [StringLength(200)]
+    public string? Address { get; set; }
 
     public decimal? Latitude { get; set; }
 
     public decimal? Longitude { get; set; }
 
-    [StringLength(500)] public string? ImageUrl { get; set; }
+    [StringLength(500)]
+    public string? ImageUrl { get; set; }
 
-    [StringLength(2000)] public string? Description { get; set; }
+    [StringLength(2000)]
+    public string? Description { get; set; }
 
-    [StringLength(1000)] public string? Facilities { get; set; }
+    [StringLength(1000)]
+    public string? Facilities { get; set; }
 
     public DateTime BuiltDate { get; set; }
 }
@@ -47,8 +58,10 @@ public class UpdateStadiumCommandResponse
 public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>
 {
-    public async Task<UpdateStadiumCommandResponse> Handle(UpdateStadiumCommand request,
-        CancellationToken cancellationToken)
+    public async Task<UpdateStadiumCommandResponse> Handle(
+        UpdateStadiumCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -59,18 +72,20 @@ public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Stadium with ID {request.Id} not found"
+                    Error = $"Stadium with ID {request.Id} not found",
                 };
 
             // Check for name conflicts
             if (stadium.Name != request.Name)
             {
-                var existingStadium = await unitOfWork.Stadiums.GetAllAsync(s => s.Name == request.Name);
+                var existingStadium = await unitOfWork.Stadiums.GetAllAsync(s =>
+                    s.Name == request.Name
+                );
                 if (existingStadium.First().Id != request.Id)
                     return new UpdateStadiumCommandResponse
                     {
                         Succeeded = false,
-                        Error = $"Stadium with name '{request.Name}' already exists"
+                        Error = $"Stadium with name '{request.Name}' already exists",
                     };
             }
 
@@ -95,16 +110,12 @@ public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
             {
                 Succeeded = true,
                 Id = stadium.Id,
-                Name = stadium.Name
+                Name = stadium.Name,
             };
         }
         catch (Exception ex)
         {
-            return new UpdateStadiumCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new UpdateStadiumCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

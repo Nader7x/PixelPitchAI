@@ -16,24 +16,36 @@ public class GetAllTeamsQueryResponse
 {
     public bool Succeeded { get; set; }
     public string? Error { get; set; }
-    public List<TeamDto> Teams { get; set; } = new();
+    public List<TeamDto>? Teams { get; init; } = [];
 }
 
 public class GetAllTeamsQueryHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
     : IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>
 {
-    public async Task<GetAllTeamsQueryResponse> Handle(GetAllTeamsQuery request, CancellationToken cancellationToken)
+    public async Task<GetAllTeamsQueryResponse> Handle(
+        GetAllTeamsQuery request,
+        CancellationToken cancellationToken
+    )
     {
-        var teams = await unitOfWork.Teams.GetAllAsync();
-
-        // Apply filters if provided
-        if (!string.IsNullOrEmpty(request.Country)) teams = teams.Where(t => t.Country == request.Country).ToList();
-
-        if (!string.IsNullOrEmpty(request.League)) teams = teams.Where(t => t.League == request.League).ToList();
-
-        return new GetAllTeamsQueryResponse
+        try
         {
-            Teams = teamMapper.ToDtoList(teams)
-        };
+            var teams = await unitOfWork.Teams.GetAllAsync();
+
+            if (!string.IsNullOrWhiteSpace(request.Country))
+                teams = teams.Where(t => t.Country == request.Country).ToList();
+
+            if (!string.IsNullOrWhiteSpace(request.League))
+                teams = teams.Where(t => t.League == request.League).ToList();
+
+            return new GetAllTeamsQueryResponse
+            {
+                Succeeded = true,
+                Teams = teamMapper.ToDtoList(teams),
+            };
+        }
+        catch (Exception e)
+        {
+            return new GetAllTeamsQueryResponse { Succeeded = false, Error = e.Message };
+        }
     }
 }

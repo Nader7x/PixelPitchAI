@@ -11,7 +11,8 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     private readonly ITeamRepository _teamRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public TeamRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public TeamRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _teamRepository = ServiceProvider.GetRequiredService<ITeamRepository>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -301,7 +302,10 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         Assert.NotNull(recentTeams);
         Assert.Equal(2, recentTeams.Count());
-        Assert.All(recentTeams, team => Assert.True(team.FoundationDate > new DateTime(1910, 1, 1)));
+        Assert.All(
+            recentTeams,
+            team => Assert.True(team.FoundationDate > new DateTime(1910, 1, 1))
+        );
         Assert.Contains(recentTeams, t => t.Name == "Moderate Team");
         Assert.Contains(recentTeams, t => t.Name == "New Team");
     }

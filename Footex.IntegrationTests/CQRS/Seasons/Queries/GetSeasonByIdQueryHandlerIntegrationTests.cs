@@ -11,7 +11,8 @@ public class GetSeasonByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     private readonly GetSeasonByIdQueryHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetSeasonByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public GetSeasonByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<GetSeasonByIdQueryHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -225,7 +226,8 @@ public class GetSeasonByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_SeasonWithLongName_ReturnsCompleteSeasonInfo()
     {
         // Arrange
-        var longName = "Very Long Season Name That Contains Multiple Words And Describes The Competition In Detail";
+        var longName =
+            "Very Long Season Name That Contains Multiple Words And Describes The Competition In Detail";
         var season = TestData.CreateSeason(longName);
         await _unitOfWork.Seasons.AddAsync(season);
         await _unitOfWork.SaveChangesAsync();

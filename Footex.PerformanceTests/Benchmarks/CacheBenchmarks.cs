@@ -147,10 +147,11 @@ public class CacheBenchmarkConfig : ManualConfig
 {
     public CacheBenchmarkConfig()
     {
-        AddJob(Job.Default
-            .WithWarmupCount(3)
-            .WithIterationCount(10)
-            .WithInvocationCount(1)
-            .WithUnrollFactor(1));
+        AddJob(
+            Job.Default.WithWarmupCount(3)
+                .WithIterationCount(10)
+                .WithInvocationCount(1)
+                .WithUnrollFactor(1)
+        );
     }
 }

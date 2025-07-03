@@ -11,7 +11,9 @@ public static class TestDataBuilder
 
     static TestDataBuilder()
     {
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -26,7 +28,7 @@ public static class TestDataBuilder
             AwaySeasonId = 2,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchStatus = "Scheduled",
-            CreatorId = Guid.NewGuid().ToString()
+            CreatorId = Guid.NewGuid().ToString(),
         };
     }
 
@@ -39,7 +41,7 @@ public static class TestDataBuilder
             AwayTeamId = 2,
             MatchWeek = 1,
             ScheduledDateTimeUTC = DateTime.UtcNow.AddDays(7),
-            MatchStatus = "Scheduled"
+            MatchStatus = "Scheduled",
         };
     }
 
@@ -54,7 +56,7 @@ public static class TestDataBuilder
             HomeTeamSeason = "2023/24",
             AwayTeamSeason = "2023/24",
             HomeSeasonId = 7,
-            AwaySeasonId = 7
+            AwaySeasonId = 7,
         };
     }
 
@@ -67,11 +69,29 @@ public static class TestDataBuilder
             AwayTeamId = 2,
             HomeTeamSeasonId = 1,
             AwayTeamSeasonId = 2,
-            ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
+            ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(-1),
             MatchStatus = "Scheduled",
             CreatorId = Guid.NewGuid().ToString(),
             HomeTeamInMatchName = "Arsenal_2024",
-            AwayTeamInMatchName = "Chelsea_2024"
+            AwayTeamInMatchName = "Chelsea_2024",
+            IsLive = false,
+        };
+    }
+
+    public static Match CreateValidMatchWithStatus(int? id = null, string matchStatus = "Scheduled")
+    {
+        return new Match
+        {
+            Id = id ?? _fixture.Create<int>(),
+            HomeTeamId = 1,
+            AwayTeamId = 2,
+            HomeTeamSeasonId = 1,
+            AwayTeamSeasonId = 2,
+            ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
+            MatchStatus = matchStatus,
+            CreatorId = Guid.NewGuid().ToString(),
+            HomeTeamInMatchName = "Arsenal_2024",
+            AwayTeamInMatchName = "Chelsea_2024",
         };
     }
 
@@ -82,7 +102,7 @@ public static class TestDataBuilder
             Id = id ?? _fixture.Create<int>(),
             Name = name ?? _fixture.Create<string>(),
             FoundationDate = DateTime.UtcNow.AddYears(-50),
-            Country = "England"
+            Country = "England",
         };
     }
 
@@ -95,7 +115,7 @@ public static class TestDataBuilder
             StartDate = DateTime.UtcNow.AddMonths(-6),
             EndDate = DateTime.UtcNow.AddMonths(6),
             LeagueName = "Premier League",
-            Country = "England"
+            Country = "England",
         };
     }
 
@@ -108,7 +128,7 @@ public static class TestDataBuilder
             AwayTeamId = 2,
             MatchWeek = 1,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
-            MatchStatus = "Scheduled"
+            MatchStatus = "Scheduled",
         };
     }
 
@@ -122,7 +142,7 @@ public static class TestDataBuilder
             AwaySeasonId = 2,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchStatus = "Scheduled",
-            CreatorId = Guid.NewGuid().ToString()
+            CreatorId = Guid.NewGuid().ToString(),
         };
     }
 }

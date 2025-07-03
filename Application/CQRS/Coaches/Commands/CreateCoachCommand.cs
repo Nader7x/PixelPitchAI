@@ -17,17 +17,22 @@ public class CreateCoachCommand : IRequest<CreateCoachCommandResponse>
 
     public DateTime DateOfBirth { get; set; }
 
-    [StringLength(50)] public string? Nationality { get; set; }
+    [StringLength(50)]
+    public string? Nationality { get; set; }
 
-    [StringLength(50)] public string Role { get; set; }
+    [StringLength(50)]
+    public string Role { get; set; }
 
     public int? TeamId { get; set; }
 
-    [StringLength(500)] public string? PhotoUrl { get; set; }
+    [StringLength(500)]
+    public string? PhotoUrl { get; set; }
 
-    [StringLength(50)] public string PreferredFormation { get; set; }
+    [StringLength(50)]
+    public string PreferredFormation { get; set; }
 
-    [StringLength(100)] public string CoachingStyle { get; set; }
+    [StringLength(100)]
+    public string CoachingStyle { get; set; }
 
     public string Biography { get; set; }
     public int? YearsOfExperience { get; set; }
@@ -44,8 +49,10 @@ public class CreateCoachCommandResponse
 public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
     : IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>
 {
-    public async Task<CreateCoachCommandResponse> Handle(CreateCoachCommand request,
-        CancellationToken cancellationToken)
+    public async Task<CreateCoachCommandResponse> Handle(
+        CreateCoachCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -54,13 +61,14 @@ public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coac
 
             // Check if coach with the same name already exists
             var existingCoach = await unitOfWork.Coaches.FindAsync(c =>
-                c.FirstName == request.FirstName && c.LastName == request.LastName);
+                c.FirstName == request.FirstName && c.LastName == request.LastName
+            );
 
             if (existingCoach != null)
                 return new CreateCoachCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Coach with name '{fullName}' already exists"
+                    Error = $"Coach with name '{fullName}' already exists",
                 };
 
             // Create new coach
@@ -73,16 +81,12 @@ public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coac
             {
                 Succeeded = true,
                 Id = coach.Id,
-                FullName = fullName
+                FullName = fullName,
             };
         }
         catch (Exception ex)
         {
-            return new CreateCoachCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new CreateCoachCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

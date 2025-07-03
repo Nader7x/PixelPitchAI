@@ -22,22 +22,26 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(u => u.IsActive).HasColumnType("boolean").HasDefaultValue(true);
 
         // Optimize indexes for PostgreSQL
-        builder.HasIndex(u => u.NormalizedUserName)
+        builder
+            .HasIndex(u => u.NormalizedUserName)
             .HasMethod("btree")
             .HasDatabaseName("IX_ApplicationUser_UserName")
             .IsUnique();
 
-        builder.HasIndex(u => u.NormalizedEmail)
+        builder
+            .HasIndex(u => u.NormalizedEmail)
             .HasMethod("btree")
             .HasDatabaseName("IX_ApplicationUser_Email");
 
         // Add index for favorite team queries
-        builder.HasIndex(u => u.FavoriteTeamId)
+        builder
+            .HasIndex(u => u.FavoriteTeamId)
             .HasMethod("btree")
             .HasDatabaseName("IX_ApplicationUser_FavoriteTeam");
 
         // Relationship with favorite team
-        builder.HasOne(u => u.FavoriteTeam)
+        builder
+            .HasOne(u => u.FavoriteTeam)
             .WithMany()
             .HasForeignKey(u => u.FavoriteTeamId)
             .OnDelete(DeleteBehavior.SetNull)

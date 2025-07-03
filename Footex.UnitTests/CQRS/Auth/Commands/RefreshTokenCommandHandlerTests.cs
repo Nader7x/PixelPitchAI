@@ -3,6 +3,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Xunit;
@@ -11,7 +12,7 @@ namespace Footex.UnitTests.CQRS.Auth.Commands;
 
 public class RefreshTokenCommandHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly RefreshTokenCommandHandler _handler;
     private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
@@ -20,11 +21,9 @@ public class RefreshTokenCommandHandlerTests
     {
         _mockTokenService = new Mock<ITokenService>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
-        _fixture = new Fixture();
+        _fixture = new NoRecursionFixture();
 
-        _handler = new RefreshTokenCommandHandler(
-            _mockTokenService.Object,
-            _mockUnitOfWork.Object);
+        _handler = new RefreshTokenCommandHandler(_mockTokenService.Object, _mockUnitOfWork.Object);
     }
 
     [Fact]
@@ -36,10 +35,11 @@ public class RefreshTokenCommandHandlerTests
         var newRefreshToken = new RefreshToken
         {
             Token = "new-refresh-token",
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
         };
 
-        _mockTokenService.Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
+        _mockTokenService
+            .Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
             .ReturnsAsync((newAccessToken, newRefreshToken));
 
         // Act
@@ -50,7 +50,9 @@ public class RefreshTokenCommandHandlerTests
         result.Succeeded.Should().BeTrue();
         result.AccessToken.Should().Be(newAccessToken);
         result.RefreshToken.Should().Be(newRefreshToken.Token);
-        result.TokenExpires.Should().BeCloseTo(DateTime.Now.AddMinutes(60), TimeSpan.FromMinutes(1));
+        result
+            .TokenExpires.Should()
+            .BeCloseTo(DateTime.Now.AddMinutes(60), TimeSpan.FromMinutes(1));
 
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -62,7 +64,8 @@ public class RefreshTokenCommandHandlerTests
         var command = _fixture.Create<RefreshTokenCommand>();
         var errorMessage = "Invalid refresh token";
 
-        _mockTokenService.Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
+        _mockTokenService
+            .Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
             .ThrowsAsync(new SecurityTokenException(errorMessage));
 
         // Act
@@ -83,7 +86,8 @@ public class RefreshTokenCommandHandlerTests
         var command = _fixture.Create<RefreshTokenCommand>();
         var errorMessage = "Token service unavailable";
 
-        _mockTokenService.Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
+        _mockTokenService
+            .Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
             .ThrowsAsync(new Exception(errorMessage));
 
         // Act
@@ -104,16 +108,20 @@ public class RefreshTokenCommandHandlerTests
         var newRefreshToken = new RefreshToken
         {
             Token = "new-refresh-token",
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
         };
 
-        _mockTokenService.Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
+        _mockTokenService
+            .Setup(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress))
             .ReturnsAsync((newAccessToken, newRefreshToken));
 
         // Act
         await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        _mockTokenService.Verify(x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress), Times.Once);
+        _mockTokenService.Verify(
+            x => x.RefreshTokenAsync(command.RefreshToken, command.IpAddress),
+            Times.Once
+        );
     }
 }

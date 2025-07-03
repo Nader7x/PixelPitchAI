@@ -36,7 +36,8 @@ public class SearchBenchmarks
     public async Task<string> SearchPlayers(string query, int limit, bool enableFuzzySearch)
     {
         var response = await _httpClient.GetAsync(
-            $"/api/search/players?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}");
+            $"/api/search/players?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -46,7 +47,8 @@ public class SearchBenchmarks
     public async Task<string> SearchTeams(string query, int limit, bool enableFuzzySearch)
     {
         var response = await _httpClient.GetAsync(
-            $"/api/search/teams?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}");
+            $"/api/search/teams?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -56,7 +58,8 @@ public class SearchBenchmarks
     public async Task<string> SearchCoaches(string query, int limit, bool enableFuzzySearch)
     {
         var response = await _httpClient.GetAsync(
-            $"/api/search/coaches?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}");
+            $"/api/search/coaches?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -66,7 +69,8 @@ public class SearchBenchmarks
     public async Task<string> SearchMatches(string query, int limit, bool enableFuzzySearch)
     {
         var response = await _httpClient.GetAsync(
-            $"/api/search/matches?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}");
+            $"/api/search/matches?query={query}&limit={limit}&enableFuzzySearch={enableFuzzySearch}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -81,7 +85,8 @@ public class SearchBenchmarks
     public async Task<string> SearchPlayersLongQuery()
     {
         var response = await _httpClient.GetAsync(
-            "/api/search/players?query=manchester united midfielder attacking&limit=10");
+            "/api/search/players?query=manchester united midfielder attacking&limit=10"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -92,7 +97,9 @@ public class SearchBenchmarks
     [Arguments(50)]
     public async Task<string> SearchPlayersWithDifferentLimits(int limit)
     {
-        var response = await _httpClient.GetAsync($"/api/search/players?query=manchester&limit={limit}");
+        var response = await _httpClient.GetAsync(
+            $"/api/search/players?query=manchester&limit={limit}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 }
@@ -101,10 +108,11 @@ public class SearchBenchmarkConfig : ManualConfig
 {
     public SearchBenchmarkConfig()
     {
-        AddJob(Job.Default
-            .WithWarmupCount(2)
-            .WithIterationCount(8)
-            .WithInvocationCount(1)
-            .WithUnrollFactor(1));
+        AddJob(
+            Job.Default.WithWarmupCount(2)
+                .WithIterationCount(8)
+                .WithInvocationCount(1)
+                .WithUnrollFactor(1)
+        );
     }
 }

@@ -84,18 +84,24 @@ public class PerformanceTestSuite
         Assert.NotEmpty(_settings.BaseUrl);
         Assert.True(_settings.Duration.ShortTestMinutes > 0);
         Assert.True(_settings.Load.LightLoadRps > 0);
-        Assert.True(_settings.Cache.ExpectedCacheHitRatio > 0 && _settings.Cache.ExpectedCacheHitRatio <= 1);
+        Assert.True(
+            _settings.Cache.ExpectedCacheHitRatio > 0 && _settings.Cache.ExpectedCacheHitRatio <= 1
+        );
 
         _logger.LogInformation("Configuration validation passed");
         _logger.LogInformation("Base URL: {BaseUrl}", _settings.BaseUrl);
-        _logger.LogInformation("Test Durations - Short: {Short}min, Medium: {Medium}min, Long: {Long}min",
+        _logger.LogInformation(
+            "Test Durations - Short: {Short}min, Medium: {Medium}min, Long: {Long}min",
             _settings.Duration.ShortTestMinutes,
             _settings.Duration.MediumTestMinutes,
-            _settings.Duration.LongTestMinutes);
-        _logger.LogInformation("Load Settings - Light: {Light}rps, Medium: {Medium}rps, Heavy: {Heavy}rps",
+            _settings.Duration.LongTestMinutes
+        );
+        _logger.LogInformation(
+            "Load Settings - Light: {Light}rps, Medium: {Medium}rps, Heavy: {Heavy}rps",
             _settings.Load.LightLoadRps,
             _settings.Load.MediumLoadRps,
-            _settings.Load.HeavyLoadRps);
+            _settings.Load.HeavyLoadRps
+        );
     }
 
     [Fact]
@@ -114,7 +120,7 @@ public class PerformanceTestSuite
             "/api/matches",
             "/api/players",
             "/api/teams",
-            "/api/stadiums"
+            "/api/stadiums",
         };
 
         var accessibleEndpoints = 0;
@@ -130,7 +136,11 @@ public class PerformanceTestSuite
                 }
                 else
                 {
-                    _logger.LogWarning("⚠ {Endpoint} - Status: {StatusCode}", endpoint, response.StatusCode);
+                    _logger.LogWarning(
+                        "⚠ {Endpoint} - Status: {StatusCode}",
+                        endpoint,
+                        response.StatusCode
+                    );
                 }
             }
             catch (Exception ex)
@@ -138,8 +148,11 @@ public class PerformanceTestSuite
                 _logger.LogError("✗ {Endpoint} - Error: {Error}", endpoint, ex.Message);
             }
 
-        _logger.LogInformation("Accessibility check completed: {Accessible}/{Total} endpoints accessible",
-            accessibleEndpoints, endpointsToTest.Length);
+        _logger.LogInformation(
+            "Accessibility check completed: {Accessible}/{Total} endpoints accessible",
+            accessibleEndpoints,
+            endpointsToTest.Length
+        );
 
         // We don't fail the test if endpoints aren't accessible as the API might not be running
         // This is just for validation purposes
@@ -162,14 +175,17 @@ public class PerformanceTestSuite
         _logger.LogInformation("");
 
         _logger.LogInformation("2. Benchmarks (BenchmarkDotNet):");
-        _logger.LogInformation("   - ApiBenchmarks: Detailed performance metrics for API endpoints");
+        _logger.LogInformation(
+            "   - ApiBenchmarks: Detailed performance metrics for API endpoints"
+        );
         _logger.LogInformation("   - SearchBenchmarks: Micro-benchmarks for search functionality");
         _logger.LogInformation("   - CacheBenchmarks: Cache performance analysis");
         _logger.LogInformation("");
 
         _logger.LogInformation("To run tests:");
         _logger.LogInformation(
-            "- PowerShell: ./run-performance-tests.ps1 -TestType [load|stress|cache|search|benchmark|all]");
+            "- PowerShell: ./run-performance-tests.ps1 -TestType [load|stress|cache|search|benchmark|all]"
+        );
         _logger.LogInformation("- dotnet CLI: dotnet test --filter Category=LoadTest");
         _logger.LogInformation("- Visual Studio: Run specific test classes or use Test Explorer");
     }

@@ -14,10 +14,9 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
 
     public AuthControllerTests(FootexWebApplicationFactory factory)
     {
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
     }
 
     [Fact]
@@ -28,7 +27,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
         {
             Email = "test@example.com",
             Password = "Test123!",
-            Username = "testuser"
+            Username = "testuser",
         };
 
         // Act
@@ -46,7 +45,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
         var loginRequest = new
         {
             Email = "user@example.com", // Use credentials that exist in your test database
-            Password = "Password123!"
+            Password = "Password123!",
         };
 
         // Act
@@ -69,7 +68,7 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
         var loginRequest = new
         {
             Email = "nonexistent@example.com",
-            Password = "WrongPassword123!"
+            Password = "WrongPassword123!",
         };
 
         // Act
@@ -83,19 +82,12 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
     public async Task RefreshToken_WithValidToken_ReturnsNewToken()
     {
         // Arrange - First login to get tokens
-        var loginRequest = new
-        {
-            Email = "user@example.com",
-            Password = "Password123!"
-        };
+        var loginRequest = new { Email = "user@example.com", Password = "Password123!" };
 
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
         var tokens = await loginResponse.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
 
-        var refreshRequest = new
-        {
-            tokens.RefreshToken
-        };
+        var refreshRequest = new { tokens.RefreshToken };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);

@@ -15,8 +15,8 @@ public class StadiumsController(
     IMediator mediator,
     IStadiumMapper stadiumMapper,
     IFileStorageService fileStorageService,
-    ICacheService cacheService)
-    : ControllerBase
+    ICacheService cacheService
+) : ControllerBase
 {
     private const string CONTAINER_NAME = "stadiums";
     private readonly ICacheService _cacheService = cacheService;
@@ -24,13 +24,13 @@ public class StadiumsController(
     private readonly IMediator _mediator = mediator;
     private readonly IStadiumMapper _stadiumMapper = stadiumMapper;
 
-
     [HttpGet]
     [ProducesResponseType(typeof(GetAllStadiumsQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetAllStadiumsQueryResponse>> GetAllStadiums(
         [FromQuery] string? country,
-        [FromQuery] string? city)
+        [FromQuery] string? city
+    )
     {
         await _cacheService.RemoveAsync("stadiums_all_*");
         // Generate a cache key based on the query parameters
@@ -45,11 +45,7 @@ public class StadiumsController(
             return Ok(cachedResult);
         }
 
-        var query = new GetAllStadiumsQuery
-        {
-            Country = country,
-            City = city
-        };
+        var query = new GetAllStadiumsQuery { Country = country, City = city };
 
         var result = await _mediator.Send(query);
 
@@ -101,28 +97,17 @@ public class StadiumsController(
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateStadiumCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateStadiumCommandResponse>> CreateStadium([FromForm] CreateStadiumDto stadiumDto)
+    public async Task<ActionResult<CreateStadiumCommandResponse>> CreateStadium(
+        [FromForm] CreateStadiumDto stadiumDto
+    )
     {
         // Handle file upload if present
         var imageUrl = stadiumDto.ImageUrl;
         if (stadiumDto.Image != null)
             imageUrl = await _fileStorageService.UploadImageAsync(stadiumDto.Image, CONTAINER_NAME);
 
-        var command = new CreateStadiumCommand
-        {
-            Name = stadiumDto.Name,
-            City = stadiumDto.City,
-            Country = stadiumDto.Country,
-            Capacity = stadiumDto.Capacity,
-            SurfaceType = stadiumDto.SurfaceType,
-            Address = stadiumDto.Address,
-            Latitude = stadiumDto.Latitude,
-            Longitude = stadiumDto.Longitude,
-            ImageUrl = imageUrl,
-            Description = stadiumDto.Description,
-            Facilities = stadiumDto.Facilities,
-            BuiltDate = stadiumDto.BuiltDate
-        };
+        var command = _stadiumMapper.ToCreateCommand(stadiumDto);
+        command.ImageUrl = imageUrl;
 
         var result = await _mediator.Send(command);
 
@@ -140,8 +125,10 @@ public class StadiumsController(
     [ProducesResponseType(typeof(UpdateStadiumCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateStadiumCommandResponse>> UpdateStadium(int id,
-        [FromForm] UpdateStadiumDto stadiumDto)
+    public async Task<ActionResult<UpdateStadiumCommandResponse>> UpdateStadium(
+        int id,
+        [FromForm] UpdateStadiumDto stadiumDto
+    )
     {
         // Get existing stadium to check if we need to replace the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
@@ -156,7 +143,10 @@ public class StadiumsController(
         {
             // Delete old image if it exists
             if (!string.IsNullOrEmpty(existingResult.Stadium.ImageUrl))
-                await _fileStorageService.DeleteImageAsync(existingResult.Stadium.ImageUrl, CONTAINER_NAME);
+                await _fileStorageService.DeleteImageAsync(
+                    existingResult.Stadium.ImageUrl,
+                    CONTAINER_NAME
+                );
 
             // Upload new image
             imageUrl = await _fileStorageService.UploadImageAsync(stadiumDto.Image, CONTAINER_NAME);
@@ -183,7 +173,6 @@ public class StadiumsController(
         return Ok(result);
     }
 
-
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DeleteStadiumCommandResponse), StatusCodes.Status200OK)]
@@ -200,7 +189,10 @@ public class StadiumsController(
 
         // Delete image if it exists
         if (!string.IsNullOrEmpty(existingResult.Stadium.ImageUrl))
-            await _fileStorageService.DeleteImageAsync(existingResult.Stadium.ImageUrl, CONTAINER_NAME);
+            await _fileStorageService.DeleteImageAsync(
+                existingResult.Stadium.ImageUrl,
+                CONTAINER_NAME
+            );
 
         var command = new DeleteStadiumCommand { Id = id };
         var result = await _mediator.Send(command);

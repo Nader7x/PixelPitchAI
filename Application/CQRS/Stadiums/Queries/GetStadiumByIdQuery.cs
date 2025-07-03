@@ -21,8 +21,10 @@ public class GetStadiumByIdQueryResponse
 public class GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, IStadiumMapper stadiumMapper)
     : IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>
 {
-    public async Task<GetStadiumByIdQueryResponse> Handle(GetStadiumByIdQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetStadiumByIdQueryResponse> Handle(
+        GetStadiumByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -32,24 +34,16 @@ public class GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, IStadiumMapper s
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Stadium with ID {request.Id} not found"
+                    Error = $"Stadium with ID {request.Id} not found",
                 };
 
             var stadiumDto = stadiumMapper.ToDto(stadium);
 
-            return new GetStadiumByIdQueryResponse
-            {
-                Succeeded = true,
-                Stadium = stadiumDto
-            };
+            return new GetStadiumByIdQueryResponse { Succeeded = true, Stadium = stadiumDto };
         }
         catch (Exception ex)
         {
-            return new GetStadiumByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetStadiumByIdQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

@@ -11,24 +11,28 @@ public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeasons>
         builder.HasKey(t => t.Id);
 
         // Set timestamp for UpdatedAt
-        builder.Property(t => t.UpdatedAt)
+        builder
+            .Property(t => t.UpdatedAt)
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("now()");
 
         // Unique constraint with appropriate index
-        builder.HasIndex(t => new { t.TeamId, t.SeasonId })
+        builder
+            .HasIndex(t => new { t.TeamId, t.SeasonId })
             .IsUnique()
             .HasMethod("btree")
             .HasDatabaseName("IX_TeamSeasons_TeamSeason");
 
         // Relationships
-        builder.HasOne(t => t.Team)
+        builder
+            .HasOne(t => t.Team)
             .WithMany(s => s.TeamSeasons) // Specify the collection in Team class
             .HasForeignKey(t => t.TeamId)
             .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("FK_TeamSeasons_Team");
 
-        builder.HasOne(t => t.Season)
+        builder
+            .HasOne(t => t.Season)
             .WithMany(s => s.SeasonTeams)
             .HasForeignKey(t => t.SeasonId)
             .OnDelete(DeleteBehavior.Cascade);

@@ -13,7 +13,8 @@ public class NotificationService : Hub<INotificationService>
     {
         // This method is called when a client connects to the hub.
         var userId = Context.User.GetNameId();
-        if (userId != null) Clients.User(userId).SendMessageAsync("Welcome back!");
+        if (userId != null)
+            Clients.User(userId).SendMessageAsync("Welcome back!");
         return base.OnConnectedAsync();
     }
 }

@@ -11,7 +11,8 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     private readonly GetStadiumByIdQueryHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetStadiumByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public GetStadiumByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<GetStadiumByIdQueryHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();

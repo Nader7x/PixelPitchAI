@@ -11,8 +11,11 @@ namespace Footex.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, ICacheService cacheService)
-    : ControllerBase
+public class SeasonsController(
+    IMediator mediator,
+    ISeasonMapper seasonMapper,
+    ICacheService cacheService
+) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly ISeasonMapper _seasonMapper = seasonMapper;
@@ -23,7 +26,8 @@ public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, I
     public async Task<ActionResult<GetAllSeasonsQueryResponse>> GetAllSeasons(
         [FromQuery] string? leagueName,
         [FromQuery] string? country,
-        [FromQuery] bool? isActive)
+        [FromQuery] bool? isActive
+    )
     {
         // Generate a cache key based on the query parameters
         var cacheKey = $"seasons_all_{leagueName}_{country}_{isActive}";
@@ -41,7 +45,7 @@ public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, I
         {
             LeagueName = leagueName,
             Country = country,
-            IsActive = isActive
+            IsActive = isActive,
         };
 
         var result = await mediator.Send(query);
@@ -123,7 +127,9 @@ public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, I
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateSeasonCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateSeasonCommandResponse>> CreateSeason([FromBody] CreateSeasonDto seasonDto)
+    public async Task<ActionResult<CreateSeasonCommandResponse>> CreateSeason(
+        [FromBody] CreateSeasonDto seasonDto
+    )
     {
         var command = _seasonMapper.ToCreateCommand(seasonDto);
 
@@ -144,8 +150,10 @@ public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, I
     [ProducesResponseType(typeof(UpdateSeasonCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdateSeasonCommandResponse>> UpdateSeason(int id,
-        [FromBody] UpdateSeasonDto seasonDto)
+    public async Task<ActionResult<UpdateSeasonCommandResponse>> UpdateSeason(
+        int id,
+        [FromBody] UpdateSeasonDto seasonDto
+    )
     {
         var command = _seasonMapper.ToUpdateCommand(seasonDto);
         command.Id = id;
@@ -186,10 +194,10 @@ public class SeasonsController(IMediator mediator, ISeasonMapper seasonMapper, I
 
         // Invalidate both the specific season cache and season list caches
         await InvalidateSeasonListCaches();
-        
 
         return Ok(result);
     }
+
     [NonAction]
     // Helper method to invalidate all season list caches
     private async Task InvalidateSeasonListCaches()

@@ -21,30 +21,30 @@ public class RefreshTokenCommandResponse
 public class RefreshTokenCommandHandler(ITokenService tokenService, IUnitOfWork unitOfWork)
     : IRequestHandler<RefreshTokenCommand, RefreshTokenCommandResponse>
 {
-    public async Task<RefreshTokenCommandResponse> Handle(RefreshTokenCommand request,
-        CancellationToken cancellationToken)
+    public async Task<RefreshTokenCommandResponse> Handle(
+        RefreshTokenCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
             // Refresh token
-            var (accessToken, refreshToken) =
-                await tokenService.RefreshTokenAsync(request.RefreshToken, request.IpAddress);
+            var (accessToken, refreshToken) = await tokenService.RefreshTokenAsync(
+                request.RefreshToken,
+                request.IpAddress
+            );
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return new RefreshTokenCommandResponse
             {
                 Succeeded = true,
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
-                TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")) // Should match JWT expiration
+                TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")), // Should match JWT expiration
             };
         }
         catch (Exception ex)
         {
-            return new RefreshTokenCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new RefreshTokenCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

@@ -18,7 +18,11 @@ public class CornerEventProcessor : BaseEventProcessor
             match.AwayTeamCorners = IncrementValue(match.AwayTeamCorners);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalCorners++;
     }

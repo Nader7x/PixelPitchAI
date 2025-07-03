@@ -26,7 +26,7 @@ public class PassEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamCorners = IncrementValue(match.AwayTeamCorners);
                 break;
-                
+
             case "Free Kick":
                 if (IsHomeTeam(matchEvent, match))
                     match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
@@ -40,15 +40,15 @@ public class PassEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamGoalKicks = IncrementValue(match.AwayTeamGoalKicks);
                 break;
-                
+
             case "Throw-in":
                 // Throw-ins are tracked in the MatchEvents entity
                 break;
-                
+
             case "Kick Off":
                 // Kick off passes are tracked as normal passes
                 break;
-                
+
             case "Recovery":
                 // Recovery passes usually follow a ball recovery
                 if (IsHomeTeam(matchEvent, match))
@@ -56,7 +56,7 @@ public class PassEventProcessor : BaseEventProcessor
                 else
                     match.AwayTeamRecoveries = IncrementValue(match.AwayTeamRecoveries);
                 break;
-                
+
             case "Interception":
                 // Interception passes usually follow an interception
                 break;
@@ -86,19 +86,19 @@ public class PassEventProcessor : BaseEventProcessor
                         match.AwayAccurateLongBalls = IncrementValue(match.AwayAccurateLongBalls);
                 }
                 break;
-                
+
             case "Incomplete":
                 // Incomplete passes are still counted in the total, but not in completed passes
                 break;
-                
+
             case "Out":
                 // Passes that go out of bounds
                 break;
-                
+
             case "Injury Clearance":
                 // Special case for injury-related clearances
                 break;
-                
+
             case "Unknown":
                 // Unknown outcome passes are still counted in the total
                 break;
@@ -114,7 +114,11 @@ public class PassEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalPasses++;
 
@@ -123,7 +127,7 @@ public class PassEventProcessor : BaseEventProcessor
             case "Corner":
                 matchEvents.TotalCorners++;
                 break;
-                
+
             case "Free Kick":
                 matchEvents.TotalFreeKicks++;
                 break;
@@ -151,7 +155,7 @@ public class PassEventProcessor : BaseEventProcessor
             case "Injury Clearance":
                 matchEvents.TotalOuts++;
                 break;
-                
+
             case "Pass Offside":
                 matchEvents.TotalOffsides++;
                 break;

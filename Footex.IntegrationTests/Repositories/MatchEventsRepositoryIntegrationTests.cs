@@ -13,7 +13,8 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IMatchEventsRepository _repository;
 
-    public MatchEventsRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public MatchEventsRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _repository = ServiceProvider.GetRequiredService<IMatchEventsRepository>();
     }
@@ -173,9 +174,27 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var match = await SeedMatchAsync();
         var events = new[]
         {
-            new { Type = "Goal", Time = 15, Player = "Player1", Team = "Home" },
-            new { Type = "Yellow Card", Time = 23, Player = "Player2", Team = "Away" },
-            new { Type = "Goal", Time = 67, Player = "Player3", Team = "Home" }
+            new
+            {
+                Type = "Goal",
+                Time = 15,
+                Player = "Player1",
+                Team = "Home",
+            },
+            new
+            {
+                Type = "Yellow Card",
+                Time = 23,
+                Player = "Player2",
+                Team = "Away",
+            },
+            new
+            {
+                Type = "Goal",
+                Time = 67,
+                Player = "Player3",
+                Team = "Home",
+            },
         };
 
         var matchEvents = CreateValidMatchEvents(match.Id);
@@ -205,7 +224,15 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var originalLastUpdated = matchEvents.LastUpdated;
         await Task.Delay(1000); // Ensure time difference
 
-        var newEvents = new[] { new { Type = "Goal", Time = 45, Player = "TestPlayer" } };
+        var newEvents = new[]
+        {
+            new
+            {
+                Type = "Goal",
+                Time = 45,
+                Player = "TestPlayer",
+            },
+        };
 
         // Act
         matchEvents.SetEvents(newEvents);
@@ -253,7 +280,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             TotalErrors = 3,
             TotalBlocks = 12,
             TotalClearances = 18,
-            TotalInterceptions = 14
+            TotalInterceptions = 14,
         };
 
         // Act
@@ -324,8 +351,20 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         var events = new[]
         {
-            new { Type = "Goal", Time = 25, Player = "TestPlayer1", Team = "Home" },
-            new { Type = "Yellow Card", Time = 40, Player = "TestPlayer2", Team = "Away" }
+            new
+            {
+                Type = "Goal",
+                Time = 25,
+                Player = "TestPlayer1",
+                Team = "Home",
+            },
+            new
+            {
+                Type = "Yellow Card",
+                Time = 40,
+                Player = "TestPlayer2",
+                Team = "Away",
+            },
         };
 
         return new MatchEvents
@@ -359,7 +398,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             TotalErrors = 1,
             TotalBlocks = 8,
             TotalClearances = 12,
-            TotalInterceptions = 9
+            TotalInterceptions = 9,
         };
     }
 
@@ -379,7 +418,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             MatchStatus = "Scheduled",
             HomeTeamScore = 0,
             AwayTeamScore = 0,
-            CreatorId = "test-creator-id"
+            CreatorId = "test-creator-id",
         };
 
         Context.Matches.Add(match);
@@ -395,7 +434,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             Name = name,
             City = "Test City",
             FoundationDate = new DateTime(1900, 1, 1),
-            Logo = "http://example.com/logo.png"
+            Logo = "http://example.com/logo.png",
         };
 
         Context.Teams.Add(team);
@@ -413,7 +452,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddMonths(6),
             IsActive = true,
             LeagueName = "Test League",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         Context.Seasons.Add(season);

@@ -18,8 +18,10 @@ public class DeletePlayerCommandResponse
 public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>
 {
-    public async Task<DeletePlayerCommandResponse> Handle(DeletePlayerCommand request,
-        CancellationToken cancellationToken)
+    public async Task<DeletePlayerCommandResponse> Handle(
+        DeletePlayerCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -29,24 +31,17 @@ public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = $"Player with ID {request.Id} not found"
+                    Error = $"Player with ID {request.Id} not found",
                 };
 
             unitOfWork.Players.DeleteAsync(player);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new DeletePlayerCommandResponse
-            {
-                Succeeded = true
-            };
+            return new DeletePlayerCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new DeletePlayerCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new DeletePlayerCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

@@ -11,10 +11,16 @@ public interface IMatchMapper
     List<MatchDto?> ToDtoList(IEnumerable<Match> matches);
     CreateMatchCommand ToCreateCommand(CreateMatchDto dto);
     UpdateMatchCommand ToUpdateCommand(UpdateMatchDto dto);
-    GetAllMatchesQuery ToGetAllQuery(int? seasonId, int? teamId, DateTime? fromDate, DateTime? toDate);
+    GetAllMatchesQuery ToGetAllQuery(
+        int? seasonId,
+        int? teamId,
+        DateTime? fromDate,
+        DateTime? toDate
+    );
     GetMatchByIdQuery ToGetByIdQuery(int id);
     DeleteMatchCommand ToDeleteCommand(int id);
     Match ToMatchFromCreate(CreateMatchCommand request);
     MatchDetailsDto ToDetailsFromMatch(Match match);
-    List<UserMatchDto> ToUserMatchDto(IEnumerable<Match> matches);
+    List<UserMatchDto> ToUserMatchesDtoS(IEnumerable<Match> matches);
+    LiveMatchDto ToLiveMatchDto(Match match);
 }

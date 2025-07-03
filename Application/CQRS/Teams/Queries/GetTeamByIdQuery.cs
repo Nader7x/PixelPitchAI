@@ -22,23 +22,17 @@ public class GetTeamByIdQueryHandler(IUnitOfWork unitOfWork, ITeamMapper teamMap
 {
     private readonly ITeamMapper _teamMapper = teamMapper;
 
-
-    public async Task<GetTeamByIdQueryResponse> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetTeamByIdQueryResponse> Handle(
+        GetTeamByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var team = await unitOfWork.Teams.GetByIdAsyncWithStadium(request.Id);
 
         if (team == null)
-            return new GetTeamByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = "Team not found"
-            };
+            return new GetTeamByIdQueryResponse { Succeeded = false, Error = "Team not found" };
         var teamDto = _teamMapper.ToTeamDto(team);
 
-        return new GetTeamByIdQueryResponse
-        {
-            Succeeded = true,
-            Team = teamDto
-        };
+        return new GetTeamByIdQueryResponse { Succeeded = true, Team = teamDto };
     }
 }

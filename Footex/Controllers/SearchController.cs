@@ -19,15 +19,20 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     [HttpGet]
     [ProducesResponseType(typeof(SearchResultDto), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Search([FromQuery] string query, [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> Search(
+        [FromQuery] string query,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10
+    )
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return BadRequest("Search query must be at least 2 characters long");
 
-        if (page < 1) page = 1;
+        if (page < 1)
+            page = 1;
 
-        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        if (pageSize < 1 || pageSize > 50)
+            pageSize = 10;
 
         var results = await advancedSearchService.SearchAsync(query, page, pageSize);
         return Ok(results);
@@ -48,15 +53,23 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] SearchStrategy strategy = SearchStrategy.Auto,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10
+    )
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return BadRequest("Search query must be at least 2 characters long");
 
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        if (page < 1)
+            page = 1;
+        if (pageSize < 1 || pageSize > 50)
+            pageSize = 10;
 
-        var results = await advancedSearchService.SearchWithStrategyAsync(query, strategy, page, pageSize);
+        var results = await advancedSearchService.SearchWithStrategyAsync(
+            query,
+            strategy,
+            page,
+            pageSize
+        );
         return Ok(results);
     }
 
@@ -73,8 +86,10 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (string.IsNullOrWhiteSpace(filters.Query) || filters.Query.Length < 2)
             return BadRequest("Search query must be at least 2 characters long");
 
-        if (filters.Page < 1) filters.Page = 1;
-        if (filters.PageSize < 1 || filters.PageSize > 50) filters.PageSize = 10;
+        if (filters.Page < 1)
+            filters.Page = 1;
+        if (filters.PageSize < 1 || filters.PageSize > 50)
+            filters.PageSize = 10;
 
         var results = await advancedSearchService.SearchWithFiltersAsync(filters);
         return Ok(results);
@@ -95,19 +110,27 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] string? entityTypes = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10
+    )
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return BadRequest("Search query must be at least 2 characters long");
 
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        if (page < 1)
+            page = 1;
+        if (pageSize < 1 || pageSize > 50)
+            pageSize = 10;
 
         var entityTypesList = string.IsNullOrWhiteSpace(entityTypes)
             ? null
             : entityTypes.Split(',').Select(t => t.Trim()).ToList();
 
-        var results = await advancedSearchService.UnifiedSearchAsync(query, entityTypesList, page, pageSize);
+        var results = await advancedSearchService.UnifiedSearchAsync(
+            query,
+            entityTypesList,
+            page,
+            pageSize
+        );
         return Ok(results);
     }
 
@@ -126,15 +149,23 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] bool enableFuzzySearch = false)
+        [FromQuery] bool enableFuzzySearch = false
+    )
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return BadRequest("Search query must be at least 2 characters long");
 
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        if (page < 1)
+            page = 1;
+        if (pageSize < 1 || pageSize > 50)
+            pageSize = 10;
 
-        var results = await advancedSearchService.SearchAllAsync(query, page, pageSize, enableFuzzySearch);
+        var results = await advancedSearchService.SearchAllAsync(
+            query,
+            page,
+            pageSize,
+            enableFuzzySearch
+        );
         return Ok(results);
     }
 
@@ -153,11 +184,14 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] int limit = 10,
         [FromQuery] bool enableFuzzySearch = false,
-        [FromQuery] bool advanced = false)
+        [FromQuery] bool advanced = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
         var teams = advanced
             ? await advancedSearchService.SearchTeamsWithAdvancedRankingAsync(query, limit)
@@ -181,11 +215,14 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] int limit = 10,
         [FromQuery] bool enableFuzzySearch = false,
-        [FromQuery] bool advanced = false)
+        [FromQuery] bool advanced = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
         var players = advanced
             ? await advancedSearchService.SearchPlayersWithAdvancedRankingAsync(query, limit)
@@ -209,11 +246,14 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] int limit = 10,
         [FromQuery] bool enableFuzzySearch = false,
-        [FromQuery] bool advanced = false)
+        [FromQuery] bool advanced = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
         var coaches = advanced
             ? await advancedSearchService.SearchCoachesWithAdvancedRankingAsync(query, limit)
@@ -237,11 +277,14 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] string query,
         [FromQuery] int limit = 10,
         [FromQuery] bool enableFuzzySearch = false,
-        [FromQuery] bool advanced = false)
+        [FromQuery] bool advanced = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
         var stadiums = advanced
             ? await advancedSearchService.SearchStadiumsWithAdvancedRankingAsync(query, limit)
@@ -263,13 +306,20 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     public async Task<IActionResult> SearchSeasons(
         [FromQuery] string query,
         [FromQuery] int limit = 10,
-        [FromQuery] bool enableFuzzySearch = false)
+        [FromQuery] bool enableFuzzySearch = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
-        var seasons = await advancedSearchService.SearchSeasonsAsync(query, limit, enableFuzzySearch);
+        var seasons = await advancedSearchService.SearchSeasonsAsync(
+            query,
+            limit,
+            enableFuzzySearch
+        );
         return Ok(seasons);
     }
 
@@ -286,13 +336,20 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     public async Task<IActionResult> SearchMatches(
         [FromQuery] string query,
         [FromQuery] int limit = 10,
-        [FromQuery] bool enableFuzzySearch = false)
+        [FromQuery] bool enableFuzzySearch = false
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50) limit = 10;
+        if (limit < 1 || limit > 50)
+            limit = 10;
 
-        var matches = await advancedSearchService.SearchMatchesAsync(query, limit, enableFuzzySearch);
+        var matches = await advancedSearchService.SearchMatchesAsync(
+            query,
+            limit,
+            enableFuzzySearch
+        );
         return Ok(matches);
     }
 
@@ -307,11 +364,14 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     [ProducesResponseType(400)]
     public async Task<IActionResult> GetSearchSuggestions(
         [FromQuery] string query,
-        [FromQuery] int limit = 5)
+        [FromQuery] int limit = 5
+    )
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 20) limit = 5;
+        if (limit < 1 || limit > 20)
+            limit = 5;
 
         try
         {
@@ -335,7 +395,8 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     [ProducesResponseType(400)]
     public async Task<IActionResult> GetSearchAnalytics([FromQuery] string query)
     {
-        if (string.IsNullOrWhiteSpace(query)) return BadRequest("Search query cannot be empty");
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest("Search query cannot be empty");
 
         try
         {
@@ -357,13 +418,19 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
     [HttpPost("bulk")]
     [ProducesResponseType(typeof(Dictionary<string, SearchResultDto>), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> BulkSearch([FromBody] List<string> queries, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> BulkSearch(
+        [FromBody] List<string> queries,
+        [FromQuery] int pageSize = 10
+    )
     {
-        if (queries == null || !queries.Any()) return BadRequest("At least one search query is required");
+        if (queries == null || !queries.Any())
+            return BadRequest("At least one search query is required");
 
-        if (queries.Count > 10) return BadRequest("Maximum 10 queries allowed per bulk search");
+        if (queries.Count > 10)
+            return BadRequest("Maximum 10 queries allowed per bulk search");
 
-        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+        if (pageSize < 1 || pageSize > 50)
+            pageSize = 10;
 
         var results = new Dictionary<string, SearchResultDto>();
 
@@ -382,7 +449,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
                     CurrentPage = 1,
                     TotalPages = 0,
                     PageSize = pageSize,
-                    Items = []
+                    Items = [],
                 };
             }
 

@@ -14,7 +14,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
     private readonly ICoachRepository _coachRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CoachRepositoryIntegrationTests(FootexWebApplicationFactory factory, IUnitOfWork unitOfWork) : base(factory)
+    public CoachRepositoryIntegrationTests(
+        FootexWebApplicationFactory factory,
+        IUnitOfWork unitOfWork
+    )
+        : base(factory)
     {
         _unitOfWork = unitOfWork;
         _coachRepository = ServiceProvider.GetRequiredService<ICoachRepository>();
@@ -29,7 +33,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var coach = new Coach
@@ -40,7 +44,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 15,
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -73,7 +77,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Coach Team",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -84,7 +88,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 20,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -124,7 +128,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Search Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var coach1 = new Coach
@@ -135,7 +139,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Portugal",
             Role = "Head Coach",
             YearsOfExperience = 25,
-            Team = team
+            Team = team,
         };
 
         var coach2 = new Coach
@@ -146,7 +150,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 18,
-            Team = team
+            Team = team,
         };
 
         var coach3 = new Coach
@@ -157,7 +161,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Italy",
             Role = "Head Coach",
             YearsOfExperience = 30,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -185,7 +189,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Search Team 2",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach1 = new Coach
@@ -196,7 +200,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 18,
-            Team = team
+            Team = team,
         };
 
         var coach2 = new Coach
@@ -207,7 +211,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 8,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -234,7 +238,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Full Name Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -245,7 +249,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Germany",
             Role = "Head Coach",
             YearsOfExperience = 22,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -271,7 +275,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Role Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var headCoach = new Coach
@@ -282,7 +286,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 15,
-            Team = team
+            Team = team,
         };
 
         var assistantCoach = new Coach
@@ -293,7 +297,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 10,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -319,7 +323,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Nationality Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1985, 1, 1)
+            FoundationDate = new DateTime(1985, 1, 1),
         };
 
         var spanishCoach1 = new Coach
@@ -330,7 +334,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 12,
-            Team = team
+            Team = team,
         };
 
         var spanishCoach2 = new Coach
@@ -341,7 +345,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 20,
-            Team = team
+            Team = team,
         };
 
         var germanCoach = new Coach
@@ -352,7 +356,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Germany",
             Role = "Head Coach",
             YearsOfExperience = 15,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -381,7 +385,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Manchester United",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var team2 = new Team
@@ -389,7 +393,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Barcelona",
             League = "La Liga",
             Country = "Spain",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach1 = new Coach
@@ -400,7 +404,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Netherlands",
             Role = "Head Coach",
             YearsOfExperience = 16,
-            Team = team1
+            Team = team1,
         };
 
         var coach2 = new Coach
@@ -411,7 +415,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 5,
-            Team = team2
+            Team = team2,
         };
 
         await _unitOfWork.Teams.AddAsync(team1);
@@ -434,7 +438,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
     public async Task SearchAsync_WithEmptyQuery_ReturnsEmpty()
     {
         // Act & Assert
-        (await _coachRepository.SearchAsync("")).Should().BeEmpty();
+        (await _coachRepository.SearchAsync(""))
+            .Should()
+            .BeEmpty();
         (await _coachRepository.SearchAsync("   ")).Should().BeEmpty();
     }
 
@@ -447,7 +453,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Team With Coach",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -458,7 +464,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Head Coach",
             YearsOfExperience = 12,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -487,7 +493,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Update Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -498,7 +504,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 5,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -535,7 +541,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Delete Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -546,7 +552,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Portugal",
             Role = "Head Coach",
             YearsOfExperience = 20,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -573,7 +579,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Multi Coach Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coaches = new List<Coach>
@@ -586,7 +592,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
                 Nationality = "Spain",
                 Role = "Head Coach",
                 YearsOfExperience = 15,
-                Team = team
+                Team = team,
             },
             new()
             {
@@ -596,7 +602,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
                 Nationality = "Italy",
                 Role = "Assistant Coach",
                 YearsOfExperience = 8,
-                Team = team
+                Team = team,
             },
             new()
             {
@@ -606,12 +612,13 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
                 Nationality = "Germany",
                 Role = "Goalkeeping Coach",
                 YearsOfExperience = 12,
-                Team = team
-            }
+                Team = team,
+            },
         };
 
         await _unitOfWork.Teams.AddAsync(team);
-        foreach (var coach in coaches) await _coachRepository.AddAsync(coach);
+        foreach (var coach in coaches)
+            await _coachRepository.AddAsync(coach);
         await _unitOfWork.SaveChangesAsync();
 
         // Act
@@ -633,7 +640,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Transaction Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -644,7 +651,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "France",
             Role = "Head Coach",
             YearsOfExperience = 18,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -677,7 +684,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Experience Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var experiencedCoach1 = new Coach
@@ -688,7 +695,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Italy",
             Role = "Head Coach",
             YearsOfExperience = 25,
-            Team = team
+            Team = team,
         };
 
         var experiencedCoach2 = new Coach
@@ -699,7 +706,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "Spain",
             Role = "Head Coach",
             YearsOfExperience = 22,
-            Team = team
+            Team = team,
         };
 
         var inexperiencedCoach = new Coach
@@ -710,7 +717,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "England",
             Role = "Assistant Coach",
             YearsOfExperience = 3,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);
@@ -741,7 +748,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Brazil",
             Role = "Head Coach",
-            YearsOfExperience = 14
+            YearsOfExperience = 14,
             // No team assigned
         };
 
@@ -768,7 +775,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Case Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
 
         var coach = new Coach
@@ -779,7 +786,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Nationality = "MiXeD CaSe",
             Role = "Head Coach",
             YearsOfExperience = 15,
-            Team = team
+            Team = team,
         };
 
         await _unitOfWork.Teams.AddAsync(team);

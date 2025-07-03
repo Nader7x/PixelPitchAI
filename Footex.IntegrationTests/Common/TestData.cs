@@ -9,13 +9,23 @@ public static class TestData
 {
     // Sample IDs for testing - in a real implementation, these would be
     // populated with actual test data from your test database
-    private static readonly Guid _sampleMatchId = Guid.Parse("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+    private static readonly Guid _sampleMatchId = Guid.Parse(
+        "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    );
     private static readonly Guid _liveMatchId = Guid.Parse("b3c56789-ab12-4d3e-9f80-7d61234e5678");
     private static readonly Guid _sampleTeamId = Guid.Parse("dea12856-c198-4129-b3f3-38250d9f2152");
-    private static readonly Guid _samplePlayerId = Guid.Parse("7c9e6679-7425-40de-944b-e07fc1f90ae7");
-    private static readonly Guid _sampleSeasonId = Guid.Parse("e0a8d3d0-770a-4f89-a9c0-7e6d4e1b4c0e");
-    private static readonly Guid _sampleStadiumId = Guid.Parse("b23a3d3c-a434-4ba5-9f7a-059d041f55b3");
-    private static readonly Guid _sampleCoachId = Guid.Parse("afc65e75-d452-4a17-94f6-c3abcd92a4b1");
+    private static readonly Guid _samplePlayerId = Guid.Parse(
+        "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+    );
+    private static readonly Guid _sampleSeasonId = Guid.Parse(
+        "e0a8d3d0-770a-4f89-a9c0-7e6d4e1b4c0e"
+    );
+    private static readonly Guid _sampleStadiumId = Guid.Parse(
+        "b23a3d3c-a434-4ba5-9f7a-059d041f55b3"
+    );
+    private static readonly Guid _sampleCoachId = Guid.Parse(
+        "afc65e75-d452-4a17-94f6-c3abcd92a4b1"
+    );
 
     public static Guid GetSampleMatchId()
     {
@@ -59,7 +69,7 @@ public static class TestData
             Id = 1,
             Name = name,
             Country = "Testland",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
     }
 
@@ -69,7 +79,7 @@ public static class TestData
         {
             Id = 0,
             FullName = player,
-            TeamId = teamId
+            TeamId = teamId,
         };
     }
 
@@ -79,7 +89,7 @@ public static class TestData
         {
             Id = 0,
             FirstName = headCoach,
-            TeamId = teamId
+            TeamId = teamId,
         };
     }
 
@@ -91,7 +101,7 @@ public static class TestData
             Name = "Test Team",
             ShortName = "TT",
             Country = "Testland",
-            FoundationDate = new DateTime(1900, 1, 1)
+            FoundationDate = new DateTime(1900, 1, 1),
         };
     }
 
@@ -101,14 +111,10 @@ public static class TestData
         {
             Id = 0,
             Name = "Test Season",
-            StartDate = new DateTime(2023,
-                1,
-                1),
-            EndDate = new DateTime(2024,
-                1,
-                1),
+            StartDate = new DateTime(2023, 1, 1),
+            EndDate = new DateTime(2024, 1, 1),
             LeagueName = "Test League",
-            Country = "Testland"
+            Country = "Testland",
         };
     }
 
@@ -119,7 +125,7 @@ public static class TestData
             Id = 0,
             Name = "Test Stadium",
             Capacity = 50000,
-            Country = "Testland"
+            Country = "Testland",
         };
     }
 
@@ -129,7 +135,7 @@ public static class TestData
         {
             Id = 0,
             SeasonId = seasonId,
-            TeamId = homeTeamId
+            TeamId = homeTeamId,
         };
     }
 
@@ -140,7 +146,7 @@ public static class TestData
             Id = 0,
             FirstName = "Test",
             LastName = "Coach",
-            TeamId = homeTeamId
+            TeamId = homeTeamId,
         };
     }
 
@@ -231,7 +237,7 @@ public static class TestData
             AwayCoach = null,
             CreatorId = "test_creator",
             SimulationId = null,
-            MatchEvents = null
+            MatchEvents = null,
         };
     }
 
@@ -247,7 +253,7 @@ public static class TestData
             PreferredFoot = "Right",
             TeamId = 0,
             PhotoUrl = "http://example.com/photo.jpg",
-            Position = nameof(PlayerPosition.CentralMidfielder)
+            Position = nameof(PlayerPosition.CentralMidfielder),
         };
     }
 
@@ -283,8 +289,11 @@ public static class TestData
         await dbContext.SaveChangesAsync();
     }
 
-    public static async Task SeedPlayersWithNationality(IServiceProvider scopeServiceProvider, string testNationality,
-        int count)
+    public static async Task SeedPlayersWithNationality(
+        IServiceProvider scopeServiceProvider,
+        string testNationality,
+        int count
+    )
     {
         using var scope = scopeServiceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
@@ -305,7 +314,7 @@ public static class TestData
                 ShirtNumber = i + 1,
                 PreferredFoot = i % 2 == 0 ? "Right" : "Left",
                 TeamId = team.Id,
-                Position = ((PlayerPosition)(i % 4 + 1)).ToString()
+                Position = ((PlayerPosition)(i % 4 + 1)).ToString(),
             };
             dbContext.Players.Add(player);
         }
@@ -313,8 +322,11 @@ public static class TestData
         await dbContext.SaveChangesAsync();
     }
 
-    public static async Task SeedPlayersWithPreferredFoot(IServiceProvider scopeServiceProvider,
-        string testPreferredFoot, int count)
+    public static async Task SeedPlayersWithPreferredFoot(
+        IServiceProvider scopeServiceProvider,
+        string testPreferredFoot,
+        int count
+    )
     {
         using var scope = scopeServiceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
@@ -335,7 +347,7 @@ public static class TestData
                 ShirtNumber = i + 1,
                 PreferredFoot = testPreferredFoot,
                 TeamId = team.Id,
-                Position = ((PlayerPosition)(i % 4 + 1)).ToString()
+                Position = ((PlayerPosition)(i % 4 + 1)).ToString(),
             };
             dbContext.Players.Add(player);
         }
@@ -343,7 +355,11 @@ public static class TestData
         await dbContext.SaveChangesAsync();
     }
 
-    public static async Task SeedPlayersForTeam(IServiceProvider scopeServiceProvider, int testTeamId, int count)
+    public static async Task SeedPlayersForTeam(
+        IServiceProvider scopeServiceProvider,
+        int testTeamId,
+        int count
+    )
     {
         using var scope = scopeServiceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
@@ -359,7 +375,7 @@ public static class TestData
                 ShirtNumber = i + 1,
                 PreferredFoot = i % 2 == 0 ? "Right" : "Left",
                 TeamId = testTeamId,
-                Position = ((PlayerPosition)(i % 4 + 1)).ToString()
+                Position = ((PlayerPosition)(i % 4 + 1)).ToString(),
             };
             dbContext.Players.Add(player);
         }
@@ -377,7 +393,7 @@ public static class TestData
             Type = NotificationType.MatchUpdate,
             Time = default,
             IsRead = false,
-            Title = "Test Match Update"
+            Title = "Test Match Update",
         };
     }
 
@@ -392,7 +408,7 @@ public static class TestData
             PhoneNumber = "1234567890",
             PhoneNumberConfirmed = true,
             FirstName = "Test",
-            LastName = "User"
+            LastName = "User",
         };
     }
 
@@ -406,7 +422,7 @@ public static class TestData
             EndDate = DateTime.UtcNow.AddMonths(9),
             LeagueName = leagueName,
             Country = "Testland",
-            IsActive = true
+            IsActive = true,
         };
     }
 
@@ -422,7 +438,7 @@ public static class TestData
             BuiltDate = null,
             Description = null,
             ImageUrl = null,
-            SurfaceType = null
+            SurfaceType = null,
         };
     }
 }

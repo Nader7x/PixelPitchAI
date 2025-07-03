@@ -6,9 +6,9 @@ public class GoalkeeperEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "Save" || 
-               matchEvent.action == "goal keeper" ||
-               (matchEvent.action == "shot" && matchEvent.outcome == "Saved");
+        return matchEvent.action == "Save"
+            || matchEvent.action == "goal keeper"
+            || (matchEvent.action == "shot" && matchEvent.outcome == "Saved");
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -20,7 +20,7 @@ public class GoalkeeperEventProcessor : BaseEventProcessor
                 match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
             else
                 match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
-            
+
             // Different save outcomes: In Play Danger, In Play Safe, No Touch, Saved Twice, Success, Touched Out
             // All are counted as saves but could be tracked separately if needed
             switch (matchEvent.outcome)
@@ -61,7 +61,11 @@ public class GoalkeeperEventProcessor : BaseEventProcessor
         }
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalGoalkeeperSaves++;
     }

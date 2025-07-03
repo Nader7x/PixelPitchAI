@@ -28,14 +28,16 @@ public class RegisterUserCommandResponse
 public class RegisterUserCommandHandler(
     IIdentityService identityService,
     IUnitOfWork unitOfWork,
-    IUserMapper userMapper)
-    : IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>
+    IUserMapper userMapper
+) : IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IUserMapper _userMapper = userMapper;
 
-    public async Task<RegisterUserCommandResponse> Handle(RegisterUserCommand request,
-        CancellationToken cancellationToken)
+    public async Task<RegisterUserCommandResponse> Handle(
+        RegisterUserCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -43,32 +45,27 @@ public class RegisterUserCommandHandler(
             var user = _userMapper.ToUserFromRegister(request);
 
             // Register user
-            var (succeeded, userId, result) = await identityService.CreateUserAsync(user, request.Password);
+            var (succeeded, userId, result) = await identityService.CreateUserAsync(
+                user,
+                request.Password
+            );
 
             if (!succeeded)
                 return new RegisterUserCommandResponse
                 {
                     Succeeded = false,
-                    Error = result.ToString()
+                    Error = string.Join(", ", result.Errors.Select(e => e.Description)),
                 };
 
             // Add to default role
             await identityService.AddUserToRoleAsync(user, "User");
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             // Return response
-            return new RegisterUserCommandResponse
-            {
-                Succeeded = true,
-                UserId = userId
-            };
+            return new RegisterUserCommandResponse { Succeeded = true, UserId = userId };
         }
         catch (Exception ex)
         {
-            return new RegisterUserCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new RegisterUserCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

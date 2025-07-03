@@ -12,7 +12,8 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
     private readonly CreateSeasonCommandHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<CreateSeasonCommandHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -27,7 +28,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "2024-25 Premier League",
             StartDate = new DateTime(2024, 8, 17),
             EndDate = new DateTime(2025, 5, 25),
-            IsActive = true
+            IsActive = true,
         };
 
         // Act
@@ -57,7 +58,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "2023-24 Season",
             StartDate = new DateTime(2023, 7, 1),
             EndDate = new DateTime(2024, 6, 30),
-            IsActive = false
+            IsActive = false,
         };
 
         // Act
@@ -87,7 +88,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             EndDate = DateTime.UtcNow.AddDays(300),
             IsActive = true,
             LeagueName = "Premier League",
-            Country = "England"
+            Country = "England",
         };
         await _unitOfWork.Seasons.AddAsync(existingSeason);
         await _unitOfWork.SaveChangesAsync();
@@ -97,7 +98,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "New Current Season",
             StartDate = DateTime.UtcNow.AddDays(1),
             EndDate = DateTime.UtcNow.AddDays(365),
-            IsActive = true
+            IsActive = true,
         };
 
         // Act
@@ -128,7 +129,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Future Season 2026-27",
             StartDate = new DateTime(2026, 8, 1),
             EndDate = new DateTime(2027, 7, 31),
-            IsActive = false
+            IsActive = false,
         };
 
         // Act
@@ -152,7 +153,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Historical Season 2020-21",
             StartDate = new DateTime(2020, 9, 12),
             EndDate = new DateTime(2021, 5, 23),
-            IsActive = false
+            IsActive = false,
         };
 
         // Act
@@ -178,7 +179,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = longName,
             StartDate = DateTime.UtcNow,
             EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = false
+            IsActive = false,
         };
 
         // Act
@@ -200,19 +201,25 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
         {
             new CreateSeasonCommand
             {
-                Name = "Season 1", StartDate = new DateTime(2024, 1, 1), EndDate = new DateTime(2024, 12, 31),
-                IsActive = false
+                Name = "Season 1",
+                StartDate = new DateTime(2024, 1, 1),
+                EndDate = new DateTime(2024, 12, 31),
+                IsActive = false,
             },
             new CreateSeasonCommand
             {
-                Name = "Season 2", StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2025, 12, 31),
-                IsActive = false
+                Name = "Season 2",
+                StartDate = new DateTime(2025, 1, 1),
+                EndDate = new DateTime(2025, 12, 31),
+                IsActive = false,
             },
             new CreateSeasonCommand
             {
-                Name = "Season 3", StartDate = new DateTime(2026, 1, 1), EndDate = new DateTime(2026, 12, 31),
-                IsActive = true
-            }
+                Name = "Season 3",
+                StartDate = new DateTime(2026, 1, 1),
+                EndDate = new DateTime(2026, 12, 31),
+                IsActive = true,
+            },
         };
 
         var results = new List<CreateSeasonCommandResponse>();
@@ -249,7 +256,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             Name = "Test Season",
             StartDate = DateTime.UtcNow,
             EndDate = DateTime.UtcNow.AddMonths(10),
-            IsActive = false
+            IsActive = false,
         };
 
         // Dispose context to simulate database error

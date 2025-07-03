@@ -131,7 +131,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             DateOfBirth = new DateTime(1970, 3, 15),
             Nationality = "England",
             YearsOfExperience = 10,
-            TeamId = teamId
+            TeamId = teamId,
         };
 
         // Act
@@ -158,7 +158,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             FirstName = "", // Invalid: empty name
             LastName = "Smith",
-            DateOfBirth = new DateTime(1970, 3, 15)
+            DateOfBirth = new DateTime(1970, 3, 15),
         };
 
         // Act
@@ -178,7 +178,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
             FirstName = "Updated",
             LastName = "Coach",
             Nationality = "Spain",
-            YearsOfExperience = 15
+            YearsOfExperience = 15,
         };
 
         // Act
@@ -202,7 +202,7 @@ public class CoachesControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             FirstName = "Updated",
             LastName = "Coach",
-            Nationality = "Spain"
+            Nationality = "Spain",
         };
 
         // Act

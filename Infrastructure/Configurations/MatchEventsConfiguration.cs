@@ -12,24 +12,24 @@ public class MatchEventsConfiguration : IEntityTypeConfiguration<MatchEvents>
 
         // Use PostgreSQL-specific JSONB type for better performance and query capabilities
         builder.Property(e => e.EventsJson).HasColumnType("jsonb");
-        builder.Property(e => e.LastUpdated).IsRequired()
-            .HasColumnType("timestamp with time zone");
+        builder.Property(e => e.LastUpdated).IsRequired().HasColumnType("timestamp with time zone");
 
         // Add GIN index for efficient JSON searching with appropriate operator class
-        builder.HasIndex(e => e.EventsJson)
+        builder
+            .HasIndex(e => e.EventsJson)
             .HasMethod("gin")
             .HasDatabaseName("IX_MatchEvents_EventsJson");
 
         // Unique constraint - one event record per match
-        builder.HasIndex(e => e.MatchId)
-            .IsUnique()
-            .HasDatabaseName("IX_MatchEvents_MatchId");
+        builder.HasIndex(e => e.MatchId).IsUnique().HasDatabaseName("IX_MatchEvents_MatchId");
 
         // Add additional indexes for frequently queried fields
-        builder.HasIndex(e => new { e.GoalsHomeTeam, e.GoalsAwayTeam })
+        builder
+            .HasIndex(e => new { e.GoalsHomeTeam, e.GoalsAwayTeam })
             .HasDatabaseName("IX_MatchEvents_Goals");
 
-        builder.HasIndex(e => e.LastUpdated)
+        builder
+            .HasIndex(e => e.LastUpdated)
             .HasMethod("btree")
             .HasDatabaseName("IX_MatchEvents_LastUpdated");
 

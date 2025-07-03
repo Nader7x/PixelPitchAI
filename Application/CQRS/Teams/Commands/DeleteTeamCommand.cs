@@ -17,7 +17,10 @@ public class DeleteTeamCommandResponse
 public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
 {
-    public async Task<DeleteTeamCommandResponse> Handle(DeleteTeamCommand request, CancellationToken cancellationToken)
+    public async Task<DeleteTeamCommandResponse> Handle(
+        DeleteTeamCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -27,7 +30,7 @@ public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
                 return new DeleteTeamCommandResponse
                 {
                     Succeeded = false,
-                    Error = $"Team with ID {request.Id} not found"
+                    Error = $"Team with ID {request.Id} not found",
                 };
 
             // Begin transaction to ensure atomic operation
@@ -47,10 +50,7 @@ public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
                 // Commit transaction
                 await unitOfWork.CommitTransactionAsync();
 
-                return new DeleteTeamCommandResponse
-                {
-                    Succeeded = true
-                };
+                return new DeleteTeamCommandResponse { Succeeded = true };
             }
             catch (Exception ex)
             {
@@ -61,11 +61,7 @@ public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
         }
         catch (Exception ex)
         {
-            return new DeleteTeamCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new DeleteTeamCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

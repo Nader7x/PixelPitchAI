@@ -59,15 +59,18 @@ public class LiveTeamDto
 public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse>
 {
-    public async Task<GetLiveMatchQueryResponse> Handle(GetLiveMatchQuery request, CancellationToken cancellationToken)
+    public async Task<GetLiveMatchQueryResponse> Handle(
+        GetLiveMatchQuery request,
+        CancellationToken cancellationToken
+    )
     {
         var match = await unitOfWork.Matches.GetLiveMatchAsync(request.UserId);
-        if (match == null)
+        if (match == null || !match.IsLive)
             return new GetLiveMatchQueryResponse
             {
                 Succeeded = true,
                 HasLiveMatch = false,
-                Error = "No live match found for the user."
+                Error = "No live match found for the user.",
             };
 
         return new GetLiveMatchQueryResponse
@@ -89,7 +92,7 @@ public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
                     League = match.HomeTeam?.League,
                     PrimaryColor = match.HomeTeam?.PrimaryColor,
                     SecondaryColor = match.HomeTeam?.SecondaryColor,
-                    FoundationDate = match.HomeTeam?.FoundationDate ?? DateTime.MinValue
+                    FoundationDate = match.HomeTeam?.FoundationDate ?? DateTime.MinValue,
                 },
                 AwayTeam = new LiveTeamDto
                 {
@@ -102,7 +105,7 @@ public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
                     League = match.AwayTeam?.League,
                     PrimaryColor = match.AwayTeam?.PrimaryColor,
                     SecondaryColor = match.AwayTeam?.SecondaryColor,
-                    FoundationDate = match.AwayTeam?.FoundationDate ?? DateTime.MinValue
+                    FoundationDate = match.AwayTeam?.FoundationDate ?? DateTime.MinValue,
                 },
                 HomeTeamScore = match.HomeTeamScore ?? 0,
                 AwayTeamScore = match.AwayTeamScore ?? 0,
@@ -121,8 +124,8 @@ public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
                 HomeTeamYellowCards = match.HomeTeamYellowCards ?? 0,
                 AwayTeamYellowCards = match.AwayTeamYellowCards ?? 0,
                 HomeTeamRedCards = match.HomeTeamRedCards ?? 0,
-                AwayTeamRedCards = match.AwayTeamRedCards ?? 0
-            }
+                AwayTeamRedCards = match.AwayTeamRedCards ?? 0,
+            },
         };
     }
 }

@@ -12,7 +12,8 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IMatchRepository _matchRepository;
 
-    public MatchRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public MatchRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _matchRepository = ServiceProvider.GetRequiredService<IMatchRepository>();
     }
@@ -28,7 +29,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         {
             HomeTeamId = teams.HomeTeam.Id,
             AwayTeamId = teams.AwayTeam.Id,
-            CreatorId = ""
+            CreatorId = "",
         };
 
         // Act
@@ -247,7 +248,8 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             teams.HomeTeam.Id,
             teams.AwayTeam.Id,
             season.Id,
-            venue: "Old Trafford");
+            venue: "Old Trafford"
+        );
 
         // Act
         var result = await _matchRepository.SearchAsync("Old Trafford");
@@ -323,7 +325,11 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var simulationId = Guid.NewGuid().ToString();
 
         // Act
-        var result = await _matchRepository.UpdateSimulationIdAsync(match.Id, simulationId, CancellationToken.None);
+        var result = await _matchRepository.UpdateSimulationIdAsync(
+            match.Id,
+            simulationId,
+            CancellationToken.None
+        );
         await Context.SaveChangesAsync();
 
         // Assert
@@ -340,7 +346,8 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         int? seasonId = null,
         DateTime? matchDate = null,
         string status = "Scheduled",
-        string venue = "Test Stadium")
+        string venue = "Test Stadium"
+    )
     {
         if (homeTeamId == null || awayTeamId == null)
         {
@@ -361,7 +368,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             MatchStatus = status,
             HomeTeamScore = 0,
             AwayTeamScore = 0,
-            CreatorId = "creatorid"
+            CreatorId = "creatorid",
         };
 
         Context.Matches.Add(match);
@@ -376,7 +383,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Home Team " + Guid.NewGuid().ToString()[..8],
             City = "Home City",
             FoundationDate = new DateTime(1900, 1, 1),
-            Logo = "https://example.com/home-logo.png"
+            Logo = "https://example.com/home-logo.png",
         };
 
         var awayTeam = new Team
@@ -384,7 +391,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Away Team " + Guid.NewGuid().ToString()[..8],
             City = "Away City",
             FoundationDate = new DateTime(1900, 1, 1),
-            Logo = "https://example.com/away-logo.png"
+            Logo = "https://example.com/away-logo.png",
         };
 
         Context.Teams.AddRange(homeTeam, awayTeam);
@@ -397,14 +404,12 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
     {
         var season = new Season
         {
-            Name = "Test Season " +
-                   Guid.NewGuid()
-                       .ToString()[..8],
+            Name = "Test Season " + Guid.NewGuid().ToString()[..8],
             StartDate = DateTime.UtcNow.AddDays(-30),
             EndDate = DateTime.UtcNow.AddDays(300),
             IsActive = true,
             LeagueName = "Test League",
-            Country = "Test Country"
+            Country = "Test Country",
         };
 
         Context.Seasons.Add(season);

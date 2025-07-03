@@ -15,7 +15,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IApplicationUserRepository _userRepository;
 
-    public ApplicationUserRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public ApplicationUserRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _userRepository = ServiceProvider.GetRequiredService<IApplicationUserRepository>();
         _userManager = ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -220,21 +221,24 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         {
             Token = Guid.NewGuid().ToString(),
             JwtId = Guid.NewGuid().ToString(),
-            UserId = user.Id
+            UserId = user.Id,
         };
 
         // Act
         await _userRepository.AddRefreshTokenAsync(user, refreshToken);
 
         // Assert
-        var persistedToken = await Context.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken.Token);
+        var persistedToken = await Context.RefreshTokens.FirstOrDefaultAsync(rt =>
+            rt.Token == refreshToken.Token
+        );
 
         persistedToken.Should().NotBeNull();
         persistedToken!.UserId.Should().Be(user.Id);
         persistedToken.Token.Should().Be(refreshToken.Token);
         persistedToken.Created.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
-        persistedToken.Expires.Should().BeCloseTo(DateTime.UtcNow.AddDays(7), TimeSpan.FromMinutes(1));
+        persistedToken
+            .Expires.Should()
+            .BeCloseTo(DateTime.UtcNow.AddDays(7), TimeSpan.FromMinutes(1));
     }
 
     [Fact]
@@ -249,7 +253,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
             JwtId = Guid.NewGuid().ToString(),
             UserId = user.Id,
             Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
         };
 
         Context.RefreshTokens.Add(refreshToken);
@@ -319,7 +323,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
             JwtId = Guid.NewGuid().ToString(),
             UserId = user.Id,
             Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
         };
 
         Context.RefreshTokens.Add(refreshToken);
@@ -357,7 +361,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
             JwtId = Guid.NewGuid().ToString(),
             UserId = user.Id,
             Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddDays(7)
+            Expires = DateTime.UtcNow.AddDays(7),
         };
 
         Context.RefreshTokens.Add(refreshToken);
@@ -369,8 +373,9 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         await _userRepository.RevokeRefreshTokenAsync(tokenValue, ipAddress);
 
         // Assert
-        var revokedToken = await Context.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == tokenValue);
+        var revokedToken = await Context.RefreshTokens.FirstOrDefaultAsync(rt =>
+            rt.Token == tokenValue
+        );
 
         revokedToken.Should().NotBeNull();
         revokedToken!.Revoked.Should().NotBeNull();
@@ -382,7 +387,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         string? email = null,
         string? username = null,
         string password = "TestPassword123!",
-        int? favoriteTeamId = null)
+        int? favoriteTeamId = null
+    )
     {
         var uniqueId = Guid.NewGuid().ToString()[..8];
         email ??= $"testuser{uniqueId}@example.com";
@@ -397,13 +403,14 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
             Age = 25,
             Gender = "Male",
             EmailConfirmed = true,
-            FavoriteTeamId = favoriteTeamId
+            FavoriteTeamId = favoriteTeamId,
         };
 
         var result = await _userManager.CreateAsync(user, password);
         if (!result.Succeeded)
             throw new InvalidOperationException(
-                $"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                $"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}"
+            );
 
         return user;
     }
@@ -412,7 +419,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     {
         var roleManager = ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        if (!await roleManager.RoleExistsAsync(roleName)) await roleManager.CreateAsync(new IdentityRole(roleName));
+        if (!await roleManager.RoleExistsAsync(roleName))
+            await roleManager.CreateAsync(new IdentityRole(roleName));
     }
 
     private async Task<Team> SeedTeamAsync()
@@ -425,7 +433,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
             Country = "Test Country",
             FoundationDate = DateTime.UtcNow.AddYears(-50),
             PrimaryColor = "#FF0000",
-            SecondaryColor = "#0000FF"
+            SecondaryColor = "#0000FF",
         };
 
         Context.Teams.Add(team);

@@ -5,9 +5,7 @@ namespace Domain.Models;
 
 public sealed class Match
 {
-    public Match()
-    {
-    }
+    public Match() { }
 
     [SetsRequiredMembers]
     public Match(int id, string creatorId)
@@ -47,8 +45,7 @@ public sealed class Match
     public bool? IsDraw { get; set; }
 
     // Match status and simulation tracking
-    public string? MatchStatus { get; set; } =
-        "Scheduled"; // Scheduled, PendingSimulation, SimulatingInProgress, Completed, Postponed, Cancelled
+    public string? MatchStatus { get; set; } = "Scheduled"; // Scheduled, PendingSimulation, SimulatingInProgress, Completed, Postponed, Cancelled
 
     public DateTime? ModelSimulationStartTimeUtc { get; set; }
 
@@ -83,8 +80,7 @@ public sealed class Match
     public int? LastEventTimestampSeconds { get; set; } // Timestamp of the last processed event
 
     [MaxLength(500)]
-    public string?
-        LastEventPossessingTeamName { get; set; } // Name of the team possessing the ball after the last event
+    public string? LastEventPossessingTeamName { get; set; } // Name of the team possessing the ball after the last event
 
     public int? HomeTeamDribbles { get; set; }
     public int? AwayTeamDribbles { get; set; }
@@ -116,7 +112,6 @@ public sealed class Match
     // Monitoring Field
     public bool IsLive { get; set; } = false; // Indicates if the match is currently live or not
 
-
     // Audit fields
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -131,11 +126,11 @@ public sealed class Match
     /// <summary>
     ///     User that created the match.
     /// </summary>
-
     [MaxLength(255)]
     public required string CreatorId { get; set; }
 
-    [MaxLength(255)] public string? SimulationId { get; set; } // ID for the simulation process, if applicable
+    [MaxLength(255)]
+    public string? SimulationId { get; set; } // ID for the simulation process, if applicable
 
     public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
@@ -162,7 +157,7 @@ public sealed class Match
         HomeTeamPassesCompleted = 0;
         AwayTeamPassesCompleted = 0;
         AwayTeamPasses = 0;
-        
+
         // Reset possession tracking
         HomeTeamPossessionDurationSeconds = 0;
         AwayTeamPossessionDurationSeconds = 0;
@@ -191,12 +186,10 @@ public sealed class Match
 
         // Reset long ball accuracy
         HomeTeamLongBallsAccuracy = null; // Reset to null to indicate no long balls processed yet
-        AwayTeamLongBallsAccuracy =
-            null; // Reset to null to indicate no long balls processed yet
+        AwayTeamLongBallsAccuracy = null; // Reset to null to indicate no long balls processed yet
 
         HomeTeamFreeKicks = 0; // Reset free kicks
-        AwayTeamFreeKicks =
-            0; // Reset free kicks
+        AwayTeamFreeKicks = 0; // Reset free kicks
 
         // Reset possession tracking
         HomeTeamPossessionDurationSeconds = 0;

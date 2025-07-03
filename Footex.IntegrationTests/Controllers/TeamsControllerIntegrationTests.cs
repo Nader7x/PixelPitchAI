@@ -105,7 +105,7 @@ public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicatio
             Country = "England",
             League = "Premier League",
             StadiumId = 1,
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         // Act
@@ -132,7 +132,7 @@ public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicatio
         {
             Name = "", // Invalid: empty name
             Country = "England",
-            League = "Premier League"
+            League = "Premier League",
         };
 
         // Act
@@ -151,7 +151,7 @@ public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicatio
         {
             Name = "Updated Team FC",
             Country = "Spain",
-            League = "La Liga"
+            League = "La Liga",
         };
 
         // Act
@@ -175,7 +175,7 @@ public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicatio
         {
             Name = "Updated Team FC",
             Country = "Spain",
-            League = "La Liga"
+            League = "La Liga",
         };
 
         // Act

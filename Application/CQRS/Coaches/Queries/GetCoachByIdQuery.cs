@@ -21,7 +21,10 @@ public class GetCoachByIdQueryResponse
 public class GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
     : IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>
 {
-    public async Task<GetCoachByIdQueryResponse> Handle(GetCoachByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetCoachByIdQueryResponse> Handle(
+        GetCoachByIdQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -31,23 +34,15 @@ public class GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coach
                 {
                     Succeeded = false,
                     NotFound = true,
-                    Error = "Coach not found"
+                    Error = "Coach not found",
                 };
             var coachDto = coachMapper.ToDto(coach);
 
-            return new GetCoachByIdQueryResponse
-            {
-                Succeeded = true,
-                Coach = coachDto
-            };
+            return new GetCoachByIdQueryResponse { Succeeded = true, Coach = coachDto };
         }
         catch (Exception ex)
         {
-            return new GetCoachByIdQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetCoachByIdQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

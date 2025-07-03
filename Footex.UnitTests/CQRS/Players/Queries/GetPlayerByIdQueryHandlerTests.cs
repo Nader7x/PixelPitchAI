@@ -5,6 +5,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Moq;
 using Xunit;
 
@@ -12,7 +13,7 @@ namespace Footex.UnitTests.CQRS.Players.Queries;
 
 public class GetPlayerByIdQueryHandlerTests
 {
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly GetPlayerByIdQueryHandler _handler;
     private readonly Mock<IPlayerMapper> _iPlayerMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -23,8 +24,10 @@ public class GetPlayerByIdQueryHandlerTests
         _iPlayerMapperMock = new Mock<IPlayerMapper>();
         _handler = new GetPlayerByIdQueryHandler(_unitOfWorkMock.Object, _iPlayerMapperMock.Object);
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture = new NoRecursionFixture();
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -41,13 +44,11 @@ public class GetPlayerByIdQueryHandlerTests
             Id = playerId,
             FullName = player.FullName,
             Nationality = player.Nationality,
-            Position = player.Position
+            Position = player.Position,
         };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
-            .ReturnsAsync(player);
-        _iPlayerMapperMock.Setup(x => x.ToDto(player))
-            .Returns(expectedPlayerDto);
+        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync(player);
+        _iPlayerMapperMock.Setup(x => x.ToDto(player)).Returns(expectedPlayerDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -71,8 +72,7 @@ public class GetPlayerByIdQueryHandlerTests
         var playerId = 999;
         var query = new GetPlayerByIdQuery { Id = playerId };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
-            .ReturnsAsync((Player?)null);
+        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync((Player?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -96,7 +96,8 @@ public class GetPlayerByIdQueryHandlerTests
         var query = new GetPlayerByIdQuery { Id = playerId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(playerId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -122,8 +123,7 @@ public class GetPlayerByIdQueryHandlerTests
         // Arrange
         var query = new GetPlayerByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(invalidId))
-            .ReturnsAsync((Player?)null);
+        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(invalidId)).ReturnsAsync((Player?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -155,13 +155,11 @@ public class GetPlayerByIdQueryHandlerTests
             Position = player.Position,
             PreferredFoot = player.PreferredFoot,
             TeamId = player.TeamId,
-            ShirtNumber = player.ShirtNumber
+            ShirtNumber = player.ShirtNumber,
         };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId))
-            .ReturnsAsync(player);
-        _iPlayerMapperMock.Setup(x => x.ToDto(player))
-            .Returns(expectedPlayerDto);
+        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync(player);
+        _iPlayerMapperMock.Setup(x => x.ToDto(player)).Returns(expectedPlayerDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

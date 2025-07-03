@@ -55,7 +55,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             StadiumId = stadium.Id,
             MatchWeek = 1,
             CreatorId = "test-user", // Assuming a test user ID,
-            MatchStatus = "Scheduled" // Assuming a default match status
+            MatchStatus = "Scheduled", // Assuming a default match status
         };
 
         // Act
@@ -100,7 +100,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             AwayTeamId = team.Id, // Same as home team
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user" // Assuming a test user ID
+            CreatorId = "test-user", // Assuming a test user ID
         };
 
         // Act
@@ -135,7 +135,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             AwayTeamId = awayTeam.Id,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user" // Assuming a test user ID
+            CreatorId = "test-user", // Assuming a test user ID
         };
 
         // Act
@@ -170,7 +170,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             AwayTeamId = 999999, // Invalid team ID
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user" // Assuming a test user ID
+            CreatorId = "test-user", // Assuming a test user ID
         };
 
         // Act
@@ -211,7 +211,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             StadiumId = 999999, // Invalid stadium ID
             MatchWeek = 1,
-            CreatorId = "test-user" // Assuming a test user ID
+            CreatorId = "test-user", // Assuming a test user ID
         };
 
         // Act
@@ -260,7 +260,7 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             HomeCoachId = homeCoach.Id,
             AwayCoachId = awayCoach.Id,
             MatchWeek = 1,
-            CreatorId = "test-user" // Assuming a test user ID
+            CreatorId = "test-user", // Assuming a test user ID
         };
 
         // Act

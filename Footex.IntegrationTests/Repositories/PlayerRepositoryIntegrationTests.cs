@@ -13,7 +13,8 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IPlayerRepository _playerRepository;
 
-    public PlayerRepositoryIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public PlayerRepositoryIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _playerRepository = ServiceProvider.GetRequiredService<IPlayerRepository>();
     }
@@ -29,7 +30,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
@@ -40,7 +41,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Position = "Forward",
             PreferredFoot = "Right",
             ShirtNumber = 10,
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -74,7 +75,9 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByFullNameAsync_WithNullOrEmptyName_ReturnsNull()
     {
         // Act & Assert
-        (await _playerRepository.GetByFullNameAsync(null)).Should().BeNull();
+        (await _playerRepository.GetByFullNameAsync(null))
+            .Should()
+            .BeNull();
         (await _playerRepository.GetByFullNameAsync("")).Should().BeNull();
         (await _playerRepository.GetByFullNameAsync("   ")).Should().BeNull();
     }
@@ -88,7 +91,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player1 = new Player
@@ -96,7 +99,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "American Player 1",
             Nationality = "USA",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         var player2 = new Player
@@ -104,7 +107,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "American Player 2",
             Nationality = "USA",
             Position = "Midfielder",
-            Team = team
+            Team = team,
         };
 
         var player3 = new Player
@@ -112,7 +115,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Brazilian Player",
             Nationality = "Brazil",
             Position = "Defender",
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -150,7 +153,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var rightFootedPlayer1 = new Player
@@ -158,7 +161,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Right Footed Player 1",
             PreferredFoot = "Right",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         var rightFootedPlayer2 = new Player
@@ -166,7 +169,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Right Footed Player 2",
             PreferredFoot = "Right",
             Position = "Midfielder",
-            Team = team
+            Team = team,
         };
 
         var leftFootedPlayer = new Player
@@ -174,7 +177,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Left Footed Player",
             PreferredFoot = "Left",
             Position = "Defender",
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -200,7 +203,9 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByPreferredFootAsync_WithNullOrEmptyFoot_ReturnsEmpty()
     {
         // Act & Assert
-        (await _playerRepository.GetByPreferredFootAsync(null)).Should().BeEmpty();
+        (await _playerRepository.GetByPreferredFootAsync(null))
+            .Should()
+            .BeEmpty();
         (await _playerRepository.GetByPreferredFootAsync("")).Should().BeEmpty();
         (await _playerRepository.GetByPreferredFootAsync("   ")).Should().BeEmpty();
     }
@@ -214,7 +219,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player1 = new Player
@@ -222,21 +227,21 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "John Smith",
             KnownName = "Johnny",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         var player2 = new Player
         {
             FullName = "Jane Johnson",
             Position = "Midfielder",
-            Team = team
+            Team = team,
         };
 
         var player3 = new Player
         {
             FullName = "Bob Wilson",
             Position = "Defender",
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -263,7 +268,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Manchester United",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(1878, 3, 5)
+            FoundationDate = new DateTime(1878, 3, 5),
         };
 
         var team2 = new Team
@@ -271,28 +276,28 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Barcelona",
             League = "La Liga",
             Country = "Spain",
-            FoundationDate = new DateTime(1892, 11, 29)
+            FoundationDate = new DateTime(1892, 11, 29),
         };
 
         var player1 = new Player
         {
             FullName = "Player 1",
             Position = "Forward",
-            Team = team1
+            Team = team1,
         };
 
         var player2 = new Player
         {
             FullName = "Player 2",
             Position = "Midfielder",
-            Team = team1
+            Team = team1,
         };
 
         var player3 = new Player
         {
             FullName = "Player 3",
             Position = "Defender",
-            Team = team2
+            Team = team2,
         };
 
         // Act
@@ -316,7 +321,9 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     public async Task SearchAsync_WithEmptyQuery_ReturnsEmpty()
     {
         // Act & Assert
-        (await _playerRepository.SearchAsync("")).Should().BeEmpty();
+        (await _playerRepository.SearchAsync(""))
+            .Should()
+            .BeEmpty();
         (await _playerRepository.SearchAsync("   ")).Should().BeEmpty();
     }
 
@@ -329,7 +336,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var forward1 = new Player
@@ -337,7 +344,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Forward 1",
             Position = "Forward",
             ShirtNumber = 9,
-            Team = team
+            Team = team,
         };
 
         var forward2 = new Player
@@ -345,7 +352,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Forward 2",
             Position = "Forward",
             ShirtNumber = 11,
-            Team = team
+            Team = team,
         };
 
         var midfielder = new Player
@@ -353,7 +360,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Midfielder",
             Position = "Midfielder",
             ShirtNumber = 8,
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -381,7 +388,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
@@ -393,7 +400,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             PreferredFoot = "Right",
             ShirtNumber = 7,
             PhotoUrl = "http://example.com/photo.jpg",
-            Team = team
+            Team = team,
         };
 
         // Act
@@ -427,7 +434,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
@@ -435,7 +442,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             FullName = "Original Name",
             Position = "Forward",
             ShirtNumber = 9,
-            Team = team
+            Team = team,
         };
 
         await UnitOfWork.Teams.AddAsync(team);
@@ -467,14 +474,14 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
         {
             FullName = "Player To Delete",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         await UnitOfWork.Teams.AddAsync(team);
@@ -501,22 +508,25 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         // Create 5 players
         var players = new List<Player>();
         for (var i = 1; i <= 5; i++)
-            players.Add(new Player
-            {
-                FullName = $"Player {i}",
-                Position = "Forward",
-                ShirtNumber = i,
-                Team = team
-            });
+            players.Add(
+                new Player
+                {
+                    FullName = $"Player {i}",
+                    Position = "Forward",
+                    ShirtNumber = i,
+                    Team = team,
+                }
+            );
 
         await UnitOfWork.Teams.AddAsync(team);
-        foreach (var player in players) await UnitOfWork.Players.AddAsync(player);
+        foreach (var player in players)
+            await UnitOfWork.Players.AddAsync(player);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -537,14 +547,14 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Test League",
             Country = "Test Country",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
         {
             FullName = "Transaction Test Player",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         await UnitOfWork.Teams.AddAsync(team);
@@ -557,14 +567,18 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.SaveChangesAsync();
 
         // Verify player exists within transaction
-        var playerInTransaction = await _playerRepository.GetByFullNameAsync("Transaction Test Player");
+        var playerInTransaction = await _playerRepository.GetByFullNameAsync(
+            "Transaction Test Player"
+        );
         playerInTransaction.Should().NotBeNull();
 
         // Rollback
         await UnitOfWork.RollbackTransactionAsync();
 
         // Assert
-        var playerAfterRollback = await _playerRepository.GetByFullNameAsync("Transaction Test Player");
+        var playerAfterRollback = await _playerRepository.GetByFullNameAsync(
+            "Transaction Test Player"
+        );
         playerAfterRollback.Should().BeNull();
     }
 
@@ -577,14 +591,14 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             Name = "Test Team",
             League = "Premier League",
             Country = "England",
-            FoundationDate = new DateTime(2000, 1, 1)
+            FoundationDate = new DateTime(2000, 1, 1),
         };
 
         var player = new Player
         {
             FullName = "Test Player",
             Position = "Forward",
-            Team = team
+            Team = team,
         };
 
         await UnitOfWork.Teams.AddAsync(team);

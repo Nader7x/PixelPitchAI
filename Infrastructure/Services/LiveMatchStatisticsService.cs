@@ -26,7 +26,8 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         ILogger<LiveMatchStatisticsService> logger,
         IServiceScopeFactory serviceScopeFactory,
         IPerformanceMonitoringService performanceMonitoringService,
-        IEventAnalysisService eventAnalysisService)
+        IEventAnalysisService eventAnalysisService
+    )
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
@@ -44,10 +45,11 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         try
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var unitOfWork =
-                scope.ServiceProvider
-                    .GetRequiredService<IUnitOfWork>(); // Record database call for performance monitoring
-            _performanceMonitoringService.RecordDatabaseCall("PreloadMatch", stopwatch.Elapsed.TotalMilliseconds);
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>(); // Record database call for performance monitoring
+            _performanceMonitoringService.RecordDatabaseCall(
+                "PreloadMatch",
+                stopwatch.Elapsed.TotalMilliseconds
+            );
 
             var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
             if (match == null)
@@ -59,7 +61,10 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
             // Cache the match for fast access during live events
             _liveMatchesCache.AddOrUpdate(matchId, match, (_, _) => match);
 
-            _logger.LogInformation("Successfully preloaded match {MatchId} for live statistics", matchId);
+            _logger.LogInformation(
+                "Successfully preloaded match {MatchId} for live statistics",
+                matchId
+            );
             return match;
         }
         catch (Exception ex)
@@ -72,9 +77,9 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
             stopwatch.Stop();
         }
     }
+
     public Task<Match> AddMatchToLiveStatistics(Match match)
     {
-
         // Add the match to the live cache
         _liveMatchesCache.AddOrUpdate(match.Id.ToString(), match, (_, _) => match);
         _logger.LogInformation("Added match {MatchId} to live statistics cache", match.Id);
@@ -90,13 +95,17 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         var tasks = idsList.Select(async matchId =>
         {
             var match = await PreloadMatchForLiveStatistics(matchId);
-            if (match != null) Interlocked.Increment(ref loadedCount);
+            if (match != null)
+                Interlocked.Increment(ref loadedCount);
         });
 
         await Task.WhenAll(tasks);
 
-        _logger.LogInformation("Preloaded {LoadedCount} out of {RequestedCount} matches for live statistics",
-            loadedCount, idsList.Count);
+        _logger.LogInformation(
+            "Preloaded {LoadedCount} out of {RequestedCount} matches for live statistics",
+            loadedCount,
+            idsList.Count
+        );
 
         return loadedCount;
     }
@@ -145,7 +154,8 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
     public bool RemoveFromLiveCache(string matchId)
     {
         var removed = _liveMatchesCache.TryRemove(matchId, out _);
-        if (removed) _logger.LogInformation("Removed match {MatchId} from live cache", matchId);
+        if (removed)
+            _logger.LogInformation("Removed match {MatchId} from live cache", matchId);
 
         return removed;
     }
@@ -161,7 +171,7 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
             TotalCachedMatches = _liveMatchesCache.Count,
             CachedMatchIds = _liveMatchesCache.Keys.ToList(),
             MemoryEfficient = true,
-            LastRefresh = DateTime.UtcNow
+            LastRefresh = DateTime.UtcNow,
         };
     }
 
@@ -171,9 +181,16 @@ public class LiveMatchStatisticsService : ILiveMatchStatisticsService
         _eventAnalysisService.UpdateMatchStatistics(matchEvent, updatedMatch);
 
         // Update the cache with the new statistics
-        _liveMatchesCache.AddOrUpdate(updatedMatch.Id.ToString(), updatedMatch, (_, _) => updatedMatch);
+        _liveMatchesCache.AddOrUpdate(
+            updatedMatch.Id.ToString(),
+            updatedMatch,
+            (_, _) => updatedMatch
+        );
 
-        _logger.LogDebug("Updated cached statistics for match {MatchId} with event {EventId}",
-            updatedMatch.Id, matchEvent.event_index);
+        _logger.LogDebug(
+            "Updated cached statistics for match {MatchId} with event {EventId}",
+            updatedMatch.Id,
+            matchEvent.event_index
+        );
     }
 }

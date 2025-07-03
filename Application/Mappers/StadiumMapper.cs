@@ -24,6 +24,7 @@ public partial class StadiumMapper : IStadiumMapper
 
     // Map from GetAllStadiumsQuery parameters
     public partial GetAllStadiumsQuery ToGetAllQuery(string country, string? city);
+
     public partial CreateStadiumCommand FromCreatedtoTocommand(CreateStadiumDto dto);
 
     // Map from GetStadiumByIdQuery parameter

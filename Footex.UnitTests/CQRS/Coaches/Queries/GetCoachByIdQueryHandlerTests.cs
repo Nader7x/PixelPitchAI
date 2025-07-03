@@ -5,6 +5,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
+using Footex.UnitTests.Common;
 using Moq;
 using Xunit;
 
@@ -13,7 +14,7 @@ namespace Footex.UnitTests.CQRS.Coaches.Queries;
 public class GetCoachByIdQueryHandlerTests
 {
     private readonly Mock<ICoachMapper> _iCoachMapperMock;
-    private readonly Fixture _fixture;
+    private readonly NoRecursionFixture _fixture;
     private readonly GetCoachByIdQueryHandler _handler;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
@@ -23,8 +24,10 @@ public class GetCoachByIdQueryHandlerTests
         _iCoachMapperMock = new Mock<ICoachMapper>();
         _handler = new GetCoachByIdQueryHandler(_unitOfWorkMock.Object, _iCoachMapperMock.Object);
 
-        _fixture = new Fixture();
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
+        _fixture = new NoRecursionFixture();
+        _fixture
+            .Behaviors.OfType<ThrowingRecursionBehavior>()
+            .ToList()
             .ForEach(b => _fixture.Behaviors.Remove(b));
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
     }
@@ -42,13 +45,11 @@ public class GetCoachByIdQueryHandlerTests
             FirstName = coach.FirstName,
             LastName = coach.LastName,
             Nationality = coach.Nationality,
-            Role = coach.Role
+            Role = coach.Role,
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
-            .ReturnsAsync(coach);
-        _iCoachMapperMock.Setup(x => x.ToDto(coach))
-            .Returns(expectedCoachDto);
+        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync(coach);
+        _iCoachMapperMock.Setup(x => x.ToDto(coach)).Returns(expectedCoachDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -72,8 +73,7 @@ public class GetCoachByIdQueryHandlerTests
         var coachId = 999;
         var query = new GetCoachByIdQuery { Id = coachId };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
-            .ReturnsAsync((Coach?)null);
+        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync((Coach?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -97,7 +97,8 @@ public class GetCoachByIdQueryHandlerTests
         var query = new GetCoachByIdQuery { Id = coachId };
         var exceptionMessage = "Database connection failed";
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(coachId))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -123,8 +124,7 @@ public class GetCoachByIdQueryHandlerTests
         // Arrange
         var query = new GetCoachByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(invalidId))
-            .ReturnsAsync((Coach?)null);
+        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(invalidId)).ReturnsAsync((Coach?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -158,13 +158,11 @@ public class GetCoachByIdQueryHandlerTests
             TeamId = coach.TeamId,
             PreferredFormation = coach.PreferredFormation,
             CoachingStyle = coach.CoachingStyle,
-            YearsOfExperience = coach.YearsOfExperience
+            YearsOfExperience = coach.YearsOfExperience,
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId))
-            .ReturnsAsync(coach);
-        _iCoachMapperMock.Setup(x => x.ToDto(coach))
-            .Returns(expectedCoachDto);
+        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync(coach);
+        _iCoachMapperMock.Setup(x => x.ToDto(coach)).Returns(expectedCoachDto);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

@@ -45,8 +45,9 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         await SeedTestDataAsync();
 
         // Act
-        var response =
-            await _client.GetAsync("/api/players?nationality=England&preferredFoot=Right&pageNumber=1&pageSize=10");
+        var response = await _client.GetAsync(
+            "/api/players?nationality=England&preferredFoot=Right&pageNumber=1&pageSize=10"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -132,7 +133,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
             Position = "Forward",
             Nationality = "England",
             PreferredFoot = "Right",
-            TeamId = teamId
+            TeamId = teamId,
         };
 
         // Act
@@ -159,7 +160,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             FullName = "", // Invalid: empty name
             KnownName = "Doe",
-            Position = "Forward"
+            Position = "Forward",
         };
 
         // Act
@@ -179,7 +180,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
             FullName = "Updated",
             KnownName = "Player",
             Position = "Midfielder",
-            Nationality = "Spain"
+            Nationality = "Spain",
         };
 
         // Act
@@ -203,7 +204,7 @@ public class PlayersControllerIntegrationTests : IClassFixture<FootexWebApplicat
         {
             FullName = "Updated",
             KnownName = "Player",
-            Position = "Midfielder"
+            Position = "Midfielder",
         };
 
         // Act

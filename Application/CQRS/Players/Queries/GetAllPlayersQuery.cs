@@ -29,36 +29,35 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper pla
 {
     private readonly IPlayerMapper _playerMapper = playerMapper;
 
-    public async Task<GetAllPlayersQueryResponse> Handle(GetAllPlayersQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetAllPlayersQueryResponse> Handle(
+        GetAllPlayersQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
             IEnumerable<Player> players;
 
             // Apply filters if provided
-            if (!string.IsNullOrEmpty(request.Nationality))
+            if (!string.IsNullOrWhiteSpace(request.Nationality))
                 players = await unitOfWork.Players.GetByNationalityAsync(request.Nationality);
-            else if (!string.IsNullOrEmpty(request.PreferredFoot))
+            else if (!string.IsNullOrWhiteSpace(request.PreferredFoot))
                 players = await unitOfWork.Players.GetByPreferredFootAsync(request.PreferredFoot);
-            else if (request.TeamId.HasValue)
-                players = await unitOfWork.Players.FindAsync(p => p.TeamId == request.TeamId.Value);
+            else if (request.TeamId is > 0)
+                players = await unitOfWork.Players.GetAllAsync(p =>
+                    p.TeamId == request.TeamId.Value
+                );
             else
-                players = await unitOfWork.Players.GetAllAsync(request.PageNumber, request.PageSize);
-            var playerDtos = _playerMapper.ToDtoList(players);
-            return new GetAllPlayersQueryResponse
-            {
-                Succeeded = true,
-                Players = playerDtos
-            };
+                players = await unitOfWork.Players.GetAllAsync(
+                    request.PageNumber,
+                    request.PageSize
+                );
+            var playerDtoS = _playerMapper.ToDtoList(players);
+            return new GetAllPlayersQueryResponse { Succeeded = true, Players = playerDtoS };
         }
         catch (Exception ex)
         {
-            return new GetAllPlayersQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetAllPlayersQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

@@ -94,7 +94,11 @@ public class ApiBenchmarks
 
     [Benchmark]
     [ArgumentsSource(nameof(FilterParameters))]
-    public async Task<string> GetPlayersWithFilters(string nationality, string preferredFoot, int? teamId)
+    public async Task<string> GetPlayersWithFilters(
+        string nationality,
+        string preferredFoot,
+        int? teamId
+    )
     {
         var queryParams = new List<string>();
 
@@ -116,7 +120,9 @@ public class ApiBenchmarks
     [ArgumentsSource(nameof(PaginationParameters))]
     public async Task<string> GetPlayersWithPagination(int pageNumber, int pageSize)
     {
-        var response = await _httpClient.GetAsync($"/api/players?pageNumber={pageNumber}&pageSize={pageSize}");
+        var response = await _httpClient.GetAsync(
+            $"/api/players?pageNumber={pageNumber}&pageSize={pageSize}"
+        );
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -141,11 +147,12 @@ public class BenchmarkConfig : ManualConfig
 {
     public BenchmarkConfig()
     {
-        AddJob(Job.Default
-            .WithToolchain(InProcessEmitToolchain.Instance)
-            .WithWarmupCount(3)
-            .WithIterationCount(10)
-            .WithInvocationCount(1)
-            .WithUnrollFactor(1));
+        AddJob(
+            Job.Default.WithToolchain(InProcessEmitToolchain.Instance)
+                .WithWarmupCount(3)
+                .WithIterationCount(10)
+                .WithInvocationCount(1)
+                .WithUnrollFactor(1)
+        );
     }
 }

@@ -26,7 +26,8 @@ public class RedisCacheService : ICacheService
         IDistributedCache cache,
         ILogger<RedisCacheService> logger,
         IOptions<RedisCacheOptions> options,
-        IConnectionMultiplexer connectionMultiplexer) // Added IConnectionMultiplexer
+        IConnectionMultiplexer connectionMultiplexer
+    ) // Added IConnectionMultiplexer
     {
         _cache = cache;
         _logger = logger;
@@ -35,11 +36,12 @@ public class RedisCacheService : ICacheService
         _options = new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = _cacheOptions.DefaultExpiration,
-            SlidingExpiration = _cacheOptions.DefaultSlidingExpiration
+            SlidingExpiration = _cacheOptions.DefaultSlidingExpiration,
         };
     }
 
-    public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
+    public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+        where T : class
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -57,7 +59,8 @@ public class RedisCacheService : ICacheService
         {
             var cachedValue = await _cache.GetStringAsync(key, cancellationToken);
 
-            if (cachedValue is null) return null;
+            if (cachedValue is null)
+                return null;
 
             ResetCircuitBreaker(); // Successful operation
             return JsonSerializer.Deserialize<T>(cachedValue);
@@ -70,8 +73,13 @@ public class RedisCacheService : ICacheService
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
+    public async Task SetAsync<T>(
+        string key,
+        T value,
+        TimeSpan? expiration = null,
+        CancellationToken cancellationToken = default
+    )
+        where T : class
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -135,7 +143,10 @@ public class RedisCacheService : ICacheService
         }
     }
 
-    public async Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
+    public async Task RemoveByPatternAsync(
+        string pattern,
+        CancellationToken cancellationToken = default
+    )
     {
         if (string.IsNullOrEmpty(pattern))
         {
@@ -145,13 +156,18 @@ public class RedisCacheService : ICacheService
 
         if (IsCircuitOpen())
         {
-            _logger.LogDebug("Circuit breaker open - skipping cache REMOVE_BY_PATTERN for pattern: {Pattern}", pattern);
+            _logger.LogDebug(
+                "Circuit breaker open - skipping cache REMOVE_BY_PATTERN for pattern: {Pattern}",
+                pattern
+            );
             return;
         }
 
         try
         {
-            var servers = _connectionMultiplexer.GetEndPoints().Select(e => _connectionMultiplexer.GetServer(e));
+            var servers = _connectionMultiplexer
+                .GetEndPoints()
+                .Select(e => _connectionMultiplexer.GetServer(e));
             var db = _connectionMultiplexer.GetDatabase(); // Assuming default database, or configure as needed
 
             foreach (var server in servers)
@@ -167,7 +183,11 @@ public class RedisCacheService : ICacheService
                 // KEYS or KeysAsync can be blocking. SCAN is preferred for production environments
                 // but KeysAsync is simpler for this example and works with StackExchange.Redis.
                 // For true SCAN semantics, you'd iterate using server.ScanKeysAsync.
-                await foreach (var key in server.KeysAsync(database: db.Database, pattern: redisPattern).WithCancellation(cancellationToken))
+                await foreach (
+                    var key in server
+                        .KeysAsync(database: db.Database, pattern: redisPattern)
+                        .WithCancellation(cancellationToken)
+                )
                 {
                     keysToDelete.Add(key);
                 }
@@ -175,11 +195,20 @@ public class RedisCacheService : ICacheService
                 if (keysToDelete.Any())
                 {
                     await db.KeyDeleteAsync(keysToDelete.ToArray());
-                    _logger.LogInformation("Successfully removed {Count} keys by pattern: {Pattern} (Redis pattern: {RedisPattern})", keysToDelete.Count, pattern, redisPattern);
+                    _logger.LogInformation(
+                        "Successfully removed {Count} keys by pattern: {Pattern} (Redis pattern: {RedisPattern})",
+                        keysToDelete.Count,
+                        pattern,
+                        redisPattern
+                    );
                 }
                 else
                 {
-                    _logger.LogInformation("No keys found matching pattern: {Pattern} (Redis pattern: {RedisPattern})", pattern, redisPattern);
+                    _logger.LogInformation(
+                        "No keys found matching pattern: {Pattern} (Redis pattern: {RedisPattern})",
+                        pattern,
+                        redisPattern
+                    );
                 }
             }
             ResetCircuitBreaker(); // Successful operation
@@ -187,7 +216,11 @@ public class RedisCacheService : ICacheService
         catch (Exception ex)
         {
             IncrementFailureCount();
-            _logger.LogError(ex, "Error removing values by pattern from cache for pattern: {Pattern}", pattern);
+            _logger.LogError(
+                ex,
+                "Error removing values by pattern from cache for pattern: {Pattern}",
+                pattern
+            );
         }
     }
 
@@ -195,7 +228,9 @@ public class RedisCacheService : ICacheService
         string key,
         Func<Task<T>> factory,
         TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
+        CancellationToken cancellationToken = default
+    )
+        where T : class
     {
         if (string.IsNullOrEmpty(key))
         {
@@ -204,17 +239,17 @@ public class RedisCacheService : ICacheService
         }
 
         // Try to get from cache only if circuit is closed
-        var cachedValue = !IsCircuitOpen()
-            ? await GetAsync<T>(key, cancellationToken)
-            : null;
+        var cachedValue = !IsCircuitOpen() ? await GetAsync<T>(key, cancellationToken) : null;
 
-        if (cachedValue != null) return cachedValue;
+        if (cachedValue != null)
+            return cachedValue;
 
         // Generate value from factory
         var newValue = await factory();
 
         // Only cache non-null values
-        if (newValue != null && !IsCircuitOpen()) await SetAsync(key, newValue, expiration, cancellationToken);
+        if (newValue != null && !IsCircuitOpen())
+            await SetAsync(key, newValue, expiration, cancellationToken);
 
         return newValue;
     }
@@ -228,7 +263,9 @@ public class RedisCacheService : ICacheService
             if (_circuitOpen && DateTime.UtcNow > _circuitResetTime)
             {
                 // Move to half-open state by allowing a trial operation
-                _logger.LogInformation("Circuit breaker reset interval elapsed, attempting to close circuit");
+                _logger.LogInformation(
+                    "Circuit breaker reset interval elapsed, attempting to close circuit"
+                );
                 _circuitOpen = false;
                 _failureCount = 0;
                 return false;
@@ -252,7 +289,8 @@ public class RedisCacheService : ICacheService
                 _logger.LogWarning(
                     "Circuit breaker opened after {FailureCount} failures. Will reset at {ResetTime}",
                     _failureCount,
-                    _circuitResetTime);
+                    _circuitResetTime
+                );
             }
         }
     }
@@ -261,7 +299,8 @@ public class RedisCacheService : ICacheService
     {
         lock (_circuitLock)
         {
-            if (_circuitOpen) _logger.LogInformation("Circuit breaker closed after successful operation");
+            if (_circuitOpen)
+                _logger.LogInformation("Circuit breaker closed after successful operation");
 
             _circuitOpen = false;
             _failureCount = 0;

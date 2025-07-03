@@ -11,7 +11,8 @@ public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     private readonly GetPlayerByIdQueryHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetPlayerByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public GetPlayerByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<GetPlayerByIdQueryHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();

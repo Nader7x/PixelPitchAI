@@ -61,7 +61,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             AwayTeamScore = 1,
             MatchStatus = "Finished",
             HomeTeamPossession = 60,
-            AwayTeamPossession = 40
+            AwayTeamPossession = 40,
         };
 
         // Act
@@ -93,7 +93,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             HomeTeamId = 1,
             AwayTeamId = 2,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
-            MatchWeek = 1
+            MatchWeek = 1,
         };
 
         // Act
@@ -133,7 +133,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             HomeTeamId = team.Id,
             AwayTeamId = team.Id, // Same as home team
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
-            MatchWeek = 1
+            MatchWeek = 1,
         };
 
         // Act
@@ -180,7 +180,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
             HomeTeamPossession = 60,
-            AwayTeamPossession = 50 // Should sum to 100
+            AwayTeamPossession = 50, // Should sum to 100
         };
 
         // Act
@@ -231,7 +231,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             WinningTeamId = homeTeam.Id,
             LosingTeamId = awayTeam.Id,
             IsDraw = false,
-            MatchStatus = "Finished"
+            MatchStatus = "Finished",
         };
 
         // Act
@@ -294,7 +294,7 @@ public class UpdateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
             HomeTeamYellowCards = 2,
             AwayTeamYellowCards = 4,
             HomeTeamRedCards = 0,
-            AwayTeamRedCards = 1
+            AwayTeamRedCards = 1,
         };
 
         // Act

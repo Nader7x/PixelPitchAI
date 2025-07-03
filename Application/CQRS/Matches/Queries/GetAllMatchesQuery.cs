@@ -3,6 +3,7 @@ using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.Matches.Queries;
 
@@ -28,47 +29,64 @@ public class GetAllMatchesQueryResponse
 public class GetAllMatchesQueryHandler(IUnitOfWork unitOfWork, IMatchMapper matchMapper)
     : IRequestHandler<GetAllMatchesQuery, GetAllMatchesQueryResponse>
 {
-    public async Task<GetAllMatchesQueryResponse> Handle(GetAllMatchesQuery request,
-        CancellationToken cancellationToken)
+    public async Task<GetAllMatchesQueryResponse> Handle(
+        GetAllMatchesQuery request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            IEnumerable<Match> matches;
+            var query = unitOfWork.Matches.GetQueryable();
 
-            // Build filter expression based on provided parameters
-            if (request.HomeSeasonId.HasValue || request.TeamId.HasValue || !string.IsNullOrEmpty(request.Status) ||
-                request.FromDate.HasValue || request.ToDate.HasValue || request.MatchWeek.HasValue)
-                // Apply combined filters
-                matches = await unitOfWork.Matches.GetAllAsync(m =>
-                    (!request.HomeSeasonId.HasValue || m.HomeTeamSeasonId == request.HomeSeasonId.Value) &&
-                    (!request.AwaySeasonId.HasValue || m.AwayTeamSeasonId == request.AwaySeasonId.Value) &&
-                    (!request.TeamId.HasValue || m.HomeTeamId == request.TeamId.Value ||
-                     m.AwayTeamId == request.TeamId.Value) &&
-                    (string.IsNullOrEmpty(request.Status) || m.MatchStatus == request.Status) &&
-                    (!request.FromDate.HasValue || m.ScheduledDateTimeUtc >= request.FromDate.Value) &&
-                    (!request.ToDate.HasValue || m.ScheduledDateTimeUtc <= request.ToDate.Value) &&
-                    (!request.MatchWeek.HasValue || m.MatchWeek == request.MatchWeek.Value)
-                );
-            else
-                // Get all matches if no filters provided
-                matches = await unitOfWork.Matches.GetAllWithDetailsAsync();
+            if (request.HomeSeasonId.HasValue)
+            {
+                query = query.Where(m => m.HomeTeamSeasonId == request.HomeSeasonId.Value);
+            }
+
+            if (request.AwaySeasonId.HasValue)
+            {
+                query = query.Where(m => m.AwayTeamSeasonId == request.AwaySeasonId.Value);
+            }
+
+            if (request.TeamId.HasValue)
+            {
+                // if team id = 0, treat as no filter
+                if (request.TeamId.Value != 0)
+                {
+                    query = query.Where(m =>
+                        m.HomeTeamId == request.TeamId.Value || m.AwayTeamId == request.TeamId.Value
+                    );
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                query = query.Where(m => m.MatchStatus == request.Status);
+            }
+
+            if (request.FromDate.HasValue)
+            {
+                query = query.Where(m => m.ScheduledDateTimeUtc >= request.FromDate.Value);
+            }
+
+            if (request.ToDate.HasValue)
+            {
+                query = query.Where(m => m.ScheduledDateTimeUtc <= request.ToDate.Value);
+            }
+
+            if (request.MatchWeek.HasValue)
+            {
+                query = query.Where(m => m.MatchWeek == request.MatchWeek.Value);
+            }
+            var matches = await query.ToListAsync(cancellationToken: cancellationToken);
 
             var matchDtos = matchMapper.ToDtoList(matches);
 
-
-            return new GetAllMatchesQueryResponse
-            {
-                Succeeded = true,
-                Matches = matchDtos
-            };
+            return new GetAllMatchesQueryResponse { Succeeded = true, Matches = matchDtos };
         }
         catch (Exception ex)
         {
-            return new GetAllMatchesQueryResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new GetAllMatchesQueryResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

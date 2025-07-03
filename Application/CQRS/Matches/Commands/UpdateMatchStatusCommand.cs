@@ -20,8 +20,10 @@ public class UpdateMatchStatusCommandResponse
 public class UpdateMatchStatusCommandHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse>
 {
-    public async Task<UpdateMatchStatusCommandResponse> Handle(UpdateMatchStatusCommand request,
-        CancellationToken cancellationToken)
+    public async Task<UpdateMatchStatusCommandResponse> Handle(
+        UpdateMatchStatusCommand request,
+        CancellationToken cancellationToken
+    )
     {
         var match = await unitOfWork.Matches.GetByIdAsync(request.MatchId);
         if (match == null)
@@ -29,7 +31,7 @@ public class UpdateMatchStatusCommandHandler(IUnitOfWork unitOfWork)
             {
                 Succeeded = false,
                 NotFound = true,
-                Error = "Match not found"
+                Error = "Match not found",
             };
         if (string.IsNullOrEmpty(request.NewStatus))
             // Update the match status
@@ -41,7 +43,7 @@ public class UpdateMatchStatusCommandHandler(IUnitOfWork unitOfWork)
         return new UpdateMatchStatusCommandResponse
         {
             Succeeded = true,
-            Status = match.MatchStatus
+            Status = match.MatchStatus,
         };
     }
 }

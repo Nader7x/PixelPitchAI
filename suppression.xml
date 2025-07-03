@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <!-- 
+  <!-- 
     This file contains suppression rules for OWASP Dependency Check.
     Use this to suppress false positives or known issues that have been accepted as risk.
     
@@ -22,7 +22,5 @@
         <vulnerabilityName>Development Tool Vulnerability</vulnerabilityName>
     </suppress>
     -->
-    
-    <!-- Add your suppressions here -->
-    
+  <!-- Add your suppressions here -->
 </suppressions>

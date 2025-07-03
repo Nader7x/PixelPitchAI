@@ -31,7 +31,8 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
     private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
-    private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache = new();
+    private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache =
+        new();
     private readonly object _matchEventsCacheLock = new();
 
     private readonly IPerformanceMonitoringService _performanceMonitoringService;
@@ -50,7 +51,9 @@ public class MatchEventRabbitMqClient : BackgroundService
         IHubContext<MatchHub, IMatchHub> hubContext,
         IServiceScopeFactory serviceScopeFactory,
         IPerformanceMonitoringService performanceMonitoringService,
-        IOptions<RabbitMqOptions> rabbitMqOptions, ILiveMatchStatisticsService liveMatchStatisticsService)
+        IOptions<RabbitMqOptions> rabbitMqOptions,
+        ILiveMatchStatisticsService liveMatchStatisticsService
+    )
     {
         _logger = logger;
         _hubContext = hubContext;
@@ -79,15 +82,19 @@ public class MatchEventRabbitMqClient : BackgroundService
             AutomaticRecoveryEnabled = true,
             NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
             ContinuationTimeout = TimeSpan.FromSeconds(10),
-            RequestedConnectionTimeout = TimeSpan.FromMilliseconds(15000)
+            RequestedConnectionTimeout = TimeSpan.FromMilliseconds(15000),
         };
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                _logger.LogInformation("Attempting to connect to RabbitMQ at {Host}:{Port}/{VHost}...",
-                    _rabbitMqSettings.HostName, _rabbitMqSettings.Port, _rabbitMqSettings.VirtualHost);
+                _logger.LogInformation(
+                    "Attempting to connect to RabbitMQ at {Host}:{Port}/{VHost}...",
+                    _rabbitMqSettings.HostName,
+                    _rabbitMqSettings.Port,
+                    _rabbitMqSettings.VirtualHost
+                );
 
                 await CloseChannelAndConnectionAsync(); // Clean up previous attempts
                 _connection = await factory.CreateConnectionAsync(stoppingToken);
@@ -111,7 +118,9 @@ public class MatchEventRabbitMqClient : BackgroundService
                 _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
                 if (_channel == null || !_channel.IsOpen)
                 {
-                    _logger.LogError("Failed to create or open a channel after connecting to RabbitMQ.");
+                    _logger.LogError(
+                        "Failed to create or open a channel after connecting to RabbitMQ."
+                    );
                     await CloseConnectionAsync();
                     await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
                     continue;
@@ -122,17 +131,35 @@ public class MatchEventRabbitMqClient : BackgroundService
 
                 var arguments = new Dictionary<string, object?> { { "x-message-ttl", 86400000 } }; // 24 hours
 
-                await _channel.ExchangeDeclareAsync("match_events", ExchangeType.Topic,
-                    true, false, cancellationToken: stoppingToken);
-                await _channel.QueueDeclareAsync(_rabbitMqSettings.QueueName, true,
-                    false, false, arguments, cancellationToken: stoppingToken);
-                await _channel.QueueBindAsync(_rabbitMqSettings.QueueName, "match_events",
-                    "match.events", cancellationToken: stoppingToken);
+                await _channel.ExchangeDeclareAsync(
+                    "match_events",
+                    ExchangeType.Topic,
+                    true,
+                    false,
+                    cancellationToken: stoppingToken
+                );
+                await _channel.QueueDeclareAsync(
+                    _rabbitMqSettings.QueueName,
+                    true,
+                    false,
+                    false,
+                    arguments,
+                    cancellationToken: stoppingToken
+                );
+                await _channel.QueueBindAsync(
+                    _rabbitMqSettings.QueueName,
+                    "match_events",
+                    "match.events",
+                    cancellationToken: stoppingToken
+                );
                 await _channel.BasicQosAsync(0, 1, false, stoppingToken);
 
                 _logger.LogInformation(
                     "Successfully connected to RabbitMQ and declared topology at {Host}:{Port}/{VHost}",
-                    _rabbitMqSettings.HostName, _rabbitMqSettings.Port, _rabbitMqSettings.VirtualHost);
+                    _rabbitMqSettings.HostName,
+                    _rabbitMqSettings.Port,
+                    _rabbitMqSettings.VirtualHost
+                );
                 return true;
             }
             catch (BrokerUnreachableException ex)
@@ -141,7 +168,10 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
             catch (SocketException ex)
             {
-                _logger.LogWarning(ex, "Socket error connecting to RabbitMQ. Retrying in 15 seconds...");
+                _logger.LogWarning(
+                    ex,
+                    "Socket error connecting to RabbitMQ. Retrying in 15 seconds..."
+                );
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -150,7 +180,10 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error during RabbitMQ initialization. Retrying in 15 seconds...");
+                _logger.LogError(
+                    ex,
+                    "Unexpected error during RabbitMQ initialization. Retrying in 15 seconds..."
+                );
             }
             finally
             {
@@ -159,7 +192,8 @@ public class MatchEventRabbitMqClient : BackgroundService
                     await CloseChannelAndConnectionAsync();
             }
 
-            if (!stoppingToken.IsCancellationRequested) await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+            if (!stoppingToken.IsCancellationRequested)
+                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
         }
 
         return false;
@@ -172,16 +206,21 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             await base.StartAsync(cancellationToken);
             _logger.LogInformation(
-                "MatchEventRabbitMqClient started successfully and RabbitMQ connection established.");
+                "MatchEventRabbitMqClient started successfully and RabbitMQ connection established."
+            );
         }
         else
         {
             _logger.LogError(
-                "MatchEventRabbitMqClient failed to initialize RabbitMQ. Service will not process events.");
+                "MatchEventRabbitMqClient failed to initialize RabbitMQ. Service will not process events."
+            );
         }
     }
 
-    private async Task HandleReceivedMessageAsync(BasicDeliverEventArgs ea, CancellationToken stoppingToken)
+    private async Task HandleReceivedMessageAsync(
+        BasicDeliverEventArgs ea,
+        CancellationToken stoppingToken
+    )
     {
         try
         {
@@ -189,21 +228,26 @@ public class MatchEventRabbitMqClient : BackgroundService
             var message = Encoding.UTF8.GetString(body);
             _logger.LogInformation("Received match event: {Message}", message);
 
-            var matchEvent =
-                JsonSerializer.Deserialize<FootballMatchEvent>(message,
-                    MatchEventJsonContext.Default.FootballMatchEvent);
+            var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(
+                message,
+                MatchEventJsonContext.Default.FootballMatchEvent
+            );
             if (matchEvent != null)
             {
                 var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
-                if (matchEntity != null) await ProcessMatchEventWithEntity(matchEvent, matchEntity);
+                if (matchEntity != null)
+                    await ProcessMatchEventWithEntity(matchEvent, matchEntity);
                 await CacheMatchEvent(matchEvent);
                 if (matchEvent is { event_type: "match_end", action: "match_end" })
                 {
-                    if (matchEntity != null) matchEntity.IsLive = false;
+                    if (matchEntity != null)
+                        matchEntity.IsLive = false;
                     await SaveMatchEventsToDatabase(matchEvent.match_id);
                     _loadedMatches.TryRemove(matchEvent.match_id, out _);
-                    _logger.LogInformation("Removed match {MatchId} from cache after match end",
-                        matchEvent.match_id);
+                    _logger.LogInformation(
+                        "Removed match {MatchId} from cache after match end",
+                        matchEvent.match_id
+                    );
                 }
 
                 // Immediately broadcast the event and statistics for significant events
@@ -224,27 +268,34 @@ public class MatchEventRabbitMqClient : BackgroundService
             else
                 _logger.LogWarning(
                     "Channel closed or null before acknowledgment of delivery tag {DeliveryTag}. Message might be redelivered.",
-                    ea.DeliveryTag);
+                    ea.DeliveryTag
+                );
         }
         catch (JsonException jsonEx)
         {
-            _logger.LogError(jsonEx,
+            _logger.LogError(
+                jsonEx,
                 "Failed to deserialize RabbitMQ message. Delivery Tag: {DeliveryTag}. NACKing without requeue.",
-                ea.DeliveryTag);
+                ea.DeliveryTag
+            );
             if (_channel is { IsOpen: true })
                 await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
         }
         catch (AlreadyClosedException closedEx)
         {
-            _logger.LogWarning(closedEx,
+            _logger.LogWarning(
+                closedEx,
                 "Attempted to operate on a closed channel/connection while processing message for delivery tag {DeliveryTag}. Message may be redelivered.",
-                ea.DeliveryTag);
+                ea.DeliveryTag
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            _logger.LogError(
+                ex,
                 "Error processing received RabbitMQ message. Delivery Tag: {DeliveryTag}. NACKing without requeue.",
-                ea.DeliveryTag);
+                ea.DeliveryTag
+            );
             if (_channel is { IsOpen: true })
                 try
                 {
@@ -252,9 +303,11 @@ public class MatchEventRabbitMqClient : BackgroundService
                 }
                 catch (Exception nackEx)
                 {
-                    _logger.LogError(nackEx,
+                    _logger.LogError(
+                        nackEx,
                         "Error sending NACK for delivery tag {DeliveryTag} after processing error.",
-                        ea.DeliveryTag);
+                        ea.DeliveryTag
+                    );
                 }
         }
     }
@@ -266,79 +319,115 @@ public class MatchEventRabbitMqClient : BackgroundService
     /// <param name="matchEvent">The football match event to analyze</param>
     /// <returns>True if the event should trigger a statistics broadcast, false otherwise</returns>
     private static bool IsSignificantEvent(FootballMatchEvent matchEvent)
-{
-    if (matchEvent?.action == null) return false;
-
-    var action = matchEvent.action.ToLowerInvariant();
-    var eventType = matchEvent.event_type.ToLowerInvariant();
-    var type = matchEvent.type?.ToLowerInvariant();
-
-    // Set Pieces
-    if (type is "kick off" or "free kick" or "corner")
-        return true;
-
-    // Cards (yellow, red)
-    if (action.Contains("card") || action.Contains("yellow") || action.Contains("red") ||
-        eventType == "card" || eventType == "yellow_card" || eventType == "red_card")
-        return true;
-    if (matchEvent is { long_pass: not null and true })
-        return true;
-
-    // Substitutions
-    if (action.Contains("substitution") || action.Contains("sub") || eventType == "substitution")
-        return true;
-
-    // Period/match state changes
-    if (action is "match_start" or "match_end" or "first_half_end" or "second_half_start" or "stoppage_time_start")
-        return true;
-
-    // Penalties
-    if (action.Contains("penalty") || eventType == "penalty" || matchEvent.outcome?.ToLowerInvariant() == "penalty")
-        return true;
-
-    // Own goals
-    if (action.Contains("own") && action.Contains("goal"))
-        return true;
-
-    // --- New Additions Based on Data Analysis ---
-
-    return eventType switch
     {
-        // Shots (even if not goals or saves)
-        // Duels (tackles, challenges)
-        // Fouls
-        // Dribbles
-        // Interceptions
-        // Clearances
-        // Blocks
-        // Ball Recovery
-        "shot" or "duel" or "foul committed" or "foul won" or "dribble" or "interception" or "clearance" or "block" or "carry"
+        if (matchEvent?.action == null)
+            return false;
+
+        var action = matchEvent.action.ToLowerInvariant();
+        var eventType = matchEvent.event_type.ToLowerInvariant();
+        var type = matchEvent.type?.ToLowerInvariant();
+
+        // Set Pieces
+        if (type is "kick off" or "free kick" or "corner")
+            return true;
+
+        // Cards (yellow, red)
+        if (
+            action.Contains("card")
+            || action.Contains("yellow")
+            || action.Contains("red")
+            || eventType == "card"
+            || eventType == "yellow_card"
+            || eventType == "red_card"
+        )
+            return true;
+        if (matchEvent is { long_pass: not null and true })
+            return true;
+
+        // Substitutions
+        if (
+            action.Contains("substitution")
+            || action.Contains("sub")
+            || eventType == "substitution"
+        )
+            return true;
+
+        // Period/match state changes
+        if (
+            action
+            is "match_start"
+                or "match_end"
+                or "first_half_end"
+                or "second_half_start"
+                or "stoppage_time_start"
+        )
+            return true;
+
+        // Penalties
+        if (
+            action.Contains("penalty")
+            || eventType == "penalty"
+            || matchEvent.outcome?.ToLowerInvariant() == "penalty"
+        )
+            return true;
+
+        // Own goals
+        if (action.Contains("own") && action.Contains("goal"))
+            return true;
+
+        // --- New Additions Based on Data Analysis ---
+
+        return eventType switch
+        {
+            // Shots (even if not goals or saves)
+            // Duels (tackles, challenges)
+            // Fouls
+            // Dribbles
+            // Interceptions
+            // Clearances
+            // Blocks
+            // Ball Recovery
+            "shot"
+            or "duel"
+            or "foul committed"
+            or "foul won"
+            or "dribble"
+            or "interception"
+            or "clearance"
+            or "block"
+            or "carry"
             or "ball_recovery" => true,
-        _ => false
-    };
-}
+            _ => false,
+        };
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (_channel is not { IsOpen: true })
         {
-            _logger.LogWarning("RabbitMQ channel unavailable at ExecuteAsync. Client will not consume events.");
+            _logger.LogWarning(
+                "RabbitMQ channel unavailable at ExecuteAsync. Client will not consume events."
+            );
             return;
         }
 
         _logger.LogInformation(
             "MatchEventRabbitMqClient ExecuteAsync started. Consuming from queue: {QueueName} with 1-second intervals",
-            _rabbitMqSettings.QueueName);
+            _rabbitMqSettings.QueueName
+        );
 
         while (!stoppingToken.IsCancellationRequested)
         {
             if (_channel is not { IsOpen: true })
             {
-                _logger.LogWarning("Channel found closed in ExecuteAsync loop. Attempting re-initialization.");
+                _logger.LogWarning(
+                    "Channel found closed in ExecuteAsync loop. Attempting re-initialization."
+                );
                 if (!await TryInitializeRabbitMq(stoppingToken))
                 {
                     _logger.LogError(
-                        "Failed to re-initialize RabbitMQ in ExecuteAsync. Stopping event processing.");
+                        "Failed to re-initialize RabbitMQ in ExecuteAsync. Stopping event processing."
+                    );
                     break;
                 }
             }
@@ -348,7 +437,11 @@ public class MatchEventRabbitMqClient : BackgroundService
                 try
                 {
                     // Manually fetch one message at a time with controlled timing
-                    var result = await _channel.BasicGetAsync(_rabbitMqSettings.QueueName, false, stoppingToken);
+                    var result = await _channel.BasicGetAsync(
+                        _rabbitMqSettings.QueueName,
+                        false,
+                        stoppingToken
+                    );
                     if (result != null)
                     {
                         // Process the message immediately
@@ -360,11 +453,15 @@ public class MatchEventRabbitMqClient : BackgroundService
                             routingKey: result.RoutingKey,
                             properties: result.BasicProperties,
                             body: result.Body,
-                            cancellationToken: stoppingToken);
+                            cancellationToken: stoppingToken
+                        );
 
                         await HandleReceivedMessageAsync(deliverEventArgs, stoppingToken);
 
-                        _logger.LogDebug("Processed message with delivery tag {DeliveryTag}", result.DeliveryTag);
+                        _logger.LogDebug(
+                            "Processed message with delivery tag {DeliveryTag}",
+                            result.DeliveryTag
+                        );
                     }
                     else
                     {
@@ -407,18 +504,24 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         _logger.LogWarning(
             "RabbitMQ connection shut down. Initiator: {Initiator}, Cause: {Cause}, Reply Code: {ReplyCode}, Reply Text: {ReplyText}",
-            e.Initiator, e.Cause?.ToString() ?? "N/A", e.ReplyCode, e.ReplyText);
+            e.Initiator,
+            e.Cause?.ToString() ?? "N/A",
+            e.ReplyCode,
+            e.ReplyText
+        );
         return Task.CompletedTask;
     }
 
     private Task OnChannelCallbackExceptionAsync(object? sender, CallbackExceptionEventArgs e)
     {
-        _logger.LogError(e.Exception,
+        _logger.LogError(
+            e.Exception,
             "RabbitMQ channel callback exception. Channel: {ChannelNum}, Detail: {Detail}",
-            (sender as IChannel)?.ChannelNumber, e.Detail);
+            (sender as IChannel)?.ChannelNumber,
+            e.Detail
+        );
         return Task.CompletedTask;
     }
-
 
     // --- Helper methods for closing resources ---
     private async Task CloseChannelAsync()
@@ -437,7 +540,11 @@ public class MatchEventRabbitMqClient : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Exception cancelling consumer '{Tag}'.", _consumerTag);
+                        _logger.LogWarning(
+                            ex,
+                            "Exception cancelling consumer '{Tag}'.",
+                            _consumerTag
+                        );
                     }
 
                     _consumerTag = null;
@@ -495,11 +602,14 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            await _hubContext.Clients.Group(matchEvent.match_id)
-                .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id),
-                    matchEvent); // Ensure IMatchHub has SendMatchEventAsync
-            _logger.LogInformation("Broadcasted match event {Index} for match {Id} to clients",
-                matchEvent.event_index, matchEvent.match_id);
+            await _hubContext
+                .Clients.Group(matchEvent.match_id)
+                .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id), matchEvent); // Ensure IMatchHub has SendMatchEventAsync
+            _logger.LogInformation(
+                "Broadcasted match event {Index} for match {Id} to clients",
+                matchEvent.event_index,
+                matchEvent.match_id
+            );
         }
         catch (Exception ex)
         {
@@ -519,8 +629,10 @@ public class MatchEventRabbitMqClient : BackgroundService
             var stopwatch = Stopwatch.StartNew();
             var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
             stopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall("LoadMatchEntity",
-                stopwatch.Elapsed.TotalMilliseconds);
+            _performanceMonitoringService.RecordDatabaseCall(
+                "LoadMatchEntity",
+                stopwatch.Elapsed.TotalMilliseconds
+            );
             if (match != null)
             {
                 _loadedMatches.TryAdd(matchId, match);
@@ -543,22 +655,33 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
-            var matchEventsEntity = matchEntity.MatchEvents ?? new MatchEvents
-            {
-                MatchId = int.Parse(matchEvent.match_id),
-                EventsJson = "[]",
-                LastUpdated = DateTime.UtcNow,
-                TotalEvents = 0
-            };
+            var matchEventsEntity =
+                matchEntity.MatchEvents
+                ?? new MatchEvents
+                {
+                    MatchId = int.Parse(matchEvent.match_id),
+                    EventsJson = "[]",
+                    LastUpdated = DateTime.UtcNow,
+                    TotalEvents = 0,
+                };
 
             matchEntity.MatchEvents ??= matchEventsEntity;
 
-            await eventAnalysis.UpdateMatchStatistics(matchEvent, matchEventsEntity, matchEntity, false);
+            await eventAnalysis.UpdateMatchStatistics(
+                matchEvent,
+                matchEventsEntity,
+                matchEntity,
+                false
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing match event {Index} for match {Id}", matchEvent.event_index,
-                matchEvent.match_id);
+            _logger.LogError(
+                ex,
+                "Error processing match event {Index} for match {Id}",
+                matchEvent.event_index,
+                matchEvent.match_id
+            );
         }
     }
 
@@ -584,7 +707,7 @@ public class MatchEventRabbitMqClient : BackgroundService
                     fouls = matchEntity.HomeTeamFouls ?? 0,
                     yellowCards = matchEntity.HomeTeamYellowCards ?? 0,
                     redCards = matchEntity.HomeTeamRedCards ?? 0,
-                    offsides = matchEntity.HomeTeamOffsides ?? 0
+                    offsides = matchEntity.HomeTeamOffsides ?? 0,
                 },
                 awayTeam = new
                 {
@@ -599,7 +722,7 @@ public class MatchEventRabbitMqClient : BackgroundService
                     fouls = matchEntity.AwayTeamFouls ?? 0,
                     yellowCards = matchEntity.AwayTeamYellowCards ?? 0,
                     redCards = matchEntity.AwayTeamRedCards ?? 0,
-                    offsides = matchEntity.AwayTeamOffsides ?? 0
+                    offsides = matchEntity.AwayTeamOffsides ?? 0,
                 },
                 matchInfo = new
                 {
@@ -608,16 +731,26 @@ public class MatchEventRabbitMqClient : BackgroundService
                     currentMinute = matchEvent.minute,
                     lastEventTime = matchEvent.time_seconds,
                     eventType = matchEvent.action,
-                    eventTeam = matchEvent.team
+                    eventTeam = matchEvent.team,
                 },
-                lastUpdated = DateTime.UtcNow
+                lastUpdated = DateTime.UtcNow,
             };
-            await _hubContext.Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
-                .SendMatchStatisticsAsync("match_statistics_update", matchEntity.Id,
-                    matchStatistics);
-            _logger.LogInformation("Broadcasted match statistics for match {Id} at {Time}", matchEntity.Id,
-                DateTime.UtcNow);
-            _logger.LogInformation("Match statistics: {Statistics}", JsonSerializer.Serialize(matchStatistics));
+            await _hubContext
+                .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
+                .SendMatchStatisticsAsync(
+                    "match_statistics_update",
+                    matchEntity.Id,
+                    matchStatistics
+                );
+            _logger.LogInformation(
+                "Broadcasted match statistics for match {Id} at {Time}",
+                matchEntity.Id,
+                DateTime.UtcNow
+            );
+            _logger.LogInformation(
+                "Match statistics: {Statistics}",
+                JsonSerializer.Serialize(matchStatistics)
+            );
         }
         catch (Exception ex)
         {
@@ -643,8 +776,12 @@ public class MatchEventRabbitMqClient : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error caching event {Index} for match {Id}", matchEvent.event_index,
-                matchEvent.match_id);
+            _logger.LogError(
+                ex,
+                "Error caching event {Index} for match {Id}",
+                matchEvent.event_index,
+                matchEvent.match_id
+            );
         }
 
         return Task.CompletedTask;
@@ -660,46 +797,61 @@ public class MatchEventRabbitMqClient : BackgroundService
 
             lock (_matchEventsCacheLock)
             {
-                if (!_matchEventsCache.Remove(matchId, out events) || events == null || events.Count == 0)
+                if (
+                    !_matchEventsCache.Remove(matchId, out events)
+                    || events == null
+                    || events.Count == 0
+                )
                 {
                     _logger.LogInformation(
-                        "No cached events to save for match {MatchId}, or cache already cleared.", matchId);
+                        "No cached events to save for match {MatchId}, or cache already cleared.",
+                        matchId
+                    );
                     return;
                 }
             }
 
-            _logger.LogInformation("Attempting to save {EventCount} events for match {MatchId}", events.Count,
-                matchId);
-            
+            _logger.LogInformation(
+                "Attempting to save {EventCount} events for match {MatchId}",
+                events.Count,
+                matchId
+            );
+
             using var scope = _serviceScopeFactory.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
 
             var dbStopwatch = Stopwatch.StartNew();
-            var matchToUpdate = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
+            var matchToUpdate = await unitOfWork.Matches.GetByIdWithDetailsAsync(
+                int.Parse(matchId)
+            );
             dbStopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall("GetMatchWithDetails_SaveEvents", 
-                dbStopwatch.Elapsed.TotalMilliseconds);
+            _performanceMonitoringService.RecordDatabaseCall(
+                "GetMatchWithDetails_SaveEvents",
+                dbStopwatch.Elapsed.TotalMilliseconds
+            );
             if (matchToUpdate == null)
             {
                 _logger.LogWarning("Match {Id} not found for saving events.", matchId);
                 return;
             }
-            
+
             var matchEventsEntity = new MatchEvents
             {
-                MatchId = int.Parse(matchId), 
+                MatchId = int.Parse(matchId),
                 EventsJson = "[]",
-                LastUpdated = DateTime.UtcNow
+                LastUpdated = DateTime.UtcNow,
             };
-            
+
             await unitOfWork.MatchEvents.AddAsync(matchEventsEntity); // This adds to UoW context
             matchToUpdate.MatchEvents = matchEventsEntity;
-            
 
             // Process all events for statistics updates, regardless of match source or event type
-            _logger.LogInformation("Processing {EventCount} events for statistics updates for match {MatchId}",
-                events.Count, matchId);
+            _logger.LogInformation(
+                "Processing {EventCount} events for statistics updates for match {MatchId}",
+                events.Count,
+                matchId
+            );
             foreach (var ev in events.OrderBy(e => e.time_seconds))
             {
                 await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
@@ -710,9 +862,11 @@ public class MatchEventRabbitMqClient : BackgroundService
             {
                 matchToUpdate.IsLive = false;
                 matchToUpdate.MatchStatus = "Completed";
-                _logger.LogInformation("Match {MatchId} completed, updated status accordingly", matchId);
+                _logger.LogInformation(
+                    "Match {MatchId} completed, updated status accordingly",
+                    matchId
+                );
             }
-
 
             matchEventsEntity.SetEvents(events);
             matchEventsEntity.TotalEvents = events.Count;
@@ -721,11 +875,18 @@ public class MatchEventRabbitMqClient : BackgroundService
             var saveStopwatch = Stopwatch.StartNew();
             await unitOfWork.SaveChangesAsync();
             saveStopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall("SaveChanges_MatchEvents",
-                saveStopwatch.Elapsed.TotalMilliseconds);
+            _performanceMonitoringService.RecordDatabaseCall(
+                "SaveChanges_MatchEvents",
+                saveStopwatch.Elapsed.TotalMilliseconds
+            );
 
-            _logger.LogInformation("Saved {Count} events for match {Id} to DB in {Ms}ms (Source: {Src})",
-                events.Count, matchId, stopwatch.Elapsed.TotalMilliseconds, "db_loaded");
+            _logger.LogInformation(
+                "Saved {Count} events for match {Id} to DB in {Ms}ms (Source: {Src})",
+                events.Count,
+                matchId,
+                stopwatch.Elapsed.TotalMilliseconds,
+                "db_loaded"
+            );
         }
         catch (Exception ex)
         {
@@ -736,7 +897,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             stopwatch.Stop();
         }
     }
-    
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("MatchEventRabbitMqClient StopAsync called.");

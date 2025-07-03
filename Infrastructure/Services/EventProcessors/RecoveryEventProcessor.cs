@@ -6,8 +6,8 @@ public class RecoveryEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "ball recovery" || 
-               (matchEvent.action == "pass" && matchEvent.type == "Recovery");
+        return matchEvent.action == "ball recovery"
+            || (matchEvent.action == "pass" && matchEvent.type == "Recovery");
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
@@ -16,7 +16,7 @@ public class RecoveryEventProcessor : BaseEventProcessor
             match.HomeTeamRecoveries = IncrementValue(match.HomeTeamRecoveries);
         else
             match.AwayTeamRecoveries = IncrementValue(match.AwayTeamRecoveries);
-        
+
         // Also count as possession won
         if (IsHomeTeam(matchEvent, match))
             match.HomeTeamPossessionWon = IncrementValue(match.HomeTeamPossessionWon);
@@ -24,7 +24,11 @@ public class RecoveryEventProcessor : BaseEventProcessor
             match.AwayTeamPossessionWon = IncrementValue(match.AwayTeamPossessionWon);
     }
 
-    public override void ProcessEventCounters(FootballMatchEvent matchEvent, MatchEvents matchEvents, Match match)
+    public override void ProcessEventCounters(
+        FootballMatchEvent matchEvent,
+        MatchEvents matchEvents,
+        Match match
+    )
     {
         matchEvents.TotalPossessionWon++;
     }

@@ -15,7 +15,8 @@ public class PlayersController(
     IMediator mediator,
     IFileStorageService fileStorageService,
     IPlayerMapper playerMapper,
-    ICacheService cacheService) : ControllerBase
+    ICacheService cacheService
+) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
@@ -35,7 +36,8 @@ public class PlayersController(
     )
     {
         // Generate a cache key based on the query parameters
-        var cacheKey = $"players_all_{nationality}_{preferredFoot}_{teamId}_{pageNumber}_{pageSize}";
+        var cacheKey =
+            $"players_all_{nationality}_{preferredFoot}_{teamId}_{pageNumber}_{pageSize}";
 
         // Try to get from cache first
         var cachedResult = await _cacheService.GetAsync<GetAllPlayersQueryResponse>(cacheKey);
@@ -53,7 +55,7 @@ public class PlayersController(
             PreferredFoot = preferredFoot,
             TeamId = teamId,
             PageNumber = pageNumber,
-            PageSize = pageSize
+            PageSize = pageSize,
         };
 
         var result = await _mediator.Send(query);
@@ -107,7 +109,9 @@ public class PlayersController(
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreatePlayerCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreatePlayerCommandResponse>> CreatePlayer([FromForm] CreatePlayerDto playerDto)
+    public async Task<ActionResult<CreatePlayerCommandResponse>> CreatePlayer(
+        [FromForm] CreatePlayerDto playerDto
+    )
     {
         // Handle file upload if present
         var photoUrl = playerDto.PhotoUrl;
@@ -128,14 +132,15 @@ public class PlayersController(
         return CreatedAtAction(nameof(GetPlayerById), new { id = result.Id }, result);
     }
 
-
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(UpdatePlayerCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<UpdatePlayerCommandResponse>> UpdatePlayer(int id,
-        [FromForm] UpdatePlayerDto playerDto)
+    public async Task<ActionResult<UpdatePlayerCommandResponse>> UpdatePlayer(
+        int id,
+        [FromForm] UpdatePlayerDto playerDto
+    )
     {
         // Get existing player
         var getQuery = new GetPlayerByIdQuery { Id = id };
@@ -149,10 +154,16 @@ public class PlayersController(
         {
             // Delete old photo if it exists
             if (!string.IsNullOrEmpty(existingResult.Player.PhotoUrl))
-                await _fileStorageService.DeleteImageAsync(existingResult.Player.PhotoUrl, CONTAINER_NAME);
+                await _fileStorageService.DeleteImageAsync(
+                    existingResult.Player.PhotoUrl,
+                    CONTAINER_NAME
+                );
 
             // Upload new photo
-            playerDto.PhotoUrl = await _fileStorageService.UploadImageAsync(playerDto.Photo, CONTAINER_NAME);
+            playerDto.PhotoUrl = await _fileStorageService.UploadImageAsync(
+                playerDto.Photo,
+                CONTAINER_NAME
+            );
         }
 
         var command = _playerMapper.ToUpdateCommand(playerDto);
@@ -174,7 +185,6 @@ public class PlayersController(
         return Ok(result);
     }
 
-
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DeletePlayerCommandResponse), StatusCodes.Status200OK)]
@@ -191,7 +201,10 @@ public class PlayersController(
 
         // Delete photo if it exists
         if (!string.IsNullOrEmpty(existingResult.Player.PhotoUrl))
-            await _fileStorageService.DeleteImageAsync(existingResult.Player.PhotoUrl, CONTAINER_NAME);
+            await _fileStorageService.DeleteImageAsync(
+                existingResult.Player.PhotoUrl,
+                CONTAINER_NAME
+            );
 
         var command = new DeletePlayerCommand { Id = id };
         var result = await _mediator.Send(command);

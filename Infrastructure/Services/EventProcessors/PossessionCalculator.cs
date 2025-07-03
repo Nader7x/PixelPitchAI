@@ -39,14 +39,23 @@ public class PossessionCalculator
         switch (currentEvent.action)
         {
             case "pass":
-                currentPossessingTeam = currentEvent.outcome == "Complete"
-                    ? currentEvent.team
-                    : GetOpponentTeam(currentEvent.team, match);
+                currentPossessingTeam =
+                    currentEvent.outcome == "Complete"
+                        ? currentEvent.team
+                        : GetOpponentTeam(currentEvent.team, match);
                 break;
 
             case "shot":
                 // If shot is saved or goes out, opponent gets possession
-                if (currentEvent.outcome is "Saved" or "Out" or "Blocked" or "Post" or "Wayward" or "Off T")
+                if (
+                    currentEvent.outcome
+                    is "Saved"
+                        or "Out"
+                        or "Blocked"
+                        or "Post"
+                        or "Wayward"
+                        or "Off T"
+                )
                     currentPossessingTeam = GetOpponentTeam(currentEvent.team, match);
                 // If goal, possession resets to the conceding team for kickoff
                 else if (currentEvent.outcome == "Goal")
@@ -91,14 +100,22 @@ public class PossessionCalculator
 
     private static void CalculatePossessionPercentages(Match match)
     {
-        if (match.HomeTeamPossessionDurationSeconds.HasValue && match.AwayTeamPossessionDurationSeconds.HasValue)
+        if (
+            match.HomeTeamPossessionDurationSeconds.HasValue
+            && match.AwayTeamPossessionDurationSeconds.HasValue
+        )
         {
-            var totalPossessionSeconds = match.HomeTeamPossessionDurationSeconds.Value +
-                                         match.AwayTeamPossessionDurationSeconds.Value;
+            var totalPossessionSeconds =
+                match.HomeTeamPossessionDurationSeconds.Value
+                + match.AwayTeamPossessionDurationSeconds.Value;
             if (totalPossessionSeconds > 0)
             {
-                match.HomeTeamPossession = (int)Math.Round((double)match.HomeTeamPossessionDurationSeconds.Value * 100 /
-                                                           totalPossessionSeconds);
+                match.HomeTeamPossession = (int)
+                    Math.Round(
+                        (double)match.HomeTeamPossessionDurationSeconds.Value
+                            * 100
+                            / totalPossessionSeconds
+                    );
                 match.AwayTeamPossession = 100 - match.HomeTeamPossession.Value;
             }
             else

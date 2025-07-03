@@ -17,9 +17,10 @@ namespace Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection
-        AddInfrastructure(this IServiceCollection services,
-            IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         // Configure Redis Cache
         services.Configure<RedisCacheOptions>(options =>
@@ -27,12 +28,17 @@ public static class DependencyInjection
             configuration.GetSection(RedisCacheOptions.SectionName).Bind(options);
 
             // Set the remote connection string from Connection Strings section if available
-            if (string.IsNullOrEmpty(options.RemoteConnectionString) &&
-                !string.IsNullOrEmpty(configuration.GetConnectionString("RemoteRedisConnection")))
-                options.RemoteConnectionString = configuration.GetConnectionString("RemoteRedisConnection");
+            if (
+                string.IsNullOrEmpty(options.RemoteConnectionString)
+                && !string.IsNullOrEmpty(configuration.GetConnectionString("RemoteRedisConnection"))
+            )
+                options.RemoteConnectionString = configuration.GetConnectionString(
+                    "RemoteRedisConnection"
+                );
 
             // Use the configured local connection string or default to localhost
-            if (string.IsNullOrEmpty(options.LocalConnectionString)) options.LocalConnectionString = "localhost:6379";
+            if (string.IsNullOrEmpty(options.LocalConnectionString))
+                options.LocalConnectionString = "localhost:6379";
         });
 
         // Create the Redis connection directly without relying on the service provider
@@ -43,10 +49,12 @@ public static class DependencyInjection
         var remoteConnectionString = redisOptions.RemoteConnectionString;
         var remoteRedisPassword = configuration.GetConnectionString("RemoteRedisPassword") ?? "";
         if (string.IsNullOrEmpty(remoteConnectionString))
-            remoteConnectionString = configuration.GetConnectionString("RemoteRedisConnection") ?? "";
+            remoteConnectionString =
+                configuration.GetConnectionString("RemoteRedisConnection") ?? "";
 
         var localConnectionString = redisOptions.LocalConnectionString;
-        if (string.IsNullOrEmpty(localConnectionString)) localConnectionString = "localhost:6379";
+        if (string.IsNullOrEmpty(localConnectionString))
+            localConnectionString = "localhost:6379";
 
         // Create the multiplexer directly
         ConnectionMultiplexer redis;
@@ -54,15 +62,17 @@ public static class DependencyInjection
         {
             // Try remote connection first
             if (!string.IsNullOrEmpty(remoteConnectionString))
-                redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
-                {
-                    EndPoints = { { remoteConnectionString, 17264 } },
-                    User = "default",
-                    Password = remoteRedisPassword,
-                    AbortOnConnectFail = false,
-                    ConnectRetry = 3,
-                    ConnectTimeout = 5000
-                });
+                redis = ConnectionMultiplexer.Connect(
+                    new ConfigurationOptions
+                    {
+                        EndPoints = { { remoteConnectionString, 17264 } },
+                        User = "default",
+                        Password = remoteRedisPassword,
+                        AbortOnConnectFail = false,
+                        ConnectRetry = 3,
+                        ConnectTimeout = 5000,
+                    }
+                );
             else
                 // Fall back to local immediately if no remote configured
                 throw new Exception("No remote connection string available");
@@ -70,13 +80,15 @@ public static class DependencyInjection
         catch
         {
             // Fall back to local
-            redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
-            {
-                EndPoints = { localConnectionString },
-                AbortOnConnectFail = false,
-                ConnectRetry = 2,
-                ConnectTimeout = 3000
-            });
+            redis = ConnectionMultiplexer.Connect(
+                new ConfigurationOptions
+                {
+                    EndPoints = { localConnectionString },
+                    AbortOnConnectFail = false,
+                    ConnectRetry = 2,
+                    ConnectTimeout = 3000,
+                }
+            );
         }
 
         // Register Redis connection multiplexer as singleton
@@ -85,19 +97,20 @@ public static class DependencyInjection
         // Configure Redis distributed cache
         services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = configuration.GetValue<string>($"{RedisCacheOptions.SectionName}:InstanceName") ??
-                                   "Footex_";           
-            options.ConnectionMultiplexerFactory = () => Task.FromResult<IConnectionMultiplexer>(redis);
+            options.InstanceName =
+                configuration.GetValue<string>($"{RedisCacheOptions.SectionName}:InstanceName")
+                ?? "Footex_";
+            options.ConnectionMultiplexerFactory = () =>
+                Task.FromResult<IConnectionMultiplexer>(redis);
         });
 
         // Register Redis cache service implementation
         services.AddSingleton<ICacheService, RedisCacheService>();
 
-
         // Also register DbContext for services that need direct context access
         services.AddDbContext<FootballDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
+        );
 
         // Register repositories
         services.AddScoped<IPlayerRepository, PlayerRepository>();
@@ -118,7 +131,8 @@ public static class DependencyInjection
         // Register the unified search service with both interfaces
         services.AddScoped<ISearchService, UnifiedSearchService>();
         services.AddScoped<IAdvancedSearchService>(provider =>
-            (UnifiedSearchService)provider.GetRequiredService<ISearchService>());
+            (UnifiedSearchService)provider.GetRequiredService<ISearchService>()
+        );
 
         // Configure RabbitMQ options
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
@@ -127,14 +141,16 @@ public static class DependencyInjection
 
         // Register the MatchEventRabbitMqClient as a hosted service
         services.AddSingleton<MatchEventRabbitMqClient>();
-        services.AddHostedService(provider => provider.GetRequiredService<MatchEventRabbitMqClient>());
+        services.AddHostedService(provider =>
+            provider.GetRequiredService<MatchEventRabbitMqClient>()
+        );
 
         // Register performance monitoring service
         services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
 
         // Register live match statistics service
         services.AddSingleton<ILiveMatchStatisticsService, LiveMatchStatisticsService>();
-        // Register Event Processors 
+        // Register Event Processors
         services.AddSingleton<IEventProcessor, PassEventProcessor>();
         services.AddSingleton<IEventProcessor, ShotEventProcessor>();
         services.AddSingleton<IEventProcessor, FoulEventProcessor>();
@@ -154,7 +170,7 @@ public static class DependencyInjection
         services.AddSingleton<IEventProcessor, BadBehaviourEventProcessor>();
         services.AddSingleton<IEventProcessor, BallLossEventProcessor>();
         services.AddSingleton<IEventProcessor, PressureEventProcessor>();
-        
+
         // Register Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -162,7 +178,10 @@ public static class DependencyInjection
         if (configuration.GetSection("SerilogColumnOptions").Exists())
         {
             // Create dictionary of column writers for PostgreSQL
-            IDictionary<string, ColumnWriterBase> columnWriters = new Dictionary<string, ColumnWriterBase>
+            IDictionary<string, ColumnWriterBase> columnWriters = new Dictionary<
+                string,
+                ColumnWriterBase
+            >
             {
                 { "message", new RenderedMessageColumnWriter() },
                 { "message_template", new MessageTemplateColumnWriter() },
@@ -170,13 +189,12 @@ public static class DependencyInjection
                 { "timestamp", new TimestampColumnWriter() },
                 { "exception", new ExceptionColumnWriter() },
                 { "properties", new PropertiesColumnWriter() },
-                { "source_context", new SinglePropertyColumnWriter("SourceContext") }
+                { "source_context", new SinglePropertyColumnWriter("SourceContext") },
             };
 
             // Register the column writers for use in Program.cs
             services.AddSingleton(columnWriters);
         }
-
 
         return services;
     }

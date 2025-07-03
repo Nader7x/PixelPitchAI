@@ -11,7 +11,8 @@ public class GetCoachByIdQueryHandlerIntegrationTests : BaseIntegrationTest
     private readonly GetCoachByIdQueryHandler _handler;
     private readonly IUnitOfWork _unitOfWork;
 
-    public GetCoachByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    public GetCoachByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
     {
         _handler = ServiceProvider.GetRequiredService<GetCoachByIdQueryHandler>();
         _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();

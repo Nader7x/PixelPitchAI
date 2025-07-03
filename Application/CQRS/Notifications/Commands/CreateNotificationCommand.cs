@@ -19,8 +19,10 @@ public class CreateNotificationCommandResponse
 public class CreateNotificationCommandHandler(INotificationRepository notificationRepository)
     : IRequestHandler<CreateNotificationCommand, CreateNotificationCommandResponse>
 {
-    public async Task<CreateNotificationCommandResponse> Handle(CreateNotificationCommand request,
-        CancellationToken cancellationToken)
+    public async Task<CreateNotificationCommandResponse> Handle(
+        CreateNotificationCommand request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -28,16 +30,12 @@ public class CreateNotificationCommandHandler(INotificationRepository notificati
             return new CreateNotificationCommandResponse
             {
                 Succeeded = true,
-                Notification = createdNotification.Entity
+                Notification = createdNotification.Entity,
             };
         }
         catch (Exception ex)
         {
-            return new CreateNotificationCommandResponse
-            {
-                Succeeded = false,
-                Error = ex.Message
-            };
+            return new CreateNotificationCommandResponse { Succeeded = false, Error = ex.Message };
         }
     }
 }

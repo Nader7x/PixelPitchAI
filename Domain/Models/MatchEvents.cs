@@ -38,14 +38,15 @@ public sealed class MatchEvents
     public int TotalClearances { get; set; }
     public int TotalInterceptions { get; set; }
 
-
     // Navigation property
     public Match? Match { get; set; }
 
     // Helper methods for working with the JSON data
     public T? GetEvents<T>()
     {
-        return string.IsNullOrEmpty(EventsJson) ? default : JsonSerializer.Deserialize<T>(EventsJson);
+        return string.IsNullOrEmpty(EventsJson)
+            ? default
+            : JsonSerializer.Deserialize<T>(EventsJson);
     }
 
     public void SetEvents<T>(T events)
