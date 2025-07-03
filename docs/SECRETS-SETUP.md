@@ -1,5 +1,23 @@
 # 🔐 Repository Secrets Configuration Guide
 
+## ⚠️ SECURITY ALERT: Leaked Secrets Detected
+
+**CRITICAL**: This repository has detected leaked secrets in Git history. Follow the remediation steps below.
+
+### 🚨 Immediate Actions Required
+
+1. **Rotate all exposed credentials immediately**
+2. **Review Azure Storage Account access logs**
+3. **Change database passwords**
+4. **Monitor for unauthorized access**
+
+### 🔧 GitLeaks Integration
+
+This project now includes GitLeaks configuration to prevent future secret leaks:
+
+- `.gitleaks.toml` - Configuration file for secret detection
+- Pre-commit hooks recommended (see setup below)
+
 ## Required GitHub Repository Secrets
 
 To deploy the Footex CI/CD pipeline, configure these secrets in your GitHub repository:
@@ -113,6 +131,131 @@ After configuring secrets, test by:
 - Verify token has project permissions
 - Check project key matches repository name
 - Ensure SonarCloud project is properly configured
+
+---
+
+## 🔒 Security Remediation for Leaked Secrets
+
+### Immediate Actions Required
+
+1. **Azure Storage Account Key Rotation:**
+
+   ```bash
+   # Rotate Azure Storage Account keys
+   az storage account keys renew \
+     --account-name footexblobstorage \
+     --key primary \
+     --resource-group your-resource-group
+   ```
+
+2. **Database Password Change:**
+
+   - Change PostgreSQL password immediately
+   - Update all application configurations
+   - Restart all running instances
+
+3. **Review Access Logs:**
+   ```bash
+   # Check Azure Storage access logs
+   az storage blob list \
+     --container-name logs \
+     --account-name footexblobstorage
+   ```
+
+### GitLeaks Setup for Future Protection
+
+1. **Install GitLeaks:**
+
+   ```bash
+   # Windows (using Chocolatey)
+   choco install gitleaks
+
+   # Or download from: https://github.com/gitleaks/gitleaks/releases
+   ```
+
+2. **Setup Pre-commit Hook:**
+
+   ```bash
+   # Create pre-commit hook
+   echo '#!/bin/sh
+   gitleaks protect --verbose --redact --staged' > .git/hooks/pre-commit
+   chmod +x .git/hooks/pre-commit
+   ```
+
+3. **Scan Repository:**
+
+   ```bash
+   # Scan entire repository
+   gitleaks detect --verbose
+
+   # Scan only staged files
+   gitleaks protect --staged
+   ```
+
+### Environment Variables Best Practices
+
+1. **Use Azure Key Vault** for production secrets
+2. **Environment-specific appsettings** files
+3. **Never commit secrets** to version control
+4. **Use .env files** for local development (add to .gitignore)
+5. **Implement secret rotation** policies
+
+### Example .env File Structure
+
+Create a `.env` file in your project root (add to .gitignore):
+
+```env
+# Database Configuration
+DB_CONNECTION_STRING=Server=localhost;Port=5432;Database=Footex_Api;User Id=postgres;Password=your-local-password;
+
+# Azure Storage
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=yourstorageaccount;AccountKey=your-new-key;EndpointSuffix=core.windows.net
+
+# Redis Configuration
+REDIS_CONNECTION_STRING=localhost:6379
+REDIS_PASSWORD=your-redis-password
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret-key
+JWT_ISSUER=https://PixelPitchAI.com
+JWT_AUDIENCE=https://PixelPitchAI.com
+
+# Admin User
+ADMIN_EMAIL=admin@PixelPitchAI.com
+ADMIN_PASSWORD=your-secure-admin-password
+```
+
+## 🛡️ Security Monitoring
+
+### Continuous Monitoring Tools
+
+1. **GitLeaks in CI/CD:**
+
+   ```yaml
+   - name: Run GitLeaks
+     uses: gitleaks/gitleaks-action@v2
+     env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   ```
+
+2. **Azure Security Center** monitoring
+3. **Database audit logging** enabled
+4. **Application Insights** security events
+
+### Emergency Response Plan
+
+1. **Detected Secret Leak:**
+
+   - Immediately revoke/rotate the compromised secret
+   - Check access logs for unauthorized usage
+   - Update all systems using the secret
+   - Notify security team
+
+2. **Unauthorized Access:**
+   - Change all related credentials
+   - Review and audit recent activities
+   - Check for data exfiltration
+   - Implement additional security measures
 
 ---
 
