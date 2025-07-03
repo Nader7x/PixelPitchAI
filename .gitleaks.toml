@@ -1,0 +1,66 @@
+[allowlist]
+  description = "Allowlist for GitLeaks - Local development and test files"
+  files = [
+    # Allow secrets in local environment files (not committed to Git)
+    '''\.env$''',
+    '''\.env\..*''',
+    # Allow secrets in example/template files
+    '''.*\.example\..*''',
+    '''.*\.template\..*''',
+    '''.*\.sample\..*''',
+    # Allow GitLeaks reports (they contain references to found secrets)
+    '''.*gitleaks.*\.json$''',
+    '''.*leaks.*\.json$''',
+    '''current-leaks\.json$''',
+    # Allow Docker development files with placeholder passwords
+    '''.*Dockerfile\.dev''',
+    '''.*docker-compose\.dev\.yml''',
+  ]
+  paths = [
+    # Ignore build outputs that should never be committed
+    '''.*[Bb]in/.*''',
+    '''.*[Oo]bj/.*''',
+    # Ignore test directories with hard-coded test data
+    '''.*[Tt]ests?/.*''',
+    '''.*\.Tests?/.*''',
+    '''.*IntegrationTests/.*''',
+    '''.*UnitTests/.*''',
+    '''.*PerformanceTests/.*''',
+    # Ignore certificate directories (dev certs)
+    '''certs/.*''',
+    '''certificates/.*''',
+    # Ignore node_modules if any
+    '''.*node_modules/.*''',
+    # Ignore vendor directories
+    '''.*vendor/.*''',
+  ]
+  regexes = [
+    # Allow test passwords in test files
+    '''Password\s*=\s*["'](Test|Password|Strong|Wrong|Default).*["']''',
+    # Allow common placeholder values
+    '''(password|secret|key).*=.*["'](your|my|test|example|placeholder|changeme|default).*["']''',
+    # Allow empty connection strings
+    '''ConnectionString.*=.*["']["']''',
+    # Allow Dockerfile environment variables with obvious test values (certificates)
+    '''ASPNETCORE_Kestrel__Certificates__Default__Password=["']?0+["']?''',
+    '''Password=["']?0+["']?''',
+    '''__Default__Password=["']?0+["']?''',
+    # Allow simulation/test API keys
+    '''SIMULATION_API_KEY=.*''',
+  ]
+
+[[rules]]
+  id = "azure-storage-account-key"
+  description = "Azure Storage Account Key"
+  regex = '''AccountKey=[A-Za-z0-9+/]{88}=='''
+  secretGroup = 1
+
+[[rules]]
+  id = "connection-string-password"
+  description = "Database Connection String with Password"
+  regex = '''Password\s*=\s*["']([^"']{8,})["']'''
+  secretGroup = 1
+
+[extend]
+  # Use default rules plus our custom ones
+  useDefault = true

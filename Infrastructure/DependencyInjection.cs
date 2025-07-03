@@ -32,9 +32,8 @@ public static class DependencyInjection
                 string.IsNullOrEmpty(options.RemoteConnectionString)
                 && !string.IsNullOrEmpty(configuration.GetConnectionString("RemoteRedisConnection"))
             )
-                options.RemoteConnectionString = configuration.GetConnectionString(
-                    "RemoteRedisConnection"
-                );
+                options.RemoteConnectionString =
+                    configuration.GetConnectionString("RemoteRedisConnection") ?? string.Empty;
 
             // Use the configured local connection string or default to localhost
             if (string.IsNullOrEmpty(options.LocalConnectionString))

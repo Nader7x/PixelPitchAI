@@ -71,3 +71,7 @@ ScaffoldingReadMe.txt
 .env.*
 /scripts/
 certs
+
+
+replacements.txt
+# Sensitive data replacements
