@@ -17,6 +17,7 @@ public class NoRecursionFixture : Fixture
 
         // Add OmitOnRecursionBehavior to handle circular references gracefully
         this.Behaviors.Add(new OmitOnRecursionBehavior());
+        this.Customizations.Add(new IFormFileSpecimenBuilder());
 
         // Limit recursion depth as an additional safety measure
         this.RepeatCount = 3;

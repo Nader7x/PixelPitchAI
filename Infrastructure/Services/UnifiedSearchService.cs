@@ -97,10 +97,19 @@ public class UnifiedSearchService(
                 Items = pagedResults,
             };
         }
+        // Corrected code
         catch (Exception ex)
         {
             logger.LogError(ex, "Error occurred while performing search for '{Query}'", query);
-            throw;
+            return new SearchResultDto
+            {
+                Error = ex.Message,
+                Items = [],
+                TotalResults = 0,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalPages = 0,
+            };
         }
     }
 
@@ -145,7 +154,7 @@ public class UnifiedSearchService(
             foreach (var entityType in typesToSearch)
                 if (entityType.Equals("Team", StringComparison.OrdinalIgnoreCase))
                 {
-                    var teamQuery = context.Teams.AsQueryable();
+                    var teamQuery = unitOfWork.Teams.GetQueryable();
                     if (lowerQuery != null)
                         teamQuery = teamQuery.Where(t =>
                             (t.Name != null && t.Name.ToLowerInvariant().Contains(lowerQuery))
@@ -198,7 +207,7 @@ public class UnifiedSearchService(
                 }
                 else if (entityType.Equals("Player", StringComparison.OrdinalIgnoreCase))
                 {
-                    var playerQuery = context.Players.Include(p => p.Team).AsQueryable();
+                    var playerQuery = unitOfWork.Players.GetQueryable(includes: p => p.Team);
                     if (lowerQuery != null)
                         playerQuery = playerQuery.Where(p =>
                             (
@@ -217,6 +226,11 @@ public class UnifiedSearchService(
                             (
                                 p.Nationality != null
                                 && p.Nationality.ToLowerInvariant().Contains(lowerQuery)
+                            )
+                            || (
+                                p.Team != null
+                                && p.Team.Name != null
+                                && p.Team.Name.ToLowerInvariant().Contains(lowerQuery)
                             )
                         );
                     if (!string.IsNullOrWhiteSpace(filters.Country)) // Using general Country for Player Nationality
@@ -272,7 +286,7 @@ public class UnifiedSearchService(
                 }
                 else if (entityType.Equals("Coach", StringComparison.OrdinalIgnoreCase))
                 {
-                    var coachQuery = context.Coaches.Include(c => c.Team).AsQueryable();
+                    var coachQuery = unitOfWork.Coaches.GetQueryable(c => c.Team != null);
                     if (lowerQuery != null)
                         coachQuery = coachQuery.Where(c =>
                             (
@@ -336,7 +350,7 @@ public class UnifiedSearchService(
                 }
                 else if (entityType.Equals("Stadium", StringComparison.OrdinalIgnoreCase))
                 {
-                    var stadiumQuery = context.Stadiums.AsQueryable();
+                    var stadiumQuery = unitOfWork.Stadiums.GetQueryable();
                     if (lowerQuery != null)
                         stadiumQuery = stadiumQuery.Where(s =>
                             (s.Name != null && s.Name.ToLowerInvariant().Contains(lowerQuery))

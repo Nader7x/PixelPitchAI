@@ -25,7 +25,7 @@ namespace Footex.UnitTests.Controllers;
 
 public class MatchesControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly Footex.UnitTests.Common.TestFixtureBase _testFixtureBase;
+    private readonly TestFixtureBase _testFixtureBase;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly MatchesController _controller;
     private readonly NoRecursionFixture _fixture;

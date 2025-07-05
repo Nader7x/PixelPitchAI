@@ -35,11 +35,10 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check if there are matches associated with this season
-            var matches = await unitOfWork.Matches.FindAsync(
-                m => m.HomeTeamSeasonId == request.Id || m.AwayTeamSeasonId == request.Id,
-                cancellationToken
+            var matches = await unitOfWork.Matches.GetAllAsync(m =>
+                m.HomeTeamSeasonId == request.Id || m.AwayTeamSeasonId == request.Id
             );
-            if (matches != null)
+            if (matches != null && matches.Any())
                 return new DeleteSeasonCommandResponse
                 {
                     Succeeded = false,
@@ -47,11 +46,10 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check if there are team statistics associated with this season
-            var teamStats = await unitOfWork.TeamSeasons.FindAsync(
-                ts => ts.SeasonId == request.Id,
-                cancellationToken
+            var teamStats = await unitOfWork.TeamSeasons.GetAllAsync(ts =>
+                ts.SeasonId == request.Id
             );
-            if (teamStats != null)
+            if (teamStats != null && teamStats.Any())
                 return new DeleteSeasonCommandResponse
                 {
                     Succeeded = false,
@@ -65,7 +63,7 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                     s.LeagueName == season.LeagueName && s.Country == season.Country && s.IsActive
                 );
 
-                if (activeSeasons.Count() == 1)
+                if (activeSeasons.Any() && activeSeasons.Count() == 1)
                     return new DeleteSeasonCommandResponse
                     {
                         Succeeded = false,

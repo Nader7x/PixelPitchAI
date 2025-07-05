@@ -1,24 +1,25 @@
-using System.Net;
 using System.Net.Mail;
+using Application.Interfaces;
 using Application.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Services;
 
-public class EmailService(IConfiguration configuration) : IEmailService
+public class EmailService : IEmailService
 {
+    private readonly ISmtpClient _smtpClient;
+    private readonly IConfiguration _configuration;
+
+    public EmailService(ISmtpClient smtpClient, IConfiguration configuration)
+    {
+        _smtpClient = smtpClient;
+        _configuration = configuration;
+    }
+
     public async Task SendEmailAsync(string to, string subject, string htmlMessage)
     {
-        var smtpSettings = configuration.GetSection("SmtpSettings");
-        var host = smtpSettings["Host"];
-        var port = int.Parse(smtpSettings["Port"]);
-        var userName = smtpSettings["UserName"];
-        var password = smtpSettings["Password"];
+        var smtpSettings = _configuration.GetSection("SmtpSettings");
         var from = smtpSettings["FromEmail"];
-
-        using var client = new SmtpClient(host, port);
-        client.EnableSsl = true;
-        client.Credentials = new NetworkCredential(userName, password);
 
         var mailMessage = new MailMessage
         {
@@ -30,6 +31,6 @@ public class EmailService(IConfiguration configuration) : IEmailService
 
         mailMessage.To.Add(to);
 
-        await client.SendMailAsync(mailMessage);
+        await _smtpClient.SendMailAsync(mailMessage);
     }
 }

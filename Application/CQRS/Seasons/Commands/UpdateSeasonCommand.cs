@@ -73,7 +73,6 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
                     Error = "End date must be after start date",
                 };
 
-            // Check if name is already used by another season
             if (season.Name != request.Name)
             {
                 var existingSeason = await unitOfWork.Seasons.FindAsync(s =>

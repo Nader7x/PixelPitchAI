@@ -48,7 +48,7 @@ public class CreateTeamCommandResponse
     public bool Succeeded { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string Error { get; set; } = string.Empty;
+    public string? Error { get; set; }
 }
 
 public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
@@ -88,8 +88,10 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
             await unitOfWork.Teams.AddAsync(team);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             if (teamCoach != null)
+            {
                 teamCoach.TeamId = team.Id;
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
 
             return new CreateTeamCommandResponse
             {

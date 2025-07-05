@@ -16,6 +16,11 @@ public class AzureBlobStorageService : IFileStorageService
         _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
+    public AzureBlobStorageService(BlobServiceClient blobServiceClient)
+    {
+        _blobServiceClient = blobServiceClient;
+    }
+
     public async Task<string?> UploadImageAsync(IFormFile file, string containerName)
     {
         if (file == null || file.Length == 0)
@@ -54,7 +59,7 @@ public class AzureBlobStorageService : IFileStorageService
             var blobName = Path.GetFileName(uri.LocalPath);
 
             var blobClient = containerClient.GetBlobClient(blobName);
-            await blobClient.DeleteIfExistsAsync();
+            await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots);
         }
         catch (Exception)
         {

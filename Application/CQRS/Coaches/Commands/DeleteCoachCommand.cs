@@ -35,7 +35,7 @@ public class DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check if coach is currently assigned to a team
-            if (coach.TeamId != null)
+            if (coach.TeamId != null && coach.TeamId > 0)
                 return new DeleteCoachCommandResponse
                 {
                     Succeeded = false,

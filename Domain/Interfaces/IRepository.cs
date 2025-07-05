@@ -23,4 +23,9 @@ public interface IRepository<T>
     Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate);
     Task<int> CountAsync(Expression<Func<T, bool>> predicate);
     IQueryable<T> GetQueryable();
+
+    IQueryable<T> GetQueryable(
+        Expression<Func<T, bool>> predicate = null,
+        params Expression<Func<T, object>>[] includes
+    );
 }

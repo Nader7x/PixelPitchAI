@@ -9,17 +9,17 @@ namespace Infrastructure;
 public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
-    public DbSet<Match> Matches { get; set; }
-    public DbSet<MatchEvents> MatchEvents { get; set; }
-    public DbSet<Team> Teams { get; set; }
-    public DbSet<Player> Players { get; set; }
-    public DbSet<Coach> Coaches { get; set; }
-    public DbSet<Competition> Competitions { get; set; }
-    public DbSet<Stadium> Stadiums { get; set; }
-    public DbSet<Season> Seasons { get; set; }
-    public DbSet<TeamSeasons> TeamSeasons { get; set; }
-    public DbSet<RefreshToken> RefreshTokens { get; set; }
-    public DbSet<Notification> Notifications { get; set; }
+    public virtual DbSet<Match> Matches { get; set; }
+    public virtual DbSet<MatchEvents> MatchEvents { get; set; }
+    public virtual DbSet<Team> Teams { get; set; }
+    public virtual DbSet<Player> Players { get; set; }
+    public virtual DbSet<Coach> Coaches { get; set; }
+    public virtual DbSet<Competition> Competitions { get; set; }
+    public virtual DbSet<Stadium> Stadiums { get; set; }
+    public virtual DbSet<Season> Seasons { get; set; }
+    public virtual DbSet<TeamSeasons> TeamSeasons { get; set; }
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+    public virtual DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -93,6 +93,9 @@ public static class DependencyInjection
         // Register Redis connection multiplexer as singleton
         services.AddSingleton<IConnectionMultiplexer>(redis);
 
+        // Register the SmtpClientWrapper
+        services.AddScoped<ISmtpClient, SmtpClientWrapper>();
+
         // Configure Redis distributed cache
         services.AddStackExchangeRedisCache(options =>
         {
