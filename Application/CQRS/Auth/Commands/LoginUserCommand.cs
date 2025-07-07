@@ -65,6 +65,8 @@ public class LoginUserCommandHandler(
                 user,
                 request.IpAddress
             );
+            await userRepository.AddRefreshTokenAsync(user, refreshToken);
+            userRepository.UpdateAsync(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             // get usr roles
             var roles = await userRepository.GetUserRolesAsync(user);
@@ -78,7 +80,7 @@ public class LoginUserCommandHandler(
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
                 Roles = roles,
-                TokenExpires = DateTime.Now.AddMinutes(int.Parse("60")), // Should match JWT expiration
+                TokenExpires = tokenService.GetTokenExpirationTime(accessToken), // Should match JWT expiration
             };
         }
         catch (Exception ex)

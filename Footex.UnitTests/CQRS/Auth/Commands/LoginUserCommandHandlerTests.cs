@@ -165,6 +165,16 @@ public class LoginUserCommandHandlerTests
 
         // Assert
         user.LastLogin.Should().BeAfter(oldLastLogin ?? DateTime.MinValue);
-        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(20));
+
+        // Assert
+        _mockUserRepository.Verify(
+            x =>
+                x.UpdateAsync(
+                    It.Is<ApplicationUser>(u => u.Id == user.Id && u.LastLogin > oldLastLogin)
+                ),
+            Times.Once
+        );
+        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

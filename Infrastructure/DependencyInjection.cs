@@ -3,6 +3,7 @@ using Application.Services;
 using Domain.Interfaces;
 using Domain.Repositories;
 using Infrastructure.Configuration;
+using Infrastructure.Data; // Add this using
 using Infrastructure.Identity;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
@@ -92,6 +93,9 @@ public static class DependencyInjection
 
         // Register Redis connection multiplexer as singleton
         services.AddSingleton<IConnectionMultiplexer>(redis);
+
+        // Register the DataSeeder
+        services.AddScoped<DataSeeder>();
 
         // Register the SmtpClientWrapper
         services.AddScoped<ISmtpClient, SmtpClientWrapper>();

@@ -21,8 +21,6 @@ namespace Infrastructure.Services;
 
 public class MatchEventRabbitMqClient : BackgroundService
 {
-    private readonly SemaphoreSlim _batchWriteSemaphore = new(1, 1);
-
     private readonly AsyncEventHandler<CallbackExceptionEventArgs> _callbackExceptionHandler;
     private readonly AsyncEventHandler<CallbackExceptionEventArgs> _channelCallbackExceptionHandler;
     private readonly AsyncEventHandler<ConnectionRecoveryErrorEventArgs> _connectionRecoveryErrorHandler;
@@ -39,6 +37,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly RabbitMqOptions _rabbitMqSettings;
     private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IConnectionFactory? _injectedConnectionFactory; // NEW: Optional injected factory
 
     private IChannel? _channel;
 
@@ -52,7 +51,8 @@ public class MatchEventRabbitMqClient : BackgroundService
         IServiceScopeFactory serviceScopeFactory,
         IPerformanceMonitoringService performanceMonitoringService,
         IOptions<RabbitMqOptions> rabbitMqOptions,
-        ILiveMatchStatisticsService liveMatchStatisticsService
+        ILiveMatchStatisticsService liveMatchStatisticsService,
+        IConnectionFactory? injectedConnectionFactory = null // NEW: Make it optional with a default null
     )
     {
         _logger = logger;
@@ -61,6 +61,7 @@ public class MatchEventRabbitMqClient : BackgroundService
         _performanceMonitoringService = performanceMonitoringService;
         _liveMatchStatisticsService = liveMatchStatisticsService;
         _rabbitMqSettings = rabbitMqOptions.Value;
+        _injectedConnectionFactory = injectedConnectionFactory; // NEW: Assign the optional injected factory
 
         // MEMORY LEAK FIX: Initialize event handler delegates once
         _connectionShutdownHandler = OnConnectionShutdownAsync;
@@ -85,6 +86,9 @@ public class MatchEventRabbitMqClient : BackgroundService
             RequestedConnectionTimeout = TimeSpan.FromMilliseconds(15000),
         };
 
+        // Use the injected factory for connection creation if available, otherwise use the configured one.
+        var connectionFactory = _injectedConnectionFactory ?? factory;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -97,10 +101,9 @@ public class MatchEventRabbitMqClient : BackgroundService
                 );
 
                 await CloseChannelAndConnectionAsync(); // Clean up previous attempts
-                _connection = await factory.CreateConnectionAsync(stoppingToken);
+                _connection = await connectionFactory.CreateConnectionAsync(stoppingToken);
                 _logger.LogInformation("Connection to RabbitMQ established.");
 
-                // MEMORY LEAK FIX: Use stored delegates for proper unsubscription
                 if (_connection != null)
                 {
                     _connection.ConnectionShutdownAsync += _connectionShutdownHandler;
@@ -324,7 +327,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             return false;
 
         var action = matchEvent.action.ToLowerInvariant();
-        var eventType = matchEvent.event_type.ToLowerInvariant();
+        var eventType = matchEvent.event_type?.ToLowerInvariant();
         var type = matchEvent.type?.ToLowerInvariant();
 
         // Set Pieces
@@ -914,7 +917,6 @@ public class MatchEventRabbitMqClient : BackgroundService
     public override void Dispose()
     {
         _logger.LogInformation("MatchEventRabbitMqClient disposing.");
-        _batchWriteSemaphore.Dispose();
         _channel?.Dispose();
         _connection?.Dispose();
         _channel = null;

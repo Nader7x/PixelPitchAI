@@ -14,14 +14,14 @@ public static class MigrationExtensions
         try
         {
             logger.LogInformation("Starting database migration...");
-            db.Database.EnsureCreated(); // This will create the database if it doesn't exist
+            // db.Database.EnsureCreated();
             db.Database.Migrate();
             logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while migrating the database");
-            throw; // Re-throw if you want the application to fail on migration error
+            throw;
         }
 
         return app;

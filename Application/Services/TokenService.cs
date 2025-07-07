@@ -47,6 +47,16 @@ public class TokenService(
         };
     }
 
+    public DateTime GetTokenExpirationTime(string token)
+    {
+        var handler = new JwtSecurityTokenHandler();
+        if (!handler.CanReadToken(token))
+            throw new ArgumentException("Invalid token");
+
+        var jwtToken = handler.ReadJwtToken(token);
+        return jwtToken.ValidTo;
+    }
+
     public async Task<(string Token, RefreshToken RefreshToken)> GenerateTokenAsync(
         ApplicationUser user,
         string ipAddress

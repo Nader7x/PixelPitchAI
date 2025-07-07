@@ -6,6 +6,7 @@ public interface ITokenService
 {
     Task<string> CreateTokenAsync(ApplicationUser user);
     RefreshToken? GenerateRefreshToken(string ipAddress);
+    DateTime GetTokenExpirationTime(string token);
     Task<(string Token, RefreshToken RefreshToken)> GenerateTokenAsync(
         ApplicationUser user,
         string ipAddress

@@ -1,0 +1,30 @@
+Id,Name,ShortName,Logo,Country,City,League,StadiumId,FoundationDate,PrimaryColor,SecondaryColor
+18,Athletic Club,ATH,,Spain,Bilbao,Laliga,3,1898-01-01,#EE2523,#FFFFFF
+13,Atlético Madrid,ATM,,Spain,Madrid,Laliga,4,1903-04-26,#CE2029,#FFFFFF
+2,Barcelona,BAR,,Spain,Barcelona,Laliga,5,1899-11-29,#004D98,#A50044
+4,Celta Vigo,CEL,,Spain,Vigo,Laliga,6,1923-08-23,#69C5E6,#FFFFFF
+17,Cádiz,CAD,,Spain,Cádiz,Laliga,7,1910-09-10,#FFD700,#1E3A8A
+1,Deportivo Alavés,ALA,,Spain,Vitoria-Gasteiz,Laliga,8,1921-01-23,#1E3A8A,#FFFFFF
+20,Eibar,EIB,,Spain,Eibar,Laliga,9,1940-11-30,#8B0000,#1E90FF
+19,Elche,ELC,,Spain,Elche,Laliga,10,1923-05-30,#00B26D,#FFFFFF
+23,Espanyol,ESP,,Spain,Barcelona,Laliga,11,1900-10-28,#004D98,#FFFFFF
+12,Getafe,GET,,Spain,Getafe,Laliga,12,1946-02-24,#005490,#FFFFFF
+24,Girona,GIR,,Spain,Girona,Laliga,13,1930-07-25,#FF0000,#FFFFFF
+3,Granada,GRA,,Spain,Granada,Laliga,14,1931-04-06,#8B0000,#FFFFFF
+10,Huesca,HUE,,Spain,Huesca,Laliga,15,1960-01-01,#003875,#FF0000
+27,Las Palmas,LPA,,Spain,Las Palmas de Gran Canaria,Laliga,16,1949-08-22,#FFD700,#1E3A8A
+21,Leganés,LEG,,Spain,Leganés,Laliga,17,1928-06-26,#FFFFFF,#4169E1
+8,Levante UD,LEV,,Spain,Valencia,Laliga,18,1909-09-09,#003875,#FF0000
+22,Mallorca,MLL,,Spain,Palma,Laliga,19,1916-06-05,#FF0000,#000000
+28,Málaga,MAL,,Spain,Málaga,Laliga,20,1904-04-03,#1E3A8A,#FFFFFF
+6,Osasuna,OSA,,Spain,Pamplona,Laliga,21,1920-10-17,#D1001F,#002D62
+26,RC Deportivo La Coruña,DEP,,Spain,A Coruña,Laliga,22,1906-03-02,#1E3A8A,#FFFFFF
+25,Rayo Vallecano,RAY,,Spain,Madrid,Laliga,23,1924-05-29,#FFFFFF,#FF0000
+5,Real Betis,BET,,Spain,Sevilla,Laliga,24,1907-09-12,#00B26D,#FFFFFF
+7,Real Madrid,RMA,,Spain,Madrid,Laliga,25,1902-03-06,#FFFFFF,#FFD700
+15,Real Sociedad,RSO,,Spain,San Sebastián,Laliga,26,1909-09-07,#004D98,#FFFFFF
+16,Real Valladolid,VLL,,Spain,Valladolid,Laliga,27,1928-06-20,#663399,#FFFFFF
+11,Sevilla,SEV,,Spain,Sevilla,Laliga,28,1890-01-25,#D82128,#FFFFFF
+29,Sporting Gijón,SPO,,Spain,Gijón,Laliga,29,1905-06-01,#FF0000,#FFFFFF
+14,Valencia,VAL,,Spain,Valencia,Laliga,30,1919-03-05,#FF6600,#000000
+9,Villarreal,VIL,,Spain,Villarreal,Laliga,31,1923-03-10,#FFE500,#005490

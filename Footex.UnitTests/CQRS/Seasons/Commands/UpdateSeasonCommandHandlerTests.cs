@@ -119,7 +119,11 @@ public class UpdateSeasonCommandHandlerTests
     {
         // Arrange
         var command = _fixture.Create<UpdateSeasonCommand>();
+        command.EndDate = DateTime.MaxValue;
+        command.StartDate = DateTime.MinValue;
+        command.CurrentRound = 1;
         var existingSeason = _fixture.Create<Season>();
+        existingSeason.TotalRounds = 2;
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(command.Id)).ReturnsAsync(existingSeason);
 

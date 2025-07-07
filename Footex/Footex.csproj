@@ -7,6 +7,8 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <UserSecretsId>ed6fcae9-be3f-4c90-8730-0037dc964c10</UserSecretsId>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />

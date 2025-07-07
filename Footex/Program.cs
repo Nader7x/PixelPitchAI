@@ -9,6 +9,7 @@ using Footex.Configuration;
 using Footex.Extensions;
 using HealthChecks.UI.Client;
 using Infrastructure;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Connections;
@@ -336,7 +337,7 @@ try
 
     app.MapControllers();
 
-    // Seed roles and admin user on startup
+    // Seed roles, admin user, and initial data on startup
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
@@ -375,6 +376,10 @@ try
                         await userManager.AddToRoleAsync(admin, "Admin");
                 }
             }
+
+            // Seed the initial data from CSV files
+            var dataSeeder = services.GetRequiredService<DataSeeder>();
+            await dataSeeder.SeedAllAsync();
         }
         catch (Exception ex)
         {
