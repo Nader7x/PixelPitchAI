@@ -6,22 +6,22 @@ namespace Application.CQRS.Auth.Commands;
 
 public class LoginUserCommand : IRequest<LoginUserCommandResponse>
 {
-    public string Email { get; set; }
-    public string Password { get; set; }
-    public string IpAddress { get; set; }
+    public required string Email { get; set; }
+    public required string Password { get; set; }
+    public string? IpAddress { get; set; }
 }
 
 public class LoginUserCommandResponse
 {
     public bool Succeeded { get; set; }
-    public string UserId { get; set; }
-    public string Username { get; set; }
-    public string Email { get; set; }
-    public string AccessToken { get; set; }
-    public string RefreshToken { get; set; }
-    public IEnumerable<string> Roles { get; set; }
+    public string? UserId { get; set; }
+    public string? Username { get; set; }
+    public string? Email { get; set; }
+    public string? AccessToken { get; set; }
+    public string? RefreshToken { get; set; }
+    public IEnumerable<string>? Roles { get; set; }
     public DateTime? TokenExpires { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
 public class LoginUserCommandHandler(

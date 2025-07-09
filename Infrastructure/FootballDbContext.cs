@@ -17,7 +17,7 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     public virtual DbSet<Competition> Competitions { get; set; }
     public virtual DbSet<Stadium> Stadiums { get; set; }
     public virtual DbSet<Season> Seasons { get; set; }
-    public virtual DbSet<TeamSeasons> TeamSeasons { get; set; }
+    public virtual DbSet<TeamSeason> TeamSeasons { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }
 

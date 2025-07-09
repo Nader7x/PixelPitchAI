@@ -40,7 +40,7 @@ public class GetSeasonByIdQueryHandlerTests
         var seasonId = 1;
         var query = new GetSeasonByIdQuery { Id = seasonId };
         var season = CreateValidSeason(seasonId);
-        var teamStats = new List<TeamSeasons>();
+        var teamStats = new List<TeamSeason>();
         var expectedSeasonDto = new SeasonDto
         {
             Id = seasonId,
@@ -52,7 +52,7 @@ public class GetSeasonByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
         _unitOfWorkMock
-            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeason, bool>>>()))
             .ReturnsAsync(teamStats);
         _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
@@ -69,7 +69,7 @@ public class GetSeasonByIdQueryHandlerTests
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
         _unitOfWorkMock.Verify(
-            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
+            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeason, bool>>>()),
             Times.Once
         );
         _iSeasonMapperMock.Verify(x => x.ToDto(season), Times.Once);
@@ -96,7 +96,7 @@ public class GetSeasonByIdQueryHandlerTests
 
         _unitOfWorkMock.Verify(x => x.Seasons.GetByIdAsync(seasonId), Times.Once);
         _unitOfWorkMock.Verify(
-            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()),
+            x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeason, bool>>>()),
             Times.Never
         );
         _iSeasonMapperMock.Verify(x => x.ToDto(It.IsAny<Season>()), Times.Never);
@@ -160,7 +160,7 @@ public class GetSeasonByIdQueryHandlerTests
         var seasonId = 1;
         var query = new GetSeasonByIdQuery { Id = seasonId };
         var season = CreateValidSeason(seasonId);
-        var teamStats = new List<TeamSeasons>();
+        var teamStats = new List<TeamSeason>();
         var expectedSeasonDto = new SeasonDto
         {
             Id = seasonId,
@@ -177,7 +177,7 @@ public class GetSeasonByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
         _unitOfWorkMock
-            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeason, bool>>>()))
             .ReturnsAsync(teamStats);
         _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
@@ -207,7 +207,7 @@ public class GetSeasonByIdQueryHandlerTests
         var seasonId = 1;
         var query = new GetSeasonByIdQuery { Id = seasonId };
         var season = CreateValidSeason(seasonId);
-        var teamStats = new List<TeamSeasons>
+        var teamStats = new List<TeamSeason>
         {
             new() { SeasonId = seasonId, TeamId = 1 },
             new() { SeasonId = seasonId, TeamId = 2 },
@@ -216,7 +216,7 @@ public class GetSeasonByIdQueryHandlerTests
 
         _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(seasonId)).ReturnsAsync(season);
         _unitOfWorkMock
-            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeasons, bool>>>()))
+            .Setup(x => x.TeamSeasons.GetAllAsync(It.IsAny<Expression<Func<TeamSeason, bool>>>()))
             .ReturnsAsync(teamStats);
         _iSeasonMapperMock.Setup(x => x.ToDto(season)).Returns(expectedSeasonDto);
 
@@ -230,7 +230,7 @@ public class GetSeasonByIdQueryHandlerTests
         _unitOfWorkMock.Verify(
             x =>
                 x.TeamSeasons.GetAllAsync(
-                    It.Is<Expression<Func<TeamSeasons, bool>>>(expr => expr != null)
+                    It.Is<Expression<Func<TeamSeason, bool>>>(expr => expr != null)
                 ),
             Times.Once
         );

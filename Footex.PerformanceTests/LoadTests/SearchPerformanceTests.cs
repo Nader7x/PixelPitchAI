@@ -5,20 +5,13 @@ using Xunit;
 
 namespace Footex.PerformanceTests.LoadTests;
 
-public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
+public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly HttpClient _httpClient;
-
-    public SearchPerformanceTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _httpClient = _factory.CreateClient();
-    }
 
     [Fact]
-    public void PlayerSearch_PerformanceTest()
+    public async Task PlayerSearch_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var searchQueries = new[]
         {
             "manchester",
@@ -53,21 +46,22 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
             .WithLoadSimulations(
                 Simulation.Inject(15, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.KeepConstant(8, TimeSpan.FromMinutes(1))
+                Simulation.Inject(8,TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
     }
 
     [Fact]
-    public void TeamSearch_PerformanceTest()
+    public async Task TeamSearch_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var searchQueries = new[]
         {
             "united",
@@ -97,21 +91,22 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
             .WithLoadSimulations(
                 Simulation.Inject(12, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.KeepConstant(6, TimeSpan.FromMinutes(1))
+                Simulation.Inject(6,TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
     }
 
     [Fact]
-    public void CoachSearch_PerformanceTest()
+    public async Task CoachSearch_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var searchQueries = new[]
         {
             "guardiola",
@@ -141,21 +136,22 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
             .WithLoadSimulations(
                 Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.KeepConstant(5, TimeSpan.FromMinutes(1))
+                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
     }
 
     [Fact]
-    public void MatchSearch_PerformanceTest()
+    public async Task MatchSearch_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var searchQueries = new[]
         {
             "manchester liverpool",
@@ -181,21 +177,22 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
             .WithLoadSimulations(
                 Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.KeepConstant(4, TimeSpan.FromMinutes(1))
+                Simulation.Inject(4 , TimeSpan.FromSeconds(1),TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
     }
 
     [Fact]
-    public void FuzzySearchComparison_PerformanceTest()
+    public async Task FuzzySearchComparison_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var searchQueries = new[] { "manchester", "ronaldo", "barcelona", "guardiola" };
 
         // Scenario with fuzzy search enabled
@@ -211,7 +208,7 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
@@ -230,7 +227,7 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                         )
                         .WithHeader("Accept", "application/json");
 
-                    var response = await Http.Send(_httpClient, request);
+                    var response = await Http.Send(httpClient, request);
                     return response;
                 }
             )
@@ -240,8 +237,9 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
     }
 
     [Fact]
-    public void SearchWithDifferentLimits_PerformanceTest()
+    public async Task SearchWithDifferentLimits_PerformanceTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var limits = new[] { 5, 10, 20, 50 };
 
         var scenarios = limits
@@ -258,7 +256,7 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                                 )
                                 .WithHeader("Accept", "application/json");
 
-                            var response = await Http.Send(_httpClient, request);
+                            var response = await Http.Send(httpClient, request);
                             return response;
                         }
                     )
@@ -270,8 +268,10 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
     }
 
     [Fact]
-    public void MixedSearch_LoadTest()
+    public async Task MixedSearch_LoadTest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        var simulation = Simulation.KeepConstant(4, TimeSpan.FromMinutes(3));
         var playerSearchScenario = Scenario
             .Create(
                 "mixed_player_search",
@@ -284,12 +284,11 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                             $"/api/search/players?query={query}&limit=10"
                         )
                         .WithHeader("Accept", "application/json");
-                    return await Http.Send(_httpClient, request);
+                    return await Http.Send(httpClient, request);
                 }
             )
             .WithWeight(40)
-            .WithLoadSimulations(Simulation.KeepConstant(6, TimeSpan.FromMinutes(3)));
-
+            .WithLoadSimulations(simulation);
         var teamSearchScenario = Scenario
             .Create(
                 "mixed_team_search",
@@ -302,11 +301,11 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                             $"/api/search/teams?query={query}&limit=10"
                         )
                         .WithHeader("Accept", "application/json");
-                    return await Http.Send(_httpClient, request);
+                    return await Http.Send(httpClient, request);
                 }
             )
             .WithWeight(30)
-            .WithLoadSimulations(Simulation.KeepConstant(4, TimeSpan.FromMinutes(3)));
+            .WithLoadSimulations(simulation);
 
         var coachSearchScenario = Scenario
             .Create(
@@ -320,11 +319,11 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                             $"/api/search/coaches?query={query}&limit=10"
                         )
                         .WithHeader("Accept", "application/json");
-                    return await Http.Send(_httpClient, request);
+                    return await Http.Send(httpClient, request);
                 }
             )
             .WithWeight(20)
-            .WithLoadSimulations(Simulation.KeepConstant(3, TimeSpan.FromMinutes(3)));
+            .WithLoadSimulations(simulation);
 
         var matchSearchScenario = Scenario
             .Create(
@@ -338,11 +337,11 @@ public class SearchPerformanceTests : IClassFixture<FootexWebApplicationFactory>
                             $"/api/search/matches?query={query}&limit=10"
                         )
                         .WithHeader("Accept", "application/json");
-                    return await Http.Send(_httpClient, request);
+                    return await Http.Send(httpClient, request);
                 }
             )
             .WithWeight(10)
-            .WithLoadSimulations(Simulation.KeepConstant(2, TimeSpan.FromMinutes(3)));
+            .WithLoadSimulations(simulation);
 
         NBomberRunner
             .RegisterScenarios(

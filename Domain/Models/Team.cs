@@ -18,7 +18,7 @@ public sealed class Team
     public Stadium? Stadium { get; set; }
     public ICollection<Player>? Players { get; set; }
     public ICollection<Coach>? Coaches { get; set; }
-    public ICollection<TeamSeasons>? TeamSeasons { get; set; }
+    public ICollection<TeamSeason>? TeamSeasons { get; set; }
     public ICollection<Match>? HomeMatches { get; set; }
     public ICollection<Match>? AwayMatches { get; set; }
 }

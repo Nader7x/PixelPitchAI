@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Configurations;
 
-public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeasons>
+public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeason>
 {
-    public void Configure(EntityTypeBuilder<TeamSeasons> builder)
+    public void Configure(EntityTypeBuilder<TeamSeason> builder)
     {
         builder.HasKey(t => t.Id);
 
@@ -38,6 +38,6 @@ public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeasons>
             .OnDelete(DeleteBehavior.Cascade);
 
         // Table comment
-        builder.ToTable("TeamSeasons", tb => tb.HasComment("Team seasons table"));
+        builder.ToTable("TeamSeason", tb => tb.HasComment("Team seasons table"));
     }
 }

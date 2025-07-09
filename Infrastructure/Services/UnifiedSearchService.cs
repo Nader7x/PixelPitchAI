@@ -668,6 +668,7 @@ public class UnifiedSearchService(
                 .Matches.Where(m =>
                     teamIds.Contains(m.HomeTeamId) || teamIds.Contains(m.AwayTeamId)
                 )
+                .OrderByDescending(m => m.ScheduledDateTimeUtc)
                 .Include(m => m.HomeTeam)
                 .Include(m => m.AwayTeam)
                 .AsNoTracking()
@@ -1772,6 +1773,7 @@ public class UnifiedSearchService(
                 s.Name!.ToLower().Contains(normalizedQuery)
                 || s.City!.ToLower().Contains(normalizedQuery)
             )
+            .OrderBy(s => s.Name)
             .AsNoTracking()
             .Take(limit)
             .ToListAsync();
@@ -1788,17 +1790,15 @@ public class UnifiedSearchService(
         var normalizedQuery = query.ToLower().Trim();
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-        var seasons = await context
-            .Seasons.Where(s =>
-                s.Name!.ToLower().Contains(normalizedQuery)
-                || s.StartDate.ToString(CultureInfo.InvariantCulture).Contains(normalizedQuery)
-                || s.EndDate.ToString(CultureInfo.InvariantCulture).Contains(normalizedQuery)
-            )
-            .AsNoTracking()
-            .Take(limit)
-            .ToListAsync();
+        var seasons = context.Seasons.AsQueryable();
+        seasons = seasons.Where(s =>
+            EF.Functions.Like(s.Name.ToLower(), $"%{normalizedQuery}%")
+            || EF.Functions.Like(s.StartDate.ToString(), $"%{normalizedQuery}%")
+            || EF.Functions.Like(s.EndDate.ToString(), $"%{normalizedQuery}%")
+        );
+        seasons = seasons.OrderByDescending(s => s.Name.ToLower().Contains(normalizedQuery));
 
-        return seasons;
+        return await seasons.Take(limit).ToListAsync();
     }
 
     // Helper methods for specific strategies
@@ -1993,6 +1993,7 @@ public class UnifiedSearchService(
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
         var teams = await context
             .Teams.Where(t => t.Name!.ToLower().Contains(normalizedQuery.ToLower()))
+            .OrderBy(t => t.Name)
             .Take(limit)
             .AsNoTracking()
             .ToListAsync();
@@ -2020,6 +2021,7 @@ public class UnifiedSearchService(
                 p.FullName!.ToLower().Contains(normalizedQuery.ToLower())
                 || p.KnownName!.ToLower().Contains(normalizedQuery.ToLower())
             )
+            .OrderBy(p => p.KnownName)
             .Take(limit)
             .AsNoTracking()
             .ToListAsync();
@@ -2047,6 +2049,7 @@ public class UnifiedSearchService(
                 c.FirstName!.ToLower().Contains(normalizedQuery.ToLower())
                 || c.LastName!.ToLower().Contains(normalizedQuery.ToLower())
             )
+            .OrderBy(c => c.FullName)
             .Take(limit)
             .AsNoTracking()
             .ToListAsync();
@@ -2074,6 +2077,7 @@ public class UnifiedSearchService(
                 s.Name!.ToLower().Contains(normalizedQuery.ToLower())
                 || s.City!.ToLower().Contains(normalizedQuery.ToLower())
             )
+            .OrderBy(s => s.Name)
             .Take(limit)
             .AsNoTracking()
             .ToListAsync();

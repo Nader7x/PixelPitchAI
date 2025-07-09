@@ -38,7 +38,7 @@ namespace Infrastructure.Data
             await SeedAsync<Coach>("Coaches.csv", _context.Coaches);
             await SeedAsync<Player>("Players.csv", _context.Players);
             await SeedAsync<Season>("Seasons.csv", _context.Seasons);
-            await SeedAsync<TeamSeasons>("TeamSeasons.csv", _context.TeamSeasons);
+            await SeedAsync<TeamSeason>("TeamSeason.csv", _context.TeamSeasons);
         }
 
         private async Task SeedAsync<T>(string fileName, DbSet<T> dbSet)
@@ -94,7 +94,7 @@ namespace Infrastructure.Data
                     {
                         csv.Context.RegisterClassMap<SeasonMap>();
                     }
-                    else if (typeof(T) == typeof(TeamSeasons))
+                    else if (typeof(T) == typeof(TeamSeason))
                     {
                         csv.Context.RegisterClassMap<TeamSeasonsMap>();
                     }
@@ -272,7 +272,7 @@ namespace Infrastructure.Data
             }
         }
 
-        public class TeamSeasonsMap : ClassMap<TeamSeasons>
+        public class TeamSeasonsMap : ClassMap<TeamSeason>
         {
             public TeamSeasonsMap()
             {

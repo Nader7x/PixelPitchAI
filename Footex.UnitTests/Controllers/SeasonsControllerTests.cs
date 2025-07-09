@@ -310,7 +310,7 @@ public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
         var expectedResponse = new GetSeasonTeamsQueryResponse
         {
             Succeeded = true,
-            TeamSeasons = new List<TeamSeasons>
+            TeamSeasons = new List<TeamSeason>
             {
                 new()
                 {
@@ -357,7 +357,7 @@ public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
         var cachedResponse = new GetSeasonTeamsQueryResponse
         {
             Succeeded = true,
-            TeamSeasons = new List<TeamSeasons>
+            TeamSeasons = new List<TeamSeason>
             {
                 new()
                 {

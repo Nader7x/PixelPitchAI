@@ -19,7 +19,12 @@ public class ApiBenchmarks
     {
         _factory = new FootexWebApplicationFactory();
         _factory.InitializeAsync().GetAwaiter().GetResult();
-        _httpClient = _factory.CreateClient();
+        _httpClient = _factory.CreateClient(
+            new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+            {
+                BaseAddress = new Uri("https://localhost:7082"),
+            }
+        );
     }
 
     [GlobalCleanup]

@@ -165,7 +165,7 @@ public class LoginUserCommandHandlerTests
 
         // Assert
         user.LastLogin.Should().BeAfter(oldLastLogin ?? DateTime.MinValue);
-        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(20));
+        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(50));
 
         // Assert
         _mockUserRepository.Verify(

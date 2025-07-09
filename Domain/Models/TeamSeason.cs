@@ -1,6 +1,6 @@
 namespace Domain.Models;
 
-public sealed class TeamSeasons
+public sealed class TeamSeason
 {
     public int Id { get; set; }
     public int TeamId { get; set; }

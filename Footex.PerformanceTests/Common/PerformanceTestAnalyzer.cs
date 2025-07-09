@@ -3,23 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Footex.PerformanceTests.Common;
 
-public class PerformanceTestAnalyzer
+public class PerformanceTestAnalyzer(
+    ILogger<PerformanceTestAnalyzer> logger,
+    PerformanceTestSettings settings)
 {
-    private readonly ILogger<PerformanceTestAnalyzer> _logger;
-    private readonly PerformanceTestSettings _settings;
-
-    public PerformanceTestAnalyzer(
-        ILogger<PerformanceTestAnalyzer> logger,
-        PerformanceTestSettings settings
-    )
-    {
-        _logger = logger;
-        _settings = settings;
-    }
-
     public async Task<PerformanceTestReport> AnalyzeTestResults(string resultsDirectory)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Analyzing performance test results in {Directory}",
             resultsDirectory
         );
@@ -28,7 +18,7 @@ public class PerformanceTestAnalyzer
         {
             TestDate = DateTime.UtcNow,
             ResultsDirectory = resultsDirectory,
-            TestConfiguration = _settings,
+            TestConfiguration = settings,
         };
 
         try
@@ -42,12 +32,12 @@ public class PerformanceTestAnalyzer
             // Generate summary
             GenerateSummary(report);
 
-            _logger.LogInformation("Performance analysis completed");
+            logger.LogInformation("Performance analysis completed");
             return report;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error analyzing performance test results");
+            logger.LogError(ex, "Error analyzing performance test results");
             throw;
         }
     }
@@ -57,7 +47,7 @@ public class PerformanceTestAnalyzer
         var nbomberResultsPath = Path.Combine(resultsDirectory, "nbomber");
         if (!Directory.Exists(nbomberResultsPath))
         {
-            _logger.LogWarning("NBomber results directory not found: {Path}", nbomberResultsPath);
+            logger.LogWarning("NBomber results directory not found: {Path}", nbomberResultsPath);
             return;
         }
 
@@ -66,7 +56,7 @@ public class PerformanceTestAnalyzer
 
         foreach (var csvFile in csvFiles)
         {
-            _logger.LogInformation("Processing NBomber CSV file: {File}", csvFile);
+            logger.LogInformation("Processing NBomber CSV file: {File}", csvFile);
 
             var testResult = new LoadTestResult
             {
@@ -96,11 +86,11 @@ public class PerformanceTestAnalyzer
                 {
                     var metric = new PerformanceMetric
                     {
-                        ScenarioName = fields[0]?.Trim('"') ?? "Unknown",
+                        ScenarioName = fields[0].Trim('"'),
                         RequestCount = int.TryParse(fields[1], out var reqCount) ? reqCount : 0,
                         OkCount = int.TryParse(fields[2], out var okCount) ? okCount : 0,
                         FailCount = int.TryParse(fields[3], out var failCount) ? failCount : 0,
-                        AllDataMB = double.TryParse(fields[4], out var dataMB) ? dataMB : 0,
+                        AllDataMB = double.TryParse(fields[4], out var dataMb) ? dataMb : 0,
                         ScenarioRPS = double.TryParse(fields[5], out var rps) ? rps : 0,
                         MeanMs = double.TryParse(fields[6], out var mean) ? mean : 0,
                         MinMs = double.TryParse(fields[7], out var min) ? min : 0,
@@ -117,7 +107,7 @@ public class PerformanceTestAnalyzer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing NBomber CSV file: {File}", csvFile);
+            logger.LogError(ex, "Error parsing NBomber CSV file: {File}", csvFile);
         }
     }
 
@@ -129,7 +119,7 @@ public class PerformanceTestAnalyzer
         var benchmarkResultsPath = Path.Combine(resultsDirectory, "BenchmarkDotNet.Artifacts");
         if (!Directory.Exists(benchmarkResultsPath))
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "BenchmarkDotNet results directory not found: {Path}",
                 benchmarkResultsPath
             );
@@ -145,7 +135,7 @@ public class PerformanceTestAnalyzer
 
         foreach (var jsonFile in jsonFiles)
         {
-            _logger.LogInformation("Processing BenchmarkDotNet JSON file: {File}", jsonFile);
+            logger.LogInformation("Processing BenchmarkDotNet JSON file: {File}", jsonFile);
             await ParseBenchmarkJson(jsonFile, report);
         }
     }
@@ -202,13 +192,13 @@ public class PerformanceTestAnalyzer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing BenchmarkDotNet JSON file: {File}", jsonFile);
+            logger.LogError(ex, "Error parsing BenchmarkDotNet JSON file: {File}", jsonFile);
         }
     }
 
     private void GenerateSummary(PerformanceTestReport report)
     {
-        _logger.LogInformation("Generating performance test summary...");
+        logger.LogInformation("Generating performance test summary...");
 
         // Calculate overall statistics
         if (report.LoadTestResults.Any())
@@ -257,13 +247,13 @@ public class PerformanceTestAnalyzer
 
         if (issues.Any())
         {
-            _logger.LogWarning("Performance issues detected:");
+            logger.LogWarning("Performance issues detected:");
             foreach (var issue in issues)
-                _logger.LogWarning("- {Issue}", issue);
+                logger.LogWarning("- {Issue}", issue);
         }
         else
         {
-            _logger.LogInformation("All performance thresholds met!");
+            logger.LogInformation("All performance thresholds met!");
         }
     }
 }

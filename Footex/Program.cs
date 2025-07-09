@@ -376,10 +376,11 @@ try
                         await userManager.AddToRoleAsync(admin, "Admin");
                 }
             }
-
-            // Seed the initial data from CSV files
-            var dataSeeder = services.GetRequiredService<DataSeeder>();
-            await dataSeeder.SeedAllAsync();
+            if (!app.Environment.IsDevelopment())
+            {
+                var dataSeeder = services.GetRequiredService<DataSeeder>();
+                await dataSeeder.SeedAllAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -412,3 +413,5 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+public partial class Program { }

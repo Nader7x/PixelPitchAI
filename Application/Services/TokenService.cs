@@ -107,7 +107,7 @@ public class TokenService(
 
     private SigningCredentials GetSigningCredentials()
     {
-        var key = Encoding.UTF8.GetBytes(configuration["JWT:Secret"]);
+        var key = Encoding.UTF8.GetBytes(configuration["JWT:Secret"] ?? string.Empty);
         var secret = new SymmetricSecurityKey(key);
 
         return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);

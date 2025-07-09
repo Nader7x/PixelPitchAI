@@ -14,7 +14,12 @@ public class CachePerformanceTests : IClassFixture<FootexWebApplicationFactory>
     public CachePerformanceTests(FootexWebApplicationFactory factory)
     {
         _factory = factory;
-        _httpClient = _factory.CreateClient();
+        _httpClient = _factory.CreateClient(
+            new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+            {
+                BaseAddress = new Uri("https://localhost:7082"),
+            }
+        );
     }
 
     [Fact]

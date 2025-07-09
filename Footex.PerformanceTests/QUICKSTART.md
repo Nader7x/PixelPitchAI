@@ -26,7 +26,7 @@ Edit `appsettings.json` to match your environment:
 ```json
 {
   "PerformanceTests": {
-    "BaseUrl": "https://localhost:7001"
+    "BaseUrl": "https://localhost:7082"
   }
 }
 ```

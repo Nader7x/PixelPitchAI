@@ -14,8 +14,7 @@ public static class MigrationExtensions
         try
         {
             logger.LogInformation("Starting database migration...");
-            // db.Database.EnsureCreated();
-            db.Database.Migrate();
+            db.Database.MigrateAsync();
             logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)

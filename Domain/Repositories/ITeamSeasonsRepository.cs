@@ -3,9 +3,9 @@ using Domain.Models;
 
 namespace Domain.Repositories;
 
-public interface ITeamSeasonsRepository : IRepository<TeamSeasons>
+public interface ITeamSeasonsRepository : IRepository<TeamSeason>
 {
-    Task<IReadOnlyList<TeamSeasons>> GetSeasonsByTeamIdAsync(int teamId);
-    Task<TeamSeasons?> GetByTeamAndSeasonIdAsync(int teamId, int seasonId);
-    Task<IReadOnlyList<TeamSeasons>> GetTeamsBySeasonIdAsync(int seasonId);
+    Task<IReadOnlyList<TeamSeason>> GetSeasonsByTeamIdAsync(int teamId);
+    Task<TeamSeason?> GetByTeamAndSeasonIdAsync(int teamId, int seasonId);
+    Task<IReadOnlyList<TeamSeason>> GetTeamsBySeasonIdAsync(int seasonId);
 }

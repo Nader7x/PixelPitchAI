@@ -1,6 +1,5 @@
 @Footex_HostAddress = http://localhost:5025
-@accessToken = your_jwt_token_here
-
+@accessToken = {{accessToken}}
 ### Health Check
 GET {{Footex_HostAddress}}/
 Accept: application/json
@@ -414,9 +413,6 @@ GET {{Footex_HostAddress}}/api/search/stadiums?query=Old Trafford&page=1&pageSiz
 
 ### Search Coaches
 GET {{Footex_HostAddress}}/api/search/coaches?query=Guardiola&page=1&pageSize=10
-
-### Fuzzy Search
-GET {{Footex_HostAddress}}/api/search/fuzzy?query=Mancester&page=1&pageSize=10
 
 ### Search Suggestions
 GET {{Footex_HostAddress}}/api/search/suggestions?query=Man&maxSuggestions=5

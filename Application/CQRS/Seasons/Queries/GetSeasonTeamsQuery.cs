@@ -13,7 +13,7 @@ public class GetSeasonTeamsQueryResponse
 {
     public bool Succeeded { get; set; }
     public string? error { get; set; }
-    public IReadOnlyList<TeamSeasons>? TeamSeasons { get; set; }
+    public IReadOnlyList<TeamSeason>? TeamSeasons { get; set; }
 }
 
 public class GetSeasonTeamsQueryHandler(IUnitOfWork unitOfWork)

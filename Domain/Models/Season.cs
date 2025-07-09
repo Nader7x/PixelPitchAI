@@ -20,6 +20,6 @@ public sealed class Season
 
     // Navigation properties
     public ICollection<Match>? Matches { get; set; }
-    public ICollection<TeamSeasons>? SeasonTeams { get; set; }
+    public ICollection<TeamSeason>? SeasonTeams { get; set; }
     public Competition? Competition { get; set; } // Required navigation property to Competition
 }
