@@ -8,26 +8,16 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Seasons.Commands;
 
-public class UpdateSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class UpdateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public UpdateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_UpdatesSeasonInDatabase()
     {
         // Arrange
         var season = TestData.CreateTestDbSeason();
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
+        Context.Seasons.Add(season);
+        await Context.SaveChangesAsync();
 
         var command = new UpdateSeasonCommand
         {
@@ -39,7 +29,7 @@ public class UpdateSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -47,7 +37,7 @@ public class UpdateSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWe
         response.Name.Should().Be(command.Name);
         response.Id.Should().Be(season.Id);
 
-        var updatedSeason = await _context.Seasons.FindAsync(season.Id);
+        var updatedSeason = await Context.Seasons.FindAsync(season.Id);
         updatedSeason.Should().NotBeNull();
         updatedSeason!.Name.Should().Be(command.Name);
         updatedSeason.StartDate.Should().Be(command.StartDate);
@@ -69,7 +59,7 @@ public class UpdateSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();

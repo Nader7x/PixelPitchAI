@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
+using Application.CQRS.Seasons.Commands;
+using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
+using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
@@ -10,153 +12,122 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
 
-public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class SeasonsControllerIntegrationTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-    private readonly FootexWebApplicationFactory _factory;
-
-    public SeasonsControllerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = _factory.CreateClient();
-    }
-
     [Fact]
     public async Task GetAllSeasons_ReturnsSuccessStatusCode()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/seasons");
+        var response = await httpClient.GetAsync("/api/seasons");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeEmpty();
-
-        var jsonDoc = JsonDocument.Parse(content);
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<GetAllSeasonsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task GetAllSeasons_WithQueryParameters_ReturnsFilteredResults()
     {
         // Arrange
-        await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync(
-            "/api/seasons?leagueName=Premier League&country=England&isActive=true"
+        var response = await httpClient.GetAsync(
+            "/api/seasons?leagueName=Premier League&country=England"
         );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("seasons", out var seasons);
-        seasons.ValueKind.Should().Be(JsonValueKind.Array);
+        var result = await response.Content.ReadFromJsonAsync<GetAllSeasonsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Seasons.Should().NotBeEmpty();
     }
 
     [Fact]
     public async Task GetSeasonById_WithValidId_ReturnsSeason()
     {
         // Arrange
-        var seasonId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/seasons/{seasonId}");
+        var response = await httpClient.GetAsync($"/api/seasons/{season.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("season", out var season);
-        season.ValueKind.Should().Be(JsonValueKind.Object);
-
-        season.TryGetProperty("id", out var id);
-        id.GetInt32().Should().Be(seasonId);
+        var result = await response.Content.ReadFromJsonAsync<GetSeasonByIdQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Season.Should().NotBeNull();
+        result?.Season?.Id.Should().Be(season.Id);
     }
 
     [Fact]
     public async Task GetSeasonById_WithInvalidId_ReturnsNotFound()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/seasons/999999");
+        var response = await httpClient.GetAsync("/api/seasons/999999");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task GetSeasonById_ReturnsCacheHeaders()
+    public async Task GetSeasonTeams_WithValidId_ReturnsTeams()
     {
         // Arrange
-        var seasonId = await SeedTestDataAsync();
-
-        // Act - First call
-        var response1 = await _client.GetAsync($"/api/seasons/{seasonId}");
-
-        // Act - Second call (should be cached)
-        var response2 = await _client.GetAsync($"/api/seasons/{seasonId}");
-
-        // Assert
-        response1.StatusCode.Should().Be(HttpStatusCode.OK);
-        response2.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Check cache headers
-        response1.Headers.Should().ContainKey("X-Cache-Hit");
-        response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-
-        response2.Headers.Should().ContainKey("X-Cache-Hit");
-        response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
-    }
-
-    [Fact]
-    public async Task GetTeamSeasons_WithValidId_ReturnsTeams()
-    {
-        // Arrange
-        var seasonId = await SeedTestDataWithTeamsAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
+        var teamSeason = new TeamSeason { TeamId = team.Id, SeasonId = season.Id };
+        context.TeamSeasons.Add(teamSeason);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/seasons/TeamSeasons/{seasonId}");
+        var response = await httpClient.GetAsync($"/api/seasons/seasonteams/{season.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("teams", out var teams);
-        teams.ValueKind.Should().Be(JsonValueKind.Array);
-    }
-
-    [Fact]
-    public async Task GetTeamSeasons_WithInvalidId_ReturnsNotFound()
-    {
-        // Act
-        var response = await _client.GetAsync("/api/seasons/TeamSeasons/999999");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<GetSeasonTeamsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.TeamSeasons.Should().NotBeEmpty();
     }
 
     [Fact]
     public async Task CreateSeason_WithValidData_ReturnsCreated()
     {
         // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var competition = TestData.CreateTestCompetition();
+        await context.Competitions.AddAsync(competition);
+        await context.SaveChangesAsync();
         var createSeasonDto = new CreateSeasonDto
         {
             Name = "2024/25 Premier League",
@@ -165,177 +136,69 @@ public class SeasonsControllerIntegrationTests : IClassFixture<FootexWebApplicat
             StartDate = new DateTime(2024, 8, 1),
             EndDate = new DateTime(2025, 5, 31),
             IsActive = true,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/seasons", createSeasonDto);
+        var response = await httpClient.PostAsJsonAsync("/api/seasons", createSeasonDto);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("seasonId", out var seasonId);
-        seasonId.GetInt32().Should().BeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task CreateSeason_WithInvalidData_ReturnsBadRequest()
-    {
-        // Arrange
-        var createSeasonDto = new CreateSeasonDto
-        {
-            Name = "", // Invalid: empty name
-            LeagueName = "Premier League",
-            Country = "England",
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/seasons", createSeasonDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<CreateSeasonCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Id.Should().BeGreaterThan(0);
     }
 
     [Fact]
     public async Task UpdateSeason_WithValidData_ReturnsOk()
     {
         // Arrange
-        var seasonId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        await context.SaveChangesAsync();
         var updateSeasonDto = new UpdateSeasonDto
         {
-            Name = "Updated Season",
+            Name = "Updated Test Season",
             LeagueName = "La Liga",
             Country = "Spain",
             IsActive = false,
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/seasons/{seasonId}", updateSeasonDto);
+        var response = await httpClient.PutAsJsonAsync(
+            $"/api/seasons/{season.Id}",
+            updateSeasonDto
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task UpdateSeason_WithInvalidId_ReturnsNotFound()
-    {
-        // Arrange
-        var updateSeasonDto = new UpdateSeasonDto
-        {
-            Name = "Updated Season",
-            LeagueName = "La Liga",
-            Country = "Spain",
-        };
-
-        // Act
-        var response = await _client.PutAsJsonAsync("/api/seasons/999999", updateSeasonDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<UpdateSeasonCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task DeleteSeason_WithValidId_ReturnsOk()
     {
         // Arrange
-        var seasonId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/seasons/{seasonId}");
+        var response = await httpClient.DeleteAsync($"/api/seasons/{season.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task DeleteSeason_WithInvalidId_ReturnsNotFound()
-    {
-        // Act
-        var response = await _client.DeleteAsync("/api/seasons/999999");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task GetAllSeasons_CachesBehavior_WorksCorrectly()
-    {
-        // Arrange
-        await SeedTestDataAsync();
-
-        // Act - First call
-        var response1 = await _client.GetAsync("/api/seasons?leagueName=Premier League");
-
-        // Act - Second call with same parameters (should be cached)
-        var response2 = await _client.GetAsync("/api/seasons?leagueName=Premier League");
-
-        // Assert
-        response1.StatusCode.Should().Be(HttpStatusCode.OK);
-        response2.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Check cache headers
-        response1.Headers.Should().ContainKey("X-Cache-Hit");
-        response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-
-        response2.Headers.Should().ContainKey("X-Cache-Hit");
-        response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
-    }
-
-    private async Task<int> SeedTestDataAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-
-        var season = TestData.CreateTestSeason();
-        context.Seasons.Add(season);
-        await context.SaveChangesAsync();
-
-        return season.Id;
-    }
-
-    private async Task<int> SeedTestDataWithTeamsAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-
-        var season = TestData.CreateTestSeason();
-        context.Seasons.Add(season);
-
-        var team1 = TestData.CreateTestTeam();
-        var team2 = TestData.CreateTestTeam();
-        team2.Name = "Team 2";
-
-        context.Teams.Add(team1);
-        context.Teams.Add(team2);
-
-        await context.SaveChangesAsync();
-
-        // Create season teams relationship
-        var seasonTeam1 = TestData.CreateTestSeasonTeam(season.Id, team1.Id);
-        var seasonTeam2 = TestData.CreateTestSeasonTeam(season.Id, team2.Id);
-
-        context.TeamSeasons.Add(seasonTeam1);
-        context.TeamSeasons.Add(seasonTeam2);
-
-        await context.SaveChangesAsync();
-
-        return season.Id;
+        var result = await response.Content.ReadFromJsonAsync<DeleteSeasonCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 }

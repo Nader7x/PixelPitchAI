@@ -8,20 +8,9 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Matches.Queries;
 
-[Collection("Database")]
-public class GetMatchByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetMatchByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetMatchByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidId_ReturnsMatch()
     {
@@ -31,15 +20,15 @@ public class GetMatchByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebA
         var awayTeam = TestData.CreateTestDbTeam();
         var season = TestData.CreateTestDbSeason();
         var user = TestData.CreateTestUser(true);
-        _context.Teams.AddRange(homeTeam, awayTeam);
-        _context.Seasons.Add(season);
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
 
         var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
         var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.AddRange(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var match = TestData.CreateTestMatch(
             homeTeam.Id,
@@ -48,13 +37,13 @@ public class GetMatchByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebA
             true,
             creatorId: user.Id
         );
-        _context.Matches.Add(match);
-        await _context.SaveChangesAsync();
+        await Context.Matches.AddAsync(match);
+        await Context.SaveChangesAsync();
 
         var query = new GetMatchByIdQuery { Id = match.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -70,7 +59,7 @@ public class GetMatchByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebA
         var query = new GetMatchByIdQuery { Id = 999999 };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();

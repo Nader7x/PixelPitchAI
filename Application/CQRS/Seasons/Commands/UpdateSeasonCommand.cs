@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -11,15 +12,15 @@ public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
 
     [Required]
     [StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [Required]
     [StringLength(100, MinimumLength = 2)]
-    public string LeagueName { get; set; }
+    public string? LeagueName { get; set; }
 
     [Required]
     [StringLength(50)]
-    public string Country { get; set; }
+    public string? Country { get; set; }
 
     public int? CurrentRound { get; set; }
 
@@ -30,22 +31,22 @@ public class UpdateSeasonCommand : IRequest<UpdateSeasonCommandResponse>
     public bool IsCompleted { get; set; }
 
     [Required]
-    public DateTime StartDate { get; set; }
+    public DateTime? StartDate { get; set; }
 
     [Required]
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 }
 
 public class UpdateSeasonCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public int? Id { get; set; }
-    public string? Name { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public int? Id { get; init; }
+    public string? Name { get; init; }
+    public string? Error { get; init; }
 }
 
-public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
+public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork, ISeasonMapper seasonMapper)
     : IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse>
 {
     public async Task<UpdateSeasonCommandResponse> Handle(
@@ -56,7 +57,7 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
         try
         {
             // Check if season exists
-            var season = await unitOfWork.Seasons.GetByIdAsync(request.Id);
+            var season = await unitOfWork.Seasons.GetByIdAsync(request.Id, cancellationToken);
             if (season == null)
                 return new UpdateSeasonCommandResponse
                 {
@@ -75,8 +76,9 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
 
             if (season.Name != request.Name)
             {
-                var existingSeason = await unitOfWork.Seasons.FindAsync(s =>
-                    s.Name == request.Name
+                var existingSeason = await unitOfWork.Seasons.FindAsync(
+                    s => s.Name == request.Name,
+                    cancellationToken
                 );
                 if (existingSeason != null && existingSeason.Id != request.Id)
                     return new UpdateSeasonCommandResponse
@@ -111,20 +113,8 @@ public class UpdateSeasonCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Update season properties
-            season.Name = request.Name;
-            season.LeagueName = request.LeagueName;
-            season.Country = request.Country;
+            seasonMapper.UpdateSeasonFromCommand(request, season);
 
-            if (request.CurrentRound.HasValue)
-                season.CurrentRound = request.CurrentRound.Value;
-
-            season.TotalRounds = request.TotalRounds;
-            season.IsActive = request.IsActive;
-            season.IsCompleted = request.IsCompleted;
-            season.StartDate = request.StartDate;
-            season.EndDate = request.EndDate;
-
-            unitOfWork.Seasons.UpdateAsync(season);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateSeasonCommandResponse

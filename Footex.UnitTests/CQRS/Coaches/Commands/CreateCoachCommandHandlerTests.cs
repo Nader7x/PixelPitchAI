@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Application.CQRS.Coaches.Commands;
 using Application.Interfaces;
 using AutoFixture;
@@ -13,9 +14,9 @@ namespace Footex.UnitTests.CQRS.Coaches.Commands;
 
 public class CreateCoachCommandHandlerTests
 {
+    private readonly Mock<ICoachMapper> _coachMapperMock;
     private readonly NoRecursionFixture _fixture;
     private readonly CreateCoachCommandHandler _handler;
-    private readonly Mock<ICoachMapper> _coachMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public CreateCoachCommandHandlerTests()
@@ -67,7 +68,8 @@ public class CreateCoachCommandHandlerTests
         _unitOfWorkMock
             .Setup(x =>
                 x.Coaches.FindAsync(
-                    It.IsAny<System.Linq.Expressions.Expression<System.Func<Coach, bool>>>()
+                    It.IsAny<Expression<Func<Coach, bool>>>(),
+                    It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync((Coach?)null);
@@ -111,7 +113,8 @@ public class CreateCoachCommandHandlerTests
         _unitOfWorkMock
             .Setup(x =>
                 x.Coaches.FindAsync(
-                    It.IsAny<System.Linq.Expressions.Expression<System.Func<Coach, bool>>>()
+                    It.IsAny<Expression<Func<Coach, bool>>>(),
+                    It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(existingCoach);
@@ -139,7 +142,8 @@ public class CreateCoachCommandHandlerTests
         _unitOfWorkMock
             .Setup(x =>
                 x.Coaches.FindAsync(
-                    It.IsAny<System.Linq.Expressions.Expression<System.Func<Coach, bool>>>()
+                    It.IsAny<Expression<Func<Coach, bool>>>(),
+                    It.IsAny<CancellationToken>()
                 )
             )
             .ThrowsAsync(new Exception("Database error"));

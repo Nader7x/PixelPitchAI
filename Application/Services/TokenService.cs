@@ -25,7 +25,6 @@ public class TokenService(
 
         if (hasClaims)
             return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
-        // Add claims to user
         var claimsIdentity = new ClaimsIdentity(claims);
         await userManager.AddClaimsAsync(user, claimsIdentity.Claims);
 
@@ -94,7 +93,7 @@ public class TokenService(
         refreshToken.RevokedByIp = ipAddress;
         refreshToken.ReplacedByToken = newRefreshToken.Token;
 
-        // Save new refresh token
+        // Save a new refresh token
         await userRepository.AddRefreshTokenAsync(user, newRefreshToken);
 
         return (newToken, newRefreshToken);
@@ -115,6 +114,8 @@ public class TokenService(
 
     private async Task<List<Claim>> GetClaims(ApplicationUser user)
     {
+        if (user.UserName == null || user.Email == null)
+            throw new ArgumentNullException(nameof(user), "User cannot be null");
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, user.UserName),
@@ -124,8 +125,7 @@ public class TokenService(
         };
 
         var roles = await userManager.GetRolesAsync(user);
-        foreach (var role in roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         // Add custom claims if needed
         if (user.FavoriteTeamId.HasValue)

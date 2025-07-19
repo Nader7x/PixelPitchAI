@@ -3,7 +3,7 @@ using Domain.Models;
 namespace Infrastructure.Services.EventProcessors;
 
 /// <summary>
-/// Handles events related to ball receipt
+///     Handles events related to ball receipt
 /// </summary>
 public class BallReceiptEventProcessor : BaseEventProcessor
 {

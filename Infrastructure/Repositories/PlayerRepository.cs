@@ -1,7 +1,6 @@
 using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Repositories;
 
@@ -25,31 +24,27 @@ public class PlayerRepository(FootballDbContext context)
 
     public async Task<IEnumerable<Player>> GetByNationalityAsync(string nationality)
     {
-        if (string.IsNullOrEmpty(nationality))
-            return Enumerable.Empty<Player>();
+        if (string.IsNullOrWhiteSpace(nationality))
+            return [];
 
         return await _context
             .Players.Where(p =>
                 p.Nationality != null && p.Nationality.ToLower() == nationality.ToLower()
             )
             .OrderBy(p => p.FullName ?? "")
-            .Skip(40)
-            .Take(20)
             .AsNoTracking()
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Player>> GetByPreferredFootAsync(string? preferredFoot)
     {
-        if (preferredFoot.IsNullOrEmpty())
-            return Enumerable.Empty<Player>();
+        if (string.IsNullOrWhiteSpace(preferredFoot))
+            return [];
 
-        if (preferredFoot!.ToLower() == "right")
+        if (preferredFoot.Equals("right", StringComparison.CurrentCultureIgnoreCase))
             return await _context
                 .Players.Where(p => p.PreferredFoot != null && p.PreferredFoot.ToLower() == "right")
                 .OrderBy(p => p.FullName ?? "")
-                .Skip(40)
-                .Take(20)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -69,8 +64,6 @@ public class PlayerRepository(FootballDbContext context)
             .AsEnumerable()
             .Where(predicate)
             .OrderBy(p => p.FullName ?? "")
-            .Skip(40)
-            .Take(20)
             .ToList();
 
         return Task.FromResult<IEnumerable<Player>>(result);
@@ -79,7 +72,7 @@ public class PlayerRepository(FootballDbContext context)
     public async Task<IEnumerable<Player>> SearchAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
-            return Enumerable.Empty<Player>();
+            return [];
 
         var searchTerm = query.ToLower().Trim();
 
@@ -98,5 +91,12 @@ public class PlayerRepository(FootballDbContext context)
             .Include(p => p.Team)
             .AsNoTracking()
             .ToListAsync();
+    }
+
+    public async Task<Player?> GetByShirtNumberAndTeamAsync(int shirtNumber, int teamId)
+    {
+        return await _context
+            .Players.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.ShirtNumber == shirtNumber && p.TeamId == teamId);
     }
 }

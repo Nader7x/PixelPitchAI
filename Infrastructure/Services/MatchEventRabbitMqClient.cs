@@ -26,18 +26,20 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly AsyncEventHandler<ConnectionRecoveryErrorEventArgs> _connectionRecoveryErrorHandler;
     private readonly AsyncEventHandler<ShutdownEventArgs> _connectionShutdownHandler;
     private readonly IHubContext<MatchHub, IMatchHub> _hubContext;
+    private readonly IConnectionFactory? _injectedConnectionFactory;
+    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
     private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
+
     private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache =
         new();
+
     private readonly object _matchEventsCacheLock = new();
 
     private readonly IPerformanceMonitoringService _performanceMonitoringService;
     private readonly RabbitMqOptions _rabbitMqSettings;
     private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IConnectionFactory? _injectedConnectionFactory;
 
     private IChannel? _channel;
 
@@ -253,13 +255,11 @@ public class MatchEventRabbitMqClient : BackgroundService
                 await BroadcastEventToClients(matchEvent);
 
                 if (IsSignificantEvent(matchEvent))
-                {
                     if (matchEntity != null)
                     {
                         await BroadcastMatchStatistics(matchEvent, matchEntity);
                         await _liveMatchStatisticsService.AddMatchToLiveStatistics(matchEntity);
                     }
-                }
             }
 
             if (_channel is { IsOpen: true })
@@ -312,13 +312,15 @@ public class MatchEventRabbitMqClient : BackgroundService
     }
 
     /// <summary>
-    /// Determines if a match event is significant enough to warrant broadcasting updated statistics.
-    /// Only significant events like goals, cards, substitutions, and period changes trigger statistics updates.
+    ///     Determines if a match event is significant enough to warrant broadcasting updated statistics.
+    ///     Only significant events like goals, cards, substitutions, and period changes trigger statistics updates.
     /// </summary>
     /// <param name="matchEvent">The football match event to analyze</param>
     /// <returns>True if the event should trigger a statistics broadcast, false otherwise</returns>
-    private static bool IsSignificantEvent(FootballMatchEvent matchEvent)
+    private static bool IsSignificantEvent(FootballMatchEvent? matchEvent)
     {
+        if (matchEvent is null)
+            return false;
         var action = matchEvent.action.ToLowerInvariant();
         var eventType = matchEvent.event_type?.ToLowerInvariant();
         var type = matchEvent.type?.ToLowerInvariant();
@@ -413,7 +415,6 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
 
             if (_channel is { IsOpen: true })
-            {
                 try
                 {
                     var result = await _channel.BasicGetAsync(
@@ -424,14 +425,14 @@ public class MatchEventRabbitMqClient : BackgroundService
                     if (result != null)
                     {
                         var deliverEventArgs = new BasicDeliverEventArgs(
-                            consumerTag: "",
-                            deliveryTag: result.DeliveryTag,
-                            redelivered: result.Redelivered,
-                            exchange: result.Exchange,
-                            routingKey: result.RoutingKey,
-                            properties: result.BasicProperties,
-                            body: result.Body,
-                            cancellationToken: stoppingToken
+                            "",
+                            result.DeliveryTag,
+                            result.Redelivered,
+                            result.Exchange,
+                            result.RoutingKey,
+                            result.BasicProperties,
+                            result.Body,
+                            stoppingToken
                         );
 
                         await HandleReceivedMessageAsync(deliverEventArgs, stoppingToken);
@@ -450,7 +451,6 @@ public class MatchEventRabbitMqClient : BackgroundService
                 {
                     _logger.LogError(ex, "Error during manual message consumption");
                 }
-            }
 
             await Task.Delay(TimeSpan.FromMilliseconds(700), stoppingToken);
         }
@@ -499,41 +499,34 @@ public class MatchEventRabbitMqClient : BackgroundService
         return Task.CompletedTask;
     }
 
-    private async Task CloseChannelAsync()
+    protected virtual async Task CloseChannelAsync()
     {
-        if (_channel != null)
+        if (_channel is { IsOpen: true })
         {
-            if (_channel.IsOpen)
+            _channel.CallbackExceptionAsync -= _channelCallbackExceptionHandler;
+            if (!string.IsNullOrEmpty(_consumerTag))
             {
-                _channel.CallbackExceptionAsync -= _channelCallbackExceptionHandler;
-                if (!string.IsNullOrEmpty(_consumerTag))
-                {
-                    try
-                    {
-                        await _channel.BasicCancelAsync(_consumerTag);
-                        _logger.LogInformation("Consumer '{Tag}' cancelled.", _consumerTag);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(
-                            ex,
-                            "Exception cancelling consumer '{Tag}'.",
-                            _consumerTag
-                        );
-                    }
-
-                    _consumerTag = null;
-                }
-
                 try
                 {
-                    await _channel.CloseAsync();
-                    _logger.LogInformation("RabbitMQ channel closed.");
+                    await _channel.BasicCancelAsync(_consumerTag);
+                    _logger.LogInformation("Consumer '{Tag}' cancelled.", _consumerTag);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Exception during channel close.");
+                    _logger.LogWarning(ex, "Exception cancelling consumer '{Tag}'.", _consumerTag);
                 }
+
+                _consumerTag = null;
+            }
+
+            try
+            {
+                await _channel.CloseAsync();
+                _logger.LogInformation("RabbitMQ channel closed.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Exception during channel close.");
             }
 
             _channel.Dispose();
@@ -543,27 +536,27 @@ public class MatchEventRabbitMqClient : BackgroundService
 
     protected virtual async Task CloseConnectionAsync()
     {
-        if (_connection != null)
+        if (_connection is { IsOpen: true })
         {
             _connection.ConnectionShutdownAsync -= _connectionShutdownHandler;
             _connection.CallbackExceptionAsync -= _callbackExceptionHandler;
             _connection.ConnectionRecoveryErrorAsync -= _connectionRecoveryErrorHandler;
             _connection.RecoverySucceededAsync -= _recoverySucceededHandler;
 
-            if (_connection.IsOpen)
-                try
-                {
-                    await _connection.CloseAsync();
-                    _logger.LogInformation("RabbitMQ connection closed.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Exception during connection close.");
-                }
+            try
+            {
+                await _connection.CloseAsync();
+                _logger.LogInformation("RabbitMQ connection closed.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Exception during connection close.");
+            }
 
             _connection.Dispose();
             _connection = null;
         }
+
         _connection = null;
     }
 
@@ -574,8 +567,19 @@ public class MatchEventRabbitMqClient : BackgroundService
             _logger.LogWarning("Attempted to close channel/connection, but they are already null.");
             return;
         }
-        await CloseChannelAsync();
-        await CloseConnectionAsync();
+
+        if (_channel is { IsOpen: true } && _connection is { IsOpen: true })
+        {
+            await CloseChannelAsync();
+            await CloseConnectionAsync();
+            _logger.LogInformation("Closing RabbitMQ channel and connection gracefully.");
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Channel or connection already closed or null. Skipping close operations."
+            );
+        }
     }
 
     private async Task BroadcastEventToClients(FootballMatchEvent matchEvent)
@@ -675,67 +679,70 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            var matchStatistics = new
+            if (matchEntity.MatchStatistics != null)
             {
-                matchId = matchEntity.Id,
-                timeStamp = matchEvent.timestamp,
-                homeTeam = new
+                var matchStatistics = new
                 {
-                    name = matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
-                    score = matchEntity.HomeTeamScore ?? 0,
-                    shots = matchEntity.HomeTeamShots ?? 0,
-                    shotsOnTarget = matchEntity.HomeTeamShotsOnTarget ?? 0,
-                    possession = matchEntity.HomeTeamPossession ?? 0,
-                    passes = matchEntity.HomeTeamPasses ?? 0,
-                    passAccuracy = matchEntity.HomeTeamPassAccuracy ?? 0,
-                    corners = matchEntity.HomeTeamCorners ?? 0,
-                    fouls = matchEntity.HomeTeamFouls ?? 0,
-                    yellowCards = matchEntity.HomeTeamYellowCards ?? 0,
-                    redCards = matchEntity.HomeTeamRedCards ?? 0,
-                    offsides = matchEntity.HomeTeamOffsides ?? 0,
-                },
-                awayTeam = new
-                {
-                    name = matchEntity.AwayTeam?.Name ?? matchEntity.AwayTeamInMatchName,
-                    score = matchEntity.AwayTeamScore ?? 0,
-                    shots = matchEntity.AwayTeamShots ?? 0,
-                    shotsOnTarget = matchEntity.AwayTeamShotsOnTarget ?? 0,
-                    possession = matchEntity.AwayTeamPossession ?? 0,
-                    passes = matchEntity.AwayTeamPasses ?? 0,
-                    passAccuracy = matchEntity.AwayTeamPassAccuracy ?? 0,
-                    corners = matchEntity.AwayTeamCorners ?? 0,
-                    fouls = matchEntity.AwayTeamFouls ?? 0,
-                    yellowCards = matchEntity.AwayTeamYellowCards ?? 0,
-                    redCards = matchEntity.AwayTeamRedCards ?? 0,
-                    offsides = matchEntity.AwayTeamOffsides ?? 0,
-                },
-                matchInfo = new
-                {
-                    status = matchEntity.MatchStatus,
-                    isLive = matchEntity.IsLive,
-                    currentMinute = matchEvent.minute,
-                    lastEventTime = matchEvent.time_seconds,
-                    eventType = matchEvent.action,
-                    eventTeam = matchEvent.team,
-                },
-                lastUpdated = DateTime.UtcNow,
-            };
-            await _hubContext
-                .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
-                .SendMatchStatisticsAsync(
-                    "match_statistics_update",
+                    matchId = matchEntity.Id,
+                    timeStamp = matchEvent.timestamp,
+                    homeTeam = new
+                    {
+                        name = matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
+                        score = matchEntity.HomeTeamScore ?? 0,
+                        shots = matchEntity.MatchStatistics.HomeTeamShots ?? 0,
+                        shotsOnTarget = matchEntity.MatchStatistics.HomeTeamShotsOnTarget ?? 0,
+                        possession = matchEntity.MatchStatistics.HomeTeamPossession ?? 0,
+                        passes = matchEntity.MatchStatistics.HomeTeamPasses ?? 0,
+                        passAccuracy = matchEntity.MatchStatistics.HomeTeamPassAccuracy ?? 0,
+                        corners = matchEntity.MatchStatistics.HomeTeamCorners ?? 0,
+                        fouls = matchEntity.MatchStatistics.HomeTeamFouls ?? 0,
+                        yellowCards = matchEntity.MatchStatistics.HomeTeamYellowCards ?? 0,
+                        redCards = matchEntity.MatchStatistics.HomeTeamRedCards ?? 0,
+                        offsides = matchEntity.MatchStatistics.HomeTeamOffsides ?? 0,
+                    },
+                    awayTeam = new
+                    {
+                        name = matchEntity.AwayTeam?.Name ?? matchEntity.AwayTeamInMatchName,
+                        score = matchEntity.AwayTeamScore ?? 0,
+                        shots = matchEntity.MatchStatistics.AwayTeamShots ?? 0,
+                        shotsOnTarget = matchEntity.MatchStatistics.AwayTeamShotsOnTarget ?? 0,
+                        possession = matchEntity.MatchStatistics.AwayTeamPossession ?? 0,
+                        passes = matchEntity.MatchStatistics.AwayTeamPasses ?? 0,
+                        passAccuracy = matchEntity.MatchStatistics.AwayTeamPassAccuracy ?? 0,
+                        corners = matchEntity.MatchStatistics.AwayTeamCorners ?? 0,
+                        fouls = matchEntity.MatchStatistics.AwayTeamFouls ?? 0,
+                        yellowCards = matchEntity.MatchStatistics.AwayTeamYellowCards ?? 0,
+                        redCards = matchEntity.MatchStatistics.AwayTeamRedCards ?? 0,
+                        offsides = matchEntity.MatchStatistics.AwayTeamOffsides ?? 0,
+                    },
+                    matchInfo = new
+                    {
+                        status = matchEntity.MatchStatus,
+                        isLive = matchEntity.IsLive,
+                        currentMinute = matchEvent.minute,
+                        lastEventTime = matchEvent.time_seconds,
+                        eventType = matchEvent.action,
+                        eventTeam = matchEvent.team,
+                    },
+                    lastUpdated = DateTime.UtcNow,
+                };
+                await _hubContext
+                    .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
+                    .SendMatchStatisticsAsync(
+                        "match_statistics_update",
+                        matchEntity.Id,
+                        matchStatistics
+                    );
+                _logger.LogInformation(
+                    "Broadcasted match statistics for match {Id} at {Time}",
                     matchEntity.Id,
-                    matchStatistics
+                    DateTime.UtcNow
                 );
-            _logger.LogInformation(
-                "Broadcasted match statistics for match {Id} at {Time}",
-                matchEntity.Id,
-                DateTime.UtcNow
-            );
-            _logger.LogInformation(
-                "Match statistics: {Statistics}",
-                JsonSerializer.Serialize(matchStatistics)
-            );
+                _logger.LogInformation(
+                    "Match statistics: {Statistics}",
+                    JsonSerializer.Serialize(matchStatistics)
+                );
+            }
         }
         catch (Exception ex)
         {
@@ -749,10 +756,11 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             lock (_matchEventsCacheLock)
             {
-                if (!_matchEventsCache.TryGetValue(matchEvent.match_id, out var eventsList))
+                if (!_matchEventsCache.TryGetValue(matchEvent.match_id!, out var eventsList))
                 {
                     eventsList = [];
-                    _matchEventsCache[matchEvent.match_id] = eventsList;
+                    if (matchEvent.match_id != null)
+                        _matchEventsCache[matchEvent.match_id] = eventsList;
                 }
 
                 eventsList?.Add(matchEvent);
@@ -836,9 +844,7 @@ public class MatchEventRabbitMqClient : BackgroundService
                 matchId
             );
             foreach (var ev in events.OrderBy(e => e.time_seconds))
-            {
                 await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
-            }
 
             if (events.Any(e => e is { event_type: "match_end", action: "match_end" }))
             {

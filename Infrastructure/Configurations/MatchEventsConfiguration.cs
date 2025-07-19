@@ -33,6 +33,13 @@ public class MatchEventsConfiguration : IEntityTypeConfiguration<MatchEvents>
             .HasMethod("btree")
             .HasDatabaseName("IX_MatchEvents_LastUpdated");
 
+        // Configure relationships
+        builder
+            .HasOne(e => e.Match)
+            .WithOne(m => m.MatchEvents)
+            .HasForeignKey<MatchEvents>(e => e.MatchId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Set storage parameters for the large table
         builder.ToTable("MatchEvents", tb => tb.HasComment("Contains event data for matches"));
     }

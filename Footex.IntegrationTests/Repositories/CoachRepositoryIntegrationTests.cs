@@ -8,20 +8,15 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("Database")]
 public class CoachRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ICoachRepository _coachRepository;
-    private readonly IUnitOfWork _unitOfWork;
 
-    public CoachRepositoryIntegrationTests(
-        FootexWebApplicationFactory factory,
-        IUnitOfWork unitOfWork
-    )
+    public CoachRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _unitOfWork = unitOfWork;
-        _coachRepository = ServiceProvider.GetRequiredService<ICoachRepository>();
+        _coachRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<ICoachRepository>();
     }
 
     [Fact]
@@ -48,11 +43,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Assert
         coach.Id.Should().BeGreaterThan(0);
@@ -91,9 +86,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var result = await _coachRepository.GetByIdAsync(coach.Id);
@@ -164,11 +159,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach1);
         await _coachRepository.AddAsync(coach2);
         await _coachRepository.AddAsync(coach3);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Jose");
@@ -214,10 +209,10 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach1);
         await _coachRepository.AddAsync(coach2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Guardiola");
@@ -252,9 +247,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Jurgen Klopp");
@@ -300,10 +295,10 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(headCoach);
         await _coachRepository.AddAsync(assistantCoach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Assistant");
@@ -359,11 +354,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(spanishCoach1);
         await _coachRepository.AddAsync(spanishCoach2);
         await _coachRepository.AddAsync(germanCoach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Spain");
@@ -418,11 +413,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team2,
         };
 
-        await _unitOfWork.Teams.AddAsync(team1);
-        await _unitOfWork.Teams.AddAsync(team2);
+        await UnitOfWork.Teams.AddAsync(team1);
+        await UnitOfWork.Teams.AddAsync(team2);
         await _coachRepository.AddAsync(coach1);
         await _coachRepository.AddAsync(coach2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Manchester");
@@ -467,9 +462,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Team Coach");
@@ -507,9 +502,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         coach.FirstName = "Updated";
@@ -518,8 +513,8 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         coach.Role = "Head Coach";
         coach.YearsOfExperience = 15;
 
-        _coachRepository.UpdateAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        _coachRepository.Update(coach);
+        await UnitOfWork.SaveChangesAsync();
 
         // Assert
         var updatedCoach = await _coachRepository.GetByIdAsync(coach.Id);
@@ -555,15 +550,15 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         var coachId = coach.Id;
 
         // Act
-        _coachRepository.DeleteAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        _coachRepository.Delete(coach);
+        await UnitOfWork.SaveChangesAsync();
 
         // Assert
         var deletedCoach = await _coachRepository.GetByIdAsync(coachId);
@@ -616,10 +611,10 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             },
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         foreach (var coach in coaches)
             await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var allCoaches = await _coachRepository.GetAllAsync();
@@ -654,21 +649,21 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
-        await _unitOfWork.BeginTransactionAsync();
+        await UnitOfWork.BeginTransactionAsync();
 
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Verify coach exists within transaction
         var coachInTransaction = await _coachRepository.SearchAsync("Transaction Coach");
         coachInTransaction.Should().HaveCount(1);
 
         // Rollback
-        await _unitOfWork.RollbackTransactionAsync();
+        await UnitOfWork.RollbackTransactionAsync();
 
         // Assert
         var coachAfterRollback = await _coachRepository.SearchAsync("Transaction Coach");
@@ -720,11 +715,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(experiencedCoach1);
         await _coachRepository.AddAsync(experiencedCoach2);
         await _coachRepository.AddAsync(inexperiencedCoach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var experiencedCoaches = await _coachRepository.GetAsync(c => c.YearsOfExperience >= 20);
@@ -754,7 +749,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Assert
         coach.Id.Should().BeGreaterThan(0);
@@ -789,9 +784,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             Team = team,
         };
 
-        await _unitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.Teams.AddAsync(team);
         await _coachRepository.AddAsync(coach);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.SaveChangesAsync();
 
         // Act
         var upperCaseSearch = await _coachRepository.SearchAsync("uppercase");

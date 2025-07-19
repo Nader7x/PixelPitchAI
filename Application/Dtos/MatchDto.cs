@@ -62,15 +62,16 @@ public class CreateMatchDto
     public string? MatchStatus { get; set; } = "Scheduled";
 
     public string? CreatorId { get; set; }
+    public string? HomeTeamInMatchName { get; set; }
+    public string? AwayTeamInMatchName { get; set; }
 }
 
 public class UpdateMatchDto
 {
     public int Id { get; set; }
-    public int SeasonId { get; set; }
     public int HomeTeamId { get; set; }
     public int AwayTeamId { get; set; }
-    public DateTime ScheduledDateTimeUTC { get; set; }
+    public DateTime? ScheduledDateTimeUtc { get; set; }
     public int? StadiumId { get; set; }
     public int? MatchWeek { get; set; }
     public int? HomeCoachId { get; set; }
@@ -85,22 +86,6 @@ public class UpdateMatchDto
 
     // Match status and simulation tracking
     public string? MatchStatus { get; set; }
-
-    // Match statistics
-    public int? HomeTeamPossession { get; set; }
-    public int? AwayTeamPossession { get; set; }
-    public int? HomeTeamShots { get; set; }
-    public int? AwayTeamShots { get; set; }
-    public int? HomeTeamShotsOnTarget { get; set; }
-    public int? AwayTeamShotsOnTarget { get; set; }
-    public int? HomeTeamCorners { get; set; }
-    public int? AwayTeamCorners { get; set; }
-    public int? HomeTeamFouls { get; set; }
-    public int? AwayTeamFouls { get; set; }
-    public int? HomeTeamYellowCards { get; set; }
-    public int? AwayTeamYellowCards { get; set; }
-    public int? HomeTeamRedCards { get; set; }
-    public int? AwayTeamRedCards { get; set; }
 }
 
 public class MatchDetailsDto

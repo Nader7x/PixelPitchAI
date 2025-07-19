@@ -10,7 +10,7 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
 
     public async Task<Team?> GetByNameAsync(string? name)
     {
-        if (string.IsNullOrEmpty(name))
+        if (string.IsNullOrWhiteSpace(name))
             return null;
 
         return await _context
@@ -135,5 +135,10 @@ public class TeamRepository(FootballDbContext context) : Repository<Team>(contex
             .OrderBy(t => t.Name ?? "")
             .AsNoTracking()
             .ToListAsync();
+    }
+
+    public void ClearChangeTracker()
+    {
+        _context.ChangeTracker.Clear();
     }
 }

@@ -36,7 +36,7 @@ public partial class UserMapper : IUserMapper
         ResendEmailConfirmationDto dto
     );
 
-    public partial ApplicationUser ToUserFromRegister(RegisterUserCommand request);
+    public partial ApplicationUser? ToUserFromRegister(RegisterUserCommand request);
 
     public partial RegisterUserCommand ToRegisterCommandFromDto(RegisterUserDto dto);
 

@@ -2,7 +2,6 @@ using Application.CQRS.Stadiums.Commands;
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,10 +32,8 @@ public class StadiumsController(
     )
     {
         await _cacheService.RemoveAsync("stadiums_all_*");
-        // Generate a cache key based on the query parameters
         var cacheKey = $"stadiums_all_{country}_{city}";
 
-        // Try to get from cache first
         var cachedResult = await _cacheService.GetAsync<GetAllStadiumsQueryResponse>(cacheKey);
 
         if (cachedResult != null)
@@ -52,20 +49,20 @@ public class StadiumsController(
         if (!result.Succeeded)
             return BadRequest(result);
 
-        // Store in cache if successful
+        // Store in a cache if successful
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
 
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(GetStadiumByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetStadiumByIdQueryResponse>> GetStadiumById(int id)
     {
-        // Try to get from cache first
+        // Try to get from the cache first
         var cacheKey = $"stadium_{id}";
         var cachedResult = await _cacheService.GetAsync<GetStadiumByIdQueryResponse>(cacheKey);
 
@@ -86,7 +83,7 @@ public class StadiumsController(
             return BadRequest(result);
         }
 
-        // Store in cache if successful
+        // Store in a cache if successful
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
 
         Response.Headers.Append("X-Cache-Hit", "false");
@@ -102,13 +99,13 @@ public class StadiumsController(
     )
     {
         // Handle file upload if present
-        var imageUrl = stadiumDto.ImageUrl;
-        if (stadiumDto.Image != null)
-            imageUrl = await _fileStorageService.UploadImageAsync(stadiumDto.Image, CONTAINER_NAME);
+        if (stadiumDto.Image is not null)
+            stadiumDto.ImageUrl = await _fileStorageService.UploadImageAsync(
+                stadiumDto.Image,
+                CONTAINER_NAME
+            );
 
         var command = _stadiumMapper.ToCreateCommand(stadiumDto);
-        command.ImageUrl = imageUrl;
-
         var result = await _mediator.Send(command);
 
         if (!result.Succeeded)
@@ -120,7 +117,7 @@ public class StadiumsController(
         return CreatedAtAction(nameof(GetStadiumById), new { id = result.Id }, result);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(UpdateStadiumCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -130,7 +127,7 @@ public class StadiumsController(
         [FromForm] UpdateStadiumDto stadiumDto
     )
     {
-        // Get existing stadium to check if we need to replace the image
+        // Get the existing stadium to check if we need to replace the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
         var existingResult = await _mediator.Send(getQuery);
 
@@ -141,8 +138,8 @@ public class StadiumsController(
         var imageUrl = stadiumDto.ImageUrl;
         if (stadiumDto.Image != null)
         {
-            // Delete old image if it exists
-            if (!string.IsNullOrEmpty(existingResult.Stadium.ImageUrl))
+            // Delete an old image if it exists
+            if (!string.IsNullOrWhiteSpace(existingResult.Stadium?.ImageUrl))
                 await _fileStorageService.DeleteImageAsync(
                     existingResult.Stadium.ImageUrl,
                     CONTAINER_NAME
@@ -166,21 +163,21 @@ public class StadiumsController(
             return BadRequest(result);
         }
 
-        // Invalidate both the specific stadium cache and the stadiums list caches
+        // Invalidate both the specific stadium cache and the stadium list caches
         await _cacheService.RemoveAsync($"stadium_{id}");
         await InvalidateStadiumListCaches();
 
         return Ok(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DeleteStadiumCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DeleteStadiumCommandResponse>> DeleteStadium(int id)
     {
-        // Get existing stadium to delete the image
+        // Get the existing stadium to delete the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
         var existingResult = await _mediator.Send(getQuery);
 
@@ -205,7 +202,7 @@ public class StadiumsController(
             return BadRequest(result);
         }
 
-        // Invalidate both the specific stadium cache and the stadiums list caches
+        // Invalidate both the specific stadium cache and the stadium list caches
         await _cacheService.RemoveAsync($"stadium_{id}");
         await InvalidateStadiumListCaches();
 

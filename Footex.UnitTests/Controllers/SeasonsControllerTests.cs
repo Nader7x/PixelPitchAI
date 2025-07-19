@@ -1,10 +1,7 @@
 using System.Security.Claims;
-using Application.CQRS.Seasons.Commands;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
-using Application.Services;
 using AutoFixture;
 using Domain.Models;
 using FluentAssertions;
@@ -20,12 +17,12 @@ namespace Footex.UnitTests.Controllers;
 
 public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<ISeasonMapper> _seasonMapperMock;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly SeasonsController _controller;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ISeasonMapper> _seasonMapperMock;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public SeasonsControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -392,7 +389,7 @@ public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
         var expectedResponse = new GetSeasonTeamsQueryResponse
         {
             Succeeded = false,
-            error = "Not Found",
+            Error = "Not Found",
         };
 
         _cacheServiceMock
@@ -423,7 +420,7 @@ public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
         var expectedResponse = new GetSeasonTeamsQueryResponse
         {
             Succeeded = false,
-            error = "Mediator failure",
+            Error = "Mediator failure",
         };
 
         _cacheServiceMock

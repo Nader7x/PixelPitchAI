@@ -96,7 +96,12 @@ public class CreateSeasonCommandHandlerTests
         var existingSeason = _fixture.Create<Season>();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.FindAsync(It.IsAny<Expression<Func<Season, bool>>>()))
+            .Setup(x =>
+                x.Seasons.FindAsync(
+                    s => s.Name.ToLower() == command.Name.ToLower(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(existingSeason);
 
         // Act
@@ -121,8 +126,15 @@ public class CreateSeasonCommandHandlerTests
         var activeSeason = _fixture.Create<Season>();
 
         _unitOfWorkMock
-            .SetupSequence(x => x.Seasons.FindAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync((Season?)null)
+            .SetupSequence(x =>
+                x.Seasons.FindAsync(
+                    s =>
+                        s.LeagueName == command.LeagueName
+                        && s.Country == command.Country
+                        && s.IsActive,
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(activeSeason);
 
         // Act

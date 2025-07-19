@@ -1,4 +1,5 @@
 using Application.CQRS.Auth.Commands;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -17,12 +18,14 @@ public class UpdateUserCommandHandlerTests
     private readonly Mock<IApplicationUserRepository> _mockApplicationUserRepository;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<IUserMapper> _mockUserMapper;
 
     public UpdateUserCommandHandlerTests()
     {
         _fixture = new NoRecursionFixture();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockApplicationUserRepository = new Mock<IApplicationUserRepository>();
+        _mockUserMapper = new Mock<IUserMapper>();
 
         // Create mock UserManager with required dependencies
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
@@ -43,7 +46,11 @@ public class UpdateUserCommandHandlerTests
             .Setup(x => x.ApplicationUser)
             .Returns(_mockApplicationUserRepository.Object);
 
-        _handler = new UpdateUserCommandHandler(_mockUnitOfWork.Object, _mockUserManager.Object);
+        _handler = new UpdateUserCommandHandler(
+            _mockUnitOfWork.Object,
+            _mockUserManager.Object,
+            _mockUserMapper.Object
+        );
     }
 
     [Fact]
@@ -77,6 +84,32 @@ public class UpdateUserCommandHandlerTests
         _mockUnitOfWork
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
+        _mockUserMapper
+            .Setup(x =>
+                x.UpdateUserFromCommand(It.IsAny<UpdateUserCommand>(), It.IsAny<ApplicationUser>())
+            )
+            .Callback<UpdateUserCommand, ApplicationUser>(
+                (updateUserCommand, applicationUser) =>
+                {
+                    if (updateUserCommand.FirstName != null)
+                        applicationUser.FirstName = updateUserCommand.FirstName;
+                    if (updateUserCommand.LastName != null)
+                        applicationUser.LastName = updateUserCommand.LastName;
+                    if (updateUserCommand.Gender != null)
+                        applicationUser.Gender = updateUserCommand.Gender;
+                    if (updateUserCommand.Age != null)
+                        applicationUser.Age = updateUserCommand.Age.Value;
+                    if (updateUserCommand.ImageUrl != null)
+                        applicationUser.ImageUrl = updateUserCommand.ImageUrl;
+                    applicationUser.Id = updateUserCommand.Id;
+                    if (updateUserCommand.UserName != null)
+                        applicationUser.UserName = updateUserCommand.UserName;
+                    if (updateUserCommand.Email != null)
+                        applicationUser.Email = updateUserCommand.Email;
+                    if (updateUserCommand.PhoneNumber != null)
+                        applicationUser.PhoneNumber = updateUserCommand.PhoneNumber;
+                }
+            );
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

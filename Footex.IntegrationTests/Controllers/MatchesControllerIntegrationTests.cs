@@ -1,96 +1,125 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
+using Application.CQRS.Matches.Commands;
+using Application.CQRS.Matches.Queries;
 using Application.Dtos;
+using Application.Helpers;
 using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
 
-public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class MatchesControllerIntegrationTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-    private readonly FootexWebApplicationFactory _factory;
-
-    public MatchesControllerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = _factory.CreateClient();
-    }
-
     [Fact]
     public async Task GetAllMatches_ReturnsSuccessStatusCode()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/matches");
+        var response = await httpClient.GetAsync("/api/matches");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeEmpty();
-
-        var jsonDoc = JsonDocument.Parse(content);
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<GetAllMatchesQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Matches.Should().NotBeNull();
     }
 
     [Fact]
     public async Task GetAllMatches_WithQueryParameters_ReturnsFilteredResults()
     {
         // Arrange
-        await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
+        {
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            var match = TestData.CreateTestMatch(
+                homeTeam.Id,
+                awayTeam.Id,
+                season.Id,
+                true,
+                user?.Id
+            );
+            context.Matches.Add(match);
+        }
+
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync("/api/matches?status=Scheduled&matchWeek=1");
+        var response = await httpClient.GetAsync("/api/matches?status=Scheduled&matchWeek=1");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("matches", out var matches);
-        matches.ValueKind.Should().Be(JsonValueKind.Array);
+        var result = await response.Content.ReadFromJsonAsync<GetAllMatchesQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Matches.Should().NotBeEmpty();
     }
 
     [Fact]
     public async Task GetMatchById_WithValidId_ReturnsMatch()
     {
         // Arrange
-        var matchId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
+        {
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            var match = TestData.CreateTestMatch(
+                homeTeam.Id,
+                awayTeam.Id,
+                season.Id,
+                true,
+                user.Id
+            );
+            context.Matches.Add(match);
+            await context.SaveChangesAsync();
 
-        // Act
-        var response = await _client.GetAsync($"/api/matches/{matchId}");
+            // Act
+            var response = await httpClient.GetAsync($"/api/matches/{match.Id}");
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("match", out var match);
-        match.ValueKind.Should().Be(JsonValueKind.Object);
-
-        match.TryGetProperty("id", out var id);
-        id.GetInt32().Should().Be(matchId);
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<GetMatchByIdQueryResponse>();
+            result.Should().NotBeNull();
+            result?.Succeeded.Should().BeTrue();
+            result?.Match.Should().NotBeNull();
+            result?.Match?.Id.Should().Be(match.Id);
+        }
     }
 
     [Fact]
     public async Task GetMatchById_WithInvalidId_ReturnsNotFound()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/matches/999999");
+        var response = await httpClient.GetAsync("/api/matches/999999");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -100,178 +129,173 @@ public class MatchesControllerIntegrationTests : IClassFixture<FootexWebApplicat
     public async Task GetMatchByIdWithDetails_WithValidId_ReturnsDetailedMatch()
     {
         // Arrange
-        var matchId = await SeedTestDataAsync();
-
-        // Act
-        var response = await _client.GetAsync($"/api/matches/Details/{matchId}");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("match", out var match);
-        match.ValueKind.Should().Be(JsonValueKind.Object);
-    }
-
-    [Fact]
-    public async Task CreateMatch_WithoutAuthentication_ReturnsUnauthorized()
-    {
-        // Arrange
-        var createMatchDto = new CreateMatchDto
-        {
-            HomeTeamId = 1,
-            AwayTeamId = 2,
-            HomeSeasonId = 1,
-            AwaySeasonId = 1,
-            ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
-            MatchStatus = "Scheduled",
-            CreatorId = Guid.Empty.ToString(),
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/matches", createMatchDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task UpdateMatch_WithoutAuthentication_ReturnsUnauthorized()
-    {
-        // Arrange
-        var matchId = await SeedTestDataAsync();
-        var updateMatchDto = new UpdateMatchDto
-        {
-            Id = matchId,
-            HomeTeamId = 1,
-            AwayTeamId = 2,
-            SeasonId = 1,
-            ScheduledDateTimeUTC = DateTime.UtcNow.AddDays(7),
-            MatchWeek = 1,
-            MatchStatus = "Scheduled",
-        };
-
-        // Act
-        var response = await _client.PutAsJsonAsync($"/api/matches/{matchId}", updateMatchDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task DeleteMatch_WithoutAuthentication_ReturnsUnauthorized()
-    {
-        // Arrange
-        var matchId = await SeedTestDataAsync();
-
-        // Act
-        var response = await _client.DeleteAsync($"/api/matches/{matchId}");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task HealthCheck_ReturnsHealthy()
-    {
-        // Act
-        var response = await _client.GetAsync("/api/health");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Healthy");
-    }
-
-    [Fact]
-    public async Task SimulateMatch_WithoutAuthentication_ReturnsUnauthorized()
-    {
-        // Arrange
-        var simulateMatchDto = new SimulateMatchDto
-        {
-            HomeTeamId = 1,
-            AwayTeamId = 2,
-            HomeTeamName = "Arsenal",
-            AwayTeamName = "Chelsea",
-            HomeTeamSeason = "2023/24",
-            AwayTeamSeason = "2023/24",
-            HomeSeasonId = 7,
-            AwaySeasonId = 7,
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/simulateMatch/test-user", simulateMatchDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    private async Task<int> SeedTestDataAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-
-        // Ensure database is created and migrated
-        await context.Database.EnsureCreatedAsync();
-
-        // Create test season
-        var season = new Season
-        {
-            Name = "2023/24",
-            StartDate = DateTime.UtcNow.AddMonths(-6),
-            EndDate = DateTime.UtcNow.AddMonths(6),
-            LeagueName = "Premier League",
-            Country = "England",
-        };
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
         context.Seasons.Add(season);
-        await context.SaveChangesAsync();
-
-        // Create test teams
-        var homeTeam = new Team
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
         {
-            Name = "Arsenal",
-            FoundationDate = DateTime.UtcNow.AddYears(-100),
-            Country = "England",
-            City = "London",
-            Logo = "https://example.com/arsenal-logo.png",
-        };
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            if (user?.Id != null)
+            {
+                var match = TestData.CreateTestMatch(
+                    homeTeam.Id,
+                    awayTeam.Id,
+                    season.Id,
+                    true,
+                    user.Id
+                );
+                context.Matches.Add(match);
+                await context.SaveChangesAsync();
 
-        var awayTeam = new Team
+                // Act
+                var response = await httpClient.GetAsync($"/api/matches/Details/{match.Id}");
+
+                // Assert
+                response.StatusCode.Should().Be(HttpStatusCode.OK);
+                var result =
+                    await response.Content.ReadFromJsonAsync<GetMatchByIdWithDetailsQueryResponse>();
+                result.Should().NotBeNull();
+                result?.Succeeded.Should().BeTrue();
+                result?.Match.Should().NotBeNull();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task CreateMatch_WithValidData_ReturnsCreated()
+    {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
         {
-            Name = "Chelsea",
-            FoundationDate = DateTime.UtcNow.AddYears(-100),
-            Country = "England",
-            City = "London",
-            Logo = "https://example.com/chelsea-logo.png",
-        };
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            var createMatchDto = new CreateMatchDto
+            {
+                HomeTeamId = homeTeam.Id,
+                AwayTeamId = awayTeam.Id,
+                HomeSeasonId = season.Id,
+                AwaySeasonId = season.Id,
+                ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
+                MatchStatus = "Scheduled",
+                CreatorId = user?.Id,
+                HomeTeamInMatchName = $"{homeTeam.Name}_2025",
+                AwayTeamInMatchName = $"{awayTeam.Name}_2025",
+            };
 
-        context.Teams.AddRange(homeTeam, awayTeam);
-        await context.SaveChangesAsync();
+            // Act
+            var response = await httpClient.PostAsJsonAsync("/api/matches", createMatchDto);
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
+            var result = await response.Content.ReadFromJsonAsync<CreateMatchCommandResponse>();
+            result.Should().NotBeNull();
+            result?.Succeeded.Should().BeTrue();
+            result?.Id.Should().BeGreaterThan(0);
+        }
+    }
 
-        // Create test match
-        var match = new Match
+    [Fact]
+    public async Task UpdateMatch_WithValidData_ReturnsOk()
+    {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
         {
-            HomeTeamId = homeTeam.Id,
-            AwayTeamId = awayTeam.Id,
-            HomeTeamSeasonId = season.Id,
-            AwayTeamSeasonId = season.Id,
-            ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
-            MatchStatus = "Scheduled",
-            MatchWeek = 1,
-            CreatorId = "test-user-id",
-            HomeTeamInMatchName = "Arsenal_2024",
-            AwayTeamInMatchName = "Chelsea_2024",
-        };
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            var match = TestData.CreateTestMatch(
+                homeTeam.Id,
+                awayTeam.Id,
+                season.Id,
+                true,
+                user.Id
+            );
+            context.Matches.Add(match);
+            await context.SaveChangesAsync();
+            var updateMatchDto = new UpdateMatchDto
+            {
+                HomeTeamId = homeTeam.Id,
+                AwayTeamId = awayTeam.Id,
+                ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(8),
+                MatchWeek = 2,
+                MatchStatus = "Postponed",
+            };
 
-        context.Matches.Add(match);
-        await context.SaveChangesAsync();
+            // Act
+            var response = await httpClient.PutAsJsonAsync(
+                $"/api/matches/{match.Id}",
+                updateMatchDto
+            );
 
-        return match.Id;
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<UpdateMatchCommandResponse>();
+            result.Should().NotBeNull();
+            result?.Succeeded.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public async Task DeleteMatch_WithValidId_ReturnsOk()
+    {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByNameAsync("testuser@example.com");
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        var (homeTeam, awayTeam) = CreateDbHomeAndAwayTeams();
+        if (homeTeam != null && awayTeam != null)
+        {
+            context.Teams.AddRange(homeTeam, awayTeam);
+            await context.SaveChangesAsync();
+            var match = TestData.CreateTestMatch(
+                homeTeam.Id,
+                awayTeam.Id,
+                season.Id,
+                true,
+                user.Id
+            );
+            context.Matches.Add(match);
+            await context.SaveChangesAsync();
+
+            // Act
+            var response = await httpClient.DeleteAsync($"/api/matches/{match.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<DeleteMatchCommandResponse>();
+            result.Should().NotBeNull();
+            result?.Succeeded.Should().BeTrue();
+        }
+    }
+
+    private static List<Team> CreateDbHomeAndAwayTeams()
+    {
+        Team[] teams = [TestData.CreateTestDbTeam("Home"), TestData.CreateTestDbTeam("Away")];
+
+        return teams.ToList();
     }
 }

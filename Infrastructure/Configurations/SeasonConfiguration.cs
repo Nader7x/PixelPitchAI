@@ -10,7 +10,7 @@ public class SeasonConfiguration : IEntityTypeConfiguration<Season>
     {
         builder.HasKey(s => s.Id);
 
-        // Use appropriate PostgreSQL types
+        // Use appropriate PostgresSQL types
         builder.Property(s => s.Name).IsRequired().HasMaxLength(100).HasColumnType("varchar(100)");
         builder.Property(s => s.LeagueName).HasMaxLength(50).HasColumnType("varchar(50)");
         builder.Property(s => s.Country).HasMaxLength(50).HasColumnType("varchar(50)");

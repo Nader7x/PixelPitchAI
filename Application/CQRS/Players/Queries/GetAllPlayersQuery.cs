@@ -1,14 +1,13 @@
 using Application.Dtos;
 using Application.Interfaces;
 using Domain.Interfaces;
-using Domain.Models;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.Players.Queries;
 
 public class GetAllPlayersQuery : IRequest<GetAllPlayersQueryResponse>
 {
-    // Optional parameters for filtering
     public string? Nationality { get; set; }
 
     public string? PreferredFoot { get; set; }
@@ -19,9 +18,9 @@ public class GetAllPlayersQuery : IRequest<GetAllPlayersQueryResponse>
 
 public class GetAllPlayersQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public List<PlayerDto>? Players { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public List<PlayerDto>? Players { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
@@ -36,23 +35,27 @@ public class GetAllPlayersQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper pla
     {
         try
         {
-            IEnumerable<Player> players;
+            var players = unitOfWork.Players.GetQueryable();
 
-            // Apply filters if provided
             if (!string.IsNullOrWhiteSpace(request.Nationality))
-                players = await unitOfWork.Players.GetByNationalityAsync(request.Nationality);
-            else if (!string.IsNullOrWhiteSpace(request.PreferredFoot))
-                players = await unitOfWork.Players.GetByPreferredFootAsync(request.PreferredFoot);
-            else if (request.TeamId is > 0)
-                players = await unitOfWork.Players.GetAllAsync(p =>
-                    p.TeamId == request.TeamId.Value
+                players = players.Where(p =>
+                    p.Nationality!.ToLower() == request.Nationality.ToLower()
                 );
-            else
-                players = await unitOfWork.Players.GetAllAsync(
-                    request.PageNumber,
-                    request.PageSize
+            if (!string.IsNullOrWhiteSpace(request.PreferredFoot))
+                players = players.Where(p =>
+                    p.PreferredFoot!.ToLower() == request.PreferredFoot.ToLower()
                 );
-            var playerDtoS = _playerMapper.ToDtoList(players);
+            players = request.TeamId is > 0
+                ? players.Where(p => p.TeamId == request.TeamId)
+                : players.OrderBy(p => p.Id);
+            var playerDtoS = _playerMapper.ToDtoList(await players.ToListAsync(cancellationToken));
+            if (request is { PageNumber: not null, PageSize: not null })
+            {
+                playerDtoS = playerDtoS
+                    .Skip((request.PageNumber.Value - 1) * request.PageSize.Value)
+                    .Take(request.PageSize.Value)
+                    .ToList();
+            }
             return new GetAllPlayersQueryResponse { Succeeded = true, Players = playerDtoS };
         }
         catch (Exception ex)

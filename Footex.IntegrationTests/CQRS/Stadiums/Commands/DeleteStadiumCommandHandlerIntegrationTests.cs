@@ -8,36 +8,27 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Stadiums.Commands;
 
-public class DeleteStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
+public class DeleteStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly IMediator _mediator;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public DeleteStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _mediator = factory.Services.GetRequiredService<IMediator>();
-        _unitOfWork = factory.Services.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidDeleteCommand_DeletesStadiumSuccessfully()
     {
         // Arrange
         var stadium = TestData.CreateTestDbStadium("DeleteTest");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new DeleteStadiumCommand { Id = stadium.Id };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
 
-        var deletedStadium = await _unitOfWork.Stadiums.GetByIdAsync(stadium.Id);
+        var deletedStadium = await UnitOfWork.Stadiums.GetByIdAsync(stadium.Id);
         deletedStadium.Should().BeNull();
     }
 
@@ -48,7 +39,7 @@ public class DeleteStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         var command = new DeleteStadiumCommand { Id = 999999 };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeFalse();
@@ -61,16 +52,16 @@ public class DeleteStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var stadium = TestData.CreateTestDbStadium("DeleteTwiceTest");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new DeleteStadiumCommand { Id = stadium.Id };
         // First delete
-        var firstResult = await _mediator.Send(command, CancellationToken.None);
+        var firstResult = await Mediator.Send(command, CancellationToken.None);
         firstResult.Succeeded.Should().BeTrue();
 
         // Act: Try to delete again
-        var secondResult = await _mediator.Send(command, CancellationToken.None);
+        var secondResult = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         secondResult.Succeeded.Should().BeFalse();

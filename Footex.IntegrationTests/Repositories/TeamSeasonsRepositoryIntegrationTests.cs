@@ -2,6 +2,7 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -9,12 +10,13 @@ namespace Footex.IntegrationTests.Repositories;
 
 public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 {
-    private readonly ITeamSeasonsRepository _repository;
+    private readonly ITeamSeasonsRepository _teamSeasonsRepository;
 
     public TeamSeasonsRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _repository = ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
+        _teamSeasonsRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
     }
 
     [Fact]
@@ -26,7 +28,8 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamSeason = CreateValidTeamSeason(team.Id, season.Id);
 
         // Act
-        var entityEntry = await _repository.AddAsync(teamSeason);
+        var entityEntry = await _teamSeasonsRepository.AddAsync(teamSeason);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -43,9 +46,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var teamSeason = await SeedTeamSeasonAsync();
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(teamSeason.Id);
+        var result = await _teamSeasonsRepository.GetByIdAsync(teamSeason.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -58,7 +62,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByIdAsync_WhenTeamSeasonDoesNotExist_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByIdAsync(999);
+        var result = await _teamSeasonsRepository.GetByIdAsync(999);
 
         // Assert
         result.Should().BeNull();
@@ -74,9 +78,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 
         var teamSeason1 = await SeedTeamSeasonAsync(team.Id, season1.Id);
         var teamSeason2 = await SeedTeamSeasonAsync(team.Id, season2.Id);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetSeasonsByTeamIdAsync(team.Id);
+        var result = await _teamSeasonsRepository.GetSeasonsByTeamIdAsync(team.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -97,7 +102,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var team = await SeedTeamAsync();
 
         // Act
-        var result = await _repository.GetSeasonsByTeamIdAsync(team.Id);
+        var result = await _teamSeasonsRepository.GetSeasonsByTeamIdAsync(team.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -109,9 +114,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var teamSeason = await SeedTeamSeasonAsync();
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByTeamAndSeasonIdAsync(
+        var result = await _teamSeasonsRepository.GetByTeamAndSeasonIdAsync(
             teamSeason.TeamId,
             teamSeason.SeasonId
         );
@@ -127,7 +133,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByTeamAndSeasonIdAsync_WhenTeamSeasonDoesNotExist_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByTeamAndSeasonIdAsync(999, 999);
+        var result = await _teamSeasonsRepository.GetByTeamAndSeasonIdAsync(999, 999);
 
         // Assert
         result.Should().BeNull();
@@ -143,9 +149,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 
         var teamSeason1 = await SeedTeamSeasonAsync(team1.Id, season.Id);
         var teamSeason2 = await SeedTeamSeasonAsync(team2.Id, season.Id);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetTeamsBySeasonIdAsync(season.Id);
+        var result = await _teamSeasonsRepository.GetTeamsBySeasonIdAsync(season.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -166,7 +173,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var season = await SeedSeasonAsync();
 
         // Act
-        var result = await _repository.GetTeamsBySeasonIdAsync(season.Id);
+        var result = await _teamSeasonsRepository.GetTeamsBySeasonIdAsync(season.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -178,6 +185,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var teamSeason = await SeedTeamSeasonAsync();
+        await Context.SaveChangesAsync();
         var originalUpdatedAt = teamSeason.UpdatedAt;
 
         // Wait to ensure different timestamp
@@ -185,7 +193,8 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         teamSeason.UpdatedAt = DateTime.UtcNow;
-        var entityEntry = _repository.UpdateAsync(teamSeason);
+        var entityEntry = _teamSeasonsRepository.Update(teamSeason);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -201,10 +210,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var teamSeason = await SeedTeamSeasonAsync();
 
         // Act
-        _repository.DeleteAsync(teamSeason);
+        _teamSeasonsRepository.Delete(teamSeason);
 
         // Assert
-        var deletedTeamSeason = await _repository.GetByIdAsync(teamSeason.Id);
+        var deletedTeamSeason = await _teamSeasonsRepository.GetByIdAsync(teamSeason.Id);
         deletedTeamSeason.Should().BeNull();
     }
 
@@ -214,26 +223,29 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var teamSeason1 = await SeedTeamSeasonAsync();
         var teamSeason2 = await SeedTeamSeasonAsync();
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _teamSeasonsRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        result.Should().Contain(ts => ts.Id == teamSeason1.Id);
-        result.Should().Contain(ts => ts.Id == teamSeason2.Id);
+        var teamSeasons = result as TeamSeason[] ?? result.ToArray();
+        teamSeasons.Should().NotBeNull();
+        teamSeasons.Should().HaveCountGreaterOrEqualTo(2);
+        teamSeasons.Should().Contain(ts => ts.Id == teamSeason1.Id);
+        teamSeasons.Should().Contain(ts => ts.Id == teamSeason2.Id);
     }
 
     [Fact]
     public async Task GetAllAsync_WhenNoTeamSeasons_ShouldReturnEmptyList()
     {
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _teamSeasonsRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
+        var teamSeasons = result as TeamSeason[] ?? result.ToArray();
+        teamSeasons.Should().NotBeNull();
+        teamSeasons.Should().BeEmpty();
     }
 
     [Fact]
@@ -244,14 +256,16 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         var season = await SeedSeasonAsync();
 
         var teamSeason1 = CreateValidTeamSeason(team.Id, season.Id);
-        await _repository.AddAsync(teamSeason1);
+        await _teamSeasonsRepository.AddAsync(teamSeason1);
+        await Context.SaveChangesAsync();
 
         var teamSeason2 = CreateValidTeamSeason(team.Id, season.Id);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(async () =>
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(async () =>
         {
-            await _repository.AddAsync(teamSeason2);
+            await _teamSeasonsRepository.AddAsync(teamSeason2);
+            await Context.SaveChangesAsync();
         });
 
         exception.Should().NotBeNull();
@@ -269,9 +283,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         await SeedTeamSeasonAsync(team.Id, season3.Id);
         await SeedTeamSeasonAsync(team.Id, season1.Id);
         await SeedTeamSeasonAsync(team.Id, season2.Id);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetSeasonsByTeamIdAsync(team.Id);
+        var result = await _teamSeasonsRepository.GetSeasonsByTeamIdAsync(team.Id);
 
         // Assert
         result.Should().HaveCount(3);
@@ -295,9 +310,10 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         await SeedTeamSeasonAsync(teamC.Id, season.Id);
         await SeedTeamSeasonAsync(teamA.Id, season.Id);
         await SeedTeamSeasonAsync(teamB.Id, season.Id);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetTeamsBySeasonIdAsync(season.Id);
+        var result = await _teamSeasonsRepository.GetTeamsBySeasonIdAsync(season.Id);
 
         // Assert
         result.Should().HaveCount(3);
@@ -310,23 +326,23 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     }
 
     // Helper methods for seeding test data
-    private async Task<TeamSeasons> SeedTeamSeasonAsync()
+    private async Task<TeamSeason> SeedTeamSeasonAsync()
     {
-        var team = await SeedTeamAsync();
-        var season = await SeedSeasonAsync();
+        var team = await SeedTeamAsync(Guid.NewGuid().ToString());
+        var season = await SeedSeasonAsync(Guid.NewGuid().ToString());
         return await SeedTeamSeasonAsync(team.Id, season.Id);
     }
 
-    private async Task<TeamSeasons> SeedTeamSeasonAsync(int teamId, int seasonId)
+    private async Task<TeamSeason> SeedTeamSeasonAsync(int teamId, int seasonId)
     {
         var teamSeason = CreateValidTeamSeason(teamId, seasonId);
-        var teamEntity = await _repository.AddAsync(teamSeason);
+        var teamEntity = await _teamSeasonsRepository.AddAsync(teamSeason);
         return teamEntity.Entity;
     }
 
-    private TeamSeasons CreateValidTeamSeason(int teamId, int seasonId)
+    private TeamSeason CreateValidTeamSeason(int teamId, int seasonId)
     {
-        return new TeamSeasons
+        return new TeamSeason
         {
             TeamId = teamId,
             SeasonId = seasonId,

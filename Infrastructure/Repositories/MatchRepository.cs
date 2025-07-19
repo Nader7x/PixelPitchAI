@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Domain.Models;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -68,9 +67,10 @@ public class MatchRepository(FootballDbContext context)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
-            .Where(m => m.ScheduledDateTimeUtc <= now && m.MatchStatus == "Completed")
+            .Where(m => m.ScheduledDateTimeUtc <= now)
             .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .Take(count)
+            .AsSplitQuery()
             .ToListAsync();
     }
 
@@ -84,6 +84,7 @@ public class MatchRepository(FootballDbContext context)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
+            .AsSplitQuery()
             .Where(m => m.MatchStatus != null && m.MatchStatus.ToLower() == status.ToLower())
             .OrderByDescending(m => m.ScheduledDateTimeUtc)
             .AsNoTracking()
@@ -93,13 +94,13 @@ public class MatchRepository(FootballDbContext context)
     public async Task<IReadOnlyList<Match>> GetAllWithDetailsAsync()
     {
         var query = _context.Matches.AsQueryable();
-        // Apply any additional filters or sorting if needed
         return await query
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.HomeTeamSeason)
             .Include(m => m.AwayTeamSeason)
             .Include(m => m.Stadium)
+            .AsSplitQuery()
             .ToListAsync();
     }
 
@@ -113,13 +114,15 @@ public class MatchRepository(FootballDbContext context)
             .Include(m => m.Stadium)
             .Include(m => m.Creator)
             .Include(m => m.MatchEvents)
-            .FirstOrDefaultAsync(m => m != null && m.Id == matchId);
+            .Include(m => m.MatchStatistics)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.Id == matchId);
     }
 
     public async Task<IEnumerable<Match>> SearchAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
-            return Enumerable.Empty<Match>();
+            return [];
 
         var searchTerm = query.ToLower().Trim();
 
@@ -136,11 +139,11 @@ public class MatchRepository(FootballDbContext context)
                     && m.AwayTeam.Name.ToLower().Contains(searchTerm)
                 )
             )
-            .AsSplitQuery()
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
             .Include(m => m.Stadium)
             .AsNoTracking()
+            .AsSplitQuery()
             .ToListAsync();
     }
 
@@ -157,6 +160,8 @@ public class MatchRepository(FootballDbContext context)
             .Matches.Where(m => m.IsLive && m.CreatorId == requestUserId)
             .Include(m => m.HomeTeam)
             .Include(m => m.AwayTeam)
+            .Include(m => m.MatchStatistics)
+            .AsSplitQuery()
             .FirstOrDefaultAsync();
     }
 

@@ -2,8 +2,8 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [ main ]
+    tags: [ "v*" ]
   workflow_dispatch:
     inputs:
       environment:
@@ -130,7 +130,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [pre-deployment, build-and-push]
+    needs: [ pre-deployment, build-and-push ]
     if: needs.pre-deployment.outputs.target_environment == 'staging'
     # Environment URL: https://footex-staging.yourdomain.com
 
@@ -187,7 +187,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [pre-deployment, build-and-push]
+    needs: [ pre-deployment, build-and-push ]
     if: needs.pre-deployment.outputs.target_environment == 'production'
     # Environment URL: https://footex.yourdomain.com
 
@@ -249,7 +249,7 @@ jobs:
   post-deployment-tests:
     name: Post-deployment Tests
     runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
+    needs: [ deploy-staging, deploy-production ]
     if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
 
     steps:
@@ -357,7 +357,7 @@ jobs:
     name: Rollback on Failure
     runs-on: ubuntu-latest
     needs:
-      [pre-deployment, deploy-staging, deploy-production, post-deployment-tests]
+      [ pre-deployment, deploy-staging, deploy-production, post-deployment-tests ]
     if: |
       always() && 
       needs.pre-deployment.outputs.should_deploy == 'true' && 

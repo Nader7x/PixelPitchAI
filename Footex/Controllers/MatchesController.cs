@@ -8,7 +8,6 @@ using Application.CQRS.Notifications.Commands;
 using Application.Dtos;
 using Application.Helpers;
 using Application.Interfaces;
-using Application.Mappers;
 using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
@@ -39,8 +38,10 @@ public class MatchesController(
 ) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
+
     private readonly IHubContext<NotificationService, INotificationService> _hubContext =
         hubContext;
+
     private readonly ILogger<MatchesController> _logger = logger;
     private readonly IMatchMapper _matchMapper = matchMapper;
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
@@ -185,7 +186,6 @@ public class MatchesController(
         if (!result.Succeeded)
             return BadRequest(result);
 
-        // Invalidate matches list cache when creating a new match
         await InvalidateMatchListCaches();
 
         return CreatedAtAction(nameof(GetMatchById), new { id = result.Id }, result);
@@ -201,54 +201,23 @@ public class MatchesController(
         [FromBody] UpdateMatchDto matchDto
     )
     {
-        if (id != matchDto.Id)
-            return BadRequest(new { error = "ID in URL does not match ID in request body" });
-
-        var command = new UpdateMatchCommand
-        {
-            Id = matchDto.Id,
-            HomeSeasonId = matchDto.SeasonId,
-            AwaySeasonId = matchDto.SeasonId,
-            HomeTeamId = matchDto.HomeTeamId,
-            AwayTeamId = matchDto.AwayTeamId,
-            ScheduledDateTimeUtc = matchDto.ScheduledDateTimeUTC,
-            StadiumId = matchDto.StadiumId,
-            MatchWeek = matchDto.MatchWeek,
-            HomeCoachId = matchDto.HomeCoachId,
-            AwayCoachId = matchDto.AwayCoachId,
-            HomeTeamScore = matchDto.HomeTeamScore,
-            AwayTeamScore = matchDto.AwayTeamScore,
-            WinningTeamId = matchDto.WinningTeamId,
-            LosingTeamId = matchDto.LosingTeamId,
-            IsDraw = matchDto.IsDraw,
-            MatchStatus = matchDto.MatchStatus,
-            HomeTeamPossession = matchDto.HomeTeamPossession,
-            AwayTeamPossession = matchDto.AwayTeamPossession,
-            HomeTeamShots = matchDto.HomeTeamShots,
-            AwayTeamShots = matchDto.AwayTeamShots,
-            HomeTeamShotsOnTarget = matchDto.HomeTeamShotsOnTarget,
-            AwayTeamShotsOnTarget = matchDto.AwayTeamShotsOnTarget,
-            HomeTeamCorners = matchDto.HomeTeamCorners,
-            AwayTeamCorners = matchDto.AwayTeamCorners,
-            HomeTeamFouls = matchDto.HomeTeamFouls,
-            AwayTeamFouls = matchDto.AwayTeamFouls,
-            HomeTeamYellowCards = matchDto.HomeTeamYellowCards,
-            AwayTeamYellowCards = matchDto.AwayTeamYellowCards,
-            HomeTeamRedCards = matchDto.HomeTeamRedCards,
-            AwayTeamRedCards = matchDto.AwayTeamRedCards,
-        };
+        var command = _matchMapper.ToUpdateCommand(matchDto);
+        command.Id = id;
 
         var result = await mediator.Send(command);
 
         if (result.Succeeded)
+        {
+            await InvalidateMatchListCaches();
             return Ok(result);
+        }
         if (result.NotFound)
             return NotFound(result);
 
         return BadRequest(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DeleteMatchCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -266,20 +235,17 @@ public class MatchesController(
             return BadRequest(result);
         }
 
-        // Invalidate both specific match caches and all list caches that might include this match
-        await _cacheService.RemoveAsync($"match_{id}");
-        await _cacheService.RemoveAsync($"match_details_{id}");
         await InvalidateMatchListCaches();
 
         return Ok(result);
     }
 
-    // Helper method to invalidate all match-related list caches
     [NonAction]
     private async Task InvalidateMatchListCaches()
     {
-        // Using a pattern to match all match list caches
         await _cacheService.RemoveByPatternAsync("matches_all_*");
+        await _cacheService.RemoveByPatternAsync("match_*");
+        await _cacheService.RemoveByPatternAsync("match_details_*");
     }
 
     [HttpGet("{userId}")]
@@ -309,9 +275,7 @@ public class MatchesController(
         var result = await mediator.Send(query);
 
         if (!result.Succeeded)
-        {
             return NotFound(result);
-        }
 
         return Ok(result);
     }
@@ -1026,24 +990,6 @@ public class MatchesController(
         }
     }
 
-    private class HealthCheckResponse
-    {
-        [JsonPropertyName("status")]
-        public string? Status { get; init; }
-
-        [JsonPropertyName("timestamp")]
-        public string? Timestamp { get; init; }
-
-        [JsonPropertyName("version")]
-        public string? Version { get; init; }
-
-        [JsonPropertyName("model_loaded")]
-        public bool ModelLoaded { get; init; }
-
-        [JsonPropertyName("xgboost_loaded")]
-        public bool XgboostLoaded { get; init; }
-    }
-
     // Simulation status tracking endpoints
     [HttpGet("simulation/{simulationId}/status")]
     [Authorize]
@@ -1060,17 +1006,13 @@ public class MatchesController(
             // Get match by simulation_id from a database
             var match = await GetMatchBySimulationId(simulationId, cancellationToken);
             if (match == null)
-            {
                 return NotFound(
                     new { error = "Simulation not found", simulation_id = simulationId }
                 );
-            }
 
             var httpClient = httpClientFactory.CreateClient();
             if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
                 httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
 
             // Call model API for status
             var response = await httpClient.GetAsync(
@@ -1079,12 +1021,10 @@ public class MatchesController(
             );
 
             if (!response.IsSuccessStatusCode)
-            {
                 return StatusCode(
                     (int)response.StatusCode,
                     new { error = "Failed to get simulation status from model API" }
                 );
-            }
 
             var statusResponse = await response.Content.ReadFromJsonAsync<SimulationStatusResponse>(
                 cancellationToken
@@ -1097,13 +1037,11 @@ public class MatchesController(
 
                 // Update the local match status if needed
                 if (statusResponse.Status != match.MatchStatus)
-                {
                     await UpdateLocalMatchStatus(
                         match.Id,
                         statusResponse.Status,
                         cancellationToken
                     );
-                }
             }
 
             return Ok(statusResponse);
@@ -1131,17 +1069,13 @@ public class MatchesController(
             // Get match by simulation_id from a database
             var match = await GetMatchBySimulationId(simulationId, cancellationToken);
             if (match == null)
-            {
                 return NotFound(
                     new { error = "Simulation not found", simulation_id = simulationId }
                 );
-            }
 
             var httpClient = httpClientFactory.CreateClient();
             if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-            {
                 httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-            }
 
             // Call model API for a result
             var response = await httpClient.GetAsync(
@@ -1150,12 +1084,10 @@ public class MatchesController(
             );
 
             if (!response.IsSuccessStatusCode)
-            {
                 return StatusCode(
                     (int)response.StatusCode,
                     new { error = "Failed to get simulation result from model API" }
                 );
-            }
 
             var resultResponse = await response.Content.ReadFromJsonAsync<SimulationResultResponse>(
                 cancellationToken
@@ -1171,11 +1103,10 @@ public class MatchesController(
                 {
                     Type = NotificationType.MatchStart,
                     UserId = match.CreatorId,
-                    Content =
-                        $"Your Requested Match Has Started Go to the Live Match View to Watch",
+                    Content = "Your Requested Match Has Started Go to the Live Match View to Watch",
                     Title = "Match Started In Simulation View",
                 };
-                var notificationCommand = new CreateNotificationCommand()
+                var notificationCommand = new CreateNotificationCommand
                 {
                     Notification = notification,
                 };
@@ -1184,12 +1115,10 @@ public class MatchesController(
                     cancellationToken
                 );
                 if (!notificationResult.Succeeded)
-                {
                     _logger.LogError(
                         "Failed to create notification for match start: {Error}",
                         notificationResult.Error
                     );
-                }
 
                 if (notificationResult.Notification != null)
                     if (match.SimulationId != null)
@@ -1276,8 +1205,7 @@ public class MatchesController(
             var actualDbCalls = performanceMetrics.DatabaseCalls.Sum(db => db.Count);
             var optimizationRatio =
                 totalPotentialDbCalls > 0
-                    ? ((double)(totalPotentialDbCalls - actualDbCalls) / totalPotentialDbCalls)
-                        * 100
+                    ? (double)(totalPotentialDbCalls - actualDbCalls) / totalPotentialDbCalls * 100
                     : 0;
 
             var dashboard = new
@@ -1349,5 +1277,23 @@ public class MatchesController(
                 new { error = "Failed to generate performance dashboard", details = ex.Message }
             );
         }
+    }
+
+    private class HealthCheckResponse
+    {
+        [JsonPropertyName("status")]
+        public string? Status { get; init; }
+
+        [JsonPropertyName("timestamp")]
+        public string? Timestamp { get; init; }
+
+        [JsonPropertyName("version")]
+        public string? Version { get; init; }
+
+        [JsonPropertyName("model_loaded")]
+        public bool ModelLoaded { get; init; }
+
+        [JsonPropertyName("xgboost_loaded")]
+        public bool XgboostLoaded { get; init; }
     }
 }

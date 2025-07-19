@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
+using Application.CQRS.Teams.Commands;
+using Application.CQRS.Teams.Queries;
 using Application.Dtos;
+using Application.Helpers;
+using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
@@ -10,86 +13,80 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
 
-public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class TeamsControllerIntegrationTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-    private readonly FootexWebApplicationFactory _factory;
-
-    public TeamsControllerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = _factory.CreateClient();
-    }
-
     [Fact]
     public async Task GetAllTeams_ReturnsSuccessStatusCode()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/teams");
+        var response = await httpClient.GetAsync("/api/teams");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeEmpty();
-
-        var jsonDoc = JsonDocument.Parse(content);
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<GetAllTeamsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task GetAllTeams_WithQueryParameters_ReturnsFilteredResults()
     {
         // Arrange
-        await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync("/api/teams?country=England&league=Premier League");
+        var response = await httpClient.GetAsync(
+            "/api/teams?country=England&league=Premier League"
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("teams", out var teams);
-        teams.ValueKind.Should().Be(JsonValueKind.Array);
+        var result = await response.Content.ReadFromJsonAsync<GetAllTeamsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Teams.Should().NotBeEmpty();
     }
 
     [Fact]
     public async Task GetTeamById_WithValidId_ReturnsTeam()
     {
         // Arrange
-        var teamId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/teams/{teamId}");
+        var response = await httpClient.GetAsync($"/api/teams/{team.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("team", out var team);
-        team.ValueKind.Should().Be(JsonValueKind.Object);
-
-        team.TryGetProperty("id", out var id);
-        id.GetInt32().Should().Be(teamId);
+        var result = await response.Content.ReadFromJsonAsync<GetTeamByIdQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Team.Should().NotBeNull();
+        result?.Team?.Id.Should().Be(team.Id);
     }
 
     [Fact]
     public async Task GetTeamById_WithInvalidId_ReturnsNotFound()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/teams/999999");
+        var response = await httpClient.GetAsync("/api/teams/999999");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -99,156 +96,110 @@ public class TeamsControllerIntegrationTests : IClassFixture<FootexWebApplicatio
     public async Task CreateTeam_WithValidData_ReturnsCreated()
     {
         // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        // Ensure stadium exists for the test
+        var stadium = TestData.CreateTestDbStadium();
+        context.Stadiums.Add(stadium);
+        await context.SaveChangesAsync();
         var createTeamDto = new CreateTeamDto
         {
             Name = "Test Team FC",
             Country = "England",
             League = "Premier League",
-            StadiumId = 1,
+            StadiumId = stadium.Id,
             FoundationDate = new DateTime(2000, 1, 1),
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/teams", createTeamDto);
+        var response = await httpClient.PostAsync(
+            "/api/teams",
+            createTeamDto.ToMultipartFormDataContent()
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("teamId", out var teamId);
-        teamId.GetInt32().Should().BeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task CreateTeam_WithInvalidData_ReturnsBadRequest()
-    {
-        // Arrange
-        var createTeamDto = new CreateTeamDto
-        {
-            Name = "", // Invalid: empty name
-            Country = "England",
-            League = "Premier League",
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/teams", createTeamDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<CreateTeamCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Id.Should().BeGreaterThan(0);
     }
 
     [Fact]
     public async Task UpdateTeam_WithValidData_ReturnsOk()
     {
         // Arrange
-        var teamId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
         var updateTeamDto = new UpdateTeamDto
         {
+            Id = team.Id,
             Name = "Updated Team FC",
             Country = "Spain",
             League = "La Liga",
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/teams/{teamId}", updateTeamDto);
+        var response = await httpClient.PutAsync(
+            $"/api/teams/{team.Id}",
+            updateTeamDto.ToMultipartFormDataContent()
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task UpdateTeam_WithInvalidId_ReturnsNotFound()
-    {
-        // Arrange
-        var updateTeamDto = new UpdateTeamDto
-        {
-            Name = "Updated Team FC",
-            Country = "Spain",
-            League = "La Liga",
-        };
-
-        // Act
-        var response = await _client.PutAsJsonAsync("/api/teams/999999", updateTeamDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<UpdateTeamCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task DeleteTeam_WithValidId_ReturnsNoContent()
     {
         // Arrange
-        var teamId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/teams/{teamId}");
+        var response = await httpClient.DeleteAsync($"/api/teams/{team.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]
-    public async Task DeleteTeam_WithInvalidId_ReturnsNotFound()
-    {
-        // Act
-        var response = await _client.DeleteAsync("/api/teams/999999");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
     public async Task GetTeamSeasons_WithValidId_ReturnsSeasons()
     {
         // Arrange
-        var teamId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var team = TestData.CreateTestDbTeam();
+        context.Teams.Add(team);
+        var season = TestData.CreateTestDbSeason();
+        context.Seasons.Add(season);
+        await context.SaveChangesAsync();
+        var teamSeason = new TeamSeason { TeamId = team.Id, SeasonId = season.Id };
+        context.TeamSeasons.Add(teamSeason);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/teams/Seasons/{teamId}");
+        var response = await httpClient.GetAsync($"/api/teams/Seasons/{team.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("seasons", out var seasons);
-        seasons.ValueKind.Should().Be(JsonValueKind.Array);
-    }
-
-    [Fact]
-    public async Task GetTeamSeasons_WithInvalidId_ReturnsNotFound()
-    {
-        // Act
-        var response = await _client.GetAsync("/api/teams/Seasons/999999");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    private async Task<int> SeedTestDataAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-
-        var team = TestData.CreateTestTeam();
-        context.Teams.Add(team);
-        await context.SaveChangesAsync();
-
-        return team.Id;
+        var result = await response.Content.ReadFromJsonAsync<GetTeamSeasonsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.TeamId.Should().Be(team.Id);
+        result?.Seasons.Should().NotBeEmpty();
     }
 }

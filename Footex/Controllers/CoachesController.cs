@@ -2,7 +2,6 @@ using Application.CQRS.Coaches.Commands;
 using Application.CQRS.Coaches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,7 +64,6 @@ public class CoachesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetCoachByIdQueryResponse>> GetCoachById(int id)
     {
-        // Try to get from cache first
         var cacheKey = $"coach_{id}";
         var cachedResult = await _cacheService.GetAsync<GetCoachByIdQueryResponse>(cacheKey);
 
@@ -75,7 +73,6 @@ public class CoachesController(
             return Ok(cachedResult);
         }
 
-        // Cache miss, fetch from database
         var query = new GetCoachByIdQuery { Id = id };
         var result = await _mediator.Send(query);
 
@@ -87,7 +84,6 @@ public class CoachesController(
             return BadRequest(result);
         }
 
-        // Store in cache if successful
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
 
         Response.Headers.Append("X-Cache-Hit", "false");
@@ -137,18 +133,15 @@ public class CoachesController(
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
 
-        // Handle file upload if present
         var photoUrl = coachDto.PhotoUrl;
         if (coachDto.Photo != null)
         {
-            // Delete old photo if it exists
             if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
                 await _fileStorageService.DeleteImageAsync(
                     existingResult.Coach.PhotoUrl,
                     CONTAINER_NAME
                 );
 
-            // Upload new photo
             photoUrl = await _fileStorageService.UploadImageAsync(coachDto.Photo, CONTAINER_NAME);
         }
 
@@ -165,7 +158,6 @@ public class CoachesController(
             return BadRequest(result);
         }
 
-        // Invalidate both the specific coach cache and coach list caches
         await _cacheService.RemoveAsync($"coach_{id}");
         await InvalidateCoachListCaches();
 
@@ -179,14 +171,12 @@ public class CoachesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DeleteCoachCommandResponse>> DeleteCoach(int id)
     {
-        // Get existing coach to delete the image
         var getQuery = new GetCoachByIdQuery { Id = id };
         var existingResult = await _mediator.Send(getQuery);
 
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
 
-        // Delete photo if it exists
         if (!string.IsNullOrEmpty(existingResult.Coach.PhotoUrl))
             await _fileStorageService.DeleteImageAsync(
                 existingResult.Coach.PhotoUrl,
@@ -204,20 +194,15 @@ public class CoachesController(
             return BadRequest(result);
         }
 
-        // Invalidate both the specific coach cache and coach list caches
         await _cacheService.RemoveAsync($"coach_{id}");
         await InvalidateCoachListCaches();
 
         return Ok(result);
     }
 
-    // Helper method to invalidate all coach list caches
     private async Task InvalidateCoachListCaches()
     {
-        // Using a pattern to match all coach list cache keys
         await _cacheService.RemoveByPatternAsync("coaches_all_*");
-        // Optionally, you can also invalidate specific
-        // coach caches if you want to ensure they are refreshed
         await _cacheService.RemoveByPatternAsync("coach_*");
         await _cacheService.RemoveByPatternAsync("coaches_*");
         await _cacheService.RemoveByPatternAsync("coaches_by_team_*");

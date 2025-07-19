@@ -9,6 +9,7 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ACastCache_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003F11325838ace4daaf4c2eed7cd216f7b53e9dd6532fe94e82ab83c6bebe5b0_003FCastCache_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AChannelWriter_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Fc1f2629813a307430c9e5726f587ffbd392df1f26a68b586368c9fa7ec967f_003FChannelWriter_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AChannel_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fc8f6b611cc234e6b96567ff353db0b0d20920_003F29_003F2832d1f1_003FChannel_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AChar_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F45ada8c418664ff394ffd30455aab498c90910_003F78_003Fc5ad0fd8_003FChar_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AClaimsPrincipal_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Fddfe5f2cab585726db85fc046e76ea5725f69d647c242379a11c6da8029c727_003FClaimsPrincipal_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AConcurrentDictionary_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Fa794eaddcb9bfbe58f385286f14894948d4083476d90072dd5a3235d8bc461d_003FConcurrentDictionary_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AConsole_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003F2a8a2211ff7b6ce5ab05b41d416904ec475a643fb8cbb2261f85a750b13217_003FConsole_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
@@ -53,6 +54,7 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AStatusCodes_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F364f091491384f17b7748f4d6a6b448b4e910_003Ffc_003F7b0f064d_003FStatusCodes_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AStopwatch_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003F6f1177229869fc3b39b93634f346be9918deca7bf8d9698944992ea75e6796c_003FStopwatch_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AString_002EComparison_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003F669142762fe6d3cf7d37f077c5a6cd58ee415a166197c9fb454faf1921fc6_003FString_002EComparison_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AString_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003F13e79b2a7b78394ccf591d3454bff5bfb14e692da011a7e38b66c2312b365a_003FString_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ASymmetricSecurityKey_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fcd09a527672c4f27bd06cb028e98e96245c20_003F01_003F44a0a5b3_003FSymmetricSecurityKey_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ATaskContinuation_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Fb86cdfe19de105ff2eab7d5d4c613fd91b9adfe4f95bd82e2d6db593e6d3ca3_003FTaskContinuation_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ATask_002Ecs_002Fl_003AC_0021_003FUsers_003Felnag_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E1_003Fresharper_002Dhost_003FSourcesCache_003Fa77b231cea33ff338c41dc7869d6c493d4dae137ff51e342173efa61d933_003FTask_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
@@ -72,22 +74,86 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\Users\elnag\.nuget\packages\nbomber.http\6.0.1\lib\netstandard2.1\NBomber.Http.dll" /&gt;&#xD;
   &lt;Assembly Path="D:\programming\GitHub\Footex - Copy\Footex\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\elnag\.nuget\packages\dapper\2.1.66\lib\net8.0\Dapper.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">C:\Users\elnag\.dotnet\dotnet.exe</s:String>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Users\elnag\.dotnet\sdk\8.0.406\MSBuild.dll</s:String>
-	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">C:\Users\elnag\AppData\Local\JetBrains\Rider2025.1\resharper-host\temp\Rider\vAny\CoverageData\_Footex.-353235264\Snapshot\snapshot.utdcvr</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=2276e7da_002D5df7_002D44a6_002D94cb_002D31d1589c61a0/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;Footex.PerformanceTests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ad970b0a_002Dbf01_002D444d_002D8ee7_002Df422519c40fb/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;And&gt;&#xD;
-    &lt;Or&gt;&#xD;
-      &lt;Project Location="D:\programming\GitHub\Footex\Footex.PerformanceTests" Presentation="&amp;lt;Footex.PerformanceTests&amp;gt;" /&gt;&#xD;
-      &lt;Project Location="D:\programming\GitHub\Footex\Footex.IntegrationTests" Presentation="&amp;lt;Footex.IntegrationTests&amp;gt;" /&gt;&#xD;
-    &lt;/Or&gt;&#xD;
-    &lt;Not&gt;&#xD;
-      &lt;Project Location="D:\programming\GitHub\Footex\Footex.PerformanceTests" Presentation="&amp;lt;Footex.PerformanceTests&amp;gt;" /&gt;&#xD;
-    &lt;/Not&gt;&#xD;
+    &lt;Namespace&gt;Footex.IntegrationTests.CQRS&lt;/Namespace&gt;&#xD;
+    &lt;Project Location="D:\programming\GitHub\Footex\Footex.IntegrationTests" Presentation="&amp;lt;Footex.IntegrationTests&amp;gt;" /&gt;&#xD;
   &lt;/And&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=f89ae61e_002D9c28_002D4571_002Dba9c_002D9703a4a0866b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Or&gt;&#xD;
+    &lt;Project Location="D:\programming\GitHub\Footex\Footex.IntegrationTests" Presentation="&amp;lt;Footex.IntegrationTests&amp;gt;" /&gt;&#xD;
+    &lt;Project Location="D:\programming\GitHub\Footex\Footex.PerformanceTests" Presentation="&amp;lt;Footex.PerformanceTests&amp;gt;" /&gt;&#xD;
+    &lt;Project Location="D:\programming\GitHub\Footex\Footex.UnitTests" Presentation="&amp;lt;Footex.UnitTests&amp;gt;" /&gt;&#xD;
+  &lt;/Or&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
@@ -34,7 +33,7 @@ public class UpdateTeamCommand : IRequest<UpdateTeamCommandResponse>
     [StringLength(50)]
     public string? League { get; set; }
 
-    public DateTime FoundationDate { get; set; }
+    public DateTime? FoundationDate { get; set; }
 
     [StringLength(20)]
     public string? PrimaryColor { get; set; }
@@ -48,11 +47,11 @@ public class UpdateTeamCommand : IRequest<UpdateTeamCommandResponse>
 
 public class UpdateTeamCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public int Id { get; init; }
+    public string? Name { get; init; }
+    public string? Error { get; init; }
 }
 
 public class UpdateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
@@ -67,11 +66,23 @@ public class UpdateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
     {
         try
         {
-            // Check if team exists
-            var team = await unitOfWork.Teams.GetByIdAsync(request.Id);
+            // Check if a team exists
+            var team = await unitOfWork.Teams.GetByIdAsync(request.Id, cancellationToken);
+
+            if (team == null)
+                return new UpdateTeamCommandResponse
+                {
+                    Succeeded = false,
+                    NotFound = true,
+                    Error = $"Team with ID {request.Id} not found",
+                };
+
             if (request.CoachId != null)
             {
-                var teamCoach = await unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
+                var teamCoach = await unitOfWork.Coaches.GetByIdAsync(
+                    request.CoachId.Value,
+                    cancellationToken
+                );
                 if (teamCoach is { TeamId: not null } && teamCoach.TeamId != request.Id)
                     return new UpdateTeamCommandResponse
                     {
@@ -82,14 +93,6 @@ public class UpdateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
                 if (teamCoach != null)
                     teamCoach.TeamId = request.Id;
             }
-
-            if (team == null)
-                return new UpdateTeamCommandResponse
-                {
-                    Succeeded = false,
-                    NotFound = true,
-                    Error = $"Team with ID {request.Id} not found",
-                };
 
             // Check for name conflicts
             if (team.Name != request.Name)
@@ -104,23 +107,8 @@ public class UpdateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
             }
 
             // Update team properties
-            team.Name = request.Name;
-            team.ShortName = request.ShortName;
-            if (!string.IsNullOrEmpty(request.Logo))
-                team.Logo = request.Logo;
-            team.Country = request.Country;
-            if (!string.IsNullOrEmpty(request.City))
-                team.League = request.League;
-            if (
-                !string.IsNullOrEmpty(request.FoundationDate.ToString(CultureInfo.InvariantCulture))
-            )
-                team.FoundationDate = request.FoundationDate;
-            team.PrimaryColor = request.PrimaryColor;
-            team.SecondaryColor = request.SecondaryColor;
-            team.StadiumId = request.StadiumId;
-            team.City = request.City;
+            _teamMapper.UpdateTeamFromCommand(request, team);
 
-            unitOfWork.Teams.UpdateAsync(team);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateTeamCommandResponse

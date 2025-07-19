@@ -9,17 +9,24 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("IntegrationTests")]
 public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly UserManager<ApplicationUser> _userManager;
+
     private readonly IApplicationUserRepository _userRepository;
+    private readonly ITokenService _tokenService;
+    private readonly FootexWebApplicationFactory _factory;
 
     public ApplicationUserRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _userRepository = ServiceProvider.GetRequiredService<IApplicationUserRepository>();
-        _userManager = ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
+            UserManager<ApplicationUser>
+        >();
+        _userRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<IApplicationUserRepository>();
+        _tokenService = FactoryServiceScope.ServiceProvider.GetRequiredService<ITokenService>();
+        _factory = factory;
     }
 
     [Fact]
@@ -103,7 +110,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     public async Task CheckPasswordAsync_WithValidPassword_ShouldReturnTrue()
     {
         // Arrange
-        var password = "TestPassword123!";
+        const string password = "TestPassword123!";
         var user = await SeedUserAsync(password: password);
 
         // Act
@@ -181,10 +188,11 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         var result = await _userRepository.GetUserRolesAsync(user);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().Contain("Role1");
-        result.Should().Contain("Role2");
-        result.Should().HaveCount(2);
+        var userRoles = result as string[] ?? result.ToArray();
+        userRoles.Should().NotBeNull();
+        userRoles.Should().Contain("Role1");
+        userRoles.Should().Contain("Role2");
+        userRoles.Should().HaveCount(2);
     }
 
     [Fact]
@@ -197,8 +205,9 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         var result = await _userRepository.GetUserRolesAsync(user);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
+        var enumerable = result.ToList();
+        enumerable.Should().NotBeNull();
+        enumerable.Should().BeEmpty();
     }
 
     [Fact]
@@ -208,8 +217,9 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         var result = await _userRepository.GetUserRolesAsync(null);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
+        var enumerable = result.ToList();
+        enumerable.Should().NotBeNull();
+        enumerable.Should().BeEmpty();
     }
 
     [Fact]
@@ -217,12 +227,8 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var user = await SeedUserAsync();
-        var refreshToken = new RefreshToken
-        {
-            Token = Guid.NewGuid().ToString(),
-            JwtId = Guid.NewGuid().ToString(),
-            UserId = user.Id,
-        };
+
+        var (_, refreshToken) = await _tokenService.GenerateTokenAsync(user, "0.0.0.0");
 
         // Act
         await _userRepository.AddRefreshTokenAsync(user, refreshToken);
@@ -367,7 +373,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
         Context.RefreshTokens.Add(refreshToken);
         await Context.SaveChangesAsync();
 
-        var ipAddress = "192.168.1.1";
+        const string ipAddress = "192.168.1.1";
 
         // Act
         await _userRepository.RevokeRefreshTokenAsync(tokenValue, ipAddress);
@@ -417,7 +423,7 @@ public class ApplicationUserRepositoryIntegrationTests : BaseIntegrationTest
 
     private async Task SeedRoleAsync(string roleName)
     {
-        var roleManager = ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var roleManager = _factory.Services.GetRequiredService<RoleManager<IdentityRole>>();
 
         if (!await roleManager.RoleExistsAsync(roleName))
             await roleManager.CreateAsync(new IdentityRole(roleName));

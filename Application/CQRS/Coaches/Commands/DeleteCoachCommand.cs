@@ -25,7 +25,7 @@ public class DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id);
+            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id, cancellationToken);
             if (coach == null)
                 return new DeleteCoachCommandResponse
                 {
@@ -35,7 +35,7 @@ public class DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check if coach is currently assigned to a team
-            if (coach.TeamId != null && coach.TeamId > 0)
+            if (coach.TeamId is > 0)
                 return new DeleteCoachCommandResponse
                 {
                     Succeeded = false,
@@ -59,7 +59,7 @@ public class DeleteCoachCommandHandler(IUnitOfWork unitOfWork)
                     Error = "Cannot delete coach as they are assigned to one or more matches",
                 };
 
-            unitOfWork.Coaches.DeleteAsync(coach);
+            unitOfWork.Coaches.Delete(coach);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteCoachCommandResponse { Succeeded = true };

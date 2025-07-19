@@ -4,7 +4,9 @@ using Infrastructure.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis; // Added for direct Redis access
+using StackExchange.Redis;
+
+// Added for direct Redis access
 
 namespace Infrastructure.Services;
 
@@ -13,9 +15,9 @@ public class RedisCacheService : ICacheService
     private readonly IDistributedCache _cache;
     private readonly RedisCacheOptions _cacheOptions;
     private readonly object _circuitLock = new();
+    private readonly IConnectionMultiplexer _connectionMultiplexer; // Added for direct Redis access
     private readonly ILogger<RedisCacheService> _logger;
     private readonly DistributedCacheEntryOptions _options;
-    private readonly IConnectionMultiplexer _connectionMultiplexer; // Added for direct Redis access
 
     // Circuit breaker pattern properties
     private bool _circuitOpen;
@@ -185,12 +187,10 @@ public class RedisCacheService : ICacheService
                 // For true SCAN semantics, you'd iterate using server.ScanKeysAsync.
                 await foreach (
                     var key in server
-                        .KeysAsync(database: db.Database, pattern: redisPattern)
+                        .KeysAsync(db.Database, redisPattern)
                         .WithCancellation(cancellationToken)
                 )
-                {
                     keysToDelete.Add(key);
-                }
 
                 if (keysToDelete.Any())
                 {
@@ -211,6 +211,7 @@ public class RedisCacheService : ICacheService
                     );
                 }
             }
+
             ResetCircuitBreaker(); // Successful operation
         }
         catch (Exception ex)

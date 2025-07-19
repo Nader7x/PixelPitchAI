@@ -1,4 +1,5 @@
 using Application.CQRS.Coaches.Commands;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -11,6 +12,7 @@ namespace Footex.UnitTests.CQRS.Coaches.Commands;
 
 public class UpdateCoachCommandHandlerTests
 {
+    private readonly Mock<ICoachMapper> _coachMapperMock;
     private readonly NoRecursionFixture _fixture;
     private readonly UpdateCoachCommandHandler _handler;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
@@ -18,7 +20,8 @@ public class UpdateCoachCommandHandlerTests
     public UpdateCoachCommandHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _handler = new UpdateCoachCommandHandler(_unitOfWorkMock.Object);
+        _coachMapperMock = new Mock<ICoachMapper>();
+        _handler = new UpdateCoachCommandHandler(_unitOfWorkMock.Object, _coachMapperMock.Object);
 
         _fixture = new NoRecursionFixture();
         _fixture.Customizations.Add(new IFormFileSpecimenBuilder());
@@ -57,7 +60,40 @@ public class UpdateCoachCommandHandlerTests
             Role = "Head Coach",
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(command.Id)).ReturnsAsync(existingCoach);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingCoach);
+
+        _coachMapperMock
+            .Setup(x => x.ToCoachFromUpdate(command, existingCoach))
+            .Callback<UpdateCoachCommand, Coach>(
+                (coachCommand, coach) =>
+                {
+                    coach.Id = coachCommand.Id;
+                    if (coachCommand.FirstName != null)
+                        coach.FirstName = coachCommand.FirstName;
+                    if (coachCommand.LastName != null)
+                        coach.LastName = coachCommand.LastName;
+                    if (coachCommand.DateOfBirth != null)
+                        coach.DateOfBirth = coachCommand.DateOfBirth.Value;
+                    if (coachCommand.Nationality != null)
+                        coach.Nationality = coachCommand.Nationality;
+                    if (coachCommand.Role != null)
+                        coach.Role = coachCommand.Role;
+                    if (coachCommand.YearsOfExperience != null)
+                        coach.YearsOfExperience = coachCommand.YearsOfExperience.Value;
+                    if (coachCommand.PhotoUrl != null)
+                        coach.PhotoUrl = coachCommand.PhotoUrl;
+                    if (coachCommand.Biography != null)
+                        coach.Biography = coachCommand.Biography;
+                    if (coachCommand.PreferredFormation != null)
+                        coach.PreferredFormation = coachCommand.PreferredFormation;
+                    if (coachCommand.CoachingStyle != null)
+                        coach.CoachingStyle = coachCommand.CoachingStyle;
+                    if (coachCommand.TeamId != null)
+                        coach.TeamId = coachCommand.TeamId.Value;
+                }
+            );
 
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -88,7 +124,9 @@ public class UpdateCoachCommandHandlerTests
             LastName = "Mourinho",
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(command.Id)).ReturnsAsync((Coach?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Coach?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -114,7 +152,7 @@ public class UpdateCoachCommandHandlerTests
         };
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetByIdAsync(command.Id))
+            .Setup(x => x.Coaches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act

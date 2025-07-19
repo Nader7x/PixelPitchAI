@@ -4,7 +4,6 @@ using Application.Dtos;
 using Application.Interfaces;
 using Application.Services;
 using AutoFixture;
-using AutoFixture.Kernel;
 using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
@@ -21,14 +20,14 @@ namespace Footex.UnitTests.Controllers;
 
 public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
-    private readonly Mock<INotificationService> _notificationServiceMock;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly NotificationsController _controller;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<INotificationService> _notificationServiceMock;
+    private readonly TestFixtureBase _testFixtureBase;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public NotificationsControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -75,7 +74,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
     {
         // Arrange
         var userId = "test-user-id";
-        var user = new Domain.Models.ApplicationUser
+        var user = new ApplicationUser
         {
             Id = userId,
             Email = "test@example.com",
@@ -86,13 +85,13 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
         var expectedResponse = new GetUserNotificationsQueryResponse
         {
             Succeeded = true,
-            Notifications = new List<Application.Dtos.NotificationDto>
+            Notifications = new List<NotificationDto>
             {
-                new Application.Dtos.NotificationDto
+                new()
                 {
                     Id = "1",
                     Content = "Test notification",
-                    Type = Domain.Models.NotificationType.MatchStart,
+                    Type = NotificationType.MatchStart,
                     IsRead = false,
                 },
             },
@@ -147,7 +146,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
 
         _unitOfWorkMock
             .Setup(x => x.ApplicationUser.GetByIdAsync(userId))
-            .ReturnsAsync((Domain.Models.ApplicationUser?)null);
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _controller.GetAllUserNotifications(userId);
@@ -228,7 +227,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
         // Assert
         result.Should().BeOfType<OkResult>();
         notification.IsRead.Should().BeTrue();
-        _unitOfWorkMock.Verify(x => x.Notifications.UpdateAsync(notification), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Notifications.Update(notification), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(default), Times.Once);
     }
 
@@ -287,7 +286,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
         result.Should().BeOfType<NoContentResult>();
         notifications.ForEach(n => n.IsRead.Should().BeTrue());
         _unitOfWorkMock.Verify(
-            x => x.Notifications.UpdateAsync(It.IsAny<Notification>()),
+            x => x.Notifications.Update(It.IsAny<Notification>()),
             Times.Exactly(2)
         );
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(default), Times.Once);
@@ -317,7 +316,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
-        _unitOfWorkMock.Verify(x => x.Notifications.DeleteAsync(notification), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Notifications.Delete(notification), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(default), Times.Once);
     }
 
@@ -373,7 +372,7 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
         // Assert
         result.Should().BeOfType<NoContentResult>();
         _unitOfWorkMock.Verify(
-            x => x.Notifications.DeleteAsync(It.IsAny<Notification>()),
+            x => x.Notifications.Delete(It.IsAny<Notification>()),
             Times.Exactly(2)
         );
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(default), Times.Once);

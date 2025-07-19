@@ -13,9 +13,18 @@ public class CornerEventProcessor : BaseEventProcessor
     {
         // Update corners counter
         if (IsHomeTeam(matchEvent, match))
-            match.HomeTeamCorners = IncrementValue(match.HomeTeamCorners);
-        else
-            match.AwayTeamCorners = IncrementValue(match.AwayTeamCorners);
+        {
+            if (match.MatchStatistics != null)
+                match.MatchStatistics.HomeTeamCorners = IncrementValue(
+                    match.MatchStatistics.HomeTeamCorners
+                );
+        }
+        else if (match.MatchStatistics != null)
+        {
+            match.MatchStatistics.AwayTeamCorners = IncrementValue(
+                match.MatchStatistics.AwayTeamCorners
+            );
+        }
     }
 
     public override void ProcessEventCounters(

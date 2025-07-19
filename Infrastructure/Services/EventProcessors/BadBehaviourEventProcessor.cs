@@ -11,20 +11,35 @@ public class BadBehaviourEventProcessor : BaseEventProcessor
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
-        // Bad behavior can result in cards
-        if (matchEvent.card == "Yellow Card")
+        switch (matchEvent.card)
         {
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamYellowCards = IncrementValue(match.HomeTeamYellowCards);
-            else
-                match.AwayTeamYellowCards = IncrementValue(match.AwayTeamYellowCards);
-        }
-        else if (matchEvent.card == "Red Card")
-        {
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamRedCards = IncrementValue(match.HomeTeamRedCards);
-            else
-                match.AwayTeamRedCards = IncrementValue(match.AwayTeamRedCards);
+            // Bad behavior can result in cards
+            case "Yellow Card" when match.MatchStatistics != null:
+            {
+                if (IsHomeTeam(matchEvent, match))
+                    match.MatchStatistics.HomeTeamYellowCards = IncrementValue(
+                        match.MatchStatistics.HomeTeamYellowCards
+                    );
+                else
+                    match.MatchStatistics.AwayTeamYellowCards = IncrementValue(
+                        match.MatchStatistics.AwayTeamYellowCards
+                    );
+
+                break;
+            }
+            case "Red Card" when match.MatchStatistics != null:
+            {
+                if (IsHomeTeam(matchEvent, match))
+                    match.MatchStatistics.HomeTeamRedCards = IncrementValue(
+                        match.MatchStatistics.HomeTeamRedCards
+                    );
+                else
+                    match.MatchStatistics.AwayTeamRedCards = IncrementValue(
+                        match.MatchStatistics.AwayTeamRedCards
+                    );
+
+                break;
+            }
         }
     }
 
@@ -38,10 +53,15 @@ public class BadBehaviourEventProcessor : BaseEventProcessor
         {
             matchEvents.TotalCards++;
 
-            if (matchEvent.card == "Yellow Card")
-                matchEvents.TotalYellowCards++;
-            else if (matchEvent.card == "Red Card")
-                matchEvents.TotalRedCards++;
+            switch (matchEvent.card)
+            {
+                case "Yellow Card":
+                    matchEvents.TotalYellowCards++;
+                    break;
+                case "Red Card":
+                    matchEvents.TotalRedCards++;
+                    break;
+            }
         }
 
         matchEvents.TotalEvents++;

@@ -3,38 +3,27 @@ using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Queries;
 
-public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetTeamByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetTeamByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidId_ReturnsTeamFromDatabase()
     {
         // Arrange
-        var testTeam = TestData.CreateTestTeam();
-        _context.Teams.Add(testTeam);
-        await _context.SaveChangesAsync();
+        var testTeam = TestData.CreateTestDbTeam();
+        Context.Teams.Add(testTeam);
+        await Context.SaveChangesAsync();
 
         var query = new GetTeamByIdQuery { Id = testTeam.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -55,7 +44,7 @@ public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebAp
         var query = new GetTeamByIdQuery { Id = 999999 };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -68,14 +57,15 @@ public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebAp
     public async Task Handle_WithDeletedTeam_ReturnsNotFoundResponse()
     {
         // Arrange
-        var testTeam = TestData.CreateTestTeam();
-        _context.Teams.Add(testTeam);
-        await _context.SaveChangesAsync();
+        var testTeam = TestData.CreateTestDbTeam(prefix: "Deleted_");
+        Context.Teams.Add(testTeam);
+        await Context.SaveChangesAsync();
+        await Context.Teams.Where(t => t.Id == testTeam.Id).ExecuteDeleteAsync();
 
         var query = new GetTeamByIdQuery { Id = testTeam.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -87,18 +77,18 @@ public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebAp
     public async Task Handle_ReturnsCompleteTeamData()
     {
         // Arrange
-        var testTeam = TestData.CreateTestTeam();
+        var testTeam = TestData.CreateTestDbTeam();
         testTeam.PrimaryColor = "#FF0000";
         testTeam.SecondaryColor = "#0000FF";
         testTeam.Logo = "https://example.com/logo.png";
 
-        _context.Teams.Add(testTeam);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(testTeam);
+        await Context.SaveChangesAsync();
 
         var query = new GetTeamByIdQuery { Id = testTeam.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -107,10 +97,5 @@ public class GetTeamByIdQueryHandlerIntegrationTests : IClassFixture<FootexWebAp
         response.Team.PrimaryColor.Should().Be(testTeam.PrimaryColor);
         response.Team.SecondaryColor.Should().Be(testTeam.SecondaryColor);
         response.Team.Logo.Should().Be(testTeam.Logo);
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

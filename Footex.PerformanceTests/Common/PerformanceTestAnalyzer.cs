@@ -5,7 +5,8 @@ namespace Footex.PerformanceTests.Common;
 
 public class PerformanceTestAnalyzer(
     ILogger<PerformanceTestAnalyzer> logger,
-    PerformanceTestSettings settings)
+    PerformanceTestSettings settings
+)
 {
     public async Task<PerformanceTestReport> AnalyzeTestResults(string resultsDirectory)
     {

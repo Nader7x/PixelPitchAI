@@ -8,41 +8,30 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Players.Commands;
 
-[Collection("Database")]
-public class DeletePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class DeletePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public DeletePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidId_DeletesPlayer()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        await Context.Teams.AddAsync(team);
+        await Context.SaveChangesAsync();
 
-        var player = TestData.CreatePlayer("John Doe", team.Id);
-        _context.Players.Add(player);
-        await _context.SaveChangesAsync();
+        var player = TestData.CreateTestDbPlayer(team.Id);
+        await Context.Players.AddAsync(player);
+        await Context.SaveChangesAsync();
 
         var command = new DeletePlayerCommand { Id = player.Id };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeTrue();
-        _context.Players.Find(player.Id).Should().BeNull();
+        (await Context.Players.FindAsync(player.Id)).Should().BeNull();
     }
 
     [Fact]
@@ -52,7 +41,7 @@ public class DeletePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         var command = new DeletePlayerCommand { Id = 999999 };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();

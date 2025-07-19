@@ -8,43 +8,29 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Queries;
 
-public class GetTeamSeasonsQueryHandlerIntegrationTests
-    : IClassFixture<FootexWebApplicationFactory>,
-        IDisposable
+public class GetTeamSeasonsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetTeamSeasonsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidTeamId_ReturnsSeasons()
     {
         // Arrange
         var team = TestData.CreateTestDbTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var season = TestData.CreateTestDbSeason();
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
+        Context.Seasons.Add(season);
+        await Context.SaveChangesAsync();
 
-        var teamSeason = TestData.CreateTestDbSeasonTeam(season.Id , team.Id);
-        _context.TeamSeasons.Add(teamSeason);
-        await _context.SaveChangesAsync();
+        var teamSeason = TestData.CreateTestDbSeasonTeam(season.Id, team.Id);
+        Context.TeamSeasons.Add(teamSeason);
+        await Context.SaveChangesAsync();
 
         var query = new GetTeamSeasonsQuery { TeamId = team.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -64,7 +50,7 @@ public class GetTeamSeasonsQueryHandlerIntegrationTests
         var query = new GetTeamSeasonsQuery { TeamId = 999999 };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -77,13 +63,13 @@ public class GetTeamSeasonsQueryHandlerIntegrationTests
     {
         // Arrange
         var team = TestData.CreateTestDbTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var query = new GetTeamSeasonsQuery { TeamId = team.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -91,10 +77,5 @@ public class GetTeamSeasonsQueryHandlerIntegrationTests
         response.TeamId.Should().Be(team.Id);
         response.Seasons.Should().NotBeNull();
         response.Seasons.Should().BeEmpty();
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

@@ -8,20 +8,9 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Matches.Queries;
 
-[Collection("Database")]
-public class GetAllMatchesQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetAllMatchesQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetAllMatchesQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_ReturnsAllMatches()
     {
@@ -30,25 +19,25 @@ public class GetAllMatchesQueryHandlerIntegrationTests : IClassFixture<FootexWeb
         var homeTeam = TestData.CreateTestDbTeam();
         var awayTeam = TestData.CreateTestDbTeam();
         var season = TestData.CreateTestDbSeason();
-        await _context.Users.AddAsync(user);
-        await _context.Teams.AddRangeAsync(homeTeam, awayTeam);
-        await _context.Seasons.AddAsync(season);
-        await _context.SaveChangesAsync();
+        await Context.Users.AddAsync(user);
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.SaveChangesAsync();
 
         var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
         var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
-        await _context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var match1 = TestData.CreateTestMatch(homeTeam.Id, awayTeam.Id, season.Id, true, user.Id);
         var match2 = TestData.CreateTestMatch(awayTeam.Id, homeTeam.Id, season.Id, true, user.Id);
-        await _context.Matches.AddRangeAsync(match1, match2);
-        await _context.SaveChangesAsync();
+        await Context.Matches.AddRangeAsync(match1, match2);
+        await Context.SaveChangesAsync();
 
         var query = new GetAllMatchesQuery();
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();

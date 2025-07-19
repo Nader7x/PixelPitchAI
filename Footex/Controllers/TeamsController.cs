@@ -31,7 +31,7 @@ public class TeamsController(
     public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll()
     {
         // Try to get from cache first
-        var cacheKey = "teams_all";
+        const string cacheKey = "teams_all";
         var cachedResult = await _cacheService.GetAsync<GetAllTeamsQueryResponse>(cacheKey);
 
         if (cachedResult != null)
@@ -77,9 +77,14 @@ public class TeamsController(
         var result = await mediator.Send(query);
 
         // Store in cache if successful
-        if (result.Succeeded && result.Team != null)
+        if (result is { Succeeded: true, Team: not null })
             await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
-
+        if (!result.Succeeded)
+        {
+            if (result.NotFound)
+                return NotFound(result);
+            return BadRequest(result.Error);
+        }
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);
     }
@@ -156,9 +161,8 @@ public class TeamsController(
         if (!result.Succeeded)
             return result.NotFound ? NotFound() : BadRequest(result);
 
-        // Invalidate both the specific team cache and the all teams cache
-        await _cacheService.RemoveAsync($"team_{id}");
-        await _cacheService.RemoveAsync("teams_all");
+        // Invalidate both the specific team cache and the all-teams cache
+        await InvalidateTeamCaches();
 
         return Ok(result);
     }
@@ -178,7 +182,7 @@ public class TeamsController(
         var result = await mediator.Send(command);
 
         if (!result.Succeeded)
-            return NotFound();
+            return NotFound(result.Error);
 
         // Invalidate both the specific team cache and the all teams cache
         await InvalidateTeamCaches();

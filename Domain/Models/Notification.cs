@@ -7,7 +7,7 @@ public class Notification
 {
     [Key]
     [MaxLength(255)]
-    public string Id { get; init; }
+    public string Id { get; init; } = Guid.NewGuid().ToString();
 
     [MaxLength(255)]
     public required string Title { get; set; }

@@ -1,67 +1,71 @@
 using Domain.Interfaces;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.CQRS.Teams.Commands;
 
 public class DeleteTeamCommand : IRequest<DeleteTeamCommandResponse>
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
 }
 
 public class DeleteTeamCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public string? Error { get; set; } // Nullable to avoid warnings
+    public bool Succeeded { get; init; }
+    public string? Error { get; init; }
 }
 
-public class DeleteTeamCommandHandler(IUnitOfWork unitOfWork)
-    : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
+public class DeleteTeamCommandHandler(
+    IUnitOfWork unitOfWork,
+    ILogger<DeleteTeamCommandHandler> logger
+) : IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>
 {
     public async Task<DeleteTeamCommandResponse> Handle(
         DeleteTeamCommand request,
         CancellationToken cancellationToken
     )
     {
+        var team = await unitOfWork.Teams.GetByIdAsync(request.Id);
+        if (team == null)
+            return new DeleteTeamCommandResponse
+            {
+                Succeeded = false,
+                Error = $"Team with ID {request.Id} not found.",
+            };
+
+        await unitOfWork.BeginTransactionAsync();
         try
         {
-            // Check if team exists
-            var team = await unitOfWork.Teams.GetByIdAsync(request.Id);
-            if (team == null)
-                return new DeleteTeamCommandResponse
-                {
-                    Succeeded = false,
-                    Error = $"Team with ID {request.Id} not found",
-                };
+            // 1. Unlink related coaches
+            var coaches = await unitOfWork.Coaches.GetAllAsync(c => c.TeamId == team.Id);
+            foreach (var coach in coaches)
+                coach.TeamId = null;
+            // Save changes to coaches
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Begin transaction to ensure atomic operation
-            await unitOfWork.BeginTransactionAsync();
+            // 2. Delete the team
+            unitOfWork.Teams.Delete(team);
 
-            try
-            {
-                // Set TeamId to null for all related coaches
-                var coaches = await unitOfWork.Coaches.GetAllAsync(c => c.TeamId == team.Id);
-                coaches.ToList().ForEach(c => c.TeamId = null);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+            // 3. Save the final deletion
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
-                // Delete team
-                unitOfWork.Teams.DeleteAsync(team);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+            // 4. If all successful, commit the transaction
+            await unitOfWork.CommitTransactionAsync();
 
-                // Commit transaction
-                await unitOfWork.CommitTransactionAsync();
-
-                return new DeleteTeamCommandResponse { Succeeded = true };
-            }
-            catch (Exception ex)
-            {
-                // Rollback transaction on error
-                await unitOfWork.RollbackTransactionAsync();
-                throw new Exception($"Failed to delete team: {ex.Message}", ex);
-            }
+            return new DeleteTeamCommandResponse { Succeeded = true };
         }
         catch (Exception ex)
         {
-            return new DeleteTeamCommandResponse { Succeeded = false, Error = ex.Message };
+            // If anything fails, roll back the entire transaction
+            await unitOfWork.RollbackTransactionAsync();
+
+            logger.LogError(ex, "Failed to delete team with ID {TeamId}", request.Id);
+
+            return new DeleteTeamCommandResponse
+            {
+                Succeeded = false,
+                Error = $"An error occurred while deleting the team: {ex.Message}",
+            };
         }
     }
 }

@@ -19,12 +19,6 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.Property(m => m.HomeTeamInMatchName).HasMaxLength(500);
         builder.Property(m => m.AwayTeamInMatchName).HasMaxLength(500);
 
-        // New property configurations for possession
-        builder.Property(m => m.HomeTeamPossessionDurationSeconds).HasColumnType("bigint");
-        builder.Property(m => m.AwayTeamPossessionDurationSeconds).HasColumnType("bigint");
-        builder.Property(m => m.LastEventTimestampSeconds).HasColumnType("integer");
-        builder.Property(m => m.LastEventPossessingTeamName).HasMaxLength(500); // MaxLength already defined in model, this reinforces it.
-
         // Use timestamp for date fields
         builder.Property(m => m.ScheduledDateTimeUtc).HasColumnType("timestamp with time zone");
 
@@ -121,6 +115,12 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .HasOne(m => m.MatchEvents)
             .WithOne(e => e.Match)
             .HasForeignKey<MatchEvents>(e => e.MatchId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // One-to-one relationship with match statistics
+        builder
+            .HasOne(m => m.MatchStatistics)
+            .WithOne(s => s.Match)
+            .HasForeignKey<MatchStatistics>(s => s.MatchId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Table comment

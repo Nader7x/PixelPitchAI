@@ -15,6 +15,7 @@ public interface IUserMapper
     ResetPasswordCommand ToResetPasswordCommand(ResetPasswordDto dto);
     ConfirmEmailCommand ToConfirmEmailCommand(ConfirmEmailDto dto);
     ResendEmailConfirmationCommand ToResendConfirmationCommand(ResendEmailConfirmationDto dto);
-    ApplicationUser ToUserFromRegister(RegisterUserCommand request);
+    ApplicationUser? ToUserFromRegister(RegisterUserCommand request);
     RegisterUserCommand ToRegisterCommandFromDto(RegisterUserDto dto);
+    void UpdateUserFromCommand(UpdateUserCommand command, ApplicationUser user);
 }

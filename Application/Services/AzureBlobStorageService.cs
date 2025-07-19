@@ -21,7 +21,7 @@ public class AzureBlobStorageService : IFileStorageService
         _blobServiceClient = blobServiceClient;
     }
 
-    public async Task<string?> UploadImageAsync(IFormFile file, string containerName)
+    async Task<string?> IFileStorageService.UploadImageAsync(IFormFile file, string containerName)
     {
         if (file == null || file.Length == 0)
             throw new ArgumentException("No file was provided");
@@ -35,7 +35,7 @@ public class AzureBlobStorageService : IFileStorageService
         var blobClient = containerClient.GetBlobClient(fileName);
 
         // Upload the file
-        using var stream = file.OpenReadStream();
+        await using var stream = file.OpenReadStream();
         await blobClient.UploadAsync(
             stream,
             new BlobHttpHeaders { ContentType = file.ContentType }
@@ -45,7 +45,7 @@ public class AzureBlobStorageService : IFileStorageService
         return blobClient.Uri.ToString();
     }
 
-    public async Task DeleteImageAsync(string imageUrl, string containerName)
+    public async Task DeleteImageAsync(string? imageUrl, string containerName)
     {
         if (string.IsNullOrEmpty(imageUrl))
             return;

@@ -3,7 +3,6 @@ using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
@@ -18,12 +17,12 @@ namespace Footex.UnitTests.Controllers;
 
 public class AuthControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IUserMapper> _userMapperMock;
-    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly AuthController _controller;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly TestFixtureBase _testFixtureBase;
+    private readonly Mock<IUserMapper> _userMapperMock;
 
     public AuthControllerTests(TestFixtureBase testFixtureBase)
     {

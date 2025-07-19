@@ -1,26 +1,32 @@
+using Domain.Interfaces;
 using Infrastructure;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using static System.GC;
 
 namespace Footex.IntegrationTests.Common;
 
-public abstract class BaseIntegrationTest : IClassFixture<FootexWebApplicationFactory>, IDisposable
+[Collection("Database collection")]
+public abstract class BaseIntegrationTest : IDisposable
 {
+    protected readonly IServiceScope FactoryServiceScope;
+    protected readonly IMediator Mediator;
+    protected readonly IUnitOfWork UnitOfWork;
     protected readonly FootballDbContext Context;
-    protected readonly FootexWebApplicationFactory Factory;
-    protected readonly IServiceProvider ServiceProvider;
-    protected readonly IServiceScope ServiceScope;
 
     protected BaseIntegrationTest(FootexWebApplicationFactory factory)
     {
-        Factory = factory;
-        ServiceScope = factory.Services.CreateScope();
-        ServiceProvider = ServiceScope.ServiceProvider;
-        Context = ServiceProvider.GetRequiredService<FootballDbContext>();
+        FactoryServiceScope = factory.Services.CreateScope();
+        Mediator = FactoryServiceScope.ServiceProvider.GetRequiredService<IMediator>();
+        UnitOfWork = FactoryServiceScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        Context = FactoryServiceScope.ServiceProvider.GetRequiredService<FootballDbContext>();
     }
 
-    public virtual void Dispose()
+    public void Dispose()
     {
-        ServiceScope?.Dispose();
+        // Dispose of the scope to release resources
+        FactoryServiceScope.Dispose();
+        SuppressFinalize(this);
     }
 }

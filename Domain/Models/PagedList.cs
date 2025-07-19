@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Dtos;
+namespace Domain.Models;
 
 public class PagedList<T>
 {
@@ -33,7 +33,7 @@ public class PagedList<T>
     /// A flag indicating if there is a next page.
     /// </summary>
     public bool HasNext => CurrentPage < TotalPages;
-    
+
     /// <summary>
     /// The actual list of items for the current page.
     /// </summary>
@@ -55,17 +55,18 @@ public class PagedList<T>
     /// <param name="pageNumber">The page number to retrieve (1-based).</param>
     /// <param name="pageSize">The number of items per page.</param>
     /// <returns>A PagedList containing the items and pagination metadata.</returns>
-    public static async Task<PagedList<T>> CreateAsync(IQueryable<T> source, int pageNumber, int pageSize)
+    public static async Task<PagedList<T>> CreateAsync(
+        IQueryable<T> source,
+        int pageNumber,
+        int pageSize
+    )
     {
         // Get the total count of items. This executes a COUNT(*) query on the database.
         var count = await source.CountAsync();
-        
-        // Retrieve the items for the specific page. 
+
+        // Retrieve the items for the specific page.
         // This executes a SELECT query with OFFSET and FETCH/LIMIT.
-        var items = await source
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var items = await source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedList<T>(items, count, pageNumber, pageSize);
     }

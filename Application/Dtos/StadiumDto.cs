@@ -30,7 +30,7 @@ public class CreateStadiumDto
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public string? ImageUrl { get; set; }
-    public IFormFile Image { get; set; }
+    public IFormFile? Image { get; set; }
     public string? Description { get; set; }
     public string? Facilities { get; set; }
     public DateTime BuiltDate { get; set; }

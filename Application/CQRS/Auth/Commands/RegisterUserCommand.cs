@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Domain.Interfaces;
+using Domain.Models;
 using MediatR;
 
 namespace Application.CQRS.Auth.Commands;
@@ -20,9 +21,9 @@ public class RegisterUserCommand : IRequest<RegisterUserCommandResponse>
 
 public class RegisterUserCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public string? UserId { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public string? UserId { get; init; }
+    public string? Error { get; init; }
 }
 
 public class RegisterUserCommandHandler(
@@ -41,7 +42,7 @@ public class RegisterUserCommandHandler(
     {
         try
         {
-            // Create application user
+            // Create an application user
             var user = _userMapper.ToUserFromRegister(request);
 
             // Register user
@@ -57,7 +58,7 @@ public class RegisterUserCommandHandler(
                     Error = string.Join(", ", result.Errors.Select(e => e.Description)),
                 };
 
-            // Add to default role
+            // Add to a default role
             await identityService.AddUserToRoleAsync(user, "User");
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             // Return response

@@ -22,19 +22,14 @@ public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors)
                 "MatchEvents object cannot be null."
             );
 
-        // First, update the match statistics
         await UpdateMatchStatistics(matchEvent, match);
 
-        // Then, if requested, update the event counters
-        if (withCounters)
-        {
-            // Find the appropriate processor and process the event
-            var processor = eventProcessors.FirstOrDefault(p => p.CanProcess(matchEvent));
-            processor?.ProcessEventCounters(matchEvent, matchEventsEntity, match);
+        if (!withCounters)
+            return matchEventsEntity;
+        var processor = eventProcessors.FirstOrDefault(p => p.CanProcess(matchEvent));
+        processor?.ProcessEventCounters(matchEvent, matchEventsEntity, match);
 
-            // Increment the total events counter
-            matchEventsEntity.TotalEvents++;
-        }
+        matchEventsEntity.TotalEvents++;
 
         return matchEventsEntity;
     }
@@ -52,7 +47,8 @@ public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors)
         PossessionCalculator.UpdatePossession(match, matchEvent);
 
         // Calculate pass accuracy
-        CalculatePassAccuracy(match);
+        if (match.MatchStatistics != null)
+            CalculatePassAccuracy(match.MatchStatistics);
 
         // Update match timestamp
         match.UpdatedAt = DateTime.UtcNow;
@@ -60,49 +56,47 @@ public class EventAnalysisService(IEnumerable<IEventProcessor> eventProcessors)
         return Task.FromResult(match);
     }
 
-    private static void CalculatePassAccuracy(Match match)
+    private static void CalculatePassAccuracy(MatchStatistics matchStatistics)
     {
-        // Home team pass accuracy
-        if (
-            match.HomeTeamPasses.HasValue
-            && match.HomeTeamPassesCompleted.HasValue
-            && match.HomeTeamPasses > 0
-        )
-            match.HomeTeamPassAccuracy = Math.Round(
-                (double)match.HomeTeamPassesCompleted.Value * 100 / match.HomeTeamPasses.Value,
+        if (matchStatistics is { HomeTeamPasses: > 0, HomeTeamPassesCompleted: not null })
+            matchStatistics.HomeTeamPassAccuracy = Math.Round(
+                (double)matchStatistics.HomeTeamPassesCompleted.Value
+                    * 100
+                    / matchStatistics.HomeTeamPasses.Value,
                 2
             );
         else
-            match.HomeTeamPassAccuracy = 0;
+            matchStatistics.HomeTeamPassAccuracy = 0;
 
-        // Away team pass accuracy (missing in original code, added for completeness)
-        if (
-            match.AwayTeamPasses.HasValue
-            && match.AwayTeamPassesCompleted.HasValue
-            && match.AwayTeamPasses > 0
-        )
-            match.AwayTeamPassAccuracy = Math.Round(
-                (double)match.AwayTeamPassesCompleted.Value * 100 / match.AwayTeamPasses.Value,
+        if (matchStatistics is { AwayTeamPasses: > 0, AwayTeamPassesCompleted: not null })
+            matchStatistics.AwayTeamPassAccuracy = Math.Round(
+                (double)matchStatistics.AwayTeamPassesCompleted.Value
+                    * 100
+                    / matchStatistics.AwayTeamPasses.Value,
                 2
             );
         else
-            match.AwayTeamPassAccuracy = 0;
+            matchStatistics.AwayTeamPassAccuracy = 0;
 
         // Calculate Home Long Balls Accuracy
-        if (match is { HomeLongBalls: > 0, HomeAccurateLongBalls: not null })
-            match.HomeTeamLongBallsAccuracy = Math.Round(
-                (double)match.HomeAccurateLongBalls.Value * 100 / match.HomeLongBalls.Value,
+        if (matchStatistics is { HomeLongBalls: > 0, HomeAccurateLongBalls: not null })
+            matchStatistics.HomeTeamLongBallsAccuracy = Math.Round(
+                (double)matchStatistics.HomeAccurateLongBalls.Value
+                    * 100
+                    / matchStatistics.HomeLongBalls.Value,
                 2
             );
         else
-            match.HomeTeamLongBallsAccuracy = 0;
+            matchStatistics.HomeTeamLongBallsAccuracy = 0;
         // Calculate Away Long Balls Accuracy
-        if (match is { AwayLongBalls: > 0, AwayAccurateLongBalls: not null })
-            match.AwayTeamLongBallsAccuracy = Math.Round(
-                (double)match.AwayAccurateLongBalls.Value * 100 / match.AwayLongBalls.Value,
+        if (matchStatistics is { AwayLongBalls: > 0, AwayAccurateLongBalls: not null })
+            matchStatistics.AwayTeamLongBallsAccuracy = Math.Round(
+                (double)matchStatistics.AwayAccurateLongBalls.Value
+                    * 100
+                    / matchStatistics.AwayLongBalls.Value,
                 2
             );
         else
-            match.AwayTeamLongBallsAccuracy = 0;
+            matchStatistics.AwayTeamLongBallsAccuracy = 0;
     }
 }

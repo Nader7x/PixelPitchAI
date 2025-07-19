@@ -2,7 +2,6 @@ using Application.CQRS.Players.Commands;
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,7 +47,7 @@ public class PlayersController(
             return Ok(cachedResult);
         }
 
-        // Cache miss, fetch from database
+        // Cache miss, fetch from a database
         var query = new GetAllPlayersQuery
         {
             Nationality = nationality,
@@ -113,7 +112,6 @@ public class PlayersController(
         [FromForm] CreatePlayerDto playerDto
     )
     {
-        // Handle file upload if present
         var photoUrl = playerDto.PhotoUrl;
         if (playerDto.Photo != null)
             photoUrl = await _fileStorageService.UploadImageAsync(playerDto.Photo, CONTAINER_NAME);
@@ -126,7 +124,6 @@ public class PlayersController(
         if (!result.Succeeded)
             return BadRequest(result);
 
-        // Invalidate players listing cache since we've added a new player
         await InvalidatePlayerListCaches();
 
         return CreatedAtAction(nameof(GetPlayerById), new { id = result.Id }, result);

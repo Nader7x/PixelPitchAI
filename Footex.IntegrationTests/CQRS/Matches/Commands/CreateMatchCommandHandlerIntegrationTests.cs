@@ -8,66 +8,58 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Matches.Commands;
 
-public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class CreateMatchCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public CreateMatchCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_CreatesMatchInDatabase()
     {
         // Arrange
-        var homeTeam = TestData.CreateTestTeam();
-        var awayTeam = TestData.CreateTestTeam();
-        awayTeam.Name = "Away Team";
-        awayTeam.ShortName = "AWT";
+        var homeTeam = TestData.CreateTestDbTeam();
+        var awayTeam = TestData.CreateTestDbTeam();
 
-        var season = TestData.CreateTestSeason();
-        var stadium = TestData.CreateTestStadium();
+        var season = TestData.CreateTestDbSeason();
+        var stadium = TestData.CreateTestDbStadium();
 
-        _context.Teams.AddRange(homeTeam, awayTeam);
-        _context.Seasons.Add(season);
-        _context.Stadiums.Add(stadium);
-        await _context.SaveChangesAsync();
+        var user = TestData.CreateTestUser(true);
+        await Context.Database.BeginTransactionAsync();
+        await Context.Users.AddAsync(user);
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Stadiums.AddAsync(stadium);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        var homeSeasonTeam = TestData.CreateTestSeasonTeam(season.Id, homeTeam.Id);
-        var awaySeasonTeam = TestData.CreateTestSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.AddRange(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
+        var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = homeSeasonTeam.Id,
-            AwaySeasonId = awaySeasonTeam.Id,
+            HomeSeasonId = homeSeasonTeam.SeasonId,
+            AwaySeasonId = awaySeasonTeam.SeasonId,
             HomeTeamId = homeTeam.Id,
             AwayTeamId = awayTeam.Id,
+            HomeTeamInMatchName = homeTeam.ShortName,
+            AwayTeamInMatchName = awayTeam.ShortName,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             StadiumId = stadium.Id,
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID,
+            CreatorId = user.Id,
             MatchStatus = "Scheduled", // Assuming a default match status
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeTrue();
         response.Id.Should().BeGreaterThan(0);
 
-        // Verify match was created in database
-        var createdMatch = await _context.Matches.FindAsync(response.Id);
+        // Verify a match was created in a database
+        var createdMatch = await Context.Matches.FindAsync(response.Id);
         createdMatch.Should().NotBeNull();
         createdMatch!.HomeTeamId.Should().Be(command.HomeTeamId);
         createdMatch.AwayTeamId.Should().Be(command.AwayTeamId);
@@ -81,65 +73,71 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
     public async Task Handle_WithSameHomeAndAwayTeam_ReturnsFailureResponse()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        var season = TestData.CreateTestSeason();
+        var team = TestData.CreateTestDbTeam();
+        var season = TestData.CreateTestDbSeason();
+        var user = TestData.CreateTestUser(true);
+        await Context.Database.BeginTransactionAsync();
+        await Context.Teams.AddAsync(team);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        _context.Teams.Add(team);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
-
-        var seasonTeam = TestData.CreateTestSeasonTeam(season.Id, team.Id);
-        _context.TeamSeasons.Add(seasonTeam);
-        await _context.SaveChangesAsync();
+        var seasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, team.Id);
+        await Context.TeamSeasons.AddAsync(seasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = seasonTeam.Id,
-            AwaySeasonId = seasonTeam.Id,
+            HomeSeasonId = seasonTeam.SeasonId,
+            AwaySeasonId = seasonTeam.SeasonId,
             HomeTeamId = team.Id,
             AwayTeamId = team.Id, // Same as home team
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID
+            CreatorId = user.Id,
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeFalse();
-        response.Error.Should().Contain("must be different");
+        response.Error.Should().Contain("Home and Away teams Must be different");
     }
 
     [Fact]
     public async Task Handle_WithInvalidHomeTeam_ReturnsFailureResponse()
     {
         // Arrange
-        var awayTeam = TestData.CreateTestTeam();
-        var season = TestData.CreateTestSeason();
+        var awayTeam = TestData.CreateTestDbTeam();
+        var season = TestData.CreateTestDbSeason();
+        var user = TestData.CreateTestUser(true);
+        await Context.Database.BeginTransactionAsync();
+        await Context.Teams.AddAsync(awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        _context.Teams.Add(awayTeam);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
-
-        var awaySeasonTeam = TestData.CreateTestSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.Add(awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
+        await Context.TeamSeasons.AddAsync(awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = 999,
-            AwaySeasonId = awaySeasonTeam.Id,
+            HomeSeasonId = awaySeasonTeam.SeasonId,
+            AwaySeasonId = awaySeasonTeam.SeasonId,
             HomeTeamId = 999999, // Invalid team ID
             AwayTeamId = awayTeam.Id,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID
+            CreatorId = user.Id,
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -151,30 +149,34 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
     public async Task Handle_WithInvalidAwayTeam_ReturnsFailureResponse()
     {
         // Arrange
-        var homeTeam = TestData.CreateTestTeam();
-        var season = TestData.CreateTestSeason();
+        var homeTeam = TestData.CreateTestDbTeam();
+        var season = TestData.CreateTestDbSeason();
+        var user = TestData.CreateTestUser(true);
 
-        _context.Teams.Add(homeTeam);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
+        await Context.Database.BeginTransactionAsync();
+        await Context.Teams.AddAsync(homeTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        var homeSeasonTeam = TestData.CreateTestSeasonTeam(season.Id, homeTeam.Id);
-        _context.TeamSeasons.Add(homeSeasonTeam);
-        await _context.SaveChangesAsync();
+        var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
+        await Context.TeamSeasons.AddAsync(homeSeasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = homeSeasonTeam.Id,
-            AwaySeasonId = 999,
+            HomeSeasonId = homeSeasonTeam.SeasonId,
+            AwaySeasonId = homeSeasonTeam.SeasonId,
             HomeTeamId = homeTeam.Id,
             AwayTeamId = 999999, // Invalid team ID
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID
+            CreatorId = user.Id,
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -186,36 +188,37 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
     public async Task Handle_WithInvalidStadium_ReturnsFailureResponse()
     {
         // Arrange
-        var homeTeam = TestData.CreateTestTeam();
-        var awayTeam = TestData.CreateTestTeam();
-        awayTeam.Name = "Away Team";
-        awayTeam.ShortName = "AWT";
+        var homeTeam = TestData.CreateTestDbTeam();
+        var awayTeam = TestData.CreateTestDbTeam();
 
         var season = TestData.CreateTestSeason();
+        var user = TestData.CreateTestUser(true);
+        await Context.Database.BeginTransactionAsync();
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        _context.Teams.AddRange(homeTeam, awayTeam);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
-
-        var homeSeasonTeam = TestData.CreateTestSeasonTeam(season.Id, homeTeam.Id);
-        var awaySeasonTeam = TestData.CreateTestSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.AddRange(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
+        var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = homeSeasonTeam.Id,
-            AwaySeasonId = awaySeasonTeam.Id,
+            HomeSeasonId = homeSeasonTeam.SeasonId,
+            AwaySeasonId = awaySeasonTeam.SeasonId,
             HomeTeamId = homeTeam.Id,
             AwayTeamId = awayTeam.Id,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             StadiumId = 999999, // Invalid stadium ID
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID
+            CreatorId = user.Id,
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -227,44 +230,53 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
     public async Task Handle_WithCoaches_CreatesMatchWithCoaches()
     {
         // Arrange
-        var homeTeam = TestData.CreateTestTeam();
-        var awayTeam = TestData.CreateTestTeam();
-        awayTeam.Name = "Away Team";
-        awayTeam.ShortName = "AWT";
+        var homeTeam = TestData.CreateTestDbTeam();
+        homeTeam.Name = "Home TeamC";
+        homeTeam.ShortName = "HMTC";
+        var awayTeam = TestData.CreateTestDbTeam();
+        awayTeam.Name = "Away TeamC";
+        awayTeam.ShortName = "AWTC";
 
-        var season = TestData.CreateTestSeason();
+        var season = TestData.CreateTestDbSeason();
+        var user = TestData.CreateTestUser(true);
+        await Context.Database.BeginTransactionAsync();
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.Users.AddAsync(user);
+        await Context.SaveChangesAsync();
+        await Context.Database.CommitTransactionAsync();
 
-        _context.Teams.AddRange(homeTeam, awayTeam);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
-
-        var homeCoach = TestData.CreateTestCoach(homeTeam.Id);
-        var awayCoach = TestData.CreateTestCoach(awayTeam.Id);
-        awayCoach.FirstName = "Away";
+        var homeCoach = TestData.CreateTestDbCoach(homeTeam.Id);
+        homeCoach.FirstName = "HomeC";
+        homeCoach.LastName = "Coach";
+        var awayCoach = TestData.CreateTestDbCoach(awayTeam.Id);
+        awayCoach.FirstName = "AwayC";
         awayCoach.LastName = "Coach";
 
-        _context.Coaches.AddRange(homeCoach, awayCoach);
+        await Context.Coaches.AddRangeAsync(homeCoach, awayCoach);
 
-        var homeSeasonTeam = TestData.CreateTestSeasonTeam(season.Id, homeTeam.Id);
-        var awaySeasonTeam = TestData.CreateTestSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.AddRange(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
+        var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateMatchCommand
         {
-            HomeSeasonId = homeSeasonTeam.Id,
-            AwaySeasonId = awaySeasonTeam.Id,
+            HomeSeasonId = season.Id,
+            AwaySeasonId = season.Id,
             HomeTeamId = homeTeam.Id,
             AwayTeamId = awayTeam.Id,
+            HomeTeamInMatchName = homeTeam.ShortName,
+            AwayTeamInMatchName = awayTeam.ShortName,
             ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
             HomeCoachId = homeCoach.Id,
             AwayCoachId = awayCoach.Id,
             MatchWeek = 1,
-            CreatorId = "test-user", // Assuming a test user ID
+            CreatorId = user.Id,
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -272,14 +284,9 @@ public class CreateMatchCommandHandlerIntegrationTests : IClassFixture<FootexWeb
         response.Id.Should().BeGreaterThan(0);
 
         // Verify match was created with coaches
-        var createdMatch = await _context.Matches.FindAsync(response.Id);
+        var createdMatch = await Context.Matches.FindAsync(response.Id);
         createdMatch.Should().NotBeNull();
         createdMatch!.HomeCoachId.Should().Be(homeCoach.Id);
         createdMatch.AwayCoachId.Should().Be(awayCoach.Id);
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

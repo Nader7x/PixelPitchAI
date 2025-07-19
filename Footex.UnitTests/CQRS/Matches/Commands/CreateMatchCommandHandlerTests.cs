@@ -45,13 +45,25 @@ public class CreateMatchCommandHandlerTests
         var match = TestDataBuilder.CreateValidMatch(1);
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason, awaySeason]);
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync(awaySeason);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.HomeTeamId)).ReturnsAsync(homeTeam);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.AwayTeamId)).ReturnsAsync(awayTeam);
+            .Setup(x =>
+                x.Teams.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeTeamId, command.AwayTeamId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeTeam, awayTeam]);
 
         _iMatchMapperMock.Setup(x => x.ToMatchFromCreate(command)).Returns(match);
 
@@ -84,8 +96,15 @@ public class CreateMatchCommandHandlerTests
         var command = TestDataBuilder.CreateValidCreateMatchCommand();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync((Season?)null);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -107,11 +126,15 @@ public class CreateMatchCommandHandlerTests
         var homeSeason = TestDataBuilder.CreateValidSeason(1);
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
-        _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync((Season?)null);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -134,14 +157,23 @@ public class CreateMatchCommandHandlerTests
         var awaySeason = TestDataBuilder.CreateValidSeason(2);
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason, awaySeason]);
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync(awaySeason);
-        _unitOfWorkMock
-            .Setup(x => x.Teams.GetByIdAsync(command.HomeTeamId))
-            .ReturnsAsync((Team?)null);
+            .Setup(x =>
+                x.Teams.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids => ids.SequenceEqual(new[] { command.HomeTeamId })),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -165,15 +197,25 @@ public class CreateMatchCommandHandlerTests
         var homeTeam = TestDataBuilder.CreateValidTeam(1, "Arsenal");
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason, awaySeason]);
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync(awaySeason);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.HomeTeamId)).ReturnsAsync(homeTeam);
-        _unitOfWorkMock
-            .Setup(x => x.Teams.GetByIdAsync(command.AwayTeamId))
-            .ReturnsAsync((Team?)null);
+            .Setup(x =>
+                x.Teams.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeTeamId, command.AwayTeamId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeTeam]);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -199,15 +241,27 @@ public class CreateMatchCommandHandlerTests
         var awayTeam = TestDataBuilder.CreateValidTeam(2, "Chelsea");
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason, awaySeason]);
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync(awaySeason);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.HomeTeamId)).ReturnsAsync(homeTeam);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.AwayTeamId)).ReturnsAsync(awayTeam);
+            .Setup(x =>
+                x.Teams.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeTeamId, command.AwayTeamId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeTeam, awayTeam]);
         _unitOfWorkMock
-            .Setup(x => x.Stadiums.GetByIdAsync(command.StadiumId.Value))
+            .Setup(x => x.Stadiums.GetByIdAsync(command.StadiumId.Value, CancellationToken.None))
             .ReturnsAsync((Stadium?)null);
 
         // Act
@@ -230,7 +284,9 @@ public class CreateMatchCommandHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(It.IsAny<int>()))
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None)
+            )
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -262,19 +318,37 @@ public class CreateMatchCommandHandlerTests
         var match = TestDataBuilder.CreateValidMatch(1);
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.HomeSeasonId))
-            .ReturnsAsync(homeSeason);
+            .Setup(x =>
+                x.Seasons.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeSeasonId, command.AwaySeasonId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeSeason, awaySeason]);
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.AwaySeasonId))
-            .ReturnsAsync(awaySeason);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.HomeTeamId)).ReturnsAsync(homeTeam);
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.AwayTeamId)).ReturnsAsync(awayTeam);
+            .Setup(x =>
+                x.Teams.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(new[] { command.HomeTeamId, command.AwayTeamId })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeTeam, awayTeam]);
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetByIdAsync(command.HomeCoachId.Value))
-            .ReturnsAsync(homeCoach);
-        _unitOfWorkMock
-            .Setup(x => x.Coaches.GetByIdAsync(command.AwayCoachId.Value))
-            .ReturnsAsync(awayCoach);
+            .Setup(x =>
+                x.Coaches.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(
+                            new[] { command.HomeCoachId.Value, command.AwayCoachId.Value }
+                        )
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([homeCoach, awayCoach]);
 
         _iMatchMapperMock.Setup(x => x.ToMatchFromCreate(command)).Returns(match);
 
@@ -293,7 +367,17 @@ public class CreateMatchCommandHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Id.Should().Be(match.Id);
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(command.HomeCoachId.Value), Times.Once);
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(command.AwayCoachId.Value), Times.Once);
+        _unitOfWorkMock.Verify(
+            x =>
+                x.Coaches.GetByIdsAsync(
+                    It.Is<IEnumerable<int>>(ids =>
+                        ids.SequenceEqual(
+                            new[] { command.HomeCoachId.Value, command.AwayCoachId.Value }
+                        )
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 }

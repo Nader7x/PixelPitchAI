@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -34,14 +35,14 @@ public class UpdatePlayerCommand : IRequest<UpdatePlayerCommandResponse>
 
 public class UpdatePlayerCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public int Id { get; set; }
-    public string? FullName { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public int Id { get; init; }
+    public string? FullName { get; init; }
+    public string? Error { get; init; }
 }
 
-public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
+public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     : IRequestHandler<UpdatePlayerCommand, UpdatePlayerCommandResponse>
 {
     public async Task<UpdatePlayerCommandResponse> Handle(
@@ -51,8 +52,7 @@ public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            // Check if player exists
-            var player = await unitOfWork.Players.GetByIdAsync(request.Id);
+            var player = await unitOfWork.Players.GetByIdAsync(request.Id, cancellationToken);
             if (player == null)
                 return new UpdatePlayerCommandResponse
                 {
@@ -61,7 +61,6 @@ public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
                     Error = $"Player with ID {request.Id} not found",
                 };
 
-            // Check for name conflicts
             if (player.FullName != request.FullName)
             {
                 var existingPlayer = await unitOfWork.Players.GetByFullNameAsync(request.FullName);
@@ -73,17 +72,8 @@ public class UpdatePlayerCommandHandler(IUnitOfWork unitOfWork)
                     };
             }
 
-            // Update player properties
-            player.FullName = request.FullName;
-            player.Nationality = request.Nationality;
-            player.PreferredFoot = request.PreferredFoot;
-            player.Position = request.Position;
-            if (!string.IsNullOrEmpty(request.PhotoUrl))
-                player.PhotoUrl = request.PhotoUrl;
-            player.TeamId = request.TeamId;
-            player.ShirtNumber = request.ShirtNumber;
+            playerMapper.ToPlayerFromUpdate(request, player);
 
-            unitOfWork.Players.UpdateAsync(player);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdatePlayerCommandResponse

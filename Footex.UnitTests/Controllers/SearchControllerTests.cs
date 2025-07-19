@@ -13,10 +13,10 @@ namespace Footex.UnitTests.Controllers;
 
 public class SearchControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
     private readonly Mock<IAdvancedSearchService> _advancedSearchServiceMock;
     private readonly SearchController _controller;
     private readonly NoRecursionFixture _fixture;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public SearchControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -49,7 +49,7 @@ public class SearchControllerTests : IClassFixture<TestFixtureBase>
             TotalPages = 1,
             Items = new List<SearchItemDto>
             {
-                new SearchItemDto
+                new()
                 {
                     Id = "1",
                     Name = "Arsenal FC",
@@ -297,7 +297,7 @@ public class SearchControllerTests : IClassFixture<TestFixtureBase>
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.SearchTeams(query, limit, false, false);
+        var result = await _controller.SearchTeams(query, limit);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -321,7 +321,7 @@ public class SearchControllerTests : IClassFixture<TestFixtureBase>
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.SearchPlayers(query, limit, false, false);
+        var result = await _controller.SearchPlayers(query, limit);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -350,7 +350,7 @@ public class SearchControllerTests : IClassFixture<TestFixtureBase>
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.SearchCoaches(query, limit, false, false);
+        var result = await _controller.SearchCoaches(query, limit);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

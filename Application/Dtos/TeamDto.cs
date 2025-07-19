@@ -14,6 +14,7 @@ public class TeamDto
     public string? PrimaryColor { get; set; }
     public string? SecondaryColor { get; set; }
     public DateTime? FoundationDate { get; set; }
+    public string? StadiumName { get; set; }
 }
 
 public class CreateTeamDto

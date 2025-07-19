@@ -4,7 +4,7 @@ using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
 using Infrastructure;
-using Infrastructure.Data;
+using Infrastructure.Configuration;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -23,6 +24,7 @@ namespace Footex.IntegrationTests.Common;
 public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private PostgreSqlContainer? _postgreSqlContainer;
+    private string _testUserToken = "";
 
     public async Task InitializeAsync()
     {
@@ -31,28 +33,26 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             .WithDatabase("Footex_Api")
             .WithUsername("postgres")
             .WithPassword("0000")
+            .WithPortBinding(0, 5432)
             .WithCleanUp(true)
             .Build();
 
         await _postgreSqlContainer.StartAsync();
+
         using var scope = Services.CreateScope();
         var scopedServices = scope.ServiceProvider;
-        var dbContext = scopedServices.GetRequiredService<FootballDbContext>();
-        var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole>>();
-        var dataSeeder = scopedServices.GetRequiredService<DataSeeder>();
 
+        var dbContext = scopedServices.GetRequiredService<FootballDbContext>();
         await dbContext.Database.MigrateAsync();
 
-        if (!await roleManager.RoleExistsAsync("Admin"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
-        }
-        if (!await roleManager.RoleExistsAsync("User"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("User"));
-        }
+        var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole>>();
+        // var dataSeeder = scopedServices.GetRequiredService<DataSeeder>();
 
-        await dataSeeder.SeedAllAsync();
+        if (!await roleManager.RoleExistsAsync("Admin"))
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+        if (!await roleManager.RoleExistsAsync("User"))
+            await roleManager.CreateAsync(new IdentityRole("User"));
+        // await dataSeeder.SeedAllAsync();
     }
 
     public new async Task DisposeAsync()
@@ -71,7 +71,7 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         );
         builder.UseEnvironment("Testing");
         builder.ConfigureAppConfiguration(
-            (context, config) =>
+            (_, config) =>
             {
                 config.AddUserSecrets<Program>();
             }
@@ -81,7 +81,6 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             var descriptor = services.SingleOrDefault(d =>
                 d.ServiceType == typeof(DbContextOptions<FootballDbContext>)
             );
-
             if (descriptor != null)
                 services.Remove(descriptor);
 
@@ -90,22 +89,17 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 {
                     options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
                 });
-
-            services.AddLogging(loggingBuilder => loggingBuilder.SetMinimumLevel(LogLevel.Warning));
-            var rabbitMqClientDescriptor = services.SingleOrDefault(d =>
-                d.ServiceType == typeof(IHostedService)
-                && d.ImplementationType == typeof(MatchEventRabbitMqClient)
+            var rabbitMqDescriptor = services.SingleOrDefault(d =>
+                d.ServiceType == typeof(RabbitMqOptions)
             );
-            if (rabbitMqClientDescriptor != null)
-            {
-                services.Remove(rabbitMqClientDescriptor);
-            }
-            services.AddSingleton<IHostedService>(sp =>
+            if (rabbitMqDescriptor != null)
+                services.Remove(rabbitMqDescriptor);
+
+            services.AddSingleton<IHostedService, DummyMatchEventRabbitMqClient>(sp =>
             {
                 var hubContext = sp.GetRequiredService<IHubContext<MatchHub, IMatchHub>>();
                 var logger = sp.GetRequiredService<ILogger<MatchEventRabbitMqClient>>();
-                var rabbitMqOptions =
-                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Infrastructure.Configuration.RabbitMqOptions>>();
+                var rabbitMqOptions = sp.GetRequiredService<IOptions<RabbitMqOptions>>();
                 var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
                 var performanceMonitoringService =
                     sp.GetRequiredService<IPerformanceMonitoringService>();
@@ -121,6 +115,8 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                     liveMatchStatisticsService
                 );
             });
+
+            services.AddLogging(loggingBuilder => loggingBuilder.SetMinimumLevel(LogLevel.Warning));
         });
     }
 
@@ -132,21 +128,34 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 BaseAddress = new Uri("https://localhost:7082"),
             }
         );
-        using var scope = Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
-
-        var user = new ApplicationUser
+        if (string.IsNullOrWhiteSpace(_testUserToken))
         {
-            UserName = "testuser@example.com",
-            Email = "testuser@example.com",
-            FirstName = "Test",
-            LastName = "User",
-        };
-        await userManager.CreateAsync(user, "Password123!");
+            using var scope = Services.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<
+                UserManager<ApplicationUser>
+            >();
+            var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
 
-        var (token, _) = await tokenService.GenerateTokenAsync(user, "0.0.0.0");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var user = new ApplicationUser
+            {
+                UserName = "testuser@example.com",
+                Email = "testuser@example.com",
+                FirstName = "Test",
+                LastName = "User",
+            };
+            await userManager.CreateAsync(user, "Password123!");
+            await userManager.AddToRoleAsync(user, "Admin");
+
+            var (token, _) = await tokenService.GenerateTokenAsync(user, "0.0.0.0");
+            _testUserToken = token;
+        }
+        if (string.IsNullOrWhiteSpace(_testUserToken))
+            throw new InvalidOperationException("Test user token is not set.");
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            _testUserToken
+        );
 
         return client;
     }

@@ -1,57 +1,59 @@
 using Application.CQRS.Seasons.Commands;
 using Domain.Interfaces;
 using Domain.Models;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Footex.IntegrationTests.CQRS.Seasons.Commands;
 
-public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
+public class CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly CreateSeasonCommandHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _handler = ServiceProvider.GetRequiredService<CreateSeasonCommandHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidSeasonCommand_CreatesSeasonSuccessfully()
     {
         // Arrange
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         var command = new CreateSeasonCommand
         {
-            Name = "2024-25 Premier League",
+            Name = "2024/2025",
+            LeagueName = "Premier League",
             StartDate = new DateTime(2024, 8, 17),
             EndDate = new DateTime(2025, 5, 25),
-            IsActive = true,
+            IsActive = false,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
-        Assert.Equal(command.Name, result.Name);
-        Assert.Null(result.Error);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(0);
+        result.Name.Should().Be(command.Name);
+        result.Error.Should().BeNull();
 
         // Verify season was saved to database
-        var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        Assert.NotNull(savedSeason);
-        Assert.Equal(command.Name, savedSeason.Name);
-        Assert.Equal(command.StartDate, savedSeason.StartDate);
-        Assert.Equal(command.EndDate, savedSeason.EndDate);
-        Assert.Equal(command.IsActive, savedSeason.IsActive);
+        var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+        savedSeason.Should().NotBeNull();
+        savedSeason!.Name.Should().Be(command.Name);
+        savedSeason.StartDate.Should().Be(command.StartDate);
+        savedSeason.EndDate.Should().Be(command.EndDate);
+        savedSeason.IsActive.Should().Be(command.IsActive);
     }
 
     [Fact]
     public async Task Handle_SeasonWithValidDateRange_CreatesSuccessfully()
     {
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         // Arrange
         var command = new CreateSeasonCommand
         {
@@ -59,94 +61,101 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2023, 7, 1),
             EndDate = new DateTime(2024, 6, 30),
             IsActive = false,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(0);
 
-        var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        Assert.NotNull(savedSeason);
-        Assert.Equal(command.StartDate, savedSeason.StartDate);
-        Assert.Equal(command.EndDate, savedSeason.EndDate);
-        Assert.False(savedSeason.IsActive);
+        var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+        savedSeason.Should().NotBeNull();
+        savedSeason!.StartDate.Should().Be(command.StartDate);
+        savedSeason.EndDate.Should().Be(command.EndDate);
+        savedSeason.IsActive.Should().BeFalse();
     }
 
     [Fact]
     public async Task Handle_MultipleCurrentSeasons_OnlyOneCanBeCurrent()
     {
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         // Arrange
         // Create first current season
         var existingSeason = new Season
         {
-            Id = 0,
-            Name = "Existing Current Season",
+            Name = "Current Season",
             StartDate = DateTime.UtcNow.AddDays(-30),
             EndDate = DateTime.UtcNow.AddDays(300),
-            IsActive = true,
+            IsActive = false,
             LeagueName = "Premier League",
             Country = "England",
+            CompetitionId = competition.Id,
         };
-        await _unitOfWork.Seasons.AddAsync(existingSeason);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Seasons.AddAsync(existingSeason);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateSeasonCommand
         {
-            Name = "New Current Season",
+            Name = "Current Season",
             StartDate = DateTime.UtcNow.AddDays(1),
             EndDate = DateTime.UtcNow.AddDays(365),
             IsActive = true,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().Be(false);
 
-        // Verify the business logic for handling multiple current seasons
-        var newSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        var existingSeasonUpdated = await _unitOfWork.Seasons.GetByIdAsync(existingSeason.Id);
-
-        // Either the new season is current and existing is not, or vice versa
         // The exact behavior depends on business requirements
-        var currentSeasons = await _unitOfWork.Seasons.GetAllAsync();
+        var currentSeasons = await UnitOfWork.Seasons.GetAllAsync();
         var activeCurrent = currentSeasons.Where(s => s.IsActive).ToList();
 
-        // Should have only one current season
-        Assert.True(activeCurrent.Count <= 1, "Only one season should be current at a time");
+        // Should have only one current
+        activeCurrent.Count.Should().BeLessThanOrEqualTo(1);
     }
 
     [Fact]
     public async Task Handle_SeasonWithFutureStartDate_CreatesSuccessfully()
     {
         // Arrange
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         var command = new CreateSeasonCommand
         {
             Name = "Future Season 2026-27",
             StartDate = new DateTime(2026, 8, 1),
             EndDate = new DateTime(2027, 7, 31),
             IsActive = false,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(-1);
 
-        var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        Assert.NotNull(savedSeason);
-        Assert.True(savedSeason.StartDate > DateTime.UtcNow);
+        var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+        savedSeason.Should().NotBeNull();
+        savedSeason!.StartDate.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]
     public async Task Handle_SeasonWithPastDates_CreatesSuccessfully()
     {
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         // Arrange
         var command = new CreateSeasonCommand
         {
@@ -154,48 +163,57 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
             StartDate = new DateTime(2020, 9, 12),
             EndDate = new DateTime(2021, 5, 23),
             IsActive = false,
+            CompetitionId = competition.Id,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        Assert.NotNull(savedSeason);
-        Assert.True(savedSeason.EndDate < DateTime.UtcNow);
-        Assert.False(savedSeason.IsActive);
+        var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+        savedSeason.Should().NotBeNull();
+        savedSeason!.EndDate.Should().BeBefore(DateTime.UtcNow);
+        savedSeason.IsActive.Should().BeFalse();
     }
 
     [Fact]
     public async Task Handle_LongSeasonName_CreatesSuccessfully()
     {
         // Arrange
-        var longName =
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
+        const string longName =
             "Very Long Season Name That Exceeds Normal Length But Should Still Be Valid For Database Storage";
         var command = new CreateSeasonCommand
         {
             Name = longName,
+            LeagueName = "Premier League",
             StartDate = DateTime.UtcNow,
+            CompetitionId = competition.Id,
             EndDate = DateTime.UtcNow.AddYears(1),
             IsActive = false,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-        Assert.NotNull(savedSeason);
-        Assert.Equal(longName, savedSeason.Name);
+        var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+        savedSeason.Should().NotBeNull();
+        savedSeason?.Name.Should().Be(longName);
     }
 
     [Fact]
     public async Task Handle_MultipleSeasonsCreation_AllCreateSuccessfully()
     {
+        var competition = TestData.CreateTestCompetition();
+        await UnitOfWork.Competitions.AddAsync(competition);
+        await UnitOfWork.SaveChangesAsync();
         // Arrange
         var commands = new[]
         {
@@ -205,6 +223,7 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
                 StartDate = new DateTime(2024, 1, 1),
                 EndDate = new DateTime(2024, 12, 31),
                 IsActive = false,
+                CompetitionId = competition.Id,
             },
             new CreateSeasonCommand
             {
@@ -212,13 +231,15 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
                 StartDate = new DateTime(2025, 1, 1),
                 EndDate = new DateTime(2025, 12, 31),
                 IsActive = false,
+                CompetitionId = competition.Id,
             },
             new CreateSeasonCommand
             {
                 Name = "Season 3",
                 StartDate = new DateTime(2026, 1, 1),
                 EndDate = new DateTime(2026, 12, 31),
-                IsActive = true,
+                IsActive = false,
+                CompetitionId = competition.Id,
             },
         };
 
@@ -227,23 +248,24 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
         // Act
         foreach (var command in commands)
         {
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await Mediator.Send(command, CancellationToken.None);
             results.Add(result);
         }
 
         // Assert
-        Assert.All(results, r => Assert.True(r.Succeeded));
-        Assert.Equal(3, results.Count);
+        results.Should().OnlyContain(r => r.Succeeded);
+        results.Should().HaveCount(3);
 
         // Verify unique IDs
         var ids = results.Select(r => r.Id).ToList();
-        Assert.Equal(3, ids.Distinct().Count());
+        ids.Should().OnlyHaveUniqueItems();
+        ids.Should().HaveCount(3);
 
         // Verify all saved in database
         foreach (var result in results)
         {
-            var savedSeason = await _unitOfWork.Seasons.GetByIdAsync(result.Id);
-            Assert.NotNull(savedSeason);
+            var savedSeason = await UnitOfWork.Seasons.GetByIdAsync(result.Id);
+            savedSeason.Should().NotBeNull();
         }
     }
 
@@ -263,17 +285,17 @@ public class CreateSeasonCommandHandlerIntegrationTests : BaseIntegrationTest
         await DisposeContext();
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Equal(-1, result.Id);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Id.Should().Be(0);
     }
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

@@ -13,15 +13,15 @@ public class LoginUserCommand : IRequest<LoginUserCommandResponse>
 
 public class LoginUserCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public string? UserId { get; set; }
-    public string? Username { get; set; }
-    public string? Email { get; set; }
-    public string? AccessToken { get; set; }
-    public string? RefreshToken { get; set; }
-    public IEnumerable<string>? Roles { get; set; }
-    public DateTime? TokenExpires { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public string? UserId { get; init; }
+    public string? Username { get; init; }
+    public string? Email { get; init; }
+    public string? AccessToken { get; init; }
+    public string? RefreshToken { get; init; }
+    public IEnumerable<string>? Roles { get; init; }
+    public DateTime? TokenExpires { get; init; }
+    public string? Error { get; init; }
 }
 
 public class LoginUserCommandHandler(
@@ -63,10 +63,10 @@ public class LoginUserCommandHandler(
             // Generate JWT token and refresh token
             var (accessToken, refreshToken) = await tokenService.GenerateTokenAsync(
                 user,
-                request.IpAddress
+                request.IpAddress ?? "0.0.0.0"
             );
             await userRepository.AddRefreshTokenAsync(user, refreshToken);
-            userRepository.UpdateAsync(user);
+            userRepository.Update(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             // get usr roles
             var roles = await userRepository.GetUserRolesAsync(user);
@@ -80,7 +80,7 @@ public class LoginUserCommandHandler(
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
                 Roles = roles,
-                TokenExpires = tokenService.GetTokenExpirationTime(accessToken), // Should match JWT expiration
+                TokenExpires = tokenService.GetTokenExpirationTime(accessToken),
             };
         }
         catch (Exception ex)

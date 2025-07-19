@@ -3,7 +3,6 @@ using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,7 +57,8 @@ public class AuthController(
             return BadRequest(result);
 
         // Set refresh token in cookie
-        SetRefreshTokenCookie(result.RefreshToken);
+        if (result.RefreshToken != null)
+            SetRefreshTokenCookie(result.RefreshToken);
 
         return Ok(result);
     }

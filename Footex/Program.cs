@@ -58,10 +58,10 @@ try
     });
     // Override configuration with environment variables
     builder.Configuration.AddEnvironmentVariables();
+    builder.Configuration.AddUserSecrets<Program>();
 
     // Configure Kestrel for HTTPS in development
     if (builder.Environment.IsDevelopment())
-    {
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
             serverOptions.ConfigureHttpsDefaults(httpsOptions =>
@@ -69,7 +69,6 @@ try
                 httpsOptions.ServerCertificate = null; // Let .NET handle certificate selection
             });
         });
-    }
 
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
@@ -336,23 +335,20 @@ try
     );
 
     app.MapControllers();
-
-    // Seed roles, admin user, and initial data on startup
-    using (var scope = app.Services.CreateScope())
+    if (!app.Environment.IsEnvironment("Testing"))
     {
+        using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
         try
         {
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // Seed roles
             var roles = new[] { "Admin", "User", "Premium" };
             foreach (var role in roles)
                 if (!await roleManager.RoleExistsAsync(role))
                     await roleManager.CreateAsync(new IdentityRole(role));
 
-            // Seed admin user
             var adminEmail = builder.Configuration["AdminUser:Email"];
             if (!string.IsNullOrEmpty(adminEmail))
             {
@@ -376,9 +372,11 @@ try
                         await userManager.AddToRoleAsync(admin, "Admin");
                 }
             }
-            if (!app.Environment.IsDevelopment())
+
+            if (!app.Environment.IsDevelopment() || !app.Environment.IsEnvironment("Testing"))
             {
-                var dataSeeder = services.GetRequiredService<DataSeeder>();
+                using var dataScope = app.Services.CreateScope();
+                var dataSeeder = dataScope.ServiceProvider.GetRequiredService<DataSeeder>();
                 await dataSeeder.SeedAllAsync();
             }
         }

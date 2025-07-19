@@ -2,7 +2,6 @@ using Application.CQRS.Seasons.Commands;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +25,7 @@ public class SeasonsController(
     public async Task<ActionResult<GetAllSeasonsQueryResponse>> GetAllSeasons(
         [FromQuery] string? leagueName,
         [FromQuery] string? country,
-        [FromQuery] bool? isActive
+        [FromQuery] bool isActive
     )
     {
         // Generate a cache key based on the query parameters

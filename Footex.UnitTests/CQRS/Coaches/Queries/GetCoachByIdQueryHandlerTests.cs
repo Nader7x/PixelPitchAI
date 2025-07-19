@@ -13,9 +13,9 @@ namespace Footex.UnitTests.CQRS.Coaches.Queries;
 
 public class GetCoachByIdQueryHandlerTests
 {
-    private readonly Mock<ICoachMapper> _iCoachMapperMock;
     private readonly NoRecursionFixture _fixture;
     private readonly GetCoachByIdQueryHandler _handler;
+    private readonly Mock<ICoachMapper> _iCoachMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetCoachByIdQueryHandlerTests()
@@ -48,7 +48,9 @@ public class GetCoachByIdQueryHandlerTests
             Role = coach.Role,
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync(coach);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(coach);
         _iCoachMapperMock.Setup(x => x.ToDto(coach)).Returns(expectedCoachDto);
 
         // Act
@@ -62,7 +64,10 @@ public class GetCoachByIdQueryHandlerTests
         result.Coach!.Id.Should().Be(coachId);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iCoachMapperMock.Verify(x => x.ToDto(coach), Times.Once);
     }
 
@@ -73,7 +78,9 @@ public class GetCoachByIdQueryHandlerTests
         var coachId = 999;
         var query = new GetCoachByIdQuery { Id = coachId };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync((Coach?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Coach?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -85,7 +92,10 @@ public class GetCoachByIdQueryHandlerTests
         result.Coach.Should().BeNull();
         result.Error.Should().Be("Coach not found");
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
@@ -93,12 +103,12 @@ public class GetCoachByIdQueryHandlerTests
     public async Task Handle_WhenExceptionThrown_ReturnsFailureResponse()
     {
         // Arrange
-        var coachId = 1;
+        const int coachId = 1;
         var query = new GetCoachByIdQuery { Id = coachId };
-        var exceptionMessage = "Database connection failed";
+        const string exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetByIdAsync(coachId))
+            .Setup(x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -111,7 +121,10 @@ public class GetCoachByIdQueryHandlerTests
         result.Coach.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(coachId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
@@ -124,7 +137,9 @@ public class GetCoachByIdQueryHandlerTests
         // Arrange
         var query = new GetCoachByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(invalidId)).ReturnsAsync((Coach?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Coach?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -136,7 +151,10 @@ public class GetCoachByIdQueryHandlerTests
         result.Coach.Should().BeNull();
         result.Error.Should().Be("Coach not found");
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetByIdAsync(invalidId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Coaches.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iCoachMapperMock.Verify(x => x.ToDto(It.IsAny<Coach>()), Times.Never);
     }
 
@@ -161,7 +179,9 @@ public class GetCoachByIdQueryHandlerTests
             YearsOfExperience = coach.YearsOfExperience,
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetByIdAsync(coachId)).ReturnsAsync(coach);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetByIdAsync(coachId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(coach);
         _iCoachMapperMock.Setup(x => x.ToDto(coach)).Returns(expectedCoachDto);
 
         // Act

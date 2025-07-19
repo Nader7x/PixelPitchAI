@@ -6,6 +6,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable.Moq;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
@@ -18,8 +19,8 @@ public class GetAllTeamsQueryHandlerTests
     private readonly NoRecursionFixture _fixture;
     private readonly GetAllTeamsQueryHandler _handler;
     private readonly Mock<ITeamMapper> _iTeamMapperMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllTeamsQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
@@ -53,7 +54,7 @@ public class GetAllTeamsQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(teams);
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -66,7 +67,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.Count.Should().Be(3);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(teams), Times.Once);
     }
 
@@ -91,7 +91,9 @@ public class GetAllTeamsQueryHandlerTests
             .Select(t => new TeamDto { Id = t.Id, Country = t.Country })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -105,7 +107,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.All(t => t.Country == country).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Team>>()), Times.Once);
     }
 
@@ -130,7 +131,9 @@ public class GetAllTeamsQueryHandlerTests
             .Select(t => new TeamDto { Id = t.Id, League = t.League })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -144,7 +147,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.All(t => t.League == league).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Team>>()), Times.Once);
     }
 
@@ -183,7 +185,9 @@ public class GetAllTeamsQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -198,7 +202,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.First().League.Should().Be(league);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Team>>()), Times.Once);
     }
 
@@ -212,7 +215,7 @@ public class GetAllTeamsQueryHandlerTests
             throw new ArgumentNullException(nameof(teams));
         var expectedTeamDtoS = new List<TeamDto>();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(teams);
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtoS);
 
         // Act
@@ -225,7 +228,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.Count.Should().Be(0);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(teams), Times.Once);
     }
 
@@ -241,7 +243,9 @@ public class GetAllTeamsQueryHandlerTests
         var filteredTeams = allTeams.Where(t => t.Country == country).ToList();
         var expectedTeamDtos = new List<TeamDto>();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -254,7 +258,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Teams.Count.Should().Be(0);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Team>>()), Times.Once);
     }
 
@@ -270,7 +273,7 @@ public class GetAllTeamsQueryHandlerTests
         var teams = new List<Team> { CreateValidTeam(1), CreateValidTeam(2) };
         var expectedTeamDtos = teams.Select(t => new TeamDto { Id = t.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(teams);
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -281,7 +284,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Teams!.Count.Should().Be(2);
 
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
         _iTeamMapperMock.Verify(x => x.ToDtoList(teams), Times.Once);
     }
 
@@ -297,7 +299,9 @@ public class GetAllTeamsQueryHandlerTests
         var filteredTeams = allTeams.Where(t => t.Country == country).ToList();
         var expectedTeamDtos = new List<TeamDto>();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -307,8 +311,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Teams!.Count.Should().Be(0); // No match due to case sensitivity
-
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
     }
 
     [Fact]
@@ -334,7 +336,7 @@ public class GetAllTeamsQueryHandlerTests
             },
         };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(teams);
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -368,7 +370,7 @@ public class GetAllTeamsQueryHandlerTests
         var teams = new List<Team> { CreateValidTeam(1) };
         var expectedTeamDtos = new List<TeamDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(teams);
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -379,7 +381,7 @@ public class GetAllTeamsQueryHandlerTests
         result.Succeeded.Should().BeTrue(); // Always true in this handler
         result.Error.Should().BeNull();
 
-        // Note: This handler doesn't implement exception handling
+        // Note: This handler doesn't implement exception handling,
         // so Succeeded is always true in the current implementation
     }
 
@@ -403,7 +405,9 @@ public class GetAllTeamsQueryHandlerTests
             .ToList();
         var expectedTeamDtoS = new List<TeamDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetAllAsync()).ReturnsAsync(allTeams);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetQueryable())
+            .Returns(allTeams.AsQueryable().BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtoS);
 
         // Act
@@ -415,8 +419,6 @@ public class GetAllTeamsQueryHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Teams!.Count.Should().Be(1);
         result.Teams.First().Id.Should().Be(1);
-
-        _unitOfWorkMock.Verify(x => x.Teams.GetAllAsync(), Times.Once);
     }
 
     private Team CreateValidTeam(

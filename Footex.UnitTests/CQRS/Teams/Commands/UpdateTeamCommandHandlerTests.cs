@@ -14,8 +14,8 @@ public class UpdateTeamCommandHandlerTests
 {
     private readonly NoRecursionFixture _fixture;
     private readonly UpdateTeamCommandHandler _handler;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<ITeamMapper> _teamMapperMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public UpdateTeamCommandHandlerTests()
     {
@@ -39,8 +39,38 @@ public class UpdateTeamCommandHandlerTests
 
         var existingTeam = new Team { Id = command.Id, Name = "Real Madrid" };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.Id)).ReturnsAsync(existingTeam);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingTeam);
 
+        _teamMapperMock
+            .Setup(x => x.UpdateTeamFromCommand(It.IsAny<UpdateTeamCommand>(), It.IsAny<Team>()))
+            .Callback<UpdateTeamCommand, Team>(
+                (teamCommand, team) =>
+                {
+                    team.Id = teamCommand.Id;
+                    if (teamCommand.Name != null)
+                        team.Name = teamCommand.Name;
+                    if (teamCommand.ShortName != null)
+                        team.ShortName = teamCommand.ShortName;
+                    if (teamCommand.Logo != null)
+                        team.Logo = teamCommand.Logo;
+                    if (teamCommand.Country != null)
+                        team.Country = teamCommand.Country;
+                    if (teamCommand.City != null)
+                        team.City = teamCommand.City;
+                    if (teamCommand.League != null)
+                        team.League = teamCommand.League;
+                    if (teamCommand.StadiumId != null)
+                        team.StadiumId = teamCommand.StadiumId.Value;
+                    if (teamCommand.FoundationDate != null)
+                        team.FoundationDate = teamCommand.FoundationDate.Value;
+                    if (teamCommand.PrimaryColor != null)
+                        team.PrimaryColor = teamCommand.PrimaryColor;
+                    if (teamCommand.SecondaryColor != null)
+                        team.SecondaryColor = teamCommand.SecondaryColor;
+                }
+            );
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -65,7 +95,9 @@ public class UpdateTeamCommandHandlerTests
         // Arrange
         var command = new UpdateTeamCommand { Id = 999, Name = "Real Madrid" };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByIdAsync(command.Id)).ReturnsAsync((Team?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Teams.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Team?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -86,7 +118,7 @@ public class UpdateTeamCommandHandlerTests
         var command = new UpdateTeamCommand { Id = 1, Name = "Real Madrid" };
 
         _unitOfWorkMock
-            .Setup(x => x.Teams.GetByIdAsync(command.Id))
+            .Setup(x => x.Teams.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act

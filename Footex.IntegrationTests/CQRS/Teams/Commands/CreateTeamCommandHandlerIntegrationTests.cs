@@ -8,21 +8,9 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Commands;
 
-public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class CreateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public CreateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_CreatesTeamInDatabase()
     {
@@ -39,7 +27,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -47,7 +35,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         response.Id.Should().BeGreaterThan(0);
 
         // Verify team was created in database
-        var createdTeam = await _context.Teams.FindAsync(response.Id);
+        var createdTeam = await Context.Teams.FindAsync(response.Id);
         createdTeam.Should().NotBeNull();
         createdTeam!.Name.Should().Be(command.Name);
         createdTeam.ShortName.Should().Be(command.ShortName);
@@ -62,9 +50,9 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
     public async Task Handle_WithDuplicateName_ReturnsFailureResponse()
     {
         // Arrange
-        var existingTeam = TestData.CreateTestTeam();
-        _context.Teams.Add(existingTeam);
-        await _context.SaveChangesAsync();
+        var existingTeam = TestData.CreateTestDbTeam();
+        Context.Teams.Add(existingTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateTeamCommand
         {
@@ -76,7 +64,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -98,7 +86,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -110,9 +98,9 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
     public async Task Handle_ValidatesUniqueShortName()
     {
         // Arrange
-        var existingTeam = TestData.CreateTestTeam();
-        _context.Teams.Add(existingTeam);
-        await _context.SaveChangesAsync();
+        var existingTeam = TestData.CreateTestDbTeam();
+        Context.Teams.Add(existingTeam);
+        await Context.SaveChangesAsync();
 
         var command = new CreateTeamCommand
         {
@@ -124,7 +112,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -147,7 +135,7 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -155,15 +143,10 @@ public class CreateTeamCommandHandlerIntegrationTests : IClassFixture<FootexWebA
         response.Id.Should().BeGreaterThan(0);
 
         // Verify in database
-        var createdTeam = await _context.Teams.FindAsync(response.Id);
+        var createdTeam = await Context.Teams.FindAsync(response.Id);
         createdTeam.Should().NotBeNull();
         createdTeam!.Name.Should().Be(command.Name);
         createdTeam.PrimaryColor.Should().BeNull();
         createdTeam.SecondaryColor.Should().BeNull();
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

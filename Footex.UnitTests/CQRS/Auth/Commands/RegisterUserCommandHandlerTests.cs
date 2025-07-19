@@ -16,8 +16,8 @@ public class RegisterUserCommandHandlerTests
     private readonly NoRecursionFixture _fixture;
     private readonly RegisterUserCommandHandler _handler;
     private readonly Mock<IIdentityService> _mockIdentityService;
-    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IUserMapper> _mockIUserMapper;
+    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
 
     public RegisterUserCommandHandlerTests()
     {

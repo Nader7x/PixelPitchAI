@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Application.CQRS.Seasons.Commands;
+using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using Domain.Models;
@@ -15,11 +16,13 @@ public class UpdateSeasonCommandHandlerTests
     private readonly NoRecursionFixture _fixture;
     private readonly UpdateSeasonCommandHandler _handler;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly Mock<ISeasonMapper> _seasonMapperMock;
 
     public UpdateSeasonCommandHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _handler = new UpdateSeasonCommandHandler(_unitOfWorkMock.Object);
+        _seasonMapperMock = new Mock<ISeasonMapper>();
+        _handler = new UpdateSeasonCommandHandler(_unitOfWorkMock.Object, _seasonMapperMock.Object);
 
         _fixture = new NoRecursionFixture();
         _fixture
@@ -48,7 +51,9 @@ public class UpdateSeasonCommandHandlerTests
             .With(s => s.IsActive, false)
             .Create();
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(command.Id)).ReturnsAsync(existingSeason);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSeason);
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.FindAsync(It.IsAny<Expression<Func<Season, bool>>>()))
@@ -58,11 +63,38 @@ public class UpdateSeasonCommandHandlerTests
             .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
             .ReturnsAsync(new List<Season>());
 
+        _seasonMapperMock
+            .Setup(s =>
+                s.UpdateSeasonFromCommand(It.IsAny<UpdateSeasonCommand>(), It.IsAny<Season>())
+            )
+            .Callback<UpdateSeasonCommand, Season>(
+                (seasonCommand, season) =>
+                {
+                    season.Id = command.Id;
+                    if (seasonCommand.Name != null)
+                        season.Name = seasonCommand.Name;
+                    if (season.IsActive != seasonCommand.IsActive)
+                        season.IsActive = seasonCommand.IsActive;
+                    if (seasonCommand.IsCompleted != season.IsCompleted)
+                        season.IsCompleted = seasonCommand.IsCompleted;
+                    if (seasonCommand.LeagueName != null)
+                        season.LeagueName = seasonCommand.LeagueName;
+                    if (command.Country != null)
+                        season.Country = command.Country;
+                    if (seasonCommand.TotalRounds != season.TotalRounds)
+                        season.TotalRounds = command.TotalRounds;
+                    if (command.CurrentRound != null)
+                        season.CurrentRound = command.CurrentRound.Value;
+                    if (command.StartDate != null)
+                        season.StartDate = command.StartDate.Value;
+                    if (command.EndDate != null)
+                        season.EndDate = command.EndDate.Value;
+                }
+            );
+
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
-
-        _unitOfWorkMock.Setup(x => x.Seasons.UpdateAsync(It.IsAny<Season>()));
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -73,7 +105,6 @@ public class UpdateSeasonCommandHandlerTests
         result.Error.Should().BeNull();
         result.NotFound.Should().BeFalse();
 
-        _unitOfWorkMock.Verify(x => x.Seasons.UpdateAsync(existingSeason), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -83,7 +114,9 @@ public class UpdateSeasonCommandHandlerTests
         // Arrange
         var command = _fixture.Create<UpdateSeasonCommand>();
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(command.Id)).ReturnsAsync((Season)null);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Season)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -102,7 +135,7 @@ public class UpdateSeasonCommandHandlerTests
         var command = _fixture.Create<UpdateSeasonCommand>();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetByIdAsync(command.Id))
+            .Setup(x => x.Seasons.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
@@ -125,7 +158,9 @@ public class UpdateSeasonCommandHandlerTests
         var existingSeason = _fixture.Create<Season>();
         existingSeason.TotalRounds = 2;
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetByIdAsync(command.Id)).ReturnsAsync(existingSeason);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSeason);
 
         var expectedErrorMessage = "Database error";
         _unitOfWorkMock

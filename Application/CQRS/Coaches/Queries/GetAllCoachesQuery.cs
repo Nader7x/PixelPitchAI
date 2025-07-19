@@ -1,23 +1,22 @@
 using Application.Dtos;
 using Application.Interfaces;
 using Domain.Interfaces;
-using Domain.Models;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.Coaches.Queries;
 
 public class GetAllCoachesQuery : IRequest<GetAllCoachesQueryResponse>
 {
-    // Optional parameters for filtering
-    public string? Nationality { get; set; }
+    public string? Nationality { get; init; }
     public int? TeamId { get; set; }
 }
 
 public class GetAllCoachesQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public List<CoachDto>? Coaches { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public List<CoachDto>? Coaches { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
@@ -30,36 +29,18 @@ public class GetAllCoachesQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coac
     {
         try
         {
-            IEnumerable<Coach> coaches;
+            var coaches = unitOfWork.Coaches.GetQueryable();
+            if (!string.IsNullOrWhiteSpace(request.Nationality))
+                coaches = coaches.Where(c =>
+                    c.Nationality.ToLower() == request.Nationality.ToLower()
+                );
+            if (request.TeamId.HasValue)
+                coaches = coaches.Where(c => c.TeamId == request.TeamId.Value);
 
-            switch (string.IsNullOrEmpty(request.Nationality))
-            {
-                // Apply filters if provided
-                case false when request.TeamId.HasValue:
-                    coaches = await unitOfWork.Coaches.GetAllAsync(c =>
-                        c.Nationality.ToLower() == request.Nationality.ToLower()
-                        && c.TeamId == request.TeamId.Value
-                    );
-                    break;
-                case false:
-                    coaches = await unitOfWork.Coaches.GetAllAsync(c =>
-                        c.Nationality.ToLower() == request.Nationality.ToLower()
-                    );
-                    break;
-                default:
-                {
-                    if (request.TeamId.HasValue)
-                        coaches = await unitOfWork.Coaches.GetAllAsync(c =>
-                            c.TeamId == request.TeamId.Value
-                        );
-                    else
-                        coaches = await unitOfWork.Coaches.GetAllAsync();
-                    break;
-                }
-            }
-
-            var coachDtos = coachMapper.ToDtoList(coaches);
-            return new GetAllCoachesQueryResponse { Succeeded = true, Coaches = coachDtos };
+            var coachDtoS = coachMapper.ToDtoList(
+                await coaches.ToListAsync(cancellationToken: cancellationToken)
+            );
+            return new GetAllCoachesQueryResponse { Succeeded = true, Coaches = coachDtoS };
         }
         catch (Exception ex)
         {

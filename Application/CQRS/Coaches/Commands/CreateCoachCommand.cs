@@ -21,7 +21,7 @@ public class CreateCoachCommand : IRequest<CreateCoachCommandResponse>
     public string? Nationality { get; set; }
 
     [StringLength(50)]
-    public string Role { get; set; }
+    public string? Role { get; set; }
 
     public int? TeamId { get; set; }
 
@@ -29,21 +29,21 @@ public class CreateCoachCommand : IRequest<CreateCoachCommandResponse>
     public string? PhotoUrl { get; set; }
 
     [StringLength(50)]
-    public string PreferredFormation { get; set; }
+    public string? PreferredFormation { get; set; }
 
     [StringLength(100)]
-    public string CoachingStyle { get; set; }
+    public string? CoachingStyle { get; set; }
 
-    public string Biography { get; set; }
+    public string? Biography { get; set; }
     public int? YearsOfExperience { get; set; }
 }
 
 public class CreateCoachCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public int Id { get; set; }
-    public string FullName { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public int Id { get; init; }
+    public string? FullName { get; init; }
+    public string? Error { get; init; }
 }
 
 public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
@@ -56,12 +56,34 @@ public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coac
     {
         try
         {
-            // Create full name to check for duplicates
+            if (request.TeamId is < 0)
+            {
+                var coachTeam = await unitOfWork.Teams.GetByIdAsync(
+                    request.TeamId.Value,
+                    cancellationToken
+                );
+                if (coachTeam is null)
+                    return new CreateCoachCommandResponse
+                    {
+                        Succeeded = false,
+                        Error = "Team does not exist",
+                    };
+            }
+
+            if (
+                string.IsNullOrWhiteSpace(request.FirstName)
+                || string.IsNullOrWhiteSpace(request.LastName)
+            )
+                return new CreateCoachCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Coach Name Can not Be Null or White Space",
+                };
             var fullName = $"{request.FirstName} {request.LastName}";
 
-            // Check if coach with the same name already exists
-            var existingCoach = await unitOfWork.Coaches.FindAsync(c =>
-                c.FirstName == request.FirstName && c.LastName == request.LastName
+            var existingCoach = await unitOfWork.Coaches.FindAsync(
+                c => c.FirstName == request.FirstName && c.LastName == request.LastName,
+                cancellationToken
             );
 
             if (existingCoach != null)
@@ -71,7 +93,6 @@ public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coac
                     Error = $"Coach with name '{fullName}' already exists",
                 };
 
-            // Create new coach
             var coach = coachMapper.ToCoachFromCreate(request);
 
             await unitOfWork.Coaches.AddAsync(coach);
@@ -86,7 +107,16 @@ public class CreateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coac
         }
         catch (Exception ex)
         {
-            return new CreateCoachCommandResponse { Succeeded = false, Error = ex.Message };
+            // return new CreateCoachCommandResponse { Succeeded = false, Error = ex.Message };
+            var innermostException = ex;
+            while (innermostException.InnerException != null)
+                innermostException = innermostException.InnerException;
+
+            return new CreateCoachCommandResponse
+            {
+                Succeeded = false,
+                Error = innermostException.Message,
+            };
         }
     }
 }

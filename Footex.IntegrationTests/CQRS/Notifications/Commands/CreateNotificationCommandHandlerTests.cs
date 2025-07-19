@@ -6,19 +6,11 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Footex.IntegrationTests.CQRS.Notifications;
+namespace Footex.IntegrationTests.CQRS.Notifications.Commands;
 
-public class CreateNotificationCommandHandlerTests : IClassFixture<FootexWebApplicationFactory>
+public class CreateNotificationCommandHandlerTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly IServiceScope _scope;
-    private readonly IMediator _Mediator;
-
-    public CreateNotificationCommandHandlerTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _Mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-    }
-
     [Fact]
     public async Task Handle_ShouldCreateNotification_WhenCommandIsValid()
     {
@@ -37,7 +29,7 @@ public class CreateNotificationCommandHandlerTests : IClassFixture<FootexWebAppl
         };
 
         // Act
-        var result = await _Mediator.Send(command);
+        var result = await Mediator.Send(command);
 
         // Assert
         result.Succeeded.Should().BeTrue();

@@ -11,12 +11,13 @@ namespace Footex.IntegrationTests.Repositories;
 
 public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 {
-    private readonly IMatchEventsRepository _repository;
+    private readonly IMatchEventsRepository _matchEventsRepository;
 
     public MatchEventsRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _repository = ServiceProvider.GetRequiredService<IMatchEventsRepository>();
+        _matchEventsRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<IMatchEventsRepository>();
     }
 
     [Fact]
@@ -27,7 +28,8 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var matchEvents = CreateValidMatchEvents(match.Id);
 
         // Act
-        var entityEntry = await _repository.AddAsync(matchEvents);
+        var entityEntry = await _matchEventsRepository.AddAsync(matchEvents);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -43,11 +45,11 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
-
+        await Context.SaveChangesAsync();
         var matchEvents = matchEventsEntity.Entity;
 
         // Act
-        var result = await _repository.GetByIdAsync(matchEvents.Id);
+        var result = await _matchEventsRepository.GetByIdAsync(matchEvents.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -61,7 +63,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByIdAsync_WhenMatchEventsDoesNotExist_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByIdAsync(999);
+        var result = await _matchEventsRepository.GetByIdAsync(999);
 
         // Assert
         result.Should().BeNull();
@@ -72,11 +74,12 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
+        await Context.SaveChangesAsync();
 
         var matchEvents = matchEventsEntity.Entity;
 
         // Act
-        var result = await _repository.GetByMatchIdAsync(matchEvents.MatchId);
+        var result = await _matchEventsRepository.GetByMatchIdAsync(matchEvents.MatchId);
 
         // Assert
         result.Should().NotBeNull();
@@ -89,7 +92,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByMatchIdAsync_WhenMatchEventsDoesNotExist_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByMatchIdAsync(999);
+        var result = await _matchEventsRepository.GetByMatchIdAsync(999);
 
         // Assert
         result.Should().BeNull();
@@ -100,16 +103,18 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
+        await Context.SaveChangesAsync();
         var matchEvents = matchEventsEntity.Entity;
-        var updatedGoalsHome = 3;
-        var updatedGoalsAway = 1;
-        var updatedTotalEvents = 25;
+        const int updatedGoalsHome = 3;
+        const int updatedGoalsAway = 1;
+        const int updatedTotalEvents = 25;
 
         // Act
         matchEvents.GoalsHomeTeam = updatedGoalsHome;
         matchEvents.GoalsAwayTeam = updatedGoalsAway;
         matchEvents.TotalEvents = updatedTotalEvents;
-        var entityEntry = _repository.UpdateAsync(matchEvents);
+        var entityEntry = _matchEventsRepository.Update(matchEvents);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -129,10 +134,10 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var matchEvents = matchEventsEntity.Entity;
 
         // Act
-        _repository.DeleteAsync(matchEvents);
+        _matchEventsRepository.Delete(matchEvents);
 
         // Assert
-        var deletedMatchEvents = await _repository.GetByIdAsync(matchEvents.Id);
+        var deletedMatchEvents = await _matchEventsRepository.GetByIdAsync(matchEvents.Id);
         deletedMatchEvents.Should().BeNull();
     }
 
@@ -142,24 +147,26 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var matchEvents1Entity = await SeedMatchEventsAsync();
         var matchEvents2Entity = await SeedMatchEventsAsync();
+        await Context.SaveChangesAsync();
         var matchEvents1 = matchEvents1Entity.Entity;
         var matchEvents2 = matchEvents2Entity.Entity;
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _matchEventsRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        result.Should().Contain(me => me.Id == matchEvents1.Id);
-        result.Should().Contain(me => me.Id == matchEvents2.Id);
+        var matchEventsEnumerable = result as MatchEvents[] ?? result.ToArray();
+        matchEventsEnumerable.Should().NotBeNull();
+        matchEventsEnumerable.Should().HaveCountGreaterOrEqualTo(2);
+        matchEventsEnumerable.Should().Contain(me => me.Id == matchEvents1.Id);
+        matchEventsEnumerable.Should().Contain(me => me.Id == matchEvents2.Id);
     }
 
     [Fact]
     public async Task GetAllAsync_WhenNoMatchEvents_ShouldReturnEmptyList()
     {
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _matchEventsRepository.GetAllAsync();
 
         // Assert
         var matchEventsEnumerable = result as MatchEvents[] ?? result.ToArray();
@@ -201,7 +208,8 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         matchEvents.SetEvents(events);
 
         // Act
-        var entityEntry = await _repository.AddAsync(matchEvents);
+        var entityEntry = await _matchEventsRepository.AddAsync(matchEvents);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -219,6 +227,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
+        await Context.SaveChangesAsync();
 
         var matchEvents = matchEventsEntity.Entity;
         var originalLastUpdated = matchEvents.LastUpdated;
@@ -236,7 +245,8 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         matchEvents.SetEvents(newEvents);
-        var entityEntry = _repository.UpdateAsync(matchEvents);
+        var entityEntry = _matchEventsRepository.Update(matchEvents);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -284,7 +294,8 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var entityEntry = await _repository.AddAsync(matchEvents);
+        var entityEntry = await _matchEventsRepository.AddAsync(matchEvents);
+        await Context.SaveChangesAsync();
 
         var result = entityEntry.Entity;
 
@@ -324,11 +335,12 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
+        await Context.SaveChangesAsync();
 
         var matchEvents = matchEventsEntity.Entity;
 
         // Act
-        var result = await _repository.GetByMatchIdAsync(matchEvents.MatchId);
+        var result = await _matchEventsRepository.GetByMatchIdAsync(matchEvents.MatchId);
 
         // Assert
         result.Should().NotBeNull();
@@ -344,10 +356,10 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         var match = await SeedMatchAsync();
         var matchEvents = CreateValidMatchEvents(match.Id);
 
-        return await _repository.AddAsync(matchEvents);
+        return await _matchEventsRepository.AddAsync(matchEvents);
     }
 
-    private MatchEvents CreateValidMatchEvents(int matchId)
+    private static MatchEvents CreateValidMatchEvents(int matchId)
     {
         var events = new[]
         {
@@ -404,8 +416,19 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
 
     private async Task<Match> SeedMatchAsync()
     {
-        var homeTeam = await SeedTeamAsync("Home Team");
-        var awayTeam = await SeedTeamAsync("Away Team");
+        var user = new ApplicationUser
+        {
+            FirstName = "Matches",
+            LastName = "Creator",
+            UserName = "match-creator",
+            Email = "matchecreator69@example.com",
+            EmailConfirmed = true,
+        };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        var homeTeam = await SeedTeamAsync("Home Team" + Guid.NewGuid());
+        var awayTeam = await SeedTeamAsync("Away Team" + Guid.NewGuid());
         var season = await SeedSeasonAsync();
 
         var match = new Match
@@ -418,7 +441,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
             MatchStatus = "Scheduled",
             HomeTeamScore = 0,
             AwayTeamScore = 0,
-            CreatorId = "test-creator-id",
+            CreatorId = user.Id,
         };
 
         Context.Matches.Add(match);
@@ -447,7 +470,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         var season = new Season
         {
-            Name = "Test Season 2024",
+            Name = "Test Season 2024" + Guid.NewGuid(),
             StartDate = DateTime.UtcNow.AddMonths(-3),
             EndDate = DateTime.UtcNow.AddMonths(6),
             IsActive = true,

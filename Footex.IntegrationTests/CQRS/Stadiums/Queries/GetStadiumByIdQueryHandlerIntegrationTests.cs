@@ -1,76 +1,69 @@
 using Application.CQRS.Stadiums.Queries;
 using Domain.Interfaces;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Stadiums.Queries;
 
-public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
+public class GetStadiumByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly GetStadiumByIdQueryHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetStadiumByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _handler = ServiceProvider.GetRequiredService<GetStadiumByIdQueryHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidStadiumId_ReturnsStadiumSuccessfully()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Santiago Bernabéu");
+        var stadium = TestData.CreateTestDbStadium("Santiago Bernabéu");
         stadium.City = "Madrid, Spain";
         stadium.Capacity = 81044;
         stadium.BuiltDate = new DateTime(1947, 1, 1);
         stadium.Description = "Home of Real Madrid";
 
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(stadium.Id, result.Stadium.Id);
-        Assert.Equal(stadium.Name, result.Stadium.Name);
-        Assert.Equal(stadium.City, result.Stadium.City);
-        Assert.Equal(stadium.Capacity, result.Stadium.Capacity);
-        Assert.Equal(stadium.BuiltDate, result.Stadium.BuiltDate);
-        Assert.Equal(stadium.Description, result.Stadium.Description);
-        Assert.Null(result.Error);
-        Assert.False(result.NotFound);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium!.Id.Should().Be(stadium.Id);
+        result.Stadium.Name.Should().Be(stadium.Name);
+        result.Stadium.City.Should().Be(stadium.City);
+        result.Stadium.Capacity.Should().Be(stadium.Capacity);
+        result.Stadium.BuiltDate.Should().Be(stadium.BuiltDate);
+        result.Stadium.Description.Should().Be(stadium.Description);
+        result.Error.Should().BeNull();
+        result.NotFound.Should().BeFalse();
     }
 
     [Fact]
     public async Task Handle_NonExistentStadiumId_ReturnsNotFoundResponse()
     {
         // Arrange
-        var nonExistentId = -1;
+        const int nonExistentId = -1;
         var query = new GetStadiumByIdQuery { Id = nonExistentId };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.True(result.NotFound);
-        Assert.Null(result.Stadium);
-        Assert.Contains($"Stadium with ID {nonExistentId} not found", result.Error);
+        result.Succeeded.Should().BeFalse();
+        result.NotFound.Should().BeTrue();
+        result.Stadium.Should().BeNull();
+        result.Error.Should().Contain($"Stadium with ID {nonExistentId} not found");
     }
 
     [Fact]
     public async Task Handle_StadiumWithAllFields_ReturnsCompleteStadiumDto()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Allianz Arena");
+        var stadium = TestData.CreateTestDbStadium("Allianz Arena");
         stadium.City = "Munich, Germany";
         stadium.Capacity = 75000;
         stadium.BuiltDate = new DateTime(2005, 1, 1);
@@ -80,134 +73,137 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         stadium.HasRoof = true;
         stadium.Architect = "Herzog & de Meuron";
 
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(stadium.ImageUrl, result.Stadium.ImageUrl);
-        Assert.Equal(stadium.SurfaceType, result.Stadium.SurfaceType);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium!.ImageUrl.Should().Be(stadium.ImageUrl);
+        result.Stadium.SurfaceType.Should().Be(stadium.SurfaceType);
     }
 
     [Fact]
     public async Task Handle_DeletedStadium_ReturnsNotFoundResponse()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Deleted Stadium");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        var stadium = TestData.CreateTestDbStadium("Deleted Stadium");
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
+        // Simulate deletion by removing it from the database
+        UnitOfWork.Stadiums.Delete(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.True(result.NotFound);
-        Assert.Null(result.Stadium);
-        Assert.Contains($"Stadium with ID {stadium.Id} not found", result.Error);
+        result.Succeeded.Should().BeFalse();
+        result.NotFound.Should().BeTrue();
+        result.Stadium.Should().BeNull();
+        result.Error.Should().Contain($"Stadium with ID {stadium.Id} not found");
     }
 
     [Fact]
     public async Task Handle_StadiumWithMinimalData_ReturnsStadiumSuccessfully()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Simple Stadium");
+        var stadium = TestData.CreateTestDbStadium("Simple Stadium");
         stadium.City = "Simple City";
         stadium.Capacity = 5000;
         // No optional fields set
 
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(stadium.Name, result.Stadium.Name);
-        Assert.Equal(stadium.City, result.Stadium.City);
-        Assert.Equal(stadium.Capacity, result.Stadium.Capacity);
-        Assert.Null(result.Stadium.BuiltDate);
-        Assert.Null(result.Stadium.Description);
-        Assert.Null(result.Stadium.ImageUrl);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium!.Name.Should().Be(stadium.Name);
+        result.Stadium.City.Should().Be(stadium.City);
+        result.Stadium.Capacity.Should().Be(stadium.Capacity);
+        result.Stadium.BuiltDate.Should().BeNull();
+        result.Stadium.Description.Should().BeNull();
+        result.Stadium.ImageUrl.Should().BeNull();
     }
 
     [Fact]
     public async Task Handle_MultipleStadiumsInDatabase_ReturnsCorrectStadium()
     {
         // Arrange
-        var stadium1 = TestData.CreateStadium("Stadium 1");
-        var stadium2 = TestData.CreateStadium("Stadium 2");
-        var stadium3 = TestData.CreateStadium("Stadium 3");
+        var stadium1 = TestData.CreateTestDbStadium("Stadium 1");
+        var stadium2 = TestData.CreateTestDbStadium("Stadium 2");
+        var stadium3 = TestData.CreateTestDbStadium("Stadium 3");
 
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.Stadiums.AddAsync(stadium3);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.Stadiums.AddAsync(stadium3);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium2.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(stadium2.Id, result.Stadium.Id);
-        Assert.Equal(stadium2.Name, result.Stadium.Name);
-        Assert.NotEqual(stadium1.Id, result.Stadium.Id);
-        Assert.NotEqual(stadium3.Id, result.Stadium.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium!.Id.Should().Be(stadium2.Id);
+        result.Stadium.Name.Should().Be(stadium2.Name);
+        result.Stadium.Id.Should().NotBe(stadium1.Id);
+        result.Stadium.Id.Should().NotBe(stadium3.Id);
     }
 
     [Fact]
     public async Task Handle_StadiumWithLargeCapacity_ReturnsCorrectCapacity()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Huge Stadium");
+        var stadium = TestData.CreateTestDbStadium("Huge Stadium");
         stadium.Capacity = 200000; // Very large capacity
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(200000, result.Stadium.Capacity);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium!.Capacity.Should().Be(200000);
     }
 
     [Fact]
     public async Task Handle_HistoricStadium_ReturnsCorrectYear()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Historic Stadium");
+        var stadium = TestData.CreateTestDbStadium("Historic Stadium");
         stadium.BuiltDate = new DateTime(1860, 1, 1); // Very old stadium
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetStadiumByIdQuery { Id = stadium.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Stadium);
-        Assert.Equal(new DateTime(1847, 1, 1), result.Stadium.BuiltDate);
+        result.Succeeded.Should().BeTrue();
+        result.Stadium.Should().NotBeNull();
+        result.Stadium?.BuiltDate.Should().Be(new DateTime(1860, 1, 1));
     }
 
     [Fact]
@@ -220,18 +216,18 @@ public class GetStadiumByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         await DisposeContext();
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Null(result.Stadium);
-        Assert.False(result.NotFound); // Should be false for exceptions, not not-found
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Stadium.Should().BeNull();
+        result.NotFound.Should().BeFalse(); // Should be false for exceptions, not not-found
     }
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

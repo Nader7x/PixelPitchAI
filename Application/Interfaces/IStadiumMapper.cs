@@ -16,4 +16,5 @@ public interface IStadiumMapper
     GetStadiumByIdQuery ToGetByIdQuery(int id);
     DeleteStadiumCommand ToDeleteCommand(int id);
     Stadium ToStadiumFromCreate(CreateStadiumCommand request);
+    void UpdateStadiumFromCommand(UpdateStadiumCommand command, Stadium stadium);
 }

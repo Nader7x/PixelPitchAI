@@ -9,6 +9,7 @@ public abstract class BaseEventProcessor : IEventProcessor
 {
     public abstract bool CanProcess(FootballMatchEvent matchEvent);
     public abstract void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match);
+
     public abstract void ProcessEventCounters(
         FootballMatchEvent matchEvent,
         MatchEvents matchEvents,
@@ -16,7 +17,7 @@ public abstract class BaseEventProcessor : IEventProcessor
     );
 
     /// <summary>
-    ///     Helper method to safely increment a nullable int value
+    ///     Helper method to safely increase a nullable int value
     /// </summary>
     protected static int IncrementValue(int? currentValue)
     {
@@ -32,14 +33,20 @@ public abstract class BaseEventProcessor : IEventProcessor
     }
 
     /// <summary>
+    ///    Determines if the event is from the away team
+    /// </summary>
+    protected static bool IsAwayTeam(FootballMatchEvent matchEvent, Match match)
+    {
+        return matchEvent.team == match.AwayTeamInMatchName;
+    }
+
+    /// <summary>
     ///     Gets the opposing team name
     /// </summary>
     protected static string? GetOpponentTeam(string currentTeamName, Match match)
     {
         if (currentTeamName == match.HomeTeamInMatchName)
             return match.AwayTeamInMatchName;
-        if (currentTeamName == match.AwayTeamInMatchName)
-            return match.HomeTeamInMatchName;
-        return null;
+        return currentTeamName == match.AwayTeamInMatchName ? match.HomeTeamInMatchName : null;
     }
 }

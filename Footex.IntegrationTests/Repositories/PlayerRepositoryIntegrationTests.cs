@@ -8,7 +8,6 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("Database")]
 public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IPlayerRepository _playerRepository;
@@ -16,10 +15,9 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     public PlayerRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _playerRepository = ServiceProvider.GetRequiredService<IPlayerRepository>();
+        _playerRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<IPlayerRepository>();
     }
-
-    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     [Fact]
     public async Task GetByFullNameAsync_WithValidName_ReturnsPlayer()
@@ -97,6 +95,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player1 = new Player
         {
             FullName = "American Player 1",
+            KnownName = "Ameri1",
             Nationality = "USA",
             Position = "Forward",
             Team = team,
@@ -105,6 +104,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player2 = new Player
         {
             FullName = "American Player 2",
+            KnownName = "Ameri2",
             Nationality = "USA",
             Position = "Midfielder",
             Team = team,
@@ -113,6 +113,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player3 = new Player
         {
             FullName = "Brazilian Player",
+            KnownName = "Braz",
             Nationality = "Brazil",
             Position = "Defender",
             Team = team,
@@ -120,18 +121,17 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await UnitOfWork.Teams.AddAsync(team);
-        await UnitOfWork.Players.AddAsync(player1);
-        await UnitOfWork.Players.AddAsync(player2);
-        await UnitOfWork.Players.AddAsync(player3);
+        await UnitOfWork.Players.AddRangeAsync(CancellationToken.None, player1, player2, player3);
         await UnitOfWork.SaveChangesAsync();
 
         var result = await _playerRepository.GetByNationalityAsync("USA");
 
         // Assert
-        result.Should().HaveCount(2);
-        result.All(p => p.Nationality == "USA").Should().BeTrue();
-        result.Should().Contain(p => p.FullName == "American Player 1");
-        result.Should().Contain(p => p.FullName == "American Player 2");
+        var players = result as Player[] ?? result.ToArray();
+        players.Should().HaveCount(2);
+        players.All(p => p.Nationality == "USA").Should().BeTrue();
+        players.Should().Contain(p => p.FullName == "American Player 1");
+        players.Should().Contain(p => p.FullName == "American Player 2");
     }
 
     [Fact]
@@ -159,6 +159,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var rightFootedPlayer1 = new Player
         {
             FullName = "Right Footed Player 1",
+            KnownName = "Righty",
             PreferredFoot = "Right",
             Position = "Forward",
             Team = team,
@@ -167,6 +168,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var rightFootedPlayer2 = new Player
         {
             FullName = "Right Footed Player 2",
+            KnownName = "Righty2",
             PreferredFoot = "Right",
             Position = "Midfielder",
             Team = team,
@@ -175,6 +177,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var leftFootedPlayer = new Player
         {
             FullName = "Left Footed Player",
+            KnownName = "Lefty",
             PreferredFoot = "Left",
             Position = "Defender",
             Team = team,
@@ -182,21 +185,26 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await UnitOfWork.Teams.AddAsync(team);
-        await UnitOfWork.Players.AddAsync(rightFootedPlayer1);
-        await UnitOfWork.Players.AddAsync(rightFootedPlayer2);
-        await UnitOfWork.Players.AddAsync(leftFootedPlayer);
+        await UnitOfWork.Players.AddRangeAsync(
+            CancellationToken.None,
+            rightFootedPlayer1,
+            rightFootedPlayer2,
+            leftFootedPlayer
+        );
         await UnitOfWork.SaveChangesAsync();
 
         var rightFootedResult = await _playerRepository.GetByPreferredFootAsync("Right");
         var leftFootedResult = await _playerRepository.GetByPreferredFootAsync("Left");
 
         // Assert
-        rightFootedResult.Should().HaveCount(2);
-        rightFootedResult.All(p => p.PreferredFoot == "Right").Should().BeTrue();
+        var rightFootedPlayers = rightFootedResult as Player[] ?? rightFootedResult.ToArray();
+        rightFootedPlayers.Should().HaveCount(2);
+        rightFootedPlayers.All(p => p.PreferredFoot == "Right").Should().BeTrue();
 
-        leftFootedResult.Should().HaveCount(1);
-        leftFootedResult.First().PreferredFoot.Should().Be("Left");
-        leftFootedResult.First().FullName.Should().Be("Left Footed Player");
+        var leftFootedPlayers = leftFootedResult as Player[] ?? leftFootedResult.ToArray();
+        leftFootedPlayers.Should().HaveCount(1);
+        leftFootedPlayers.First().PreferredFoot.Should().Be("Left");
+        leftFootedPlayers.First().FullName.Should().Be("Left Footed Player");
     }
 
     [Fact]
@@ -233,6 +241,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player2 = new Player
         {
             FullName = "Jane Johnson",
+            KnownName = "JJ",
             Position = "Midfielder",
             Team = team,
         };
@@ -240,23 +249,23 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player3 = new Player
         {
             FullName = "Bob Wilson",
+            KnownName = "Bobby",
             Position = "Defender",
             Team = team,
         };
 
         // Act
         await UnitOfWork.Teams.AddAsync(team);
-        await UnitOfWork.Players.AddAsync(player1);
-        await UnitOfWork.Players.AddAsync(player2);
-        await UnitOfWork.Players.AddAsync(player3);
+        await UnitOfWork.Players.AddRangeAsync(CancellationToken.None, player1, player2, player3);
         await UnitOfWork.SaveChangesAsync();
 
         var searchResult = await _playerRepository.SearchAsync("John");
 
         // Assert
-        searchResult.Should().HaveCount(2);
-        searchResult.Should().Contain(p => p.FullName == "John Smith");
-        searchResult.Should().Contain(p => p.FullName == "Jane Johnson");
+        var matchingPlayers = searchResult as Player[] ?? searchResult.ToArray();
+        matchingPlayers.Should().HaveCount(2);
+        matchingPlayers.Should().Contain(p => p.FullName == "John Smith");
+        matchingPlayers.Should().Contain(p => p.FullName == "Jane Johnson");
     }
 
     [Fact]
@@ -282,6 +291,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player1 = new Player
         {
             FullName = "Player 1",
+            KnownName = "P1",
             Position = "Forward",
             Team = team1,
         };
@@ -289,6 +299,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player2 = new Player
         {
             FullName = "Player 2",
+            KnownName = "P2",
             Position = "Midfielder",
             Team = team1,
         };
@@ -296,25 +307,24 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player3 = new Player
         {
             FullName = "Player 3",
+            KnownName = "P3",
             Position = "Defender",
             Team = team2,
         };
 
         // Act
-        await UnitOfWork.Teams.AddAsync(team1);
-        await UnitOfWork.Teams.AddAsync(team2);
-        await UnitOfWork.Players.AddAsync(player1);
-        await UnitOfWork.Players.AddAsync(player2);
-        await UnitOfWork.Players.AddAsync(player3);
+        await UnitOfWork.Teams.AddRangeAsync(CancellationToken.None, team1, team2);
+        await UnitOfWork.Players.AddRangeAsync(CancellationToken.None, player1, player2, player3);
         await UnitOfWork.SaveChangesAsync();
 
         var searchResult = await _playerRepository.SearchAsync("Manchester");
 
         // Assert
-        searchResult.Should().HaveCount(2);
-        searchResult.All(p => p.Team!.Name == "Manchester United").Should().BeTrue();
-        searchResult.Should().Contain(p => p.FullName == "Player 1");
-        searchResult.Should().Contain(p => p.FullName == "Player 2");
+        var resultingPlayers = searchResult as Player[] ?? searchResult.ToArray();
+        resultingPlayers.Should().HaveCount(2);
+        resultingPlayers.All(p => p.Team!.Name == "Manchester United").Should().BeTrue();
+        resultingPlayers.Should().Contain(p => p.FullName == "Player 1");
+        resultingPlayers.Should().Contain(p => p.FullName == "Player 2");
     }
 
     [Fact]
@@ -342,6 +352,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var forward1 = new Player
         {
             FullName = "Forward 1",
+            KnownName = "ForwardOne",
             Position = "Forward",
             ShirtNumber = 9,
             Team = team,
@@ -350,6 +361,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var forward2 = new Player
         {
             FullName = "Forward 2",
+            KnownName = "ForwardTwo",
             Position = "Forward",
             ShirtNumber = 11,
             Team = team,
@@ -358,6 +370,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var midfielder = new Player
         {
             FullName = "Midfielder",
+            KnownName = "MidfieldMaster",
             Position = "Midfielder",
             ShirtNumber = 8,
             Team = team,
@@ -365,18 +378,22 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         // Act
         await UnitOfWork.Teams.AddAsync(team);
-        await UnitOfWork.Players.AddAsync(forward1);
-        await UnitOfWork.Players.AddAsync(forward2);
-        await UnitOfWork.Players.AddAsync(midfielder);
+        await UnitOfWork.Players.AddRangeAsync(
+            CancellationToken.None,
+            forward1,
+            forward2,
+            midfielder
+        );
         await UnitOfWork.SaveChangesAsync();
 
         var forwards = await _playerRepository.FindAsync(p => p.Position == "Forward");
 
         // Assert
-        forwards.Should().HaveCount(2);
-        forwards.All(p => p.Position == "Forward").Should().BeTrue();
-        forwards.Should().Contain(p => p.FullName == "Forward 1");
-        forwards.Should().Contain(p => p.FullName == "Forward 2");
+        var players = forwards as Player[] ?? forwards.ToArray();
+        players.Should().HaveCount(2);
+        players.All(p => p.Position == "Forward").Should().BeTrue();
+        players.Should().Contain(p => p.FullName == "Forward 1");
+        players.Should().Contain(p => p.FullName == "Forward 2");
     }
 
     [Fact]
@@ -440,6 +457,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player = new Player
         {
             FullName = "Original Name",
+            KnownName = "OriginalKnown",
             Position = "Forward",
             ShirtNumber = 9,
             Team = team,
@@ -454,7 +472,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         player.Position = "Midfielder";
         player.ShirtNumber = 10;
 
-        _playerRepository.UpdateAsync(player);
+        _playerRepository.Update(player);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
@@ -480,7 +498,10 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player = new Player
         {
             FullName = "Player To Delete",
+            KnownName = "DeleteMe",
             Position = "Forward",
+            ShirtNumber = 9,
+            PhotoUrl = "http://example.com/photo.jpg",
             Team = team,
         };
 
@@ -491,7 +512,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var playerId = player.Id;
 
         // Act
-        _playerRepository.DeleteAsync(player);
+        _playerRepository.Delete(player);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
@@ -518,6 +539,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
                 new Player
                 {
                     FullName = $"Player {i}",
+                    KnownName = $"PlayerKnown{i}",
                     Position = "Forward",
                     ShirtNumber = i,
                     Team = team,
@@ -525,8 +547,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             );
 
         await UnitOfWork.Teams.AddAsync(team);
-        foreach (var player in players)
-            await UnitOfWork.Players.AddAsync(player);
+        await UnitOfWork.Players.AddRangeAsync(CancellationToken.None, [.. players]);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -534,8 +555,8 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var secondPage = await _playerRepository.GetAllAsync(2, 2);
 
         // Assert
-        firstPage.Should().HaveCount(6); // Takes pageSize * 3 = 2 * 3 = 6, but we only have 5
-        secondPage.Should().HaveCount(3); // Skip 2, take 6, but only 3 remain
+        firstPage.Should().HaveCount(2); // Takes pageSize = 2
+        secondPage.Should().HaveCount(2); // Skip 2
     }
 
     [Fact]
@@ -553,6 +574,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player = new Player
         {
             FullName = "Transaction Test Player",
+            KnownName = "TransPlayer",
             Position = "Forward",
             Team = team,
         };
@@ -597,6 +619,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var player = new Player
         {
             FullName = "Test Player",
+            KnownName = "Tester",
             Position = "Forward",
             Team = team,
         };

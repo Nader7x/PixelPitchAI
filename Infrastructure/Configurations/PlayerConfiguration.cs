@@ -10,7 +10,7 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
     {
         builder.HasKey(p => p.Id);
 
-        // Use appropriate PostgreSQL types
+        // Use appropriate PostgresSQL types
         builder
             .Property(p => p.FullName)
             .IsRequired()
@@ -22,7 +22,7 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
             .HasMaxLength(100)
             .HasColumnType("varchar(100)");
         builder.Property(p => p.Nationality).HasMaxLength(50).HasColumnType("varchar(50)");
-        builder.Property(p => p.ShirtNumber).HasColumnType("smallint"); // Use smaller int type
+        builder.Property(p => p.ShirtNumber).HasColumnType("smallint"); // Use a smaller int type
         builder.Property(p => p.Nationality).HasMaxLength(50);
         builder.Property(p => p.PreferredFoot).HasMaxLength(20);
         builder.Property(p => p.PhotoUrl).HasMaxLength(500);

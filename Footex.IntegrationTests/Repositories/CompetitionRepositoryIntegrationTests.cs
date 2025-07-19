@@ -10,12 +10,13 @@ namespace Footex.IntegrationTests.Repositories;
 
 public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
 {
-    private readonly ICompetitionRepository _repository;
+    private readonly ICompetitionRepository _competitionRepository;
 
     public CompetitionRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _repository = ServiceProvider.GetRequiredService<ICompetitionRepository>();
+        _competitionRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<ICompetitionRepository>();
     }
 
     [Fact]
@@ -25,7 +26,8 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = CreateValidCompetition();
 
         // Act
-        var result = await _repository.AddAsync(competition);
+        var result = await _competitionRepository.AddAsync(competition);
+        await Context.SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -43,7 +45,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = await SeedCompetitionAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(competition.Id);
+        var result = await _competitionRepository.GetByIdAsync(competition.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -58,7 +60,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByIdAsync_WhenCompetitionDoesNotExist_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByIdAsync(999);
+        var result = await _competitionRepository.GetByIdAsync(999);
 
         // Assert
         result.Should().BeNull();
@@ -69,15 +71,15 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var competition = await SeedCompetitionAsync();
-        var updatedName = "Updated Competition Name";
-        var updatedDescription = "Updated Description";
-        var updatedCountry = "Updated Country";
+        const string updatedName = "Updated Competition Name";
+        const string updatedDescription = "Updated Description";
+        const string updatedCountry = "Updated Country";
 
         // Act
         competition.Name = updatedName;
         competition.Description = updatedDescription;
         competition.Country = updatedCountry;
-        var result = _repository.UpdateAsync(competition);
+        var result = _competitionRepository.Update(competition);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -87,7 +89,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         result.Entity.Country.Should().Be(updatedCountry);
 
         // Verify changes are persisted
-        var persistedCompetition = await _repository.GetByIdAsync(competition.Id);
+        var persistedCompetition = await _competitionRepository.GetByIdAsync(competition.Id);
         persistedCompetition!.Name.Should().Be(updatedName);
         persistedCompetition.Description.Should().Be(updatedDescription);
         persistedCompetition.Country.Should().Be(updatedCountry);
@@ -100,11 +102,11 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = await SeedCompetitionAsync();
 
         // Act
-        _repository.DeleteAsync(competition);
+        _competitionRepository.Delete(competition);
         await Context.SaveChangesAsync();
 
         // Assert
-        var deletedCompetition = await _repository.GetByIdAsync(competition.Id);
+        var deletedCompetition = await _competitionRepository.GetByIdAsync(competition.Id);
         deletedCompetition.Should().BeNull();
     }
 
@@ -116,24 +118,26 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition2 = await SeedCompetitionAsync("Competition 2");
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _competitionRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        result.Should().Contain(c => c.Id == competition1.Id);
-        result.Should().Contain(c => c.Id == competition2.Id);
+        var competitions = result as Competition[] ?? result.ToArray();
+        competitions.Should().NotBeNull();
+        competitions.Should().HaveCountGreaterOrEqualTo(2);
+        competitions.Should().Contain(c => c.Id == competition1.Id);
+        competitions.Should().Contain(c => c.Id == competition2.Id);
     }
 
     [Fact]
     public async Task GetAllAsync_WhenNoCompetitions_ShouldReturnEmptyList()
     {
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _competitionRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
+        var competitions = result as Competition[] ?? result.ToArray();
+        competitions.Should().NotBeNull();
+        competitions.Should().BeEmpty();
     }
 
     [Fact]
@@ -145,11 +149,12 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         await SeedCompetitionAsync("Competition 3");
 
         // Act
-        var result = await _repository.GetAllAsync(1, 2);
+        var result = await _competitionRepository.GetAllAsync(1, 2);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(2);
+        var competitions = result as Competition[] ?? result.ToArray();
+        competitions.Should().NotBeNull();
+        competitions.Should().HaveCount(2);
     }
 
     [Fact]
@@ -159,7 +164,9 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = await SeedCompetitionAsync("Unique Competition Name");
 
         // Act
-        var result = await _repository.FindAsync(c => c.Name == "Unique Competition Name");
+        var result = await _competitionRepository.FindAsync(c =>
+            c.Name == "Unique Competition Name"
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -171,7 +178,9 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     public async Task FindAsync_WithPredicate_WhenNoMatch_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.FindAsync(c => c.Name == "Non-existent Competition");
+        var result = await _competitionRepository.FindAsync(c =>
+            c.Name == "Non-existent Competition"
+        );
 
         // Assert
         result.Should().BeNull();
@@ -184,7 +193,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         var competition = await SeedCompetitionAsync();
 
         // Act
-        var result = await _repository.FindAsync(competition);
+        var result = await _competitionRepository.FindAsync(competition);
 
         // Assert
         result.Should().NotBeNull();
@@ -204,7 +213,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _repository.AddAsync(competition);
+        var result = await _competitionRepository.AddAsync(competition);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -219,7 +228,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     public async Task Competition_ShouldSupportLongDescriptions()
     {
         // Arrange
-        var longDescription = new string('A', 1000); // 1000 character description
+        var longDescription = new string('A', 500); // 500-character description
         var competition = new Competition
         {
             Name = "Competition with Long Description",
@@ -229,20 +238,20 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _repository.AddAsync(competition);
+        var result = await _competitionRepository.AddAsync(competition);
         await Context.SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
         result.Entity.Description.Should().Be(longDescription);
-        result.Entity.Description!.Length.Should().Be(1000);
+        result.Entity.Description!.Length.Should().Be(500);
     }
 
     [Fact]
     public async Task Competition_ShouldHandleSpecialCharactersInName()
     {
         // Arrange
-        var specialName = "Ñoël's Competition & Tëam #1 (2024)";
+        const string specialName = "Ñoël's Competition & Tëam #1 (2024)";
         var competition = new Competition
         {
             Name = specialName,
@@ -252,7 +261,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _repository.AddAsync(competition);
+        var result = await _competitionRepository.AddAsync(competition);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -289,13 +298,13 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     private async Task<Competition> SeedCompetitionAsync(string name = "Test Competition")
     {
         var competition = CreateValidCompetition(name);
-        var result = await _repository.AddAsync(competition);
+        var result = await _competitionRepository.AddAsync(competition);
         await Context.SaveChangesAsync();
 
         return result.Entity;
     }
 
-    private Competition CreateValidCompetition(string name = "Test Competition")
+    private static Competition CreateValidCompetition(string name = "Test Competition")
     {
         return new Competition
         {

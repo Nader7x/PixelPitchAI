@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("Database")]
+[Collection("RepositoryTests")]
 public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ISeasonRepository _seasonRepository;
@@ -16,10 +16,9 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
     public SeasonRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _seasonRepository = ServiceProvider.GetRequiredService<ISeasonRepository>();
+        _seasonRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<ISeasonRepository>();
     }
-
-    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     [Fact]
     public async Task GetByNameAsync_WithValidName_ReturnsSeason()
@@ -345,7 +344,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         season.CurrentRound = 25;
         season.IsActive = false;
 
-        _seasonRepository.UpdateAsync(season);
+        _seasonRepository.Update(season);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
@@ -379,7 +378,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         var seasonId = season.Id;
 
         // Act
-        _seasonRepository.DeleteAsync(season);
+        _seasonRepository.Delete(season);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert

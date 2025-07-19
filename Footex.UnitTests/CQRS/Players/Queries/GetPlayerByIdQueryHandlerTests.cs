@@ -47,7 +47,9 @@ public class GetPlayerByIdQueryHandlerTests
             Position = player.Position,
         };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync(player);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(player);
         _iPlayerMapperMock.Setup(x => x.ToDto(player)).Returns(expectedPlayerDto);
 
         // Act
@@ -61,7 +63,10 @@ public class GetPlayerByIdQueryHandlerTests
         result.Player!.Id.Should().Be(playerId);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iPlayerMapperMock.Verify(x => x.ToDto(player), Times.Once);
     }
 
@@ -72,7 +77,9 @@ public class GetPlayerByIdQueryHandlerTests
         var playerId = 999;
         var query = new GetPlayerByIdQuery { Id = playerId };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync((Player?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Player?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -84,7 +91,10 @@ public class GetPlayerByIdQueryHandlerTests
         result.Player.Should().BeNull();
         result.Error.Should().Be($"Player with ID {playerId} not found");
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
@@ -97,7 +107,7 @@ public class GetPlayerByIdQueryHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByIdAsync(playerId))
+            .Setup(x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -110,7 +120,10 @@ public class GetPlayerByIdQueryHandlerTests
         result.Player.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(playerId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
@@ -123,7 +136,9 @@ public class GetPlayerByIdQueryHandlerTests
         // Arrange
         var query = new GetPlayerByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(invalidId)).ReturnsAsync((Player?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Player?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -135,7 +150,10 @@ public class GetPlayerByIdQueryHandlerTests
         result.Player.Should().BeNull();
         result.Error.Should().Be($"Player with ID {invalidId} not found");
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByIdAsync(invalidId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Players.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iPlayerMapperMock.Verify(x => x.ToDto(It.IsAny<Player>()), Times.Never);
     }
 
@@ -158,7 +176,9 @@ public class GetPlayerByIdQueryHandlerTests
             ShirtNumber = player.ShirtNumber,
         };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(playerId)).ReturnsAsync(player);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(playerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(player);
         _iPlayerMapperMock.Setup(x => x.ToDto(player)).Returns(expectedPlayerDto);
 
         // Act

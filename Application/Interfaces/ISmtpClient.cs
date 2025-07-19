@@ -1,10 +1,8 @@
 using System.Net.Mail;
-using System.Threading.Tasks;
 
-namespace Application.Interfaces
+namespace Application.Interfaces;
+
+public interface ISmtpClient
 {
-    public interface ISmtpClient
-    {
-        Task SendMailAsync(MailMessage message);
-    }
+    Task SendMailAsync(MailMessage message);
 }

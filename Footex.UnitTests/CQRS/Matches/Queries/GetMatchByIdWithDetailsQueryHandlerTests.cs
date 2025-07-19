@@ -1,7 +1,6 @@
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Interfaces;
 using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;

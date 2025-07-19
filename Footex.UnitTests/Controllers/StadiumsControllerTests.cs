@@ -3,7 +3,6 @@ using Application.CQRS.Stadiums.Commands;
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
@@ -18,13 +17,13 @@ namespace Footex.UnitTests.Controllers;
 
 public class StadiumsControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IStadiumMapper> _stadiumMapperMock;
-    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly StadiumsController _controller;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IStadiumMapper> _stadiumMapperMock;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public StadiumsControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -74,7 +73,7 @@ public class StadiumsControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Stadiums = new List<StadiumDto>
             {
-                new StadiumDto
+                new()
                 {
                     Id = 1,
                     Name = "Emirates Stadium",
@@ -127,7 +126,7 @@ public class StadiumsControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Stadiums = new List<StadiumDto>
             {
-                new StadiumDto
+                new()
                 {
                     Id = 1,
                     Name = "Emirates Stadium",

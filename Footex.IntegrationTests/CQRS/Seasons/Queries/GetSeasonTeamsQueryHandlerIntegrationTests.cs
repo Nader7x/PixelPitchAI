@@ -8,20 +8,9 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Seasons.Queries;
 
-[Collection("Database")]
-public class GetSeasonTeamsQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetSeasonTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetSeasonTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidSeasonId_ReturnsTeams()
     {
@@ -29,20 +18,20 @@ public class GetSeasonTeamsQueryHandlerIntegrationTests : IClassFixture<FootexWe
         var season = TestData.CreateTestDbSeason();
         var team1 = TestData.CreateTestDbTeam();
         var team2 = TestData.CreateTestDbTeam();
-        _context.Seasons.Add(season);
-        _context.Teams.AddRange(team1, team2);
-        await _context.SaveChangesAsync();
+        Context.Seasons.Add(season);
+        Context.Teams.AddRange(team1, team2);
+        await Context.SaveChangesAsync();
 
         // Assuming TeamSeason is the join entity
         var teamSeason1 = TestData.CreateTestDbSeasonTeam(season.Id, team1.Id);
         var teamSeason2 = TestData.CreateTestDbSeasonTeam(season.Id, team2.Id);
-        _context.TeamSeasons.AddRange(teamSeason1, teamSeason2);
-        await _context.SaveChangesAsync();
+        Context.TeamSeasons.AddRange(teamSeason1, teamSeason2);
+        await Context.SaveChangesAsync();
 
         var query = new GetSeasonTeamsQuery { SeasonId = season.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();
@@ -59,7 +48,7 @@ public class GetSeasonTeamsQueryHandlerIntegrationTests : IClassFixture<FootexWe
         var query = new GetSeasonTeamsQuery { SeasonId = 999999 };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();

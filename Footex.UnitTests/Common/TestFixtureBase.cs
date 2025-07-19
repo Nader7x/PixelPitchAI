@@ -99,6 +99,7 @@ public class TestFixtureBase : IDisposable
             CreatorId = Guid.NewGuid().ToString(),
             HomeTeamInMatchName = $"{homeTeam.Name}_2024",
             AwayTeamInMatchName = $"{awayTeam.Name}_2024",
+            Id = 0,
         };
 
         Context.Matches.Add(match);

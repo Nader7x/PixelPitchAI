@@ -8,33 +8,22 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Seasons.Queries;
 
-[Collection("Database")]
-public class GetAllSeasonsQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetAllSeasonsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetAllSeasonsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_ReturnsAllSeasons()
     {
         // Arrange
         var season1 = TestData.CreateTestDbSeason();
         var season2 = TestData.CreateTestDbSeason();
-        _context.Seasons.AddRange(season1, season2);
-        await _context.SaveChangesAsync();
+        Context.Seasons.AddRange(season1, season2);
+        await Context.SaveChangesAsync();
 
         var query = new GetAllSeasonsQuery();
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();

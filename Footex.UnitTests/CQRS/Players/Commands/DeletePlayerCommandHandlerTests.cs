@@ -36,7 +36,9 @@ public class DeletePlayerCommandHandlerTests
 
         var existingPlayer = new Player { Id = command.Id, FullName = "Lionel Messi" };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetByIdAsync(command.Id)).ReturnsAsync(existingPlayer);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingPlayer);
 
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -51,7 +53,7 @@ public class DeletePlayerCommandHandlerTests
         result.NotFound.Should().BeFalse();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.DeleteAsync(existingPlayer), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Players.Delete(existingPlayer), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -72,7 +74,7 @@ public class DeletePlayerCommandHandlerTests
         result.NotFound.Should().BeTrue();
         result.Error.Should().Contain($"Player with ID {command.Id} not found");
 
-        _unitOfWorkMock.Verify(x => x.Players.DeleteAsync(It.IsAny<Player>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Players.Delete(It.IsAny<Player>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -83,7 +85,7 @@ public class DeletePlayerCommandHandlerTests
         var command = new DeletePlayerCommand { Id = 1 };
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByIdAsync(command.Id))
+            .Setup(x => x.Players.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
@@ -95,7 +97,7 @@ public class DeletePlayerCommandHandlerTests
         result.NotFound.Should().BeFalse();
         result.Error.Should().NotBeNullOrEmpty();
 
-        _unitOfWorkMock.Verify(x => x.Players.DeleteAsync(It.IsAny<Player>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Players.Delete(It.IsAny<Player>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

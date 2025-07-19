@@ -1,4 +1,3 @@
-
 using Application.CQRS.Auth.Commands;
 using Domain.Models;
 using Footex.IntegrationTests.Common;
@@ -9,14 +8,17 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Auth.Commands;
 
-public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    : BaseIntegrationTest(factory)
+public class LoginUserCommandHandlerIntegrationTests : BaseIntegrationTest
 {
-    private readonly IMediator _mediator =
-        factory.Services.GetRequiredService<IMediator>();
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    private readonly UserManager<ApplicationUser> _userManager =
-        factory.Services.GetRequiredService<UserManager<ApplicationUser>>();
+    public LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
+    {
+        _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
+            UserManager<ApplicationUser>
+        >();
+    }
 
     [Fact]
     public async Task Handle_ValidLogin_ReturnsSuccessAndTokens()
@@ -29,7 +31,7 @@ public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory
             LastName = "User",
             UserName = "testuser",
             Email = "test@example.com",
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
         await _userManager.CreateAsync(user, password);
 
@@ -37,11 +39,11 @@ public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory
         {
             Email = "test@example.com",
             Password = password,
-            IpAddress = "127.0.0.1"
+            IpAddress = "127.0.0.1",
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -58,11 +60,11 @@ public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory
         {
             Email = "nonexistent@example.com",
             Password = "Password123!",
-            IpAddress = "127.0.0.1"
+            IpAddress = "127.0.0.1",
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -79,7 +81,7 @@ public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory
             LastName = "User2",
             UserName = "testuser2",
             Email = "test2@example.com",
-            EmailConfirmed = true
+            EmailConfirmed = true,
         };
         await _userManager.CreateAsync(user, "Password123!");
 
@@ -87,11 +89,11 @@ public class LoginUserCommandHandlerIntegrationTests(FootexWebApplicationFactory
         {
             Email = "test2@example.com",
             Password = "WrongPassword",
-            IpAddress = "127.0.0.1"
+            IpAddress = "127.0.0.1",
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);

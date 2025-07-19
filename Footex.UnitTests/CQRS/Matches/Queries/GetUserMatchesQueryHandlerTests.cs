@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
@@ -18,8 +17,8 @@ public class GetUserMatchesQueryHandlerTests
 {
     private readonly GetUserMatchesQueryHandler _handler;
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetUserMatchesQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {

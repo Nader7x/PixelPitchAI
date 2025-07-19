@@ -12,24 +12,15 @@ public class GetPlayerByIdQuery : IRequest<GetPlayerByIdQueryResponse>
 
 public class GetPlayerByIdQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public PlayerDto Player { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public PlayerDto? Player { get; init; }
+    public string? Error { get; init; }
 }
 
-public class GetPlayerByIdQueryHandler
+public class GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
     : IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>
 {
-    private readonly IPlayerMapper _playerMapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetPlayerByIdQueryHandler(IUnitOfWork unitOfWork, IPlayerMapper playerMapper)
-    {
-        _unitOfWork = unitOfWork;
-        _playerMapper = playerMapper;
-    }
-
     public async Task<GetPlayerByIdQueryResponse> Handle(
         GetPlayerByIdQuery request,
         CancellationToken cancellationToken
@@ -37,7 +28,7 @@ public class GetPlayerByIdQueryHandler
     {
         try
         {
-            var player = await _unitOfWork.Players.GetByIdAsync(request.Id);
+            var player = await unitOfWork.Players.GetByIdAsync(request.Id, cancellationToken);
             if (player == null)
                 return new GetPlayerByIdQueryResponse
                 {
@@ -46,7 +37,7 @@ public class GetPlayerByIdQueryHandler
                     Error = $"Player with ID {request.Id} not found",
                 };
 
-            var playerDto = _playerMapper.ToDto(player);
+            var playerDto = playerMapper.ToDto(player);
 
             return new GetPlayerByIdQueryResponse { Succeeded = true, Player = playerDto };
         }

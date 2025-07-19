@@ -1,7 +1,9 @@
 using Application.CQRS.Auth.Commands;
 using Domain.Interfaces;
 using Domain.Models;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -10,16 +12,14 @@ namespace Footex.IntegrationTests.CQRS.Auth.Commands;
 
 public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
 {
-    private readonly RegisterUserCommandHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public RegisterUserCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _handler = ServiceProvider.GetRequiredService<RegisterUserCommandHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-        _userManager = ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
+            UserManager<ApplicationUser>
+        >();
     }
 
     [Fact]
@@ -36,24 +36,24 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        var savedUser = await _unitOfWork.ApplicationUser.GetByEmailAsync(command.Email);
+        var result = await Mediator.Send(command, CancellationToken.None);
+        var savedUser = await UnitOfWork.ApplicationUser.GetByEmailAsync(command.Email);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.UserId);
-        Assert.Equal(command.Email, savedUser.Email);
-        Assert.Equal(command.UserName, savedUser.UserName);
-        Assert.Null(result.Error);
+        result.Succeeded.Should().BeTrue();
+        result.UserId.Should().NotBeNull();
+        savedUser.Email.Should().Be(command.Email);
+        savedUser.UserName.Should().Be(command.UserName);
+        result.Error.Should().BeNull();
 
         // Verify user was created in database
         var user = await _userManager.FindByEmailAsync(command.Email);
-        Assert.NotNull(user);
-        Assert.Equal(command.FirstName, user.FirstName);
-        Assert.Equal(command.LastName, user.LastName);
-        Assert.Equal(command.Email, user.Email);
-        Assert.Equal(command.UserName, user.UserName);
-        Assert.False(user.EmailConfirmed); // Should be false initially
+        user.Should().NotBeNull();
+        user.FirstName.Should().Be(command.FirstName);
+        user.LastName.Should().Be(command.LastName);
+        user.Email.Should().Be(command.Email);
+        user.UserName.Should().Be(command.UserName);
+        user.EmailConfirmed.Should().BeFalse(); // Should be false initially
     }
 
     [Fact]
@@ -81,12 +81,12 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Contains("email", result.Error.ToLower());
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Error.ToLower().Should().Contain("email");
     }
 
     [Fact]
@@ -110,16 +110,16 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
             LastName = "User",
             Email = "new@example.com",
             Password = "StrongPassword123!",
-            UserName = "NewUser",
+            UserName = "duplicateusername",
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Contains("username", result.Error.ToLower());
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Error.ToLower().Should().Contain("username");
     }
 
     [Fact]
@@ -136,29 +136,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Contains("password", result.Error.ToLower());
-    }
-
-    [Fact]
-    public async Task Handle_MismatchedPasswords_ReturnsError()
-    {
-        // Arrange
-        var command = new RegisterUserCommand
-        {
-            FirstName = "Test",
-            LastName = "User",
-            Email = "mismatch@example.com",
-            Password = "StrongPassword123!",
-            UserName = "TestUser", // Different confirmation
-        };
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -180,7 +158,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -202,7 +180,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -224,7 +202,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         if (result.Succeeded)
@@ -253,7 +231,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -301,7 +279,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         // Act
         foreach (var command in commands)
         {
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await Mediator.Send(command, CancellationToken.None);
             results.Add(result);
         }
 
@@ -334,7 +312,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         await DisposeContext();
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -343,7 +321,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

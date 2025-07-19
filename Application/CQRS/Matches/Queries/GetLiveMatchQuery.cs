@@ -20,8 +20,8 @@ public class LiveMatchDto
 {
     public int Id { get; set; }
     public bool IsLive { get; set; }
-    public LiveTeamDto HomeTeam { get; set; } = default!;
-    public LiveTeamDto AwayTeam { get; set; } = default!;
+    public LiveTeamDto? HomeTeam { get; set; }
+    public LiveTeamDto? AwayTeam { get; set; }
     public int HomeTeamScore { get; set; }
     public int AwayTeamScore { get; set; }
     public DateTime ScheduledDateTimeUtc { get; set; }
@@ -65,7 +65,7 @@ public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
     )
     {
         var match = await unitOfWork.Matches.GetLiveMatchAsync(request.UserId);
-        if (match == null || !match.IsLive)
+        if (match is not { IsLive: true })
             return new GetLiveMatchQueryResponse
             {
                 Succeeded = true,
@@ -111,20 +111,20 @@ public class GetLiveMatchQueryHandler(IUnitOfWork unitOfWork)
                 AwayTeamScore = match.AwayTeamScore ?? 0,
                 ScheduledDateTimeUtc = match.ScheduledDateTimeUtc,
                 MatchStatus = match.MatchStatus ?? "Scheduled",
-                HomeTeamPossession = match.HomeTeamPossession ?? 0,
-                AwayTeamPossession = match.AwayTeamPossession ?? 0,
-                HomeTeamShots = match.HomeTeamShots ?? 0,
-                AwayTeamShots = match.AwayTeamShots ?? 0,
-                HomeTeamShotsOnTarget = match.HomeTeamShotsOnTarget ?? 0,
-                AwayTeamShotsOnTarget = match.AwayTeamShotsOnTarget ?? 0,
-                HomeTeamCorners = match.HomeTeamCorners ?? 0,
-                AwayTeamCorners = match.AwayTeamCorners ?? 0,
-                HomeTeamFouls = match.HomeTeamFouls ?? 0,
-                AwayTeamFouls = match.AwayTeamFouls ?? 0,
-                HomeTeamYellowCards = match.HomeTeamYellowCards ?? 0,
-                AwayTeamYellowCards = match.AwayTeamYellowCards ?? 0,
-                HomeTeamRedCards = match.HomeTeamRedCards ?? 0,
-                AwayTeamRedCards = match.AwayTeamRedCards ?? 0,
+                HomeTeamPossession = match.MatchStatistics?.HomeTeamPossession ?? 0,
+                AwayTeamPossession = match.MatchStatistics?.AwayTeamPossession ?? 0,
+                HomeTeamShots = match.MatchStatistics?.HomeTeamShots ?? 0,
+                AwayTeamShots = match.MatchStatistics?.AwayTeamShots ?? 0,
+                HomeTeamShotsOnTarget = match.MatchStatistics?.HomeTeamShotsOnTarget ?? 0,
+                AwayTeamShotsOnTarget = match.MatchStatistics?.AwayTeamShotsOnTarget ?? 0,
+                HomeTeamCorners = match.MatchStatistics?.HomeTeamCorners ?? 0,
+                AwayTeamCorners = match.MatchStatistics?.AwayTeamCorners ?? 0,
+                HomeTeamFouls = match.MatchStatistics?.HomeTeamFouls ?? 0,
+                AwayTeamFouls = match.MatchStatistics?.AwayTeamFouls ?? 0,
+                HomeTeamYellowCards = match.MatchStatistics?.HomeTeamYellowCards ?? 0,
+                AwayTeamYellowCards = match.MatchStatistics?.AwayTeamYellowCards ?? 0,
+                HomeTeamRedCards = match.MatchStatistics?.HomeTeamRedCards ?? 0,
+                AwayTeamRedCards = match.MatchStatistics?.AwayTeamRedCards ?? 0,
             },
         };
     }

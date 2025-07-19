@@ -234,7 +234,8 @@ Content-Disposition: form-data; name="TeamId"
 GET {{Footex_HostAddress}}/api/matches
 
 ### Get All Matches with filters
-GET {{Footex_HostAddress}}/api/matches?seasonId=1&teamId=1&status=Scheduled&fromDate=2024-01-01&toDate=2024-12-31&matchWeek=1
+GET {{Footex_HostAddress}}/api/matches?seasonId=1&teamId=1&status=Scheduled&fromDate=2024-01-01&toDate=2024-12-31&
+    matchWeek=1
 
 ### Get Match by ID
 GET {{Footex_HostAddress}}/api/matches/1

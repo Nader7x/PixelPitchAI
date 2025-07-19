@@ -10,9 +10,9 @@ public class DeleteMatchCommand : IRequest<DeleteMatchCommandResponse>
 
 public class DeleteMatchCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public string? Error { get; init; }
 }
 
 public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
@@ -25,7 +25,7 @@ public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            var match = await unitOfWork.Matches.GetByIdAsync(request.Id);
+            var match = await unitOfWork.Matches.GetByIdAsync(request.Id, cancellationToken);
             if (match == null)
                 return new DeleteMatchCommandResponse
                 {
@@ -34,18 +34,14 @@ public class DeleteMatchCommandHandler(IUnitOfWork unitOfWork)
                     Error = $"Match with ID {request.Id} not found",
                 };
 
-            // Check if match can be deleted (e.g. if it's already completed, maybe don't allow deletion)
-            if (match.MatchStatus == "Completed" || match.MatchStatus == "InProgress")
+            if (match.MatchStatus is "Completed" or "InProgress")
                 return new DeleteMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Cannot delete a match that is {match.MatchStatus}",
                 };
 
-            // Check for related events or data that would be affected by deletion
-            // Example: Check for match events, match statistics, etc.
-
-            unitOfWork.Matches.DeleteAsync(match);
+            unitOfWork.Matches.Delete(match);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteMatchCommandResponse { Succeeded = true };

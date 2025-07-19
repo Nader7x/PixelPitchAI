@@ -12,11 +12,9 @@ public static class TestUtils
         var type = typeof(T);
         var method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
         if (method == null)
-        {
             throw new ArgumentException(
                 $"Static method '{methodName}' not found on type '{type.Name}'."
             );
-        }
         return (TResult)method.Invoke(null, parameters)!;
     }
 
@@ -29,11 +27,9 @@ public static class TestUtils
         var type = typeof(T);
         var method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
         if (method == null)
-        {
             throw new ArgumentException(
                 $"Instance method '{methodName}' not found on type '{type.Name}'."
             );
-        }
         return (TResult)method.Invoke(instance, parameters)!;
     }
 
@@ -46,11 +42,9 @@ public static class TestUtils
         var type = typeof(T);
         var method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
         if (method == null)
-        {
             throw new ArgumentException(
                 $"Private method '{methodName}' not found on type '{type.Name}'."
             );
-        }
         return (TResult)method.Invoke(instance, parameters)!;
     }
 
@@ -63,25 +57,20 @@ public static class TestUtils
         var type = typeof(T);
         var method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
         if (method == null)
-        {
             throw new ArgumentException(
                 $"Private method '{methodName}' not found on type '{type.Name}'."
             );
-        }
 
         var result = method.Invoke(instance, parameters);
         if (result is Task<TResult> task)
-        {
             return await task;
-        }
-        else if (result is Task)
+
+        if (result is Task)
         {
             await (Task)result;
-            return default(TResult)!;
+            return default!;
         }
-        else
-        {
-            return (TResult)result!;
-        }
+
+        return (TResult)result!;
     }
 }

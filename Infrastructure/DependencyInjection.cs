@@ -3,7 +3,7 @@ using Application.Services;
 using Domain.Interfaces;
 using Domain.Repositories;
 using Infrastructure.Configuration;
-using Infrastructure.Data; // Add this using
+using Infrastructure.Data;
 using Infrastructure.Identity;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
@@ -13,6 +13,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog.Sinks.PostgreSQL;
 using StackExchange.Redis;
+
+// Add this using
 
 namespace Infrastructure;
 
@@ -171,7 +173,6 @@ public static class DependencyInjection
         services.AddSingleton<IEventProcessor, InterceptionEventProcessor>();
         services.AddSingleton<IEventProcessor, BlockEventProcessor>();
         services.AddSingleton<IEventProcessor, SubstitutionEventProcessor>();
-        services.AddSingleton<IEventProcessor, InjuryEventProcessor>();
         services.AddSingleton<IEventProcessor, MatchStatusEventProcessor>();
         services.AddSingleton<IEventProcessor, BadBehaviourEventProcessor>();
         services.AddSingleton<IEventProcessor, BallLossEventProcessor>();

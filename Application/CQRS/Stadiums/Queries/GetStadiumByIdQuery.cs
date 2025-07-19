@@ -12,10 +12,10 @@ public class GetStadiumByIdQuery : IRequest<GetStadiumByIdQueryResponse>
 
 public class GetStadiumByIdQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public StadiumDto Stadium { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public StadiumDto? Stadium { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, IStadiumMapper stadiumMapper)
@@ -28,7 +28,7 @@ public class GetStadiumByIdQueryHandler(IUnitOfWork unitOfWork, IStadiumMapper s
     {
         try
         {
-            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id);
+            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id, cancellationToken);
             if (stadium == null)
                 return new GetStadiumByIdQueryResponse
                 {

@@ -5,7 +5,6 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
 using Xunit;
 
@@ -15,8 +14,8 @@ public class CreateTeamCommandHandlerTests
 {
     private readonly NoRecursionFixture _fixture;
     private readonly CreateTeamCommandHandler _handler;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<ITeamMapper> _teamMapperMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public CreateTeamCommandHandlerTests()
     {

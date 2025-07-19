@@ -14,4 +14,5 @@ public interface ICoachMapper
     GetCoachByIdQuery ToGetByIdQuery(int id);
     DeleteCoachCommand ToDeleteCommand(int id);
     Coach ToCoachFromCreate(CreateCoachCommand command);
+    void ToCoachFromUpdate(UpdateCoachCommand command, Coach coach);
 }

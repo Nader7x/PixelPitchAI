@@ -1,65 +1,63 @@
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Application.Interfaces;
 using Application.Services;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Xunit;
 
-namespace Footex.UnitTests.Services
+namespace Footex.UnitTests.Services;
+
+public class NotificationServiceTests
 {
-    public class NotificationServiceTests
+    private readonly Mock<IHubCallerClients<INotificationService>> _clientsMock;
+    private readonly Mock<HubCallerContext> _contextMock;
+    private readonly Mock<INotificationService> _mockClientProxy;
+    private readonly NotificationService _notificationService;
+
+    public NotificationServiceTests()
     {
-        private readonly NotificationService _notificationService;
-        private readonly Mock<IHubCallerClients<INotificationService>> _clientsMock;
-        private readonly Mock<HubCallerContext> _contextMock;
-        private readonly Mock<INotificationService> _mockClientProxy;
+        _clientsMock = new Mock<IHubCallerClients<INotificationService>>();
+        _contextMock = new Mock<HubCallerContext>();
+        _mockClientProxy = new Mock<INotificationService>();
 
-        public NotificationServiceTests()
+        _notificationService = new NotificationService
         {
-            _clientsMock = new Mock<IHubCallerClients<INotificationService>>();
-            _contextMock = new Mock<HubCallerContext>();
-            _mockClientProxy = new Mock<INotificationService>();
+            Clients = _clientsMock.Object,
+            Context = _contextMock.Object,
+        };
+    }
 
-            _notificationService = new NotificationService
-            {
-                Clients = _clientsMock.Object,
-                Context = _contextMock.Object,
-            };
-        }
+    [Fact]
+    public async Task OnConnectedAsync_WithValidUser_ShouldSendMessage()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId) };
+        var claimsIdentity = new ClaimsIdentity(claims);
+        var user = new ClaimsPrincipal(claimsIdentity);
 
-        [Fact]
-        public async Task OnConnectedAsync_WithValidUser_ShouldSendMessage()
-        {
-            // Arrange
-            var userId = "test-user-id";
-            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId) };
-            var claimsIdentity = new ClaimsIdentity(claims);
-            var user = new ClaimsPrincipal(claimsIdentity);
+        _contextMock.Setup(c => c.User).Returns(user);
+        _clientsMock.Setup(c => c.User(userId)).Returns(_mockClientProxy.Object);
 
-            _contextMock.Setup(c => c.User).Returns(user);
-            _clientsMock.Setup(c => c.User(userId)).Returns(_mockClientProxy.Object);
+        // Act
+        await _notificationService.OnConnectedAsync();
 
-            // Act
-            await _notificationService.OnConnectedAsync();
+        // Assert
+        _mockClientProxy.Verify(c => c.SendMessageAsync("Welcome back!"), Times.Once);
+    }
 
-            // Assert
-            _mockClientProxy.Verify(c => c.SendMessageAsync("Welcome back!"), Times.Once);
-        }
+    [Fact]
+    public async Task OnConnectedAsync_WithInvalidUser_ShouldNotSendMessage()
+    {
+        // Arrange
+        var user = new ClaimsPrincipal(); // No claims
 
-        [Fact]
-        public async Task OnConnectedAsync_WithInvalidUser_ShouldNotSendMessage()
-        {
-            // Arrange
-            var user = new ClaimsPrincipal(); // No claims
+        _contextMock.Setup(c => c.User).Returns(user);
 
-            _contextMock.Setup(c => c.User).Returns(user);
+        // Act
+        await _notificationService.OnConnectedAsync();
 
-            // Act
-            await _notificationService.OnConnectedAsync();
-
-            // Assert
-            _mockClientProxy.Verify(c => c.SendMessageAsync(It.IsAny<string>()), Times.Never);
-        }
+        // Assert
+        _mockClientProxy.Verify(c => c.SendMessageAsync(It.IsAny<string>()), Times.Never);
     }
 }

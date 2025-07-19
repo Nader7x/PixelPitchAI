@@ -8,36 +8,26 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Seasons.Commands;
 
-public class DeleteSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class DeleteSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public DeleteSeasonCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidId_DeletesSeason()
     {
         // Arrange
         var season = TestData.CreateTestDbSeason();
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
+        Context.Seasons.Add(season);
+        await Context.SaveChangesAsync();
 
         var command = new DeleteSeasonCommand { Id = season.Id };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeTrue();
-        _context.Seasons.Find(season.Id).Should().BeNull();
+        (await Context.Seasons.FindAsync(season.Id)).Should().BeNull();
     }
 
     [Fact]
@@ -47,7 +37,7 @@ public class DeleteSeasonCommandHandlerIntegrationTests : IClassFixture<FootexWe
         var command = new DeleteSeasonCommand { Id = 999999 };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();

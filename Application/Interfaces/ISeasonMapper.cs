@@ -10,4 +10,5 @@ public interface ISeasonMapper
     List<SeasonDto> ToDtoList(IEnumerable<Season> seasons);
     CreateSeasonCommand ToCreateCommand(CreateSeasonDto dto);
     UpdateSeasonCommand ToUpdateCommand(UpdateSeasonDto dto);
+    void UpdateSeasonFromCommand(UpdateSeasonCommand command, Season season);
 }

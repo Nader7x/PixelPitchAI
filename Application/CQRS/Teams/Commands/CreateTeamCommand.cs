@@ -45,10 +45,10 @@ public class CreateTeamCommand : IRequest<CreateTeamCommandResponse>
 
 public class CreateTeamCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public int Id { get; init; }
+    public string? Name { get; init; }
+    public string? Error { get; init; }
 }
 
 public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMapper)
@@ -62,11 +62,40 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
         try
         {
             Coach? teamCoach = null;
-            // Check if team with the same name already exists
             var existingTeam = await unitOfWork.Teams.GetByNameAsync(request.Name);
+
+            if (existingTeam != null)
+                return new CreateTeamCommandResponse
+                {
+                    Succeeded = false,
+                    Error = $"Team with name '{request.Name}' already exists",
+                };
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return new CreateTeamCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Team name cannot be empty",
+                };
+            }
+
+            var existingShortNameTeam = await unitOfWork.Teams.FindAsync(
+                t => t.ShortName == request.ShortName,
+                cancellationToken
+            );
+            if (existingShortNameTeam != null)
+                return new CreateTeamCommandResponse
+                {
+                    Succeeded = false,
+                    Error = $"Team with short name '{request.ShortName}' already exists",
+                };
+
             if (request.CoachId != null)
             {
-                teamCoach = await unitOfWork.Coaches.GetByIdAsync(request.CoachId.Value);
+                teamCoach = await unitOfWork.Coaches.GetByIdAsync(
+                    request.CoachId.Value,
+                    cancellationToken
+                );
                 if (teamCoach == null)
                     return new CreateTeamCommandResponse
                     {
@@ -75,23 +104,13 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
                     };
             }
 
-            if (existingTeam != null)
-                return new CreateTeamCommandResponse
-                {
-                    Succeeded = false,
-                    Error = $"Team with name '{request.Name}' already exists",
-                };
-
-            // Create new team
             var team = teamMapper.ToTeamfromCreate(request);
 
             await unitOfWork.Teams.AddAsync(team);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
             if (teamCoach != null)
-            {
-                teamCoach.TeamId = team.Id;
-                await unitOfWork.SaveChangesAsync(cancellationToken);
-            }
+                teamCoach.Team = team;
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new CreateTeamCommandResponse
             {
@@ -102,7 +121,14 @@ public class CreateTeamCommandHandler(IUnitOfWork unitOfWork, ITeamMapper teamMa
         }
         catch (Exception ex)
         {
-            return new CreateTeamCommandResponse { Succeeded = false, Error = ex.Message };
+            var innermostException = ex;
+            while (innermostException.InnerException != null)
+                innermostException = innermostException.InnerException;
+            return new CreateTeamCommandResponse
+            {
+                Succeeded = false,
+                Error = innermostException.Message,
+            };
         }
     }
 }

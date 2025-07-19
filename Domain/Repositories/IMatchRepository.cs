@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Domain.Interfaces;
 using Domain.Models;
 
@@ -19,10 +18,12 @@ public interface IMatchRepository : IRepository<Match>
     Task<IReadOnlyList<Match>> GetMatchesBySeasonIdAsync(int seasonId);
 
     Task<Match?> GetLiveMatchAsync(string requestUserId);
+
     Task<Match?> UpdateSimulationIdAsync(
         int matchId,
         string simulationId,
         CancellationToken cancellationToken
     );
+
     Task<IEnumerable<Match>> GetMatchesByUserIdAsync(string userId);
 }

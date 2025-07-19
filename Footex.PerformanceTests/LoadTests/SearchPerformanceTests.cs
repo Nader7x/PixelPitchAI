@@ -5,38 +5,98 @@ using Xunit;
 
 namespace Footex.PerformanceTests.LoadTests;
 
-public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClassFixture<FootexWebApplicationFactory>
+[Collection("Performance tests collection")]
+public class SearchPerformanceTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
+    private static readonly string[] SPlayersQueries =
+    [
+        "ronaldo",
+        "messi",
+        "neymar",
+        "mbappe",
+        "haaland",
+    ];
+    private static readonly string[] SPlayerSearchQueries =
+    [
+        "manchester",
+        "liverpool",
+        "barcelona",
+        "madrid",
+        "juventus",
+        "messi",
+        "ronaldo",
+        "neymar",
+        "mbappe",
+        "haaland",
+        "brazil",
+        "argentina",
+        "spain",
+        "germany",
+        "france",
+    ];
+
+    private static readonly string[] STeamSearchQueries =
+    [
+        "united",
+        "city",
+        "real",
+        "barcelona",
+        "juventus",
+        "liverpool",
+        "arsenal",
+        "chelsea",
+        "tottenham",
+        "milan",
+    ];
+
+    private static readonly string[] SCoachSearchQueries =
+    [
+        "guardiola",
+        "klopp",
+        "mourinho",
+        "ancelotti",
+        "conte",
+        "luis",
+        "carlos",
+        "jose",
+        "antonio",
+        "frank",
+    ];
+
+    private static readonly string[] SMatchSearchQueries =
+    [
+        "manchester liverpool",
+        "barcelona real",
+        "juventus milan",
+        "arsenal chelsea",
+        "tottenham city",
+        "united liverpool",
+    ];
+
+    private static readonly string[] SFuzzySearchComparisonQueries =
+    [
+        "manchester",
+        "ronaldo",
+        "barcelona",
+        "guardiola",
+    ];
+
+    private static readonly int[] SSearchLimits = [5, 10, 20, 50];
 
     [Fact]
     public async Task PlayerSearch_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var searchQueries = new[]
-        {
-            "manchester",
-            "liverpool",
-            "barcelona",
-            "madrid",
-            "juventus",
-            "messi",
-            "ronaldo",
-            "neymar",
-            "mbappe",
-            "haaland",
-            "brazil",
-            "argentina",
-            "spain",
-            "germany",
-            "france",
-        };
 
         var scenario = Scenario
             .Create(
                 "player_search",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = SPlayerSearchQueries[
+                        Random.Shared.Next(SPlayerSearchQueries.Length)
+                    ];
                     var limit = Random.Shared.Next(5, 21); // 5-20 results
                     var fuzzySearch = Random.Shared.Next(0, 2) == 1; // 50% chance of fuzzy search
 
@@ -52,7 +112,7 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
             )
             .WithLoadSimulations(
                 Simulation.Inject(15, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.Inject(8,TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
+                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -62,26 +122,13 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
     public async Task TeamSearch_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var searchQueries = new[]
-        {
-            "united",
-            "city",
-            "real",
-            "barcelona",
-            "juventus",
-            "liverpool",
-            "arsenal",
-            "chelsea",
-            "tottenham",
-            "milan",
-        };
 
         var scenario = Scenario
             .Create(
                 "team_search",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = STeamSearchQueries[Random.Shared.Next(STeamSearchQueries.Length)];
                     var limit = Random.Shared.Next(5, 16); // 5-15 results
                     var fuzzySearch = Random.Shared.Next(0, 2) == 1;
 
@@ -97,7 +144,7 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
             )
             .WithLoadSimulations(
                 Simulation.Inject(12, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.Inject(6,TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
+                Simulation.Inject(6, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -107,26 +154,13 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
     public async Task CoachSearch_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var searchQueries = new[]
-        {
-            "guardiola",
-            "klopp",
-            "mourinho",
-            "ancelotti",
-            "conte",
-            "luis",
-            "carlos",
-            "jose",
-            "antonio",
-            "frank",
-        };
 
         var scenario = Scenario
             .Create(
                 "coach_search",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = SCoachSearchQueries[Random.Shared.Next(SCoachSearchQueries.Length)];
                     var limit = Random.Shared.Next(5, 11); // 5-10 results
                     var fuzzySearch = Random.Shared.Next(0, 2) == 1;
 
@@ -152,22 +186,13 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
     public async Task MatchSearch_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var searchQueries = new[]
-        {
-            "manchester liverpool",
-            "barcelona real",
-            "juventus milan",
-            "arsenal chelsea",
-            "tottenham city",
-            "united liverpool",
-        };
 
         var scenario = Scenario
             .Create(
                 "match_search",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = SMatchSearchQueries[Random.Shared.Next(SMatchSearchQueries.Length)];
                     var limit = Random.Shared.Next(5, 16); // 5-15 results
                     var fuzzySearch = Random.Shared.Next(0, 2) == 1;
 
@@ -183,7 +208,7 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
             )
             .WithLoadSimulations(
                 Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.Inject(4 , TimeSpan.FromSeconds(1),TimeSpan.FromMinutes(1))
+                Simulation.Inject(4, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -193,15 +218,16 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
     public async Task FuzzySearchComparison_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var searchQueries = new[] { "manchester", "ronaldo", "barcelona", "guardiola" };
 
         // Scenario with fuzzy search enabled
         var fuzzySearchScenario = Scenario
             .Create(
                 "fuzzy_search_enabled",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = SFuzzySearchComparisonQueries[
+                        Random.Shared.Next(SFuzzySearchComparisonQueries.Length)
+                    ];
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/players?query={query}&limit=10&enableFuzzySearch=true"
@@ -218,9 +244,11 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
         var exactSearchScenario = Scenario
             .Create(
                 "exact_search_only",
-                async context =>
+                async _ =>
                 {
-                    var query = searchQueries[Random.Shared.Next(searchQueries.Length)];
+                    var query = SFuzzySearchComparisonQueries[
+                        Random.Shared.Next(SFuzzySearchComparisonQueries.Length)
+                    ];
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/players?query={query}&limit=10&enableFuzzySearch=false"
@@ -240,16 +268,15 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
     public async Task SearchWithDifferentLimits_PerformanceTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var limits = new[] { 5, 10, 20, 50 };
 
-        var scenarios = limits
+        var scenarios = SSearchLimits
             .Select(limit =>
                 Scenario
                     .Create(
                         $"search_limit_{limit}",
-                        async context =>
+                        async _ =>
                         {
-                            var query = "manchester";
+                            const string query = "manchester";
                             var request = Http.CreateRequest(
                                     "GET",
                                     $"/api/search/players?query={query}&limit={limit}"
@@ -275,10 +302,9 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
         var playerSearchScenario = Scenario
             .Create(
                 "mixed_player_search",
-                async context =>
+                async _ =>
                 {
-                    var queries = new[] { "messi", "ronaldo", "neymar" };
-                    var query = queries[Random.Shared.Next(queries.Length)];
+                    var query = SPlayersQueries[Random.Shared.Next(SPlayersQueries.Length)];
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/players?query={query}&limit=10"
@@ -292,10 +318,9 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
         var teamSearchScenario = Scenario
             .Create(
                 "mixed_team_search",
-                async context =>
+                async _ =>
                 {
-                    var queries = new[] { "manchester", "liverpool", "barcelona" };
-                    var query = queries[Random.Shared.Next(queries.Length)];
+                    var query = STeamSearchQueries[Random.Shared.Next(3)]; // Take first 3 values
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/teams?query={query}&limit=10"
@@ -310,10 +335,9 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
         var coachSearchScenario = Scenario
             .Create(
                 "mixed_coach_search",
-                async context =>
+                async _ =>
                 {
-                    var queries = new[] { "guardiola", "klopp", "mourinho" };
-                    var query = queries[Random.Shared.Next(queries.Length)];
+                    var query = SCoachSearchQueries[Random.Shared.Next(3)]; // Take first 3 values
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/coaches?query={query}&limit=10"
@@ -328,10 +352,9 @@ public class SearchPerformanceTests(FootexWebApplicationFactory factory) : IClas
         var matchSearchScenario = Scenario
             .Create(
                 "mixed_match_search",
-                async context =>
+                async _ =>
                 {
-                    var queries = new[] { "manchester liverpool", "barcelona real" };
-                    var query = queries[Random.Shared.Next(queries.Length)];
+                    var query = SMatchSearchQueries[Random.Shared.Next(2)]; // Take first 2 values
                     var request = Http.CreateRequest(
                             "GET",
                             $"/api/search/matches?query={query}&limit=10"

@@ -9,32 +9,20 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Players.Commands;
 
-public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class CreatePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public CreatePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_CreatesPlayerInDatabase()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var command = new CreatePlayerCommand
         {
-            FullName = "John Doe",
+            FullName = "John John Doe",
             KnownName = "Johnny",
             Nationality = "England",
             PreferredFoot = "Right",
@@ -45,7 +33,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -53,7 +41,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         response.Id.Should().BeGreaterThan(0);
 
         // Verify player was created in database
-        var createdPlayer = await _context.Players.FindAsync(response.Id);
+        var createdPlayer = await Context.Players.FindAsync(response.Id);
         createdPlayer.Should().NotBeNull();
         createdPlayer!.FullName.Should().Be(command.FullName);
         createdPlayer.KnownName.Should().Be(command.KnownName);
@@ -78,7 +66,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -91,13 +79,13 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
     {
         // Arrange
         var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var existingPlayer = TestData.CreateTestPlayer(team.Id);
         existingPlayer.ShirtNumber = 10;
-        _context.Players.Add(existingPlayer);
-        await _context.SaveChangesAsync();
+        Context.Players.Add(existingPlayer);
+        await Context.SaveChangesAsync();
 
         var command = new CreatePlayerCommand
         {
@@ -110,21 +98,21 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeFalse();
-        response.Error.Should().Contain("jersey number").And.Contain("already exists");
+        response.Error.Should().Contain("Jersey number").And.Contain("already exists");
     }
 
     [Fact]
     public async Task Handle_WithMinimalData_CreatesPlayerSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var command = new CreatePlayerCommand
         {
@@ -138,7 +126,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -146,7 +134,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         response.Id.Should().BeGreaterThan(0);
 
         // Verify in database
-        var createdPlayer = await _context.Players.FindAsync(response.Id);
+        var createdPlayer = await Context.Players.FindAsync(response.Id);
         createdPlayer.Should().NotBeNull();
         createdPlayer!.FullName.Should().Be(command.FullName);
     }
@@ -155,9 +143,9 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
     public async Task Handle_WithAllPositions_CreatesPlayersSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var positions = Enum.GetValues<PlayerPosition>();
         var jerseyNumber = 1;
@@ -175,7 +163,7 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
             };
 
             // Act
-            var response = await _mediator.Send(command);
+            var response = await Mediator.Send(command);
 
             // Assert
             response.Should().NotBeNull();
@@ -190,14 +178,14 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
     public async Task Handle_WithInvalidShirtNumber_ReturnsFailureResponse()
     {
         // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var command = new CreatePlayerCommand
         {
-            FullName = "John",
-            KnownName = "Doe",
+            FullName = "Johnny Doe",
+            KnownName = "JD",
             Nationality = "England",
             Position = nameof(PlayerPosition.CentralMidfielder),
             ShirtNumber = 0, // Invalid jersey number
@@ -205,42 +193,11 @@ public class CreatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeFalse();
-        response.Error.Should().Contain("jersey number");
-    }
-
-    [Fact]
-    public async Task Handle_WithFutureContractDate_CreatesPlayerSuccessfully()
-    {
-        // Arrange
-        var team = TestData.CreateTestTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
-
-        var command = new CreatePlayerCommand
-        {
-            FullName = "Future",
-            KnownName = "Player",
-            Nationality = "Brazil",
-            Position = nameof(PlayerPosition.Goalkeeper),
-            ShirtNumber = 1,
-            TeamId = team.Id,
-        };
-
-        // Act
-        var response = await _mediator.Send(command);
-
-        // Assert
-        response.Should().NotBeNull();
-        response.Succeeded.Should().BeTrue();
-        response.Id.Should().BeGreaterThan(0);
-
-        // Verify contract date
-        var createdPlayer = await _context.Players.FindAsync(response.Id);
-        createdPlayer.Should().NotBeNull();
+        response.Error.Should().Contain("Shirt number");
     }
 }

@@ -3,23 +3,25 @@ using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("Database")]
 public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IStadiumsRepository _stadiumRepository;
 
+    private readonly FootexWebApplicationFactory _factory;
+
     public StadiumRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _stadiumRepository = ServiceProvider.GetRequiredService<IStadiumsRepository>();
+        _factory = factory;
+        _stadiumRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<IStadiumsRepository>();
     }
-
-    private IUnitOfWork UnitOfWork => ServiceProvider.GetRequiredService<IUnitOfWork>();
 
     [Fact]
     public async Task AddAsync_WithValidStadium_SavesSuccessfully()
@@ -157,8 +159,8 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         var secondPage = await _stadiumRepository.GetAllAsync(2, 3);
 
         // Assert
-        firstPage.Should().HaveCount(9); // Takes pageSize * 3 = 3 * 3 = 9
-        secondPage.Should().HaveCount(9); // Skip 3, take 9, but limited by available records
+        firstPage.Should().HaveCount(3);
+        secondPage.Should().HaveCount(3);
     }
 
     [Fact]
@@ -184,7 +186,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         stadium.BuiltDate = new DateTime(1995, 1, 1);
         stadium.Description = "Updated description";
 
-        _stadiumRepository.UpdateAsync(stadium);
+        _stadiumRepository.Update(stadium);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
@@ -216,7 +218,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         var stadiumId = stadium.Id;
 
         // Act
-        _stadiumRepository.DeleteAsync(stadium);
+        _stadiumRepository.Delete(stadium);
         await UnitOfWork.SaveChangesAsync();
 
         // Assert
@@ -342,6 +344,10 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
     public async Task Repository_WithTransactions_HandlesRollbackCorrectly()
     {
         // Arrange
+        // The factory should be available if you are using IClassFixture
+        // Ensure you have a private field to hold it from the constructor.
+        // private readonly FootexWebApplicationFactory _factory;
+
         var stadium = new Stadium
         {
             Name = "Rollback Stadium",
@@ -351,21 +357,34 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        await UnitOfWork.BeginTransactionAsync();
+        // Use a using statement for the scope to ensure it's disposed
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var stadiumRepository = scope.ServiceProvider.GetRequiredService<IStadiumsRepository>();
 
-        await _stadiumRepository.AddAsync(stadium);
-        await UnitOfWork.SaveChangesAsync();
+            await unitOfWork.BeginTransactionAsync();
 
-        // Verify stadium exists within transaction
-        var stadiumInTransaction = await _stadiumRepository.GetByIdAsync(stadium.Id);
-        stadiumInTransaction.Should().NotBeNull();
+            await stadiumRepository.AddAsync(stadium);
+            await unitOfWork.SaveChangesAsync();
 
-        // Rollback
-        await UnitOfWork.RollbackTransactionAsync();
+            // Verify stadium exists within transaction
+            var stadiumInTransaction = await stadiumRepository.GetByIdAsync(stadium.Id);
+            stadiumInTransaction.Should().NotBeNull();
+
+            // Rollback
+            await unitOfWork.RollbackTransactionAsync();
+        }
 
         // Assert
-        var stadiumAfterRollback = await _stadiumRepository.GetByIdAsync(stadium.Id);
-        stadiumAfterRollback.Should().BeNull();
+        // Create a NEW and SEPARATE scope and DbContext to verify the rollback.
+        // This ensures the check is against the database, not a cached entity.
+        using (var assertScope = _factory.Services.CreateScope())
+        {
+            var context = assertScope.ServiceProvider.GetRequiredService<FootballDbContext>();
+            var stadiumAfterRollback = await context.Stadiums.FindAsync(stadium.Id);
+            stadiumAfterRollback.Should().BeNull();
+        }
     }
 
     [Fact]
@@ -410,10 +429,11 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         );
 
         // Assert
-        modernStadiums.Should().HaveCount(2);
-        modernStadiums.Should().Contain(s => s.Name == "Modern Stadium 1");
-        modernStadiums.Should().Contain(s => s.Name == "Modern Stadium 2");
-        modernStadiums.Should().NotContain(s => s.Name == "Old Stadium");
+        var filteredStadiums = modernStadiums as Stadium[] ?? modernStadiums.ToArray();
+        filteredStadiums.Should().HaveCount(2);
+        filteredStadiums.Should().Contain(s => s.Name == "Modern Stadium 1");
+        filteredStadiums.Should().Contain(s => s.Name == "Modern Stadium 2");
+        filteredStadiums.Should().NotContain(s => s.Name == "Old Stadium");
     }
 
     [Fact]

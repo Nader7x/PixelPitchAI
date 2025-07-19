@@ -38,6 +38,6 @@ public class TeamSeasonsConfiguration : IEntityTypeConfiguration<TeamSeason>
             .OnDelete(DeleteBehavior.Cascade);
 
         // Table comment
-        builder.ToTable("TeamSeason", tb => tb.HasComment("Team seasons table"));
+        builder.ToTable("TeamSeasons", tb => tb.HasComment("Team seasons table"));
     }
 }

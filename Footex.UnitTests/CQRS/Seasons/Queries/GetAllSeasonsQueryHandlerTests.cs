@@ -7,6 +7,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
 
@@ -44,7 +45,7 @@ public class GetAllSeasonsQueryHandlerTests
             CreateValidSeason(2),
             CreateValidSeason(3),
         };
-        var expectedSeasonDtos = seasons
+        var expectedSeasonDtoS = seasons
             .Select(s => new SeasonDto
             {
                 Id = s.Id,
@@ -55,8 +56,11 @@ public class GetAllSeasonsQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync()).ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -65,10 +69,9 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons.Should().NotBeNull();
-        result.Seasons.Count.Should().Be(3);
+        result.Seasons?.Count.Should().Be(3);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -76,18 +79,19 @@ public class GetAllSeasonsQueryHandlerTests
     public async Task Handle_WithLeagueNameFilter_ReturnsFilteredSeasons()
     {
         // Arrange
-        var leagueName = "Premier League";
+        const string leagueName = "Premier League";
         var query = new GetAllSeasonsQuery { LeagueName = leagueName };
         var seasons = new List<Season> { CreateValidSeason(1), CreateValidSeason(2) };
         seasons.ForEach(s => s.LeagueName = leagueName);
-        var expectedSeasonDtos = seasons
+        var expectedSeasonDtoS = seasons
             .Select(s => new SeasonDto { Id = s.Id, LeagueName = s.LeagueName })
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -96,14 +100,10 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons.Should().NotBeNull();
-        result.Seasons.Count.Should().Be(2);
-        result.Seasons.All(s => s.LeagueName == leagueName).Should().BeTrue();
+        result.Seasons?.Count.Should().Be(2);
+        result.Seasons?.All(s => s.LeagueName == leagueName).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -111,18 +111,19 @@ public class GetAllSeasonsQueryHandlerTests
     public async Task Handle_WithCountryFilter_ReturnsFilteredSeasons()
     {
         // Arrange
-        var country = "England";
+        const string country = "England";
         var query = new GetAllSeasonsQuery { Country = country };
         var seasons = new List<Season> { CreateValidSeason(1), CreateValidSeason(2) };
         seasons.ForEach(s => s.Country = country);
-        var expectedSeasonDtos = seasons
+        var expectedSeasonDtoS = seasons
             .Select(s => new SeasonDto { Id = s.Id, Country = s.Country })
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -131,14 +132,10 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons.Should().NotBeNull();
-        result.Seasons.Count.Should().Be(2);
-        result.Seasons.All(s => s.Country == country).Should().BeTrue();
+        result.Seasons?.Count.Should().Be(2);
+        result.Seasons?.All(s => s.Country == country).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -146,18 +143,19 @@ public class GetAllSeasonsQueryHandlerTests
     public async Task Handle_WithIsActiveFilter_ReturnsFilteredSeasons()
     {
         // Arrange
-        var isActive = true;
+        const bool isActive = true;
         var query = new GetAllSeasonsQuery { IsActive = isActive };
         var seasons = new List<Season> { CreateValidSeason(1), CreateValidSeason(2) };
         seasons.ForEach(s => s.IsActive = isActive);
-        var expectedSeasonDtos = seasons
+        var expectedSeasonDtoS = seasons
             .Select(s => new SeasonDto { Id = s.Id, IsActive = s.IsActive })
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -170,10 +168,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Seasons.All(s => s.IsActive == isActive).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -181,9 +175,9 @@ public class GetAllSeasonsQueryHandlerTests
     public async Task Handle_WithAllFilters_ReturnsFilteredSeasons()
     {
         // Arrange
-        var leagueName = "La Liga";
-        var country = "Spain";
-        var isActive = true;
+        const string leagueName = "La Liga";
+        const string country = "Spain";
+        const bool isActive = true;
         var query = new GetAllSeasonsQuery
         {
             LeagueName = leagueName,
@@ -194,7 +188,7 @@ public class GetAllSeasonsQueryHandlerTests
         seasons[0].LeagueName = leagueName;
         seasons[0].Country = country;
         seasons[0].IsActive = isActive;
-        var expectedSeasonDtos = seasons
+        var expectedSeasonDtoS = seasons
             .Select(s => new SeasonDto
             {
                 Id = s.Id,
@@ -205,9 +199,10 @@ public class GetAllSeasonsQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -222,10 +217,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Seasons.First().IsActive.Should().Be(isActive);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -233,16 +224,20 @@ public class GetAllSeasonsQueryHandlerTests
     public async Task Handle_WithLeagueNameAndIsActiveFilters_ReturnsFilteredSeasons()
     {
         // Arrange
-        var leagueName = "Bundesliga";
-        var isActive = false;
+        const string leagueName = "Bundesliga";
+        const bool isActive = false;
         var query = new GetAllSeasonsQuery { LeagueName = leagueName, IsActive = isActive };
-        var seasons = new List<Season> { CreateValidSeason(1) };
-        var expectedSeasonDtos = new List<SeasonDto> { new() { Id = 1 } };
+        var season = CreateValidSeason(1);
+        season.LeagueName = leagueName;
+        season.IsActive = isActive;
+        var seasons = new List<Season> { season };
+        var expectedSeasonDtoS = new List<SeasonDto> { new() { Id = 1 } };
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -251,27 +246,26 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
     public async Task Handle_WithCountryAndIsActiveFilters_ReturnsFilteredSeasons()
     {
         // Arrange
-        var country = "Italy";
-        var isActive = true;
+        const string country = "Italy";
+        const bool isActive = true;
         var query = new GetAllSeasonsQuery { Country = country, IsActive = isActive };
-        var seasons = new List<Season> { CreateValidSeason(1) };
-        var expectedSeasonDtos = new List<SeasonDto> { new() { Id = 1 } };
+        var season = CreateValidSeason(1);
+        season.Country = country;
+        season.IsActive = isActive;
+        var seasons = new List<Season> { season };
+        var expectedSeasonDtoS = new List<SeasonDto> { new() { Id = 1 } };
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -280,26 +274,25 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
     public async Task Handle_WithLeagueNameAndCountryFilters_ReturnsFilteredSeasons()
     {
         // Arrange
-        var leagueName = "Serie A";
-        var country = "Italy";
+        const string leagueName = "Serie A";
+        const string country = "Italy";
         var query = new GetAllSeasonsQuery { LeagueName = leagueName, Country = country };
-        var seasons = new List<Season> { CreateValidSeason(1) };
+        var season = CreateValidSeason(1);
+        season.LeagueName = leagueName;
+        season.Country = country;
+        var seasons = new List<Season> { season };
         var expectedSeasonDtos = new List<SeasonDto> { new() { Id = 1 } };
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -309,11 +302,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -324,7 +312,10 @@ public class GetAllSeasonsQueryHandlerTests
         var seasons = new List<Season>();
         var expectedSeasonDtos = new List<SeasonDto>();
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync()).ReturnsAsync(seasons);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -337,7 +328,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Seasons.Count.Should().Be(0);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
         _iSeasonMapperMock.Verify(x => x.ToDtoList(seasons), Times.Once);
     }
 
@@ -349,8 +339,8 @@ public class GetAllSeasonsQueryHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync())
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Seasons.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -361,7 +351,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Seasons.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
         _iSeasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
     }
 
@@ -374,8 +363,8 @@ public class GetAllSeasonsQueryHandlerTests
         var exceptionMessage = "Filter operation failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Seasons.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -386,10 +375,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Seasons.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
         _iSeasonMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Season>>()), Times.Never);
     }
 
@@ -401,13 +386,14 @@ public class GetAllSeasonsQueryHandlerTests
         {
             LeagueName = "",
             Country = "   ", // whitespace only
-            IsActive = null,
         };
         var seasons = new List<Season> { CreateValidSeason(1) };
-        var expectedSeasonDtos = new List<SeasonDto> { new() { Id = 1 } };
+        var expectedSeasonDtoS = new List<SeasonDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync()).ReturnsAsync(seasons);
-        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
+        _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -415,13 +401,6 @@ public class GetAllSeasonsQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-
-        // Verify GetAllAsync without filter was called
-        _unitOfWorkMock.Verify(x => x.Seasons.GetAllAsync(), Times.Once);
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -438,8 +417,8 @@ public class GetAllSeasonsQueryHandlerTests
         };
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -449,11 +428,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -470,8 +444,8 @@ public class GetAllSeasonsQueryHandlerTests
         };
 
         _unitOfWorkMock
-            .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync(seasons);
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -481,11 +455,6 @@ public class GetAllSeasonsQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Seasons!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -509,7 +478,9 @@ public class GetAllSeasonsQueryHandlerTests
             },
         };
 
-        _unitOfWorkMock.Setup(x => x.Seasons.GetAllAsync()).ReturnsAsync(seasons);
+        _unitOfWorkMock
+            .Setup(x => x.Seasons.GetQueryable())
+            .Returns(seasons.AsQueryable().BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act

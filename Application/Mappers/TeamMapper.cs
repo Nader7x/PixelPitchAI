@@ -31,6 +31,7 @@ public partial class TeamMapper : ITeamMapper
     // map from createcommand to a team
     public partial Team ToTeamfromCreate(CreateTeamCommand command);
 
+    [MapProperty(nameof(Team.Stadium.Name), nameof(TeamDto.StadiumName))]
     public partial TeamDto ToTeamDto(Team team);
 
     public partial void UpdateTeamFromCommand(UpdateTeamCommand command, Team team);

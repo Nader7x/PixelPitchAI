@@ -7,6 +7,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
 
@@ -14,9 +15,9 @@ namespace Footex.UnitTests.CQRS.Coaches.Queries;
 
 public class GetAllCoachesQueryHandlerTests
 {
-    private readonly Mock<ICoachMapper> _iCoachMapperMock;
     private readonly NoRecursionFixture _fixture;
     private readonly GetAllCoachesQueryHandler _handler;
+    private readonly Mock<ICoachMapper> _iCoachMapperMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllCoachesQueryHandlerTests()
@@ -55,7 +56,9 @@ public class GetAllCoachesQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetAllAsync()).ReturnsAsync(coaches);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -68,7 +71,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches!.Count.Should().Be(3);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetAllAsync(), Times.Once);
         _iCoachMapperMock.Verify(x => x.ToDtoList(coaches), Times.Once);
     }
 
@@ -85,8 +87,9 @@ public class GetAllCoachesQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()))
-            .ReturnsAsync(coaches);
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
+
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -100,10 +103,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches.All(c => c.Nationality == nationality).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Once
-        );
         _iCoachMapperMock.Verify(x => x.ToDtoList(coaches), Times.Once);
     }
 
@@ -120,8 +119,9 @@ public class GetAllCoachesQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()))
-            .ReturnsAsync(coaches);
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
+
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -135,10 +135,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches.All(c => c.TeamId == teamId).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Once
-        );
         _iCoachMapperMock.Verify(x => x.ToDtoList(coaches), Times.Once);
     }
 
@@ -162,8 +158,9 @@ public class GetAllCoachesQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()))
-            .ReturnsAsync(coaches);
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
+
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -178,10 +175,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches.First().TeamId.Should().Be(teamId);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Once
-        );
         _iCoachMapperMock.Verify(x => x.ToDtoList(coaches), Times.Once);
     }
 
@@ -193,7 +186,9 @@ public class GetAllCoachesQueryHandlerTests
         var coaches = new List<Coach>();
         var expectedCoachDtos = new List<CoachDto>();
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetAllAsync()).ReturnsAsync(coaches);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -206,7 +201,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches!.Count.Should().Be(0);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetAllAsync(), Times.Once);
         _iCoachMapperMock.Verify(x => x.ToDtoList(coaches), Times.Once);
     }
 
@@ -218,8 +212,8 @@ public class GetAllCoachesQueryHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync())
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Coaches.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -230,7 +224,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Coaches.GetAllAsync(), Times.Once);
         _iCoachMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Coach>>()), Times.Never);
     }
 
@@ -243,8 +236,8 @@ public class GetAllCoachesQueryHandlerTests
         var exceptionMessage = "Filter operation failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()))
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Coaches.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -255,10 +248,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Coaches.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Once
-        );
         _iCoachMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Coach>>()), Times.Never);
     }
 
@@ -270,7 +259,9 @@ public class GetAllCoachesQueryHandlerTests
         var coaches = new List<Coach> { CreateValidCoach(1) };
         var expectedCoachDtos = new List<CoachDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetAllAsync()).ReturnsAsync(coaches);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -279,13 +270,6 @@ public class GetAllCoachesQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-
-        // Verify GetAllAsync without filter was called
-        _unitOfWorkMock.Verify(x => x.Coaches.GetAllAsync(), Times.Once);
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -300,10 +284,9 @@ public class GetAllCoachesQueryHandlerTests
         {
             new() { Id = 1, Nationality = "england" },
         };
+        var mockQueryable = coaches.AsQueryable().BuildMock();
+        _unitOfWorkMock.Setup(x => x.Coaches.GetQueryable()).Returns(mockQueryable);
 
-        _unitOfWorkMock
-            .Setup(x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()))
-            .ReturnsAsync(coaches);
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -313,11 +296,6 @@ public class GetAllCoachesQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Coaches!.Count.Should().Be(1);
-
-        _unitOfWorkMock.Verify(
-            x => x.Coaches.GetAllAsync(It.IsAny<Expression<Func<Coach, bool>>>()),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -341,7 +319,9 @@ public class GetAllCoachesQueryHandlerTests
             },
         };
 
-        _unitOfWorkMock.Setup(x => x.Coaches.GetAllAsync()).ReturnsAsync(coaches);
+        _unitOfWorkMock
+            .Setup(x => x.Coaches.GetQueryable())
+            .Returns(coaches.AsQueryable().BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act

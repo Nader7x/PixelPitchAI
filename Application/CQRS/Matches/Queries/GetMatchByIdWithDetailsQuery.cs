@@ -1,6 +1,5 @@
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -13,10 +12,10 @@ public class GetMatchByIdWithDetailsQuery : IRequest<GetMatchByIdWithDetailsQuer
 
 public class GetMatchByIdWithDetailsQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public MatchDetailsDto? Match { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public MatchDetailsDto? Match { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetMatchByIdWithDetailsQueryHandler(
@@ -25,9 +24,6 @@ public class GetMatchByIdWithDetailsQueryHandler(
     ILiveMatchStatisticsService liveMatchStatisticsService
 ) : IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>
 {
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService =
-        liveMatchStatisticsService;
-
     public async Task<GetMatchByIdWithDetailsQueryResponse> Handle(
         GetMatchByIdWithDetailsQuery request,
         CancellationToken cancellationToken
@@ -43,7 +39,7 @@ public class GetMatchByIdWithDetailsQueryHandler(
                     NotFound = true,
                     Error = $"Match with ID {request.MatchId} not found",
                 };
-            var liveStatistics = _liveMatchStatisticsService.GetCachedLiveMatch(
+            var liveStatistics = liveMatchStatisticsService.GetCachedLiveMatch(
                 request.MatchId.ToString()
             );
             var matchDto = matchMapper.ToDetailsFromMatch(liveStatistics ?? match);

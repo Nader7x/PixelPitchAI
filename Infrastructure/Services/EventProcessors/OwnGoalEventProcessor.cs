@@ -14,15 +14,11 @@ public class OwnGoalEventProcessor : BaseEventProcessor
         // For own goals, the team that "scores" actually concedes
         // So we increment the opponent's score
         if (IsHomeTeam(matchEvent, match))
-        {
             // Home team scored an own goal, so away team gets the point
             match.AwayTeamScore = IncrementValue(match.AwayTeamScore);
-        }
         else
-        {
             // Away team scored an own goal, so home team gets the point
             match.HomeTeamScore = IncrementValue(match.HomeTeamScore);
-        }
 
         // Update match result after goal
         UpdateMatchResult(match);

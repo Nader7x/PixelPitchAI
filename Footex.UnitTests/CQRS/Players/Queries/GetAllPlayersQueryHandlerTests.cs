@@ -7,6 +7,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable.Moq;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
@@ -20,8 +21,8 @@ public class GetAllPlayersQueryHandlerTests
     private readonly NoRecursionFixture _fixture;
     private readonly GetAllPlayersQueryHandler _handler;
     private readonly Mock<IPlayerMapper> _iPlayerMapperMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllPlayersQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
@@ -59,7 +60,9 @@ public class GetAllPlayersQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Players.GetAllAsync(null, null)).ReturnsAsync(players);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -72,7 +75,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players!.Count.Should().Be(3);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetAllAsync(null, null), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -89,8 +91,8 @@ public class GetAllPlayersQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetAllAsync(pageNumber, pageSize))
-            .ReturnsAsync(players);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -103,7 +105,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players!.Count.Should().Be(2);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetAllAsync(pageNumber, pageSize), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -120,8 +121,8 @@ public class GetAllPlayersQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByNationalityAsync(nationality))
-            .ReturnsAsync(players);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -135,7 +136,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players.All(p => p.Nationality == nationality).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByNationalityAsync(nationality), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -152,8 +152,8 @@ public class GetAllPlayersQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByPreferredFootAsync(preferredFoot))
-            .ReturnsAsync(players);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -167,7 +167,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players.All(p => p.PreferredFoot == preferredFoot).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByPreferredFootAsync(preferredFoot), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -184,8 +183,8 @@ public class GetAllPlayersQueryHandlerTests
             .ToList();
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetAllAsync(It.IsAny<Expression<Func<Player, bool>>>()))
-            .ReturnsAsync(players);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -199,10 +198,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players.All(p => p.TeamId == teamId).Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetAllAsync(It.IsAny<Expression<Func<Player, bool>>>()),
-            Times.Once
-        );
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -214,7 +209,9 @@ public class GetAllPlayersQueryHandlerTests
         var players = new List<Player>();
         var expectedPlayerDtos = new List<PlayerDto>();
 
-        _unitOfWorkMock.Setup(x => x.Players.GetAllAsync(null, null)).ReturnsAsync(players);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -227,7 +224,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players!.Count.Should().Be(0);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Players.GetAllAsync(null, null), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(players), Times.Once);
     }
 
@@ -239,8 +235,8 @@ public class GetAllPlayersQueryHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetAllAsync(null, null))
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Players.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -251,7 +247,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Players.GetAllAsync(null, null), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Player>>()), Times.Never);
     }
 
@@ -264,8 +259,8 @@ public class GetAllPlayersQueryHandlerTests
         var exceptionMessage = "Nationality filter failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByNationalityAsync(nationality))
-            .ThrowsAsync(new Exception(exceptionMessage));
+            .Setup(x => x.Players.GetQueryable())
+            .Throws(new Exception(exceptionMessage));
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -276,7 +271,6 @@ public class GetAllPlayersQueryHandlerTests
         result.Players.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Players.GetByNationalityAsync(nationality), Times.Once);
         _iPlayerMapperMock.Verify(x => x.ToDtoList(It.IsAny<IEnumerable<Player>>()), Times.Never);
     }
 
@@ -294,12 +288,12 @@ public class GetAllPlayersQueryHandlerTests
             TeamId = teamId,
         };
         var players = new List<Player> { CreateValidPlayer(1) };
-        var expectedPlayerDtos = new List<PlayerDto> { new() { Id = 1 } };
+        var expectedPlayerDtoS = new List<PlayerDto> { new() { Id = 1 } };
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByNationalityAsync(nationality))
-            .ReturnsAsync(players);
-        _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
+        _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -307,21 +301,6 @@ public class GetAllPlayersQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-
-        // Verify only nationality filter was called (it has priority)
-        _unitOfWorkMock.Verify(x => x.Players.GetByNationalityAsync(nationality), Times.Once);
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetByPreferredFootAsync(It.IsAny<string>()),
-            Times.Never
-        );
-        _unitOfWorkMock.Verify(
-            x => x.Players.FindAsync(It.IsAny<Expression<Func<Player, bool>>>()),
-            Times.Never
-        );
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetAllAsync(It.IsAny<int?>(), It.IsAny<int?>()),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -335,8 +314,8 @@ public class GetAllPlayersQueryHandlerTests
         var expectedPlayerDtos = new List<PlayerDto> { new() { Id = 1 } };
 
         _unitOfWorkMock
-            .Setup(x => x.Players.GetByPreferredFootAsync(preferredFoot))
-            .ReturnsAsync(players);
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -345,17 +324,6 @@ public class GetAllPlayersQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-
-        // Verify only preferred foot filter was called (it has priority over TeamId)
-        _unitOfWorkMock.Verify(x => x.Players.GetByPreferredFootAsync(preferredFoot), Times.Once);
-        _unitOfWorkMock.Verify(
-            x => x.Players.FindAsync(It.IsAny<Expression<Func<Player, bool>>>()),
-            Times.Never
-        );
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetAllAsync(It.IsAny<int?>(), It.IsAny<int?>()),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -370,29 +338,17 @@ public class GetAllPlayersQueryHandlerTests
         var players = new List<Player> { CreateValidPlayer(1) };
         var expectedPlayerDtos = new List<PlayerDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetAllAsync(null, null)).ReturnsAsync(players);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
-        _testOutputHelper.WriteLine(
-            JsonConvert.SerializeObject(result, (Newtonsoft.Json.Formatting)Formatting.Indented)
-        );
 
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-
-        // Verify GetAllAsync was called instead of filter methods
-        _unitOfWorkMock.Verify(x => x.Players.GetAllAsync(null, null), Times.Once);
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetByNationalityAsync(It.IsAny<string>()),
-            Times.Never
-        );
-        _unitOfWorkMock.Verify(
-            x => x.Players.GetByPreferredFootAsync(It.IsAny<string>()),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -401,13 +357,13 @@ public class GetAllPlayersQueryHandlerTests
         // Arrange
         var query = new GetAllPlayersQuery();
         var players = new List<Player> { CreateValidPlayer(1) };
-        var expectedPlayerDtos = new List<PlayerDto>
+        var expectedPlayerDtoS = new List<PlayerDto>
         {
             new()
             {
                 Id = 1,
-                FullName = "Test Player",
-                KnownName = "Test",
+                FullName = "John Doe",
+                KnownName = "Johnny",
                 Nationality = "England",
                 Position = "Forward",
                 PreferredFoot = "Right",
@@ -416,8 +372,10 @@ public class GetAllPlayersQueryHandlerTests
             },
         };
 
-        _unitOfWorkMock.Setup(x => x.Players.GetAllAsync(null, null)).ReturnsAsync(players);
-        _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
+        _unitOfWorkMock
+            .Setup(x => x.Players.GetQueryable())
+            .Returns(players.AsQueryable().BuildMock());
+        _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtoS);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -429,8 +387,8 @@ public class GetAllPlayersQueryHandlerTests
 
         var playerDto = result.Players.First();
         playerDto.Id.Should().Be(1);
-        playerDto.FullName.Should().Be("Test Player");
-        playerDto.KnownName.Should().Be("Test");
+        playerDto.FullName.Should().Be("John Doe");
+        playerDto.KnownName.Should().Be("Johnny");
         playerDto.Nationality.Should().Be("England");
         playerDto.Position.Should().Be("Forward");
         playerDto.PreferredFoot.Should().Be("Right");

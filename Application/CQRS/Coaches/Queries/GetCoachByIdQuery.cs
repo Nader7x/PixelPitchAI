@@ -7,15 +7,15 @@ namespace Application.CQRS.Coaches.Queries;
 
 public class GetCoachByIdQuery : IRequest<GetCoachByIdQueryResponse>
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
 }
 
 public class GetCoachByIdQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public CoachDto? Coach { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public CoachDto? Coach { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
@@ -28,7 +28,7 @@ public class GetCoachByIdQueryHandler(IUnitOfWork unitOfWork, ICoachMapper coach
     {
         try
         {
-            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id);
+            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id, cancellationToken);
             if (coach == null)
                 return new GetCoachByIdQueryResponse
                 {

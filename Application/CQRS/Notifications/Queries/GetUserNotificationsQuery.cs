@@ -11,9 +11,9 @@ public class GetUserNotificationsQuery : IRequest<GetUserNotificationsQueryRespo
 
 public class GetUserNotificationsQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public string? Error { get; set; }
-    public IReadOnlyList<NotificationDto>? Notifications { get; set; }
+    public bool Succeeded { get; init; }
+    public string? Error { get; init; }
+    public IReadOnlyList<NotificationDto>? Notifications { get; init; }
 }
 
 public class GetUserNotificationsQueryHandler(INotificationRepository notificationRepository)
@@ -27,7 +27,7 @@ public class GetUserNotificationsQueryHandler(INotificationRepository notificati
         try
         {
             var notifications = await notificationRepository.GetNotificationsAsync(request.UserId);
-            var notificationDtos = notifications
+            var notificationDtoS = notifications
                 .Select(n => new NotificationDto
                 {
                     Id = n.Id,
@@ -41,7 +41,7 @@ public class GetUserNotificationsQueryHandler(INotificationRepository notificati
             return new GetUserNotificationsQueryResponse
             {
                 Succeeded = true,
-                Notifications = notificationDtos,
+                Notifications = notificationDtoS,
             };
         }
         catch (Exception ex)

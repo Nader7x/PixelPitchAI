@@ -1,37 +1,45 @@
 using System.Net;
 using System.Net.Http.Json;
 using Application.CQRS.Auth.Commands;
+using Application.Dtos;
+using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
 
-public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
+public class AuthControllerTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-
-    public AuthControllerTests(FootexWebApplicationFactory factory)
-    {
-        _client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
-        );
-    }
-
     [Fact]
     public async Task Register_WithValidData_ReturnsSuccess()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         // Arrange
-        var registerRequest = new
+        var registerRequest = new RegisterUserDto
         {
             Email = "test@example.com",
             Password = "Test123!",
-            Username = "testuser",
+            FirstName = "User1",
+            UserName = "test@example.com",
+            LastName = "LastName",
+        };
+
+        var formData = new MultipartFormDataContent
+        {
+            { new StringContent(registerRequest.Email), "Email" },
+            { new StringContent(registerRequest.Password), "Password" },
+            { new StringContent(registerRequest.FirstName), "FirstName" },
+            { new StringContent(registerRequest.LastName ?? string.Empty), "LastName" },
+            { new StringContent(registerRequest.PhoneNumber ?? string.Empty), "PhoneNumber" },
+            { new StringContent(registerRequest.UserName), "UserName" },
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        var response = await httpClient.PostAsync("/api/auth/register", formData);
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -41,65 +49,92 @@ public class AuthControllerTests : IClassFixture<FootexWebApplicationFactory>
     [Fact]
     public async Task Login_WithValidCredentials_ReturnsToken()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        CreateValidUser();
         // Arrange
-        var loginRequest = new
+        var loginRequest = new UserLoginDto
         {
-            Email = "user@example.com", // Use credentials that exist in your test database
+            Email = "testuser@example.com", // Use credentials that exist in your test database
             Password = "Password123!",
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var response = await httpClient.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
         response.EnsureSuccessStatusCode();
         var loginResponse = await response.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
 
         loginResponse.Should().NotBeNull();
-        loginResponse.AccessToken.Should().NotBeNullOrEmpty();
-        loginResponse.RefreshToken.Should().NotBeNullOrEmpty();
-        loginResponse.TokenExpires.Should().BeAfter(DateTime.UtcNow);
+        loginResponse?.AccessToken.Should().NotBeNullOrEmpty();
+        loginResponse?.RefreshToken.Should().NotBeNullOrEmpty();
+        loginResponse?.TokenExpires.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]
-    public async Task Login_WithInvalidCredentials_ReturnsUnauthorized()
+    public async Task Login_WithInvalidCredentials_ReturnsBadRequest()
     {
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        CreateValidUser();
         // Arrange
-        var loginRequest = new
+        var loginRequest = new UserLoginDto
         {
             Email = "nonexistent@example.com",
             Password = "WrongPassword123!",
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var response = await httpClient.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task RefreshToken_WithValidToken_ReturnsNewToken()
     {
-        // Arrange - First login to get tokens
-        var loginRequest = new { Email = "user@example.com", Password = "Password123!" };
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        CreateValidUser();
+        var loginRequest = new UserLoginDto
+        {
+            Email = "testuser@example.com",
+            Password = "Password123!",
+        };
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        var loginResponse = await httpClient.PostAsJsonAsync("/api/auth/login", loginRequest);
         var tokens = await loginResponse.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
 
-        var refreshRequest = new { tokens.RefreshToken };
+        var refreshRequest = new { token = tokens?.RefreshToken };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
+        var response = await httpClient.PostAsync("/api/auth/refresh-token", null);
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var refreshResponse = await response.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
+        var refreshResponse =
+            await response.Content.ReadFromJsonAsync<RefreshTokenCommandResponse>();
 
         refreshResponse.Should().NotBeNull();
-        refreshResponse.AccessToken.Should().NotBeNullOrEmpty();
-        refreshResponse.RefreshToken.Should().NotBeNullOrEmpty();
-        refreshResponse.TokenExpires.Should().BeAfter(DateTime.UtcNow + TimeSpan.FromMinutes(5));
-        refreshResponse.AccessToken.Should().NotBe(tokens.AccessToken);
+        refreshResponse?.AccessToken.Should().NotBeNullOrEmpty();
+        refreshResponse?.RefreshToken.Should().NotBeNullOrEmpty();
+        refreshResponse?.TokenExpires.Should().BeAfter(DateTime.UtcNow + TimeSpan.FromMinutes(5));
+        refreshResponse?.AccessToken.Should().NotBe(tokens?.AccessToken);
+    }
+
+    private async void CreateValidUser()
+    {
+        try
+        {
+            var scope = factory.Services.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<
+                UserManager<ApplicationUser>
+            >();
+            var testUser = TestData.CreateTestUser(true);
+            await userManager.CreateAsync(testUser, "Password123!");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
     }
 }

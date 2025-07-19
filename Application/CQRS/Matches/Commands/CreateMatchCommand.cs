@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Application.Helpers;
 using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
@@ -38,7 +39,7 @@ public class CreateMatchCommand : IRequest<CreateMatchCommandResponse>
 
     public required string CreatorId { get; init; }
     public DateTime? ModelSimulationStartTimeUtc { get; init; }
-    public bool IsLive { get; init; } = false;
+    public bool IsLive { get; init; }
 }
 
 public class CreateMatchCommandResponse
@@ -61,15 +62,30 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
     {
         try
         {
-            // Validate Season exists
-            var homeSeason = await unitOfWork.Seasons.GetByIdAsync(request.HomeSeasonId);
+            if (
+                request.HomeTeamId == request.AwayTeamId
+                && request.HomeSeasonId == request.AwaySeasonId
+            )
+            {
+                return new CreateMatchCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Home and Away teams Must be different",
+                };
+            }
+            var (homeSeason, awaySeason) = await unitOfWork.Seasons.GetByIdsAsync(
+                [request.HomeSeasonId, request.AwaySeasonId],
+                cancellationToken
+            );
+
+            if (request.HomeSeasonId == request.AwaySeasonId)
+                homeSeason = awaySeason = homeSeason ?? awaySeason;
             if (homeSeason == null)
                 return new CreateMatchCommandResponse
                 {
                     Succeeded = false,
                     Error = $"Season with ID {request.HomeSeasonId} not found",
                 };
-            var awaySeason = await unitOfWork.Seasons.GetByIdAsync(request.AwaySeasonId);
             if (awaySeason == null)
                 return new CreateMatchCommandResponse
                 {
@@ -77,8 +93,10 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
                     Error = $"Season with ID {request.AwaySeasonId} not found",
                 };
 
-            // Validate HomeTeam exists
-            var homeTeam = await unitOfWork.Teams.GetByIdAsync(request.HomeTeamId);
+            var (homeTeam, awayTeam) = await unitOfWork.Teams.GetByIdsAsync(
+                [request.HomeTeamId, request.AwayTeamId],
+                cancellationToken
+            );
             if (homeTeam == null)
                 return new CreateMatchCommandResponse
                 {
@@ -86,8 +104,6 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
                     Error = $"Home Team with ID {request.HomeTeamId} not found",
                 };
 
-            // Validate AwayTeam exists
-            var awayTeam = await unitOfWork.Teams.GetByIdAsync(request.AwayTeamId);
             if (awayTeam == null)
                 return new CreateMatchCommandResponse
                 {
@@ -95,10 +111,12 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
                     Error = $"Away Team with ID {request.AwayTeamId} not found",
                 };
 
-            // Validate Stadium if provided
             if (request.StadiumId.HasValue)
             {
-                var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.StadiumId.Value);
+                var stadium = await unitOfWork.Stadiums.GetByIdAsync(
+                    request.StadiumId.Value,
+                    cancellationToken
+                );
                 if (stadium == null)
                     return new CreateMatchCommandResponse
                     {
@@ -107,22 +125,26 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
                     };
             }
 
-            // Validate HomeCoach if provided
-            if (request.HomeCoachId.HasValue)
+            if (request is { HomeCoachId: not null, AwayCoachId: not null })
             {
-                var homeCoach = await unitOfWork.Coaches.GetByIdAsync(request.HomeCoachId.Value);
+                if (request.HomeCoachId == request.AwayCoachId)
+                    return new CreateMatchCommandResponse
+                    {
+                        Succeeded = false,
+                        Error = "Home and Away coaches cannot be the same",
+                    };
+                var (homeCoach, awayCoach) = await unitOfWork.Coaches.GetByIdsAsync(
+                    [request.HomeCoachId.Value, request.AwayCoachId.Value],
+                    cancellationToken
+                );
+
                 if (homeCoach == null)
                     return new CreateMatchCommandResponse
                     {
                         Succeeded = false,
                         Error = $"Home Coach with ID {request.HomeCoachId} not found",
                     };
-            }
 
-            // Validate AwayCoach if provided
-            if (request.AwayCoachId.HasValue)
-            {
-                var awayCoach = await unitOfWork.Coaches.GetByIdAsync(request.AwayCoachId.Value);
                 if (awayCoach == null)
                     return new CreateMatchCommandResponse
                     {
@@ -131,14 +153,13 @@ public class CreateMatchCommandHandler(IUnitOfWork unitOfWork, IMatchMapper matc
                     };
             }
 
-            if (string.IsNullOrEmpty(request.HomeTeamInMatchName))
+            if (string.IsNullOrWhiteSpace(request.HomeTeamInMatchName))
                 request.HomeTeamInMatchName =
                     $"{homeTeam.Name?.Replace(" ", "_")}_{homeSeason.Name.Split("/")[1]}";
-            if (string.IsNullOrEmpty(request.AwayTeamInMatchName))
+            if (string.IsNullOrWhiteSpace(request.AwayTeamInMatchName))
                 request.AwayTeamInMatchName =
                     $"{awayTeam.Name?.Replace(" ", "_")}_{awaySeason.Name.Split("/")[1]}";
 
-            // Create new match
             var match = matchMapper.ToMatchFromCreate(request);
 
             await unitOfWork.Matches.AddAsync(match);

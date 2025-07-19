@@ -13,105 +13,118 @@ public class PassEventProcessor : BaseEventProcessor
     {
         // Increment pass count
         if (IsHomeTeam(matchEvent, match))
-            match.HomeTeamPasses = IncrementValue(match.HomeTeamPasses);
-        else
-            match.AwayTeamPasses = IncrementValue(match.AwayTeamPasses);
+        {
+            if (match.MatchStatistics != null)
+                match.MatchStatistics.HomeTeamPasses = IncrementValue(
+                    match.MatchStatistics.HomeTeamPasses
+                );
+        }
+        else if (match.MatchStatistics != null)
+        {
+            match.MatchStatistics.AwayTeamPasses = IncrementValue(
+                match.MatchStatistics.AwayTeamPasses
+            );
+        }
 
         // Process specific pass types
         switch (matchEvent.type)
         {
-            case "Corner":
+            case "Corner" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamCorners = IncrementValue(match.HomeTeamCorners);
+                    match.MatchStatistics.HomeTeamCorners = IncrementValue(
+                        match.MatchStatistics.HomeTeamCorners
+                    );
                 else
-                    match.AwayTeamCorners = IncrementValue(match.AwayTeamCorners);
+                    match.MatchStatistics.AwayTeamCorners = IncrementValue(
+                        match.MatchStatistics.AwayTeamCorners
+                    );
                 break;
 
-            case "Free Kick":
+            case "Free Kick" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
+                    match.MatchStatistics.HomeTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.HomeTeamFreeKicks
+                    );
                 else
-                    match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
+                    match.MatchStatistics.AwayTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.AwayTeamFreeKicks
+                    );
                 break;
 
-            case "Goal Kick":
+            case "Goal Kick" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamGoalKicks = IncrementValue(match.HomeTeamGoalKicks);
+                    match.MatchStatistics.HomeTeamGoalKicks = IncrementValue(
+                        match.MatchStatistics.HomeTeamGoalKicks
+                    );
                 else
-                    match.AwayTeamGoalKicks = IncrementValue(match.AwayTeamGoalKicks);
+                    match.MatchStatistics.AwayTeamGoalKicks = IncrementValue(
+                        match.MatchStatistics.AwayTeamGoalKicks
+                    );
                 break;
 
-            case "Throw-in":
-                // Throw-ins are tracked in the MatchEvents entity
-                break;
-
-            case "Kick Off":
-                // Kick off passes are tracked as normal passes
-                break;
-
-            case "Recovery":
+            case "Recovery" when match.MatchStatistics is not null:
                 // Recovery passes usually follow a ball recovery
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamRecoveries = IncrementValue(match.HomeTeamRecoveries);
+                    match.MatchStatistics.HomeTeamRecoveries = IncrementValue(
+                        match.MatchStatistics.HomeTeamRecoveries
+                    );
                 else
-                    match.AwayTeamRecoveries = IncrementValue(match.AwayTeamRecoveries);
-                break;
-
-            case "Interception":
-                // Interception passes usually follow an interception
+                    match.MatchStatistics.AwayTeamRecoveries = IncrementValue(
+                        match.MatchStatistics.AwayTeamRecoveries
+                    );
                 break;
         }
 
         // Process pass outcomes
         switch (matchEvent.outcome)
         {
-            case "Pass Offside":
+            case "Pass Offside" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamOffsides = IncrementValue(match.HomeTeamOffsides);
+                    match.MatchStatistics.HomeTeamOffsides = IncrementValue(
+                        match.MatchStatistics.HomeTeamOffsides
+                    );
                 else
-                    match.AwayTeamOffsides = IncrementValue(match.AwayTeamOffsides);
+                    match.MatchStatistics.AwayTeamOffsides = IncrementValue(
+                        match.MatchStatistics.AwayTeamOffsides
+                    );
                 break;
 
-            case "Complete":
+            case "Complete" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
                 {
-                    match.HomeTeamPassesCompleted = IncrementValue(match.HomeTeamPassesCompleted);
+                    match.MatchStatistics.HomeTeamPassesCompleted = IncrementValue(
+                        match.MatchStatistics.HomeTeamPassesCompleted
+                    );
                     if (matchEvent.long_pass == true)
-                        match.HomeAccurateLongBalls = IncrementValue(match.HomeAccurateLongBalls);
+                        match.MatchStatistics.HomeAccurateLongBalls = IncrementValue(
+                            match.MatchStatistics.HomeAccurateLongBalls
+                        );
                 }
                 else
                 {
-                    match.AwayTeamPassesCompleted = IncrementValue(match.AwayTeamPassesCompleted);
+                    match.MatchStatistics.AwayTeamPassesCompleted = IncrementValue(
+                        match.MatchStatistics.AwayTeamPassesCompleted
+                    );
                     if (matchEvent.long_pass == true)
-                        match.AwayAccurateLongBalls = IncrementValue(match.AwayAccurateLongBalls);
+                        match.MatchStatistics.AwayAccurateLongBalls = IncrementValue(
+                            match.MatchStatistics.AwayAccurateLongBalls
+                        );
                 }
-                break;
 
-            case "Incomplete":
-                // Incomplete passes are still counted in the total, but not in completed passes
-                break;
-
-            case "Out":
-                // Passes that go out of bounds
-                break;
-
-            case "Injury Clearance":
-                // Special case for injury-related clearances
-                break;
-
-            case "Unknown":
-                // Unknown outcome passes are still counted in the total
                 break;
         }
 
         // Process long balls
-        if (matchEvent.long_pass == true)
-        {
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeLongBalls = IncrementValue(match.HomeLongBalls);
-            else
-                match.AwayLongBalls = IncrementValue(match.AwayLongBalls);
-        }
+        if (matchEvent.long_pass != true || match.MatchStatistics is null)
+            return;
+        if (IsHomeTeam(matchEvent, match))
+            match.MatchStatistics.HomeLongBalls = IncrementValue(
+                match.MatchStatistics.HomeLongBalls
+            );
+        else
+            match.MatchStatistics.AwayLongBalls = IncrementValue(
+                match.MatchStatistics.AwayLongBalls
+            );
     }
 
     public override void ProcessEventCounters(

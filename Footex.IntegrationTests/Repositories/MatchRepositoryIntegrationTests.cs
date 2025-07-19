@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("IntegrationTests")]
 public class MatchRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly IMatchRepository _matchRepository;
@@ -15,21 +14,23 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
     public MatchRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _matchRepository = ServiceProvider.GetRequiredService<IMatchRepository>();
+        _matchRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<IMatchRepository>();
     }
 
     [Fact]
     public async Task AddAsync_WithValidMatch_ShouldPersistToDatabase()
     {
         // Arrange
+        var user = await SeedUserAsync();
         var teams = await SeedTeamsAsync();
-        var season = await SeedSeasonAsync();
+        await SeedSeasonAsync();
 
         var match = new Match
         {
             HomeTeamId = teams.HomeTeam.Id,
             AwayTeamId = teams.AwayTeam.Id,
-            CreatorId = "",
+            CreatorId = user.Id,
         };
 
         // Act
@@ -46,6 +47,21 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         persistedMatch!.HomeTeamId.Should().Be(teams.HomeTeam.Id);
         persistedMatch.AwayTeamId.Should().Be(teams.AwayTeam.Id);
         persistedMatch.MatchStatus.Should().Be("Scheduled");
+    }
+
+    private async Task<ApplicationUser> SeedUserAsync()
+    {
+        var user = new ApplicationUser()
+        {
+            UserName = "testuser" + Guid.NewGuid().ToString()[..8],
+            Email = "testuser@example.com",
+            EmailConfirmed = true,
+            FirstName = "Test",
+            LastName = "User",
+        };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+        return user;
     }
 
     [Fact]
@@ -244,19 +260,15 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var teams = await SeedTeamsAsync();
         var season = await SeedSeasonAsync();
 
-        var match = await SeedMatchAsync(
-            teams.HomeTeam.Id,
-            teams.AwayTeam.Id,
-            season.Id,
-            venue: "Old Trafford"
-        );
+        var match = await SeedMatchAsync(teams.HomeTeam.Id, teams.AwayTeam.Id, season.Id);
 
         // Act
-        var result = await _matchRepository.SearchAsync("Old Trafford");
+        var result = await _matchRepository.SearchAsync(teams.HomeTeam.Name);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().Contain(m => m.Id == match.Id);
+        var matches = result as Match[] ?? result.ToArray();
+        matches.Should().NotBeNull();
+        matches.Should().Contain(m => m.Id == match.Id);
     }
 
     [Fact]
@@ -290,7 +302,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         match.MatchStatus = "Completed";
 
         // Act
-        var entityEntry = _matchRepository.UpdateAsync(match);
+        var entityEntry = _matchRepository.Update(match);
         var result = entityEntry.Entity;
         await Context.SaveChangesAsync();
 
@@ -309,7 +321,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var matchId = match.Id;
 
         // Act
-        _matchRepository.DeleteAsync(match);
+        _matchRepository.Delete(match);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -345,10 +357,10 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         int? awayTeamId = null,
         int? seasonId = null,
         DateTime? matchDate = null,
-        string status = "Scheduled",
-        string venue = "Test Stadium"
+        string status = "Scheduled"
     )
     {
+        var user = await SeedUserAsync();
         if (homeTeamId == null || awayTeamId == null)
         {
             var teams = await SeedTeamsAsync();
@@ -368,7 +380,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
             MatchStatus = status,
             HomeTeamScore = 0,
             AwayTeamScore = 0,
-            CreatorId = "creatorid",
+            CreatorId = user.Id,
         };
 
         Context.Matches.Add(match);

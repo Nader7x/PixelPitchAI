@@ -1,37 +1,20 @@
 using Application.CQRS.Teams.Commands;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using Infrastructure;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Commands;
 
-public class UpdateTeamCommandHandlerIntegrationTests
-    : IClassFixture<FootexWebApplicationFactory>,
-        IDisposable
+public class UpdateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public UpdateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_UpdatesTeamInDatabase()
     {
         // Arrange
         var team = TestData.CreateTestDbTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var command = new UpdateTeamCommand
         {
@@ -46,7 +29,7 @@ public class UpdateTeamCommandHandlerIntegrationTests
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -54,7 +37,7 @@ public class UpdateTeamCommandHandlerIntegrationTests
         response.Id.Should().Be(team.Id);
         response.Name.Should().Be(command.Name);
 
-        var updatedTeam = await _context.Teams.FindAsync(team.Id);
+        var updatedTeam = await Context.Teams.FindAsync(team.Id);
         updatedTeam.Should().NotBeNull();
         updatedTeam!.Name.Should().Be(command.Name);
         updatedTeam.PrimaryColor.Should().Be(command.PrimaryColor);
@@ -76,7 +59,7 @@ public class UpdateTeamCommandHandlerIntegrationTests
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
@@ -93,8 +76,8 @@ public class UpdateTeamCommandHandlerIntegrationTests
         var team2 = TestData.CreateTestDbTeam();
         team2.Name = "Another Team";
         team2.ShortName = "ANT";
-        _context.Teams.AddRange(team1, team2);
-        await _context.SaveChangesAsync();
+        Context.Teams.AddRange(team1, team2);
+        await Context.SaveChangesAsync();
 
         var command = new UpdateTeamCommand
         {
@@ -107,16 +90,11 @@ public class UpdateTeamCommandHandlerIntegrationTests
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeFalse();
         response.Error.Should().Contain("already exists");
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

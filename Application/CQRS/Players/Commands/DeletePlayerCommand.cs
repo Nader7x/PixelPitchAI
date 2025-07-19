@@ -10,9 +10,9 @@ public class DeletePlayerCommand : IRequest<DeletePlayerCommandResponse>
 
 public class DeletePlayerCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public string? Error { get; init; }
 }
 
 public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
@@ -25,7 +25,7 @@ public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            var player = await unitOfWork.Players.GetByIdAsync(request.Id);
+            var player = await unitOfWork.Players.GetByIdAsync(request.Id, cancellationToken);
             if (player == null)
                 return new DeletePlayerCommandResponse
                 {
@@ -34,7 +34,7 @@ public class DeletePlayerCommandHandler(IUnitOfWork unitOfWork)
                     Error = $"Player with ID {request.Id} not found",
                 };
 
-            unitOfWork.Players.DeleteAsync(player);
+            unitOfWork.Players.Delete(player);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeletePlayerCommandResponse { Succeeded = true };

@@ -16,10 +16,10 @@ public class RedisCacheServiceTests
 {
     private readonly RedisCacheOptions _cacheOptions;
     private readonly RedisCacheService _cacheService;
+    private readonly Mock<IConnectionMultiplexer> _connectionMultiplexer;
     private readonly Mock<IDistributedCache> _distributedCacheMock;
     private readonly Mock<ILogger<RedisCacheService>> _loggerMock;
     private readonly Mock<IOptions<RedisCacheOptions>> _optionsMock;
-    private readonly Mock<IConnectionMultiplexer> _connectionMultiplexer;
 
     public RedisCacheServiceTests()
     {

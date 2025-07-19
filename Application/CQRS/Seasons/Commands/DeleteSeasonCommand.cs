@@ -1,4 +1,5 @@
 using Domain.Interfaces;
+using Domain.Models;
 using MediatR;
 
 namespace Application.CQRS.Seasons.Commands;
@@ -12,7 +13,7 @@ public class DeleteSeasonCommandResponse
 {
     public bool Succeeded { get; init; }
     public bool NotFound { get; init; }
-    public string? Error { get; set; }
+    public string? Error { get; init; }
 }
 
 public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
@@ -25,7 +26,7 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            var season = await unitOfWork.Seasons.GetByIdAsync(request.Id);
+            var season = await unitOfWork.Seasons.GetByIdAsync(request.Id, cancellationToken);
             if (season == null)
                 return new DeleteSeasonCommandResponse
                 {
@@ -38,7 +39,7 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
             var matches = await unitOfWork.Matches.GetAllAsync(m =>
                 m.HomeTeamSeasonId == request.Id || m.AwayTeamSeasonId == request.Id
             );
-            if (matches != null && matches.Any())
+            if (matches.Any())
                 return new DeleteSeasonCommandResponse
                 {
                     Succeeded = false,
@@ -46,14 +47,14 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check if there are team statistics associated with this season
-            var teamStats = await unitOfWork.TeamSeasons.GetAllAsync(ts =>
+            var teamSeasons = await unitOfWork.TeamSeasons.GetAllAsync(ts =>
                 ts.SeasonId == request.Id
             );
-            if (teamStats != null && teamStats.Any())
+            if (teamSeasons.Any())
                 return new DeleteSeasonCommandResponse
                 {
                     Succeeded = false,
-                    Error = "Cannot delete season as it has associated team statistics",
+                    Error = "Cannot delete season as it has associated team seasons",
                 };
 
             // Check if this is the only active season for its league
@@ -63,7 +64,8 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                     s.LeagueName == season.LeagueName && s.Country == season.Country && s.IsActive
                 );
 
-                if (activeSeasons.Any() && activeSeasons.Count() == 1)
+                var seasons = activeSeasons as Season[] ?? activeSeasons.ToArray();
+                if (seasons.Length != 0 && seasons.Length == 1)
                     return new DeleteSeasonCommandResponse
                     {
                         Succeeded = false,
@@ -71,7 +73,7 @@ public class DeleteSeasonCommandHandler(IUnitOfWork unitOfWork)
                     };
             }
 
-            unitOfWork.Seasons.DeleteAsync(season);
+            unitOfWork.Seasons.Delete(season);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteSeasonCommandResponse { Succeeded = true };

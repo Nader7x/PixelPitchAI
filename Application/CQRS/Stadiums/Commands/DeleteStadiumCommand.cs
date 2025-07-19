@@ -46,7 +46,7 @@ public class DeleteStadiumCommandHandler(IUnitOfWork unitOfWork)
                         $"Cannot delete stadium as it is being used by {matchesEnumerator.Count()} match(es)",
                 };
 
-            unitOfWork.Stadiums.DeleteAsync(stadium);
+            unitOfWork.Stadiums.Delete(stadium);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new DeleteStadiumCommandResponse { Succeeded = true };

@@ -1,8 +1,8 @@
 using Application.Dtos;
 using Application.Interfaces;
 using Domain.Interfaces;
-using Domain.Models;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.Seasons.Queries;
 
@@ -11,14 +11,14 @@ public class GetAllSeasonsQuery : IRequest<GetAllSeasonsQueryResponse>
     // Optional parameters for filtering
     public string? LeagueName { get; set; }
     public string? Country { get; set; }
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class GetAllSeasonsQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public List<SeasonDto>? Seasons { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public List<SeasonDto>? Seasons { get; init; }
+    public string? Error { get; init; }
 }
 
 public class GetAllSeasonsQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper seasonMapper)
@@ -31,46 +31,24 @@ public class GetAllSeasonsQueryHandler(IUnitOfWork unitOfWork, ISeasonMapper sea
     {
         try
         {
-            IEnumerable<Season> seasons;
+            var seasons = unitOfWork.Seasons.GetQueryable();
             // Apply filters if provided
-            if (
-                !string.IsNullOrWhiteSpace(request.LeagueName)
-                || !string.IsNullOrWhiteSpace(request.Country)
-                || request.IsActive.HasValue
-            )
-            {
-                seasons = await unitOfWork.Seasons.GetAllAsync(s =>
-                    (
-                        string.IsNullOrWhiteSpace(request.LeagueName)
-                        || (
-                            s.LeagueName != null
-                            && s.LeagueName.Contains(
-                                request.LeagueName,
-                                StringComparison.CurrentCultureIgnoreCase
-                            )
-                        )
-                    )
-                    && (
-                        string.IsNullOrWhiteSpace(request.Country)
-                        || (
-                            s.Country != null
-                            && s.Country.Contains(
-                                request.Country,
-                                StringComparison.CurrentCultureIgnoreCase
-                            )
-                        )
-                    )
-                    && (!request.IsActive.HasValue || s.IsActive == request.IsActive.Value)
+            if (!string.IsNullOrWhiteSpace(request.LeagueName))
+                seasons = seasons.Where(s =>
+                    s.LeagueName != null && s.LeagueName.ToLower() == request.LeagueName.ToLower()
                 );
-            }
-            else
-            {
-                seasons = await unitOfWork.Seasons.GetAllAsync();
-            }
 
-            var seasonDtos = seasonMapper.ToDtoList(seasons);
+            if (!string.IsNullOrWhiteSpace(request.Country))
+                seasons = seasons.Where(s =>
+                    s.Country != null && s.Country.ToLower() == request.Country.ToLower()
+                );
 
-            return new GetAllSeasonsQueryResponse { Succeeded = true, Seasons = seasonDtos };
+            if (request.IsActive)
+                seasons = seasons.Where(s => s.IsActive == request.IsActive);
+
+            var seasonDtoS = seasonMapper.ToDtoList(await seasons.ToListAsync(cancellationToken));
+
+            return new GetAllSeasonsQueryResponse { Succeeded = true, Seasons = seasonDtoS };
         }
         catch (Exception ex)
         {

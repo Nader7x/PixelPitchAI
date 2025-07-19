@@ -3,7 +3,6 @@ using Application.CQRS.Players.Commands;
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using Application.Mappers;
 using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
@@ -18,13 +17,13 @@ namespace Footex.UnitTests.Controllers;
 
 public class PlayersControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
-    private readonly Mock<IPlayerMapper> _playerMapperMock;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly PlayersController _controller;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IPlayerMapper> _playerMapperMock;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public PlayersControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -74,7 +73,7 @@ public class PlayersControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Players = new List<PlayerDto>
             {
-                new PlayerDto
+                new()
                 {
                     Id = 1,
                     FullName = "Bukayo Saka",
@@ -127,7 +126,7 @@ public class PlayersControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Players = new List<PlayerDto>
             {
-                new PlayerDto
+                new()
                 {
                     Id = 1,
                     FullName = "Bukayo Saka",

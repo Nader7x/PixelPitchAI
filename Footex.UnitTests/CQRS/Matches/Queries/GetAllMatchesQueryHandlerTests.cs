@@ -18,8 +18,8 @@ public class GetAllMatchesQueryHandlerTests
     private readonly Fixture _fixture;
     private readonly GetAllMatchesQueryHandler _handler;
     private readonly Mock<IMatchMapper> _IMatchMapperMock;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetAllMatchesQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
@@ -122,10 +122,8 @@ public class GetAllMatchesQueryHandlerTests
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
         if (!result.Succeeded)
-        {
             // If the test fails, this will show us the actual error
             throw new Exception($"Handler failed with error: {result.Error}");
-        }
 
         // Assert
         result.Should().NotBeNull();
@@ -201,9 +199,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -239,9 +235,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -279,9 +273,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -334,9 +326,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -372,9 +362,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -491,7 +479,7 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery { Status = "" };
         var matches = new List<Match>
         {
-            TestDataBuilder.CreateValidMatchWithStatus(1, "Scheduled"),
+            TestDataBuilder.CreateValidMatchWithStatus(1),
             TestDataBuilder.CreateValidMatchWithStatus(2, "InProgress"),
             TestDataBuilder.CreateValidMatchWithStatus(3, "Completed"),
         };
@@ -505,9 +493,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -596,54 +582,19 @@ public class GetAllMatchesQueryHandlerTests
         var allMatches = new List<Match>
         {
             // Match that meets all criteria
-            CreateMatch(
-                id: 1,
-                homeTeamSeasonId: 1,
-                awayTeamSeasonId: 2,
-                homeTeamId: 3,
-                status: "Live",
-                matchWeek: 5,
-                scheduledDate: now
-            ),
+            CreateMatch(1, 1, 2, 3, status: "Live", matchWeek: 5, scheduledDate: now),
             // Matches that fail different filter criteria
-            CreateMatch(id: 2, homeTeamSeasonId: 2, awayTeamSeasonId: 2), // Wrong homeSeasonId
-            CreateMatch(id: 3, homeTeamSeasonId: 1, awayTeamSeasonId: 3), // Wrong awaySeasonId
-            CreateMatch(
-                id: 4,
-                homeTeamSeasonId: 1,
-                awayTeamSeasonId: 2,
-                homeTeamId: 4,
-                awayTeamId: 5
-            ), // Wrong teamId
-            CreateMatch(
-                id: 5,
-                homeTeamSeasonId: 1,
-                awayTeamSeasonId: 2,
-                homeTeamId: 3,
-                status: "Scheduled"
-            ), // Wrong status
-            CreateMatch(
-                id: 6,
-                homeTeamSeasonId: 1,
-                awayTeamSeasonId: 2,
-                homeTeamId: 3,
-                status: "Live",
-                matchWeek: 6
-            ), // Wrong matchWeek
-            CreateMatch(
-                id: 7,
-                homeTeamSeasonId: 1,
-                awayTeamSeasonId: 2,
-                homeTeamId: 3,
-                status: "Live",
-                matchWeek: 5,
-                scheduledDate: now.AddDays(-10)
-            ), // Outside date range
+            CreateMatch(2, 2, 2), // Wrong homeSeasonId
+            CreateMatch(3, 1, 3), // Wrong awaySeasonId
+            CreateMatch(4, 1, 2, 4, 5), // Wrong teamId
+            CreateMatch(5, 1, 2, 3, status: "Scheduled"), // Wrong status
+            CreateMatch(6, 1, 2, 3, status: "Live", matchWeek: 6), // Wrong matchWeek
+            CreateMatch(7, 1, 2, 3, status: "Live", matchWeek: 5, scheduledDate: now.AddDays(-10)), // Outside date range
         };
 
         // The expected filtered result (only the match that meets all criteria)
         var expectedFilteredMatch = allMatches.First();
-        var matchDtos = new List<MatchDto> { new MatchDto { Id = expectedFilteredMatch.Id } };
+        var matchDtos = new List<MatchDto> { new() { Id = expectedFilteredMatch.Id } };
 
         // Create a mock queryable
         var mockQueryable = allMatches.AsQueryable().BuildMock();
@@ -662,10 +613,8 @@ public class GetAllMatchesQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         if (!result.Succeeded)
-        {
             // If the test fails, this will show us the actual error
             throw new Exception($"Handler failed with error: {result.Error}");
-        }
         result.Succeeded.Should().BeTrue();
         result.Matches.Should().NotBeNull();
         result.Matches.Should().HaveCount(1);
@@ -829,9 +778,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result.Succeeded}, Matches Count: {result.Matches?.Count}"
         );
@@ -897,9 +844,7 @@ public class GetAllMatchesQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result.Error);
-        }
 
         // Assert
         result.Should().NotBeNull();

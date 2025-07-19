@@ -13,7 +13,7 @@ public class ApplicationUserRepository(
 {
     private readonly FootballDbContext _context = context;
 
-    public async Task<ApplicationUser?> GetByIdAsync(string userId)
+    public new async Task<ApplicationUser?> GetByIdAsync(string userId)
     {
         return await userManager.FindByIdAsync(userId);
     }
@@ -69,7 +69,7 @@ public class ApplicationUserRepository(
                     .ContinueWith(t =>
                         t.Result.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value
                     );
-            _context.RefreshTokens.Add(refreshToken);
+            _context.RefreshTokens.Update(refreshToken);
         }
 
         await _context.SaveChangesAsync();

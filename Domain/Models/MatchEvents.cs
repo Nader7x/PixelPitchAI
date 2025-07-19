@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace Domain.Models;
@@ -7,6 +8,8 @@ public sealed class MatchEvents
     public int Id { get; set; }
     public int MatchId { get; set; }
     public DateTime LastUpdated { get; set; }
+
+    [MaxLength(1000000)]
     public string EventsJson { get; set; } = "[]"; // JSON string containing all match events
 
     // Individual event detail fields for queries without deserializing the whole JSON

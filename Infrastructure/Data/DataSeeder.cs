@@ -1,335 +1,448 @@
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
+using CsvHelper.TypeConversion;
+using Dapper;
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Infrastructure.Data
+namespace Infrastructure.Data;
+
+public class DataSeeder(FootballDbContext context, ILogger<DataSeeder> logger)
 {
-    public class DataSeeder
+    private readonly string _dataFolderPath = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Infrastructure", "Data")
+    );
+
+    public async Task SeedAllAsync()
     {
-        private readonly FootballDbContext _context;
-        private readonly ILogger<DataSeeder> _logger;
-        private readonly string _dataFolderPath;
-
-        public DataSeeder(FootballDbContext context, ILogger<DataSeeder> logger)
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        try
         {
-            _context = context;
-            _logger = logger;
-            _dataFolderPath = Path.GetFullPath(
-                Path.Combine(
-                    AppContext.BaseDirectory,
-                    "..",
-                    "..",
-                    "..",
-                    "..",
-                    "Infrastructure",
-                    "Data"
-                )
-            );
+            await SeedAsync("Stadiums.csv", context.Stadiums);
+            await ResetSequenceAsync("Stadiums", "Id");
+            await SeedAsync("Competitions.csv", context.Competitions);
+            await ResetSequenceAsync("Competitions", "Id");
+            await SeedAsync("Teams.csv", context.Teams);
+            await ResetSequenceAsync("Teams", "Id");
+            await SeedAsync("Coaches.csv", context.Coaches);
+            await ResetSequenceAsync("Coaches", "Id");
+            await SeedAsync("Players.csv", context.Players);
+            await ResetSequenceAsync("Players", "Id");
+            await SeedAsync("Seasons.csv", context.Seasons);
+            await ResetSequenceAsync("Seasons", "Id");
+            await SeedAsync("TeamSeasons.csv", context.TeamSeasons);
+            await ResetSequenceAsync("TeamSeasons", "Id");
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(ex, "Seeding Failed and transaction rolled back.");
+        }
+    }
+
+    private async Task SeedAsync<T>(string fileName, DbSet<T> dbSet)
+        where T : class
+    {
+        var filePath = Path.Combine(_dataFolderPath, fileName);
+        if (!File.Exists(filePath))
+        {
+            logger.LogWarning("CSV file not found: {FilePath}", filePath);
+            return;
         }
 
-        public async Task SeedAllAsync()
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            await SeedAsync<Stadium>("Stadiums.csv", _context.Stadiums);
-            await SeedAsync<Competition>("Competitions.csv", _context.Competitions);
-            await SeedAsync<Team>("Teams.csv", _context.Teams);
-            await SeedAsync<Coach>("Coaches.csv", _context.Coaches);
-            await SeedAsync<Player>("Players.csv", _context.Players);
-            await SeedAsync<Season>("Seasons.csv", _context.Seasons);
-            await SeedAsync<TeamSeason>("TeamSeason.csv", _context.TeamSeasons);
-        }
+            HasHeaderRecord = true,
+            MissingFieldFound = null,
+            BadDataFound = null,
+        };
 
-        private async Task SeedAsync<T>(string fileName, DbSet<T> dbSet)
-            where T : class
+        try
         {
-            string filePath = Path.Combine(_dataFolderPath, fileName);
-            if (!File.Exists(filePath))
+            using var reader = new StreamReader(filePath);
+            using var csv = new CsvReader(reader, config);
+            csv.Context.TypeConverterCache.AddConverter<bool>(new CustomBooleanConverter());
+            csv.Context.TypeConverterCache.AddConverter<DateTime>(new UtcDateTimeConverter());
+
+            if (typeof(T) == typeof(Team))
+                csv.Context.RegisterClassMap<TeamMap>();
+            else if (typeof(T) == typeof(Stadium))
+                csv.Context.RegisterClassMap<StadiumMap>();
+            else if (typeof(T) == typeof(Competition))
+                csv.Context.RegisterClassMap<CompetitionMap>();
+            else if (typeof(T) == typeof(Coach))
+                csv.Context.RegisterClassMap<CoachMap>();
+            else if (typeof(T) == typeof(Player))
+                csv.Context.RegisterClassMap<PlayerMap>();
+            else if (typeof(T) == typeof(Season))
+                csv.Context.RegisterClassMap<SeasonMap>();
+            else if (typeof(T) == typeof(TeamSeason))
+                csv.Context.RegisterClassMap<TeamSeasonsMap>();
+
+            if (await dbSet.AnyAsync())
             {
-                _logger.LogWarning("CSV file not found: {FilePath}", filePath);
+                logger.LogInformation(
+                    "{TableName} data already exists. Skipping seeding.",
+                    typeof(T).Name
+                );
                 return;
             }
 
-            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                HasHeaderRecord = true,
-                MissingFieldFound = null, // Suppress warnings for missing fields
-                BadDataFound = null, // Suppress warnings for bad data
-            };
+            List<T> recordsToProcess;
 
-            try
+            if (typeof(T) == typeof(Team))
             {
-                using (var reader = new StreamReader(filePath))
-                using (var csv = new CsvReader(reader, config))
+                var teamsToSeed = csv.GetRecords<Team>().ToList();
+                recordsToProcess = teamsToSeed.Cast<T>().ToList();
+            }
+            else if (typeof(T) == typeof(Coach))
+            {
+                var coachesToSeed = csv.GetRecords<Coach>().ToList();
+                foreach (var coach in coachesToSeed)
                 {
-                    // Register custom converters
-                    csv.Context.TypeConverterCache.AddConverter<bool>(new CustomBooleanConverter());
-                    csv.Context.TypeConverterCache.AddConverter<DateTime>(
-                        new UtcDateTimeConverter()
-                    );
-
-                    // Register the ClassMap for the current type T
-                    if (typeof(T) == typeof(Team))
+                    if (coach.TeamId.HasValue)
                     {
-                        csv.Context.RegisterClassMap<TeamMap>();
-                    }
-                    else if (typeof(T) == typeof(Stadium))
-                    {
-                        csv.Context.RegisterClassMap<StadiumMap>();
-                    }
-                    else if (typeof(T) == typeof(Competition))
-                    {
-                        csv.Context.RegisterClassMap<CompetitionMap>();
-                    }
-                    else if (typeof(T) == typeof(Coach))
-                    {
-                        csv.Context.RegisterClassMap<CoachMap>();
-                    }
-                    else if (typeof(T) == typeof(Player))
-                    {
-                        csv.Context.RegisterClassMap<PlayerMap>();
-                    }
-                    else if (typeof(T) == typeof(Season))
-                    {
-                        csv.Context.RegisterClassMap<SeasonMap>();
-                    }
-                    else if (typeof(T) == typeof(TeamSeason))
-                    {
-                        csv.Context.RegisterClassMap<TeamSeasonsMap>();
-                    }
-
-                    _logger.LogInformation(
-                        "checking if the current table has data : {Count}",
-                        await dbSet.CountAsync()
-                    );
-
-                    if (await dbSet.AnyAsync())
-                    {
-                        _logger.LogInformation(
-                            "{TableName} data already exists. Skipping seeding.",
-                            typeof(T).Name
+                        var teamExists = await context.Teams.AnyAsync(t =>
+                            t.Id == coach.TeamId.Value
                         );
-                        return;
-                    }
-
-                    List<T> recordsToProcess; // Declare the list here
-
-                    // Special handling for Teams to ensure Stadium navigation property is not populated
-                    if (typeof(T) == typeof(Team))
-                    {
-                        var teamsToSeed = csv.GetRecords<Team>().ToList();
-                        foreach (var team in teamsToSeed)
+                        if (!teamExists)
                         {
-                            // Crucial: Ensure the Stadium navigation property is null
-                            // This prevents EF Core from trying to insert a new Stadium entity
-                            team.Stadium = null;
+                            logger.LogWarning(
+                                "Team with Id {TeamId} not found for Coach {CoachName}. Relationship will not be established.",
+                                coach.TeamId.Value,
+                                $"{coach.FirstName} {coach.LastName}"
+                            );
+                            coach.TeamId = null;
                         }
-                        recordsToProcess = teamsToSeed.Cast<T>().ToList(); // Assign to the common variable
+                    }
+                }
+                recordsToProcess = coachesToSeed.Cast<T>().ToList();
+            }
+            else if (typeof(T) == typeof(Player))
+            {
+                var playersToSeed = csv.GetRecords<Player>().ToList();
+                foreach (var player in playersToSeed)
+                {
+                    if (player.TeamId.HasValue)
+                    {
+                        var teamExists = await context.Teams.AnyAsync(t =>
+                            t.Id == player.TeamId.Value
+                        );
+                        if (!teamExists)
+                        {
+                            logger.LogWarning(
+                                "Team with Id {TeamId} not found for Player {PlayerName}. Relationship will not be established.",
+                                player.TeamId.Value,
+                                player.FullName
+                            );
+                            player.TeamId = null;
+                        }
+                    }
+                }
+                recordsToProcess = playersToSeed.Cast<T>().ToList();
+            }
+            else if (typeof(T) == typeof(Season))
+            {
+                var seasonsToSeed = csv.GetRecords<Season>().ToList();
+                foreach (var season in seasonsToSeed)
+                {
+                    var competitionExists = await context.Competitions.AnyAsync(c =>
+                        c.Id == season.CompetitionId
+                    );
+                    if (!competitionExists)
+                    {
+                        logger.LogWarning(
+                            "Competition with Id {CompetitionId} not found for Season {SeasonName}. Relationship will not be established.",
+                            season.CompetitionId,
+                            season.Name
+                        );
+                    }
+                }
+                recordsToProcess = seasonsToSeed.Cast<T>().ToList();
+            }
+            else if (typeof(T) == typeof(TeamSeason))
+            {
+                var teamSeasonsToSeed = csv.GetRecords<TeamSeason>().ToList();
+                List<TeamSeason> validTeamSeasons = new List<TeamSeason>();
+
+                foreach (var teamSeason in teamSeasonsToSeed)
+                {
+                    bool teamFound = await context.Teams.AnyAsync(t => t.Id == teamSeason.TeamId);
+                    bool seasonFound = await context.Seasons.AnyAsync(s =>
+                        s.Id == teamSeason.SeasonId
+                    );
+
+                    if (teamFound && seasonFound)
+                    {
+                        validTeamSeasons.Add(teamSeason);
                     }
                     else
                     {
-                        recordsToProcess = csv.GetRecords<T>().ToList(); // Assign to the common variable
+                        if (!teamFound)
+                        {
+                            logger.LogError(
+                                "Team with Id {TeamId} not found for TeamSeason (SeasonId: {SeasonId}). Skipping record.",
+                                teamSeason.TeamId,
+                                teamSeason.SeasonId
+                            );
+                        }
+                        if (!seasonFound)
+                        {
+                            logger.LogError(
+                                "Season with Id {SeasonId} not found for TeamSeason (TeamId: {TeamId}). Skipping record.",
+                                teamSeason.SeasonId,
+                                teamSeason.TeamId
+                            );
+                        }
                     }
-
-                    _logger.LogInformation(
-                        "Seeding {Count} records for {TableName}.",
-                        recordsToProcess.Count,
-                        typeof(T).Name
-                    );
-
-                    await dbSet.AddRangeAsync(recordsToProcess); // Use the common variable
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation(
-                        "Seeded {Count} records into {TableName}.",
-                        recordsToProcess.Count,
-                        typeof(T).Name
-                    ); // Use the common variable
                 }
+                recordsToProcess = validTeamSeasons.Cast<T>().ToList();
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(
-                    ex,
-                    "Error occurred while seeding data from {FileName}: {Message}",
-                    fileName,
-                    ex.Message
+                recordsToProcess = csv.GetRecords<T>().ToList();
+            }
+
+            logger.LogInformation(
+                "Seeding {Count} records for {TableName}.",
+                recordsToProcess.Count,
+                typeof(T).Name
+            );
+
+            await dbSet.AddRangeAsync(recordsToProcess);
+            await context.SaveChangesAsync();
+            logger.LogInformation(
+                "Seeded {Count} records into {TableName}.",
+                recordsToProcess.Count,
+                typeof(T).Name
+            );
+        }
+        catch (Exception ex)
+        {
+            var innerMostException = ex;
+            while (innerMostException.InnerException != null)
+            {
+                innerMostException = innerMostException.InnerException;
+            }
+            logger.LogError(
+                ex,
+                "Error occurred while seeding data from {FileName}: {Message}",
+                fileName,
+                innerMostException.Message
+            );
+        }
+    }
+
+    private sealed class StadiumMap : ClassMap<Stadium>
+    {
+        public StadiumMap()
+        {
+            Map(s => s.Id).Name("Id");
+            Map(s => s.Name).Name("Name");
+            Map(s => s.Capacity).Name("Capacity");
+            Map(s => s.BuiltDate).Name("BuiltDate");
+            Map(s => s.LastRenovation).Name("LastRenovation");
+            Map(s => s.SurfaceType).Name("SurfaceType");
+            Map(s => s.Address).Name("Address");
+            Map(s => s.Latitude).Name("Latitude");
+            Map(s => s.Longitude).Name("Longitude");
+            Map(s => s.HasRoof).Name("HasRoof");
+            Map(s => s.ImageUrl).Name("ImageUrl");
+            Map(s => s.Description).Name("Description");
+            Map(s => s.Facilities).Name("Facilities");
+            Map(s => s.Architect).Name("Architect");
+            Map(s => s.CostMillionsEuros).Name("CostMillionsEuros");
+            Map(s => s.Nickname).Name("Nickname");
+        }
+    }
+
+    private sealed class TeamMap : ClassMap<Team>
+    {
+        public TeamMap()
+        {
+            Map(t => t.Id).Name("Id");
+            Map(t => t.Name).Name("Name");
+            Map(t => t.ShortName).Name("ShortName");
+            Map(t => t.FoundationDate).Name("FoundationDate");
+            Map(t => t.PrimaryColor).Name("PrimaryColor");
+            Map(t => t.SecondaryColor).Name("SecondaryColor");
+            Map(t => t.Logo).Name("Logo");
+            Map(t => t.City).Name("City");
+            Map(t => t.Country).Name("Country");
+            Map(t => t.League).Name("League");
+            Map(t => t.StadiumId).Name("StadiumId");
+        }
+    }
+
+    private sealed class CompetitionMap : ClassMap<Competition>
+    {
+        public CompetitionMap()
+        {
+            Map(c => c.Id).Name("Id");
+            Map(c => c.Name).Name("Name");
+            Map(c => c.Description).Name("Description");
+            Map(c => c.Country).Name("Country");
+            Map(c => c.Logo).Name("Logo");
+        }
+    }
+
+    private sealed class CoachMap : ClassMap<Coach>
+    {
+        public CoachMap()
+        {
+            Map(c => c.Id).Name("Id");
+            Map(c => c.FirstName).Name("FirstName");
+            Map(c => c.LastName).Name("LastName");
+            Map(c => c.DateOfBirth).Name("DateOfBirth");
+            Map(c => c.Nationality).Name("Nationality");
+            Map(c => c.Role).Name("Role");
+            Map(c => c.YearsOfExperience).Name("YearsOfExperience");
+            Map(c => c.PhotoUrl).Name("PhotoUrl");
+            Map(c => c.Biography).Name("Biography");
+            Map(c => c.TeamId).Name("TeamId");
+            Map(c => c.CoachingStyle).Name("CoachingStyle");
+            Map(c => c.PreferredFormation).Name("PreferredFormation");
+        }
+    }
+
+    private sealed class PlayerMap : ClassMap<Player>
+    {
+        public PlayerMap()
+        {
+            Map(p => p.Id).Name("Id");
+            Map(p => p.FullName).Name("FullName");
+            Map(p => p.KnownName).Name("KnownName");
+            Map(p => p.Nationality).Name("Nationality");
+            Map(p => p.ShirtNumber).Name("ShirtNumber");
+            Map(p => p.PreferredFoot).Name("PreferredFoot");
+            Map(p => p.TeamId).Name("TeamId");
+            Map(p => p.PhotoUrl).Name("PhotoUrl");
+            Map(p => p.CreatedAt).Name("CreatedAt");
+            Map(p => p.UpdatedAt).Name("UpdatedAt");
+            Map(p => p.Position).Name("Position");
+        }
+    }
+
+    private sealed class SeasonMap : ClassMap<Season>
+    {
+        public SeasonMap()
+        {
+            Map(s => s.Id).Name("Id");
+            Map(s => s.Name).Name("Name");
+            Map(s => s.IsActive).Name("IsActive");
+            Map(s => s.IsCompleted).Name("IsCompleted");
+            Map(s => s.LeagueName).Name("LeagueName");
+            Map(s => s.Country).Name("Country");
+            Map(s => s.TotalRounds).Name("TotalRounds");
+            Map(s => s.CurrentRound).Name("CurrentRound");
+            Map(s => s.CreatedAt).Name("CreatedAt");
+            Map(s => s.UpdatedAt).Name("UpdatedAt");
+            Map(s => s.EndDate).Name("EndDate");
+            Map(s => s.StartDate).Name("StartDate");
+            Map(s => s.CompetitionId).Name("CompetitionId");
+        }
+    }
+
+    private sealed class TeamSeasonsMap : ClassMap<TeamSeason>
+    {
+        public TeamSeasonsMap()
+        {
+            Map(ts => ts.Id).Name("Id");
+            Map(ts => ts.TeamId).Name("TeamId");
+            Map(ts => ts.SeasonId).Name("SeasonId");
+            Map(ts => ts.UpdatedAt).Name("UpdatedAt");
+        }
+    }
+
+    private sealed class CustomBooleanConverter : DefaultTypeConverter
+    {
+        public override object? ConvertFromString(
+            string? text,
+            IReaderRow row,
+            MemberMapData memberMapData
+        )
+        {
+            if (
+                string.Equals(text, "t", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)
+            )
+                return true;
+            if (
+                string.Equals(text, "f", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(text, "false", StringComparison.OrdinalIgnoreCase)
+            )
+                return false;
+
+            return base.ConvertFromString(text, row, memberMapData);
+        }
+    }
+
+    private sealed class UtcDateTimeConverter : DateTimeConverter
+    {
+        public override object? ConvertFromString(
+            string? text,
+            IReaderRow row,
+            MemberMapData memberMapData
+        )
+        {
+            if (string.IsNullOrEmpty(text))
+                return null;
+
+            var dateTime = (DateTime?)base.ConvertFromString(text, row, memberMapData);
+            return dateTime.HasValue
+                ? DateTime.SpecifyKind(dateTime.Value, DateTimeKind.Utc)
+                : null;
+        }
+    }
+
+    private async Task ResetSequenceAsync(string tableName, string idColumn)
+    {
+        var quotedTableName = $"\"public\".\"{tableName}\"";
+        var quotedIdColumn = $"\"{idColumn}\"";
+
+        try
+        {
+            // Get the connection from the DbContext BUT DO NOT dispose of it with 'using'.
+            // The DbContext owns the connection's lifetime.
+            var connection = context.Database.GetDbConnection();
+
+            // Ensure the connection is open before Dapper uses it.
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await context.Database.OpenConnectionAsync();
+            }
+
+            var sequenceQuery = $"SELECT pg_get_serial_sequence('{quotedTableName}', '{idColumn}')";
+            var sequenceName = await connection.QuerySingleOrDefaultAsync<string>(sequenceQuery);
+
+            if (string.IsNullOrEmpty(sequenceName))
+            {
+                logger.LogWarning(
+                    "Could not find sequence for table {TableName}. Skipping reset.",
+                    tableName
                 );
+                return;
             }
+
+            var resetQuery =
+                $@"
+            SELECT setval(@SequenceName,
+            COALESCE((SELECT MAX({quotedIdColumn}) FROM {quotedTableName}), 0) + 1, false);";
+
+            await connection.ExecuteAsync(resetQuery, new { SequenceName = sequenceName });
+
+            logger.LogInformation(
+                "Successfully reset sequence {SequenceName} for table {TableName}.",
+                sequenceName,
+                tableName
+            );
         }
-
-        public class StadiumMap : ClassMap<Stadium>
+        catch (Exception ex)
         {
-            public StadiumMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.Name).Name("Name");
-                Map(m => m.Capacity).Name("Capacity");
-                Map(m => m.BuiltDate).Name("BuiltDate");
-                Map(m => m.LastRenovation).Name("LastRenovation");
-                Map(m => m.SurfaceType).Name("SurfaceType");
-                Map(m => m.Address).Name("Address");
-                Map(m => m.Latitude).Name("Latitude");
-                Map(m => m.Longitude).Name("Longitude");
-                Map(m => m.HasRoof).Name("HasRoof");
-                Map(m => m.ImageUrl).Name("ImageUrl");
-                Map(m => m.Description).Name("Description");
-                Map(m => m.Facilities).Name("Facilities");
-                Map(m => m.Architect).Name("Architect");
-                Map(m => m.CostMillionsEuros).Name("CostMillionsEuros");
-                Map(m => m.Nickname).Name("Nickname");
-            }
-        }
-
-        public class TeamMap : ClassMap<Team>
-        {
-            public TeamMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.Name).Name("Name");
-                Map(m => m.ShortName).Name("ShortName");
-                Map(m => m.FoundationDate).Name("FoundationDate");
-                Map(m => m.PrimaryColor).Name("PrimaryColor");
-                Map(m => m.SecondaryColor).Name("SecondaryColor");
-                Map(m => m.Logo).Name("Logo");
-                Map(m => m.City).Name("City");
-                Map(m => m.Country).Name("Country");
-                Map(m => m.League).Name("League");
-                Map(m => m.StadiumId).Name("StadiumId");
-                Map(m => m.Stadium).Ignore();
-            }
-        }
-
-        public class CompetitionMap : ClassMap<Competition>
-        {
-            public CompetitionMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.Name).Name("Name");
-                Map(m => m.Description).Name("Description");
-                Map(m => m.Country).Name("Country");
-                Map(m => m.Logo).Name("Logo");
-            }
-        }
-
-        public class CoachMap : ClassMap<Coach>
-        {
-            public CoachMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.FirstName).Name("FirstName");
-                Map(m => m.LastName).Name("LastName");
-                Map(m => m.DateOfBirth).Name("DateOfBirth");
-                Map(m => m.Nationality).Name("Nationality");
-                Map(m => m.Role).Name("Role");
-                Map(m => m.YearsOfExperience).Name("YearsOfExperience");
-                Map(m => m.PhotoUrl).Name("PhotoUrl");
-                Map(m => m.Biography).Name("Biography");
-                Map(m => m.TeamId).Name("TeamId");
-                Map(m => m.CoachingStyle).Name("CoachingStyle");
-                Map(m => m.PreferredFormation).Name("PreferredFormation");
-                Map(m => m.Team).Ignore();
-            }
-        }
-
-        public class PlayerMap : ClassMap<Player>
-        {
-            public PlayerMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.FullName).Name("FullName");
-                Map(m => m.KnownName).Name("KnownName");
-                Map(m => m.Nationality).Name("Nationality");
-                Map(m => m.ShirtNumber).Name("ShirtNumber");
-                Map(m => m.PreferredFoot).Name("PreferredFoot");
-                Map(m => m.TeamId).Name("TeamId");
-                Map(m => m.PhotoUrl).Name("PhotoUrl");
-                Map(m => m.CreatedAt).Name("CreatedAt");
-                Map(m => m.UpdatedAt).Name("UpdatedAt");
-                Map(m => m.Position).Name("Position");
-                Map(m => m.Team).Ignore();
-            }
-        }
-
-        public class SeasonMap : ClassMap<Season>
-        {
-            public SeasonMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.Name).Name("Name");
-                Map(m => m.IsActive).Name("IsActive");
-                Map(m => m.IsCompleted).Name("IsCompleted");
-                Map(m => m.LeagueName).Name("LeagueName");
-                Map(m => m.Country).Name("Country");
-                Map(m => m.TotalRounds).Name("TotalRounds");
-                Map(m => m.CurrentRound).Name("CurrentRound");
-                Map(m => m.CreatedAt).Name("CreatedAt");
-                Map(m => m.UpdatedAt).Name("UpdatedAt");
-                Map(m => m.EndDate).Name("EndDate");
-                Map(m => m.StartDate).Name("StartDate");
-                Map(m => m.CompetitionId).Name("CompetitionId");
-                Map(m => m.Competition).Ignore();
-            }
-        }
-
-        public class TeamSeasonsMap : ClassMap<TeamSeason>
-        {
-            public TeamSeasonsMap()
-            {
-                Map(m => m.Id).Name("Id");
-                Map(m => m.TeamId).Name("TeamId");
-                Map(m => m.SeasonId).Name("SeasonId");
-                Map(m => m.UpdatedAt).Name("UpdatedAt");
-                Map(m => m.Team).Ignore();
-                Map(m => m.Season).Ignore();
-            }
-        }
-
-        public class CustomBooleanConverter : CsvHelper.TypeConversion.DefaultTypeConverter
-        {
-            public override object? ConvertFromString(
-                string? text,
-                IReaderRow row,
-                MemberMapData memberMapData
-            )
-            {
-                if (
-                    string.Equals(text, "t", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)
-                )
-                {
-                    return true;
-                }
-                if (
-                    string.Equals(text, "f", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(text, "false", StringComparison.OrdinalIgnoreCase)
-                )
-                {
-                    return false;
-                }
-
-                return base.ConvertFromString(text, row, memberMapData);
-            }
-        }
-
-        public class UtcDateTimeConverter : CsvHelper.TypeConversion.DateTimeConverter
-        {
-            public override object? ConvertFromString(
-                string? text,
-                IReaderRow row,
-                MemberMapData memberMapData
-            )
-            {
-                if (string.IsNullOrEmpty(text))
-                {
-                    return null;
-                }
-
-                var dateTime = (DateTime?)base.ConvertFromString(text, row, memberMapData);
-                return dateTime.HasValue
-                    ? DateTime.SpecifyKind(dateTime.Value, DateTimeKind.Utc)
-                    : null;
-            }
+            logger.LogError(ex, "Failed to reset sequence for table {TableName}.", tableName);
         }
     }
 }

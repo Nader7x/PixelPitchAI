@@ -6,14 +6,14 @@ namespace Application.CQRS.Notifications.Commands;
 
 public class CreateNotificationCommand : IRequest<CreateNotificationCommandResponse>
 {
-    public required Notification Notification { get; set; }
+    public required Notification Notification { get; init; }
 }
 
 public class CreateNotificationCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public Notification? Notification { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public Notification? Notification { get; init; }
+    public string? Error { get; init; }
 }
 
 public class CreateNotificationCommandHandler(INotificationRepository notificationRepository)

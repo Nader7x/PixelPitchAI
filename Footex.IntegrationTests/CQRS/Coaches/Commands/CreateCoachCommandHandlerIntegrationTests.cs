@@ -1,34 +1,28 @@
 using Application.CQRS.Coaches.Commands;
 using Domain.Interfaces;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Coaches.Commands;
 
-public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
+public class CreateCoachCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly CreateCoachCommandHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateCoachCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _handler = ServiceProvider.GetRequiredService<CreateCoachCommandHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidCoachCommand_CreatesCoachSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Manchester City");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Manchester City");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateCoachCommand
         {
-            FirstName = "Pep Guardiola",
+            FirstName = "Pep",
+            LastName = "Guardiola",
             DateOfBirth = new DateTime(1971, 1, 18),
             Nationality = "Spanish",
             Role = "Head Coach",
@@ -39,64 +33,73 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-        var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
+        var result = await Mediator.Send(command, CancellationToken.None);
+        var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(0, result.Id);
-        Assert.Equal(command.FirstName, savedCoach.FirstName);
-        Assert.Null(result.Error);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(0);
+        savedCoach?.FirstName.Should().Be(command.FirstName);
+        result.Error.Should().BeNull();
 
         // Verify coach was saved to database
-        Assert.NotNull(savedCoach);
-        Assert.Equal(command.FirstName, savedCoach.FirstName);
-        Assert.Equal(command.DateOfBirth, savedCoach.DateOfBirth);
-        Assert.Equal(command.Nationality, savedCoach.Nationality);
-        Assert.Equal(command.Role, savedCoach.Role);
-        Assert.Equal(command.TeamId, savedCoach.TeamId);
-        Assert.Equal(command.PreferredFormation, savedCoach.PreferredFormation);
-        Assert.Equal(command.CoachingStyle, savedCoach.CoachingStyle);
-        Assert.Equal(command.Biography, savedCoach.Biography);
+        savedCoach.Should().NotBeNull();
+        savedCoach?.FirstName.Should().Be(command.FirstName);
+        savedCoach?.DateOfBirth.Should().Be(command.DateOfBirth);
+        savedCoach?.Nationality.Should().Be(command.Nationality);
+        savedCoach?.Role.Should().Be(command.Role);
+        savedCoach?.TeamId.Should().Be(command.TeamId);
+        savedCoach?.PreferredFormation.Should().Be(command.PreferredFormation);
+        savedCoach?.CoachingStyle.Should().Be(command.CoachingStyle);
+        savedCoach?.Biography.Should().Be(command.Biography);
     }
 
     [Fact]
     public async Task Handle_MinimalValidCoachCommand_CreatesCoachSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Arsenal");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Arsenal");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
-        var command = new CreateCoachCommand { FirstName = "Mikel Arteta", TeamId = team.Id };
+        var command = new CreateCoachCommand
+        {
+            FirstName = "Mikel",
+            LastName = "Arteta",
+            Nationality = "Spanish",
+            DateOfBirth = new DateTime(1980, 5, 4),
+            Role = "Head Coach",
+            YearsOfExperience = 10,
+            TeamId = team.Id,
+        };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(0, result.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(0);
 
-        var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-        Assert.NotNull(savedCoach);
-        Assert.Equal(command.FirstName, savedCoach.FirstName);
-        Assert.Equal(command.TeamId, savedCoach.TeamId);
-        Assert.Null(savedCoach.DateOfBirth);
-        Assert.Null(savedCoach.Nationality);
-        Assert.Null(savedCoach.Role);
+        var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id);
+        savedCoach.Should().NotBeNull();
+        savedCoach.FirstName.Should().Be(command.FirstName);
+        savedCoach.TeamId.Should().Be(command.TeamId);
+        savedCoach.Nationality.Should().Be(command.Nationality);
+        savedCoach.Role.Should().Be(command.Role);
     }
 
     [Fact]
     public async Task Handle_CoachWithAllOptionalFields_CreatesSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Liverpool");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Liverpool");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateCoachCommand
         {
-            FirstName = "Jürgen Klopp",
+            FirstName = "Jürgen",
+            LastName = "Klopp",
             DateOfBirth = new DateTime(1967, 6, 16),
             Nationality = "German",
             Role = "Manager",
@@ -109,15 +112,15 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-        Assert.NotNull(savedCoach);
-        Assert.Equal(command.PhotoUrl, savedCoach.PhotoUrl);
-        Assert.Equal(command.YearsOfExperience, savedCoach.YearsOfExperience);
+        var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id, CancellationToken.None);
+        savedCoach.Should().NotBeNull();
+        savedCoach.PhotoUrl.Should().Be(command.PhotoUrl);
+        savedCoach.YearsOfExperience.Should().Be(command.YearsOfExperience);
     }
 
     [Fact]
@@ -127,18 +130,22 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         var nonExistentTeamId = -1;
         var command = new CreateCoachCommand
         {
-            FirstName = "Test Coach",
+            FirstName = "Test",
+            LastName = "Coach",
+            DateOfBirth = new DateTime(1980, 1, 1),
+            Nationality = "Testland",
+            Role = "Test Role",
             TeamId = nonExistentTeamId,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Equal(0, result.Id);
-        Assert.Contains("Team", result.Error);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Id.Should().Be(0);
+        result.Error.Should().Contain("Team");
     }
 
     [Fact]
@@ -148,25 +155,26 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         var command = new CreateCoachCommand
         {
             FirstName = "Free Agent Coach",
+            LastName = "No Team",
             Nationality = "English",
             Role = "Assistant Coach",
-            // No TeamId provided
+            DateOfBirth = new DateTime(1985, 2, 20),
+            YearsOfExperience = 10,
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         if (result.Succeeded)
         {
-            var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-            Assert.NotNull(savedCoach);
-            Assert.Null(savedCoach.TeamId);
+            var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id);
+            savedCoach.Should().NotBeNull();
+            savedCoach?.TeamId.Should().BeNull();
         }
         else
         {
-            // If the business logic requires a team, this should fail
-            Assert.NotNull(result.Error);
+            result.Error.Should().NotBeNull();
         }
     }
 
@@ -174,13 +182,15 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_YoungCoach_CreatesSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Young Team");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Young Team");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateCoachCommand
         {
-            FirstName = "Young Coach",
+            FirstName = "Young",
+            LastName = "Coach",
+            Nationality = "English",
             DateOfBirth = new DateTime(1995, 5, 15), // Young coach
             TeamId = team.Id,
             Role = "Assistant Coach",
@@ -188,28 +198,30 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-        Assert.NotNull(savedCoach);
-        Assert.True(savedCoach.DateOfBirth > new DateTime(1990, 1, 1));
-        Assert.Equal(3, savedCoach.YearsOfExperience);
+        var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id);
+        savedCoach.Should().NotBeNull();
+        savedCoach.DateOfBirth.Should().BeAfter(new DateTime(1990, 1, 1));
+        savedCoach.YearsOfExperience.Should().Be(3);
     }
 
     [Fact]
     public async Task Handle_ExperiencedCoach_CreatesSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Experienced Team");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Experienced Team");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateCoachCommand
         {
-            FirstName = "Veteran Coach",
+            FirstName = "Veteran",
+            LastName = "Coach",
+            Nationality = "Italian",
             DateOfBirth = new DateTime(1950, 3, 10), // Experienced coach
             TeamId = team.Id,
             Role = "Head Coach",
@@ -217,44 +229,56 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-        Assert.NotNull(savedCoach);
-        Assert.True(savedCoach.DateOfBirth < new DateTime(1960, 1, 1));
-        Assert.Equal(45, savedCoach.YearsOfExperience);
+        var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id);
+        savedCoach.Should().NotBeNull();
+        savedCoach.DateOfBirth.Should().BeBefore(new DateTime(1960, 1, 1));
+        savedCoach.YearsOfExperience.Should().Be(45);
     }
 
     [Fact]
     public async Task Handle_MultipleCoachesForSameTeam_CreatesSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Multi-Coach Team");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Multi-Coach Team");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
         var commands = new[]
         {
             new CreateCoachCommand
             {
                 FirstName = "Head Coach",
+                LastName = "Coach",
+                Nationality = "TestNationality",
                 Role = "Head Coach",
                 TeamId = team.Id,
+                DateOfBirth = new DateTime(1975, 1, 1),
+                YearsOfExperience = 20,
             },
             new CreateCoachCommand
             {
-                FirstName = "Assistant Coach 1",
+                FirstName = "Assistant 1",
+                LastName = "Coach",
+                Nationality = "TestNationality",
                 Role = "Assistant Coach",
                 TeamId = team.Id,
+                DateOfBirth = new DateTime(1985, 1, 1),
+                YearsOfExperience = 10,
             },
             new CreateCoachCommand
             {
-                FirstName = "Assistant Coach 2",
+                FirstName = "Assistant 2",
+                LastName = "Coach",
+                Nationality = "TestNationality",
                 Role = "Assistant Coach",
                 TeamId = team.Id,
+                DateOfBirth = new DateTime(1990, 1, 1),
+                YearsOfExperience = 5,
             },
         };
 
@@ -263,20 +287,19 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
         // Act
         foreach (var command in commands)
         {
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await Mediator.Send(command, CancellationToken.None);
             results.Add(result);
         }
 
         // Assert
-        Assert.All(results, r => Assert.True(r.Succeeded));
-        Assert.Equal(3, results.Count);
+        results.Should().OnlyContain(r => r.Succeeded);
+        results.Count.Should().Be(3);
 
-        // Verify all coaches belong to the same team
         foreach (var result in results)
         {
-            var savedCoach = await _unitOfWork.Coaches.GetByIdAsync(result.Id);
-            Assert.NotNull(savedCoach);
-            Assert.Equal(team.Id, savedCoach.TeamId);
+            var savedCoach = await UnitOfWork.Coaches.GetByIdAsync(result.Id);
+            savedCoach.Should().NotBeNull();
+            savedCoach.TeamId.Should().Be(team.Id);
         }
     }
 
@@ -284,23 +307,30 @@ public class CreateCoachCommandHandlerIntegrationTests : BaseIntegrationTest
     public async Task Handle_DatabaseException_ReturnsErrorResponse()
     {
         // Arrange
-        var command = new CreateCoachCommand { FirstName = "Test Coach", Role = "Head Coach" };
+        var command = new CreateCoachCommand
+        {
+            FirstName = "Test",
+            LastName = "Coach",
+            Nationality = "TestLand",
+            Role = "Head Coach",
+            DateOfBirth = new DateTime(1980, 1, 1),
+        };
 
         // Dispose context to simulate database error
         await DisposeContext();
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Equal(0, result.Id);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Id.Should().Be(0);
     }
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

@@ -1,23 +1,16 @@
 using Application.CQRS.Stadiums.Commands;
 using Domain.Interfaces;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Stadiums.Commands;
 
-public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
+public class CreateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly CreateStadiumCommandHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public CreateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _handler = ServiceProvider.GetRequiredService<CreateStadiumCommandHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidStadiumCommand_CreatesStadiumSuccessfully()
     {
@@ -32,22 +25,21 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
-        Assert.Equal(command.Name, result.Name);
-        Assert.Null(result.Error);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(-1);
+        result.Name.Should().Be(command.Name);
+        result.Error.Should().BeNull();
 
-        // Verify stadium was saved to database
-        var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-        Assert.NotNull(savedStadium);
-        Assert.Equal(command.Name, savedStadium.Name);
-        Assert.Equal(command.City, savedStadium.City);
-        Assert.Equal(command.Capacity, savedStadium.Capacity);
-        Assert.Equal(command.BuiltDate, savedStadium.BuiltDate);
-        Assert.Equal(command.Description, savedStadium.Description);
+        var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+        savedStadium.Should().NotBeNull();
+        savedStadium!.Name.Should().Be(command.Name);
+        savedStadium.City.Should().Be(command.City);
+        savedStadium.Capacity.Should().Be(command.Capacity);
+        savedStadium.BuiltDate.Should().Be(command.BuiltDate);
+        savedStadium.Description.Should().Be(command.Description);
     }
 
     [Fact]
@@ -62,20 +54,20 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
-        Assert.Equal(command.Name, result.Name);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(-1);
+        result.Name.Should().Be(command.Name);
 
-        var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-        Assert.NotNull(savedStadium);
-        Assert.Equal(command.Name, savedStadium.Name);
-        Assert.Equal(command.City, savedStadium.City);
-        Assert.Equal(command.Capacity, savedStadium.Capacity);
-        Assert.Null(savedStadium.BuiltDate);
-        Assert.Null(savedStadium.Description);
+        var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+        savedStadium.Should().NotBeNull();
+        savedStadium!.Name.Should().Be(command.Name);
+        savedStadium.City.Should().Be(command.City);
+        savedStadium.Capacity.Should().Be(command.Capacity);
+        savedStadium.BuiltDate.Should().Be(default);
+        savedStadium.Description.Should().BeNull();
     }
 
     [Fact]
@@ -94,25 +86,25 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(-1);
 
-        var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-        Assert.NotNull(savedStadium);
-        Assert.Equal(command.ImageUrl, savedStadium.ImageUrl);
-        Assert.Equal(command.SurfaceType, savedStadium.SurfaceType);
+        var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+        savedStadium.Should().NotBeNull();
+        savedStadium!.ImageUrl.Should().Be(command.ImageUrl);
+        savedStadium.SurfaceType.Should().Be(command.SurfaceType);
     }
 
     [Fact]
     public async Task Handle_DuplicateStadiumName_HandlesGracefully()
     {
         // Arrange
-        var stadium = TestData.CreateStadium("Wembley Stadium");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        var stadium = TestData.CreateTestDbStadium("Wembley Stadium");
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new CreateStadiumCommand
         {
@@ -122,19 +114,19 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         // The implementation should handle this scenario
         // Either allow duplicate names or return appropriate error
         if (result.Succeeded)
         {
-            Assert.NotEqual(-1, result.Id);
-            Assert.NotEqual(stadium.Id, result.Id);
+            result.Id.Should().NotBe(-1);
+            result.Id.Should().NotBe(stadium.Id);
         }
         else
         {
-            Assert.NotNull(result.Error);
+            result.Error.Should().NotBeNull();
         }
     }
 
@@ -151,15 +143,15 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotEqual(-1, result.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Id.Should().NotBe(-1);
 
-        var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-        Assert.NotNull(savedStadium);
-        Assert.Equal(114000, savedStadium.Capacity);
+        var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+        savedStadium.Should().NotBeNull();
+        savedStadium!.Capacity.Should().Be(114000);
     }
 
     [Fact]
@@ -175,14 +167,14 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
+        result.Succeeded.Should().BeTrue();
 
-        var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-        Assert.NotNull(savedStadium);
-        Assert.Equal(new DateTime(1888, 1, 1), savedStadium.BuiltDate);
+        var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+        savedStadium.Should().NotBeNull();
+        savedStadium!.BuiltDate.Should().Be(new DateTime(1888, 1, 1));
     }
 
     [Fact]
@@ -216,23 +208,23 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         // Act
         foreach (var command in commands)
         {
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await Mediator.Send(command, CancellationToken.None);
             results.Add(result);
         }
 
         // Assert
-        Assert.All(results, r => Assert.True(r.Succeeded));
-        Assert.Equal(3, results.Count);
+        results.Should().OnlyContain(r => r.Succeeded);
+        results.Should().HaveCount(3);
 
         // Verify all have unique IDs
         var ids = results.Select(r => r.Id).ToList();
-        Assert.Equal(3, ids.Distinct().Count());
+        ids.Distinct().Should().HaveCount(3);
 
         // Verify all are saved in database
         foreach (var result in results)
         {
-            var savedStadium = await _unitOfWork.Stadiums.GetByIdAsync(result.Id);
-            Assert.NotNull(savedStadium);
+            var savedStadium = await UnitOfWork.Stadiums.GetByIdAsync(result.Id);
+            savedStadium.Should().NotBeNull();
         }
     }
 
@@ -251,17 +243,17 @@ public class CreateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         await DisposeContext();
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Equal(-1, result.Id);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Id.Should().Be(0);
     }
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

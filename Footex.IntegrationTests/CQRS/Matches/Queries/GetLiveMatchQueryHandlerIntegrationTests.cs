@@ -8,47 +8,37 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Matches.Queries;
 
-[Collection("Database")]
-public class GetLiveMatchQueryHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class GetLiveMatchQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetLiveMatchQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidUserId_ReturnsLiveMatchOrNotFound()
     {
         // Arrange
         var user = TestData.CreateTestUser(true);
-        _context.Users.Add(user);
+        await Context.Users.AddAsync(user);
         var homeTeam = TestData.CreateTestDbTeam();
         var awayTeam = TestData.CreateTestDbTeam();
         var season = TestData.CreateTestDbSeason();
-        _context.Teams.AddRange(homeTeam, awayTeam);
-        _context.Seasons.Add(season);
-        await _context.SaveChangesAsync();
+        await Context.Teams.AddRangeAsync(homeTeam, awayTeam);
+        await Context.Seasons.AddAsync(season);
+        await Context.SaveChangesAsync();
 
         var homeSeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, homeTeam.Id);
         var awaySeasonTeam = TestData.CreateTestDbSeasonTeam(season.Id, awayTeam.Id);
-        _context.TeamSeasons.AddRange(homeSeasonTeam, awaySeasonTeam);
-        await _context.SaveChangesAsync();
+        await Context.TeamSeasons.AddRangeAsync(homeSeasonTeam, awaySeasonTeam);
+        await Context.SaveChangesAsync();
 
-        var match = TestData.CreateTestMatch(homeTeam.Id, awayTeam.Id, season.Id, false, user.Id);
+        var match = TestData.CreateTestMatch(homeTeam.Id, awayTeam.Id, season.Id, true, user.Id);
         match.MatchStatus = "Live";
-        _context.Matches.Add(match);
-        await _context.SaveChangesAsync();
+        match.IsLive = true;
+        await Context.Matches.AddAsync(match);
+        await Context.SaveChangesAsync();
 
         var query = new GetLiveMatchQuery { UserId = user.Id };
 
         // Act
-        var response = await _mediator.Send(query);
+        var response = await Mediator.Send(query);
 
         // Assert
         response.Should().NotBeNull();

@@ -8,25 +8,16 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Stadiums.Commands;
 
-public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
+public class UpdateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly IMediator _mediator;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public UpdateStadiumCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _mediator = factory.Services.GetRequiredService<IMediator>();
-        _unitOfWork = factory.Services.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidUpdateCommand_UpdatesStadiumSuccessfully()
     {
         // Arrange
         var stadium = TestData.CreateTestDbStadium("UpdateTest");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new UpdateStadiumCommand
         {
@@ -40,7 +31,7 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
@@ -48,7 +39,7 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         result.Name.Should().Be(command.Name);
         result.Error.Should().BeNull();
 
-        var updatedStadium = await _unitOfWork.Stadiums.GetByIdAsync(stadium.Id);
+        var updatedStadium = await UnitOfWork.Stadiums.GetByIdAsync(stadium.Id);
         updatedStadium.Should().NotBeNull();
         updatedStadium!.Name.Should().Be(command.Name);
         updatedStadium.City.Should().Be(command.City);
@@ -73,7 +64,7 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeFalse();
@@ -87,9 +78,9 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         // Arrange
         var stadium1 = TestData.CreateTestDbStadium("Stadium1");
         var stadium2 = TestData.CreateTestDbStadium("Stadium2");
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new UpdateStadiumCommand
         {
@@ -102,7 +93,7 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeFalse();
@@ -114,8 +105,8 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var stadium = TestData.CreateTestDbStadium("InvalidData");
-        await _unitOfWork.Stadiums.AddAsync(stadium);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium);
+        await UnitOfWork.SaveChangesAsync();
 
         var command = new UpdateStadiumCommand
         {
@@ -128,7 +119,7 @@ public class UpdateStadiumCommandHandlerIntegrationTests : BaseIntegrationTest
         };
 
         // Act
-        var result = await _mediator.Send(command, CancellationToken.None);
+        var result = await Mediator.Send(command, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeFalse();

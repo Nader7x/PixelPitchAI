@@ -17,4 +17,5 @@ public interface ITeamRepository : IRepository<Team>
     Task<Team?> GetTeamWithCoachesAsync(int teamId);
     Task<IEnumerable<Team>> GetByCityAsync(string city);
     Task<IEnumerable<Team>> GetTeamsFoundedAfterYearAsync(int year);
+    void ClearChangeTracker();
 }

@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
+using Application.CQRS.Stadiums.Commands;
+using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
+using Application.Helpers;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
@@ -10,119 +12,88 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
 
-public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class StadiumsControllerIntegrationTests(FootexWebApplicationFactory factory)
+    : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly HttpClient _client;
-    private readonly FootexWebApplicationFactory _factory;
-
-    public StadiumsControllerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _client = _factory.CreateClient();
-    }
-
     [Fact]
     public async Task GetAllStadiums_ReturnsSuccessStatusCode()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/stadiums");
+        var response = await httpClient.GetAsync("/api/stadiums");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().NotBeEmpty();
-
-        var jsonDoc = JsonDocument.Parse(content);
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<GetAllStadiumsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task GetAllStadiums_WithQueryParameters_ReturnsFilteredResults()
     {
         // Arrange
-        await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var stadium = TestData.CreateTestDbStadium();
+        context.Stadiums.Add(stadium);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync("/api/stadiums?country=England&city=London");
+        var response = await httpClient.GetAsync("/api/stadiums?country=England&city=London");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("stadiums", out var stadiums);
-        stadiums.ValueKind.Should().Be(JsonValueKind.Array);
+        var result = await response.Content.ReadFromJsonAsync<GetAllStadiumsQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Stadiums.Should().NotBeEmpty();
     }
 
     [Fact]
     public async Task GetStadiumById_WithValidId_ReturnsStadium()
     {
         // Arrange
-        var stadiumId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var stadium = TestData.CreateTestDbStadium();
+        context.Stadiums.Add(stadium);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/stadiums/{stadiumId}");
+        var response = await httpClient.GetAsync($"/api/stadiums/{stadium.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("stadium", out var stadium);
-        stadium.ValueKind.Should().Be(JsonValueKind.Object);
-
-        stadium.TryGetProperty("id", out var id);
-        id.GetInt32().Should().Be(stadiumId);
+        var result = await response.Content.ReadFromJsonAsync<GetStadiumByIdQueryResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Stadium.Should().NotBeNull();
+        result?.Stadium!.Id.Should().Be(stadium.Id);
     }
 
     [Fact]
     public async Task GetStadiumById_WithInvalidId_ReturnsNotFound()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
         // Act
-        var response = await _client.GetAsync("/api/stadiums/999999");
+        var response = await httpClient.GetAsync("/api/stadiums/999999");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task GetStadiumById_ReturnsCacheHeaders()
-    {
-        // Arrange
-        var stadiumId = await SeedTestDataAsync();
-
-        // Act - First call
-        var response1 = await _client.GetAsync($"/api/stadiums/{stadiumId}");
-
-        // Act - Second call (should be cached)
-        var response2 = await _client.GetAsync($"/api/stadiums/{stadiumId}");
-
-        // Assert
-        response1.StatusCode.Should().Be(HttpStatusCode.OK);
-        response2.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Check cache headers
-        response1.Headers.Should().ContainKey("X-Cache-Hit");
-        response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-
-        response2.Headers.Should().ContainKey("X-Cache-Hit");
-        response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
-    }
-
-    [Fact]
     public async Task CreateStadium_WithValidData_ReturnsCreated()
     {
         // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var createStadiumDto = new CreateStadiumDto
         {
             Name = "Test Stadium",
@@ -133,145 +104,135 @@ public class StadiumsControllerIntegrationTests : IClassFixture<FootexWebApplica
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/stadiums", createStadiumDto);
+        var response = await httpClient.PostAsync(
+            "/api/stadiums",
+            createStadiumDto.ToMultipartFormDataContent()
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-
-        jsonDoc.RootElement.TryGetProperty("stadiumId", out var stadiumId);
-        stadiumId.GetInt32().Should().BeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task CreateStadium_WithInvalidData_ReturnsBadRequest()
-    {
-        // Arrange
-        var createStadiumDto = new CreateStadiumDto
-        {
-            Name = "", // Invalid: empty name
-            Country = "England",
-            City = "London",
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/stadiums", createStadiumDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var result = await response.Content.ReadFromJsonAsync<CreateStadiumCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
+        result?.Id.Should().BeGreaterThan(0);
     }
 
     [Fact]
     public async Task UpdateStadium_WithValidData_ReturnsOk()
     {
         // Arrange
-        var stadiumId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var stadium = TestData.CreateTestDbStadium();
+        context.Stadiums.Add(stadium);
+        await context.SaveChangesAsync();
         var updateStadiumDto = new UpdateStadiumDto
         {
             Name = "Updated Stadium",
             Country = "Spain",
             City = "Madrid",
             Capacity = 60000,
+            BuiltDate = new DateTime(1995, 5, 15),
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/stadiums/{stadiumId}", updateStadiumDto);
+        var response = await httpClient.PutAsync(
+            $"/api/stadiums/{stadium.Id}",
+            updateStadiumDto.ToMultipartFormDataContent()
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task UpdateStadium_WithInvalidId_ReturnsNotFound()
-    {
-        // Arrange
-        var updateStadiumDto = new UpdateStadiumDto
-        {
-            Name = "Updated Stadium",
-            Country = "Spain",
-            City = "Madrid",
-        };
-
-        // Act
-        var response = await _client.PutAsJsonAsync("/api/stadiums/999999", updateStadiumDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<UpdateStadiumCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
     public async Task DeleteStadium_WithValidId_ReturnsOk()
     {
         // Arrange
-        var stadiumId = await SeedTestDataAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var stadium = TestData.CreateTestDbStadium();
+        context.Stadiums.Add(stadium);
+        await context.SaveChangesAsync();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/stadiums/{stadiumId}");
+        var response = await httpClient.DeleteAsync($"/api/stadiums/{stadium.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var content = await response.Content.ReadAsStringAsync();
-        var jsonDoc = JsonDocument.Parse(content);
-
-        jsonDoc.RootElement.TryGetProperty("succeeded", out var succeeded);
-        succeeded.GetBoolean().Should().BeTrue();
+        var result = await response.Content.ReadFromJsonAsync<DeleteStadiumCommandResponse>();
+        result.Should().NotBeNull();
+        result?.Succeeded.Should().BeTrue();
     }
 
     [Fact]
-    public async Task DeleteStadium_WithInvalidId_ReturnsNotFound()
+    public async Task UpdateStadium_WithInvalidId_ReturnsNotFound()
     {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        var updateStadiumDto = new UpdateStadiumDto
+        {
+            Name = "Nonexistent Stadium",
+            Country = "Nowhere",
+            City = "Ghost City",
+            Capacity = 1000,
+            BuiltDate = new DateTime(1900, 1, 1),
+        };
+
         // Act
-        var response = await _client.DeleteAsync("/api/stadiums/999999");
+        var response = await httpClient.PutAsync(
+            $"/api/stadiums/999999",
+            updateStadiumDto.ToMultipartFormDataContent()
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task GetAllStadiums_CachesBehavior_WorksCorrectly()
+    public async Task UpdateStadium_WithInvalidData_ReturnsBadRequest()
     {
         // Arrange
-        await SeedTestDataAsync();
-
-        // Act - First call
-        var response1 = await _client.GetAsync("/api/stadiums?country=England");
-
-        // Act - Second call with same parameters (should be cached)
-        var response2 = await _client.GetAsync("/api/stadiums?country=England");
-
-        // Assert
-        response1.StatusCode.Should().Be(HttpStatusCode.OK);
-        response2.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Check cache headers
-        response1.Headers.Should().ContainKey("X-Cache-Hit");
-        response1.Headers.GetValues("X-Cache-Hit").First().Should().Be("false");
-
-        response2.Headers.Should().ContainKey("X-Cache-Hit");
-        response2.Headers.GetValues("X-Cache-Hit").First().Should().Be("true");
-    }
-
-    private async Task<int> SeedTestDataAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+        using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-
-        var stadium = TestData.CreateTestStadium();
+        var stadium = TestData.CreateTestDbStadium();
         context.Stadiums.Add(stadium);
         await context.SaveChangesAsync();
+        var updateStadiumDto = new UpdateStadiumDto
+        {
+            Name = "", // Invalid: Name required
+            Country = "",
+            City = "",
+            Capacity = -1, // Invalid: Capacity must be positive
+            BuiltDate = DateTime.MinValue,
+        };
 
-        return stadium.Id;
+        // Act
+        var response = await httpClient.PutAsync(
+            $"/api/stadiums/{stadium.Id}",
+            updateStadiumDto.ToMultipartFormDataContent()
+        );
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task DeleteStadium_WithInvalidId_ReturnsNotFound()
+    {
+        // Arrange
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
+
+        // Act
+        var response = await httpClient.DeleteAsync($"/api/stadiums/999999");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

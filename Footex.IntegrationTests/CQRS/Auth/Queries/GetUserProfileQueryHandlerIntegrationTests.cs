@@ -8,14 +8,17 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Auth.Queries;
 
-public class GetUserProfileQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    : BaseIntegrationTest(factory)
+public class GetUserProfileQueryHandlerIntegrationTests : BaseIntegrationTest
 {
-    private readonly IMediator _mediator =
-        factory.Services.GetRequiredService<IMediator>();
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    private readonly UserManager<ApplicationUser> _userManager =
-        factory.Services.GetRequiredService<UserManager<ApplicationUser>>();
+    public GetUserProfileQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+        : base(factory)
+    {
+        _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
+            UserManager<ApplicationUser>
+        >();
+    }
 
     [Fact]
     public async Task Handle_ValidUserId_ReturnsUserProfile()
@@ -24,4 +27,25 @@ public class GetUserProfileQueryHandlerIntegrationTests(FootexWebApplicationFact
         var password = "Password123!";
         var user = new ApplicationUser
         {
+            FirstName = "Profile",
+            LastName = "User",
+            UserName = "profileuser",
+            Email = "profile@example.com",
+            EmailConfirmed = true,
+        };
+        await _userManager.CreateAsync(user, password);
 
+        var query = new GetUserProfileQuery { UserId = user.Id };
+
+        // Act
+        var result = await Mediator.Send(query);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(user.Id, result.UserId);
+        Assert.Equal(user.Email, result.Email);
+        Assert.Equal(user.UserName, result.Username);
+        Assert.Equal(user.FirstName, result.FirstName);
+        Assert.Equal(user.LastName, result.LastName);
+    }
+}

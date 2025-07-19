@@ -21,7 +21,7 @@ public class CreatePlayerDto
     public string? FullName { get; set; }
     public string? Nationality { get; set; }
     public string? KnownName { get; set; }
-    public string PreferredFoot { get; set; }
+    public string? PreferredFoot { get; set; }
     public string? PhotoUrl { get; set; }
     public IFormFile? Photo { get; set; }
     public int? TeamId { get; set; }
@@ -34,7 +34,7 @@ public class UpdatePlayerDto
     public string? FullName { get; set; }
     public string? KnownName { get; set; }
     public string? Nationality { get; set; }
-    public string PreferredFoot { get; set; }
+    public string? PreferredFoot { get; set; }
     public string? PhotoUrl { get; set; }
     public IFormFile? Photo { get; set; }
     public int? TeamId { get; set; }

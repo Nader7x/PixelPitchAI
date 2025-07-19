@@ -13,9 +13,18 @@ public class DribbleEventProcessor : BaseEventProcessor
     {
         // Both dribbles and carries are tracked as dribbles in match statistics
         if (IsHomeTeam(matchEvent, match))
-            match.HomeTeamDribbles = IncrementValue(match.HomeTeamDribbles);
-        else
-            match.AwayTeamDribbles = IncrementValue(match.AwayTeamDribbles);
+        {
+            if (match.MatchStatistics != null)
+                match.MatchStatistics.HomeTeamDribbles = IncrementValue(
+                    match.MatchStatistics.HomeTeamDribbles
+                );
+        }
+        else if (match.MatchStatistics != null)
+        {
+            match.MatchStatistics.AwayTeamDribbles = IncrementValue(
+                match.MatchStatistics.AwayTeamDribbles
+            );
+        }
     }
 
     public override void ProcessEventCounters(

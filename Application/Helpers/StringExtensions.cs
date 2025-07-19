@@ -1,4 +1,4 @@
-namespace Footex.Extensions;
+namespace Application.Helpers;
 
 public static class StringExtensions
 {

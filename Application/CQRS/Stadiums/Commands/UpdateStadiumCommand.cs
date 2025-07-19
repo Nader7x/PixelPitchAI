@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Application.Helpers;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -48,14 +50,14 @@ public class UpdateStadiumCommand : IRequest<UpdateStadiumCommandResponse>
 
 public class UpdateStadiumCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public int Id { get; init; }
+    public string? Name { get; init; }
+    public string? Error { get; init; }
 }
 
-public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
+public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork, IStadiumMapper stadiumMapper)
     : IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>
 {
     public async Task<UpdateStadiumCommandResponse> Handle(
@@ -65,8 +67,27 @@ public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
+            // Validate required fields
+            if (
+                StringExtensions.AreAnyNullOrWhiteSpace(request.Name, request.Country, request.City)
+            )
+            {
+                return new UpdateStadiumCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Name, Country, and City are can not be white Spaces",
+                };
+            }
+            if (request.Capacity is <= 0)
+            {
+                return new UpdateStadiumCommandResponse
+                {
+                    Succeeded = false,
+                    Error = "Capacity must be a positive number",
+                };
+            }
             // Check if stadium exists
-            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id);
+            var stadium = await unitOfWork.Stadiums.GetByIdAsync(request.Id, cancellationToken);
             if (stadium == null)
                 return new UpdateStadiumCommandResponse
                 {
@@ -76,12 +97,23 @@ public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
                 };
 
             // Check for name conflicts
-            if (stadium.Name != request.Name)
+            if (
+                !StringExtensions.AreAnyNullOrWhiteSpace(stadium.Name, request.Name)
+                && !string.Equals(
+                    stadium.Name,
+                    request.Name,
+                    StringComparison.CurrentCultureIgnoreCase
+                )
+            )
             {
-                var existingStadium = await unitOfWork.Stadiums.GetAllAsync(s =>
-                    s.Name == request.Name
+                var existingStadium = await unitOfWork.Stadiums.AnyAsync(
+                    s =>
+                        s.Name != null
+                        && s.Name.ToLower() == request.Name.ToLower()
+                        && s.Id != request.Id,
+                    cancellationToken
                 );
-                if (existingStadium.First().Id != request.Id)
+                if (existingStadium)
                     return new UpdateStadiumCommandResponse
                     {
                         Succeeded = false,
@@ -89,21 +121,8 @@ public class UpdateStadiumCommandHandler(IUnitOfWork unitOfWork)
                     };
             }
 
-            // Update stadium properties
-            stadium.Name = request.Name;
-            stadium.City = request.City;
-            stadium.Country = request.Country;
-            stadium.Capacity = request.Capacity;
-            stadium.SurfaceType = request.SurfaceType;
-            stadium.Address = request.Address;
-            stadium.Latitude = request.Latitude;
-            stadium.Longitude = request.Longitude;
-            stadium.ImageUrl = request.ImageUrl;
-            stadium.Description = request.Description;
-            stadium.Facilities = request.Facilities;
-            stadium.BuiltDate = request.BuiltDate;
+            stadiumMapper.UpdateStadiumFromCommand(request, stadium);
 
-            unitOfWork.Stadiums.UpdateAsync(stadium);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateStadiumCommandResponse

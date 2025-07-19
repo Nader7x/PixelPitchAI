@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Application.DTOs;
@@ -25,6 +24,7 @@ public class UnifiedSearchService(
         "Search:EnablePostgreSQLFullText",
         true
     );
+
     private readonly int _fuzzySearchThreshold = configuration.GetValue(
         "Search:FuzzySearchThreshold",
         3

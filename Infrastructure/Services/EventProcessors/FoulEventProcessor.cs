@@ -11,38 +11,60 @@ public class FoulEventProcessor : BaseEventProcessor
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
-        if (matchEvent.action == "foul committed")
+        switch (matchEvent.action)
         {
-            // Update fouls counter for the team that committed the foul
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamFouls = IncrementValue(match.HomeTeamFouls);
-            else
-                match.AwayTeamFouls = IncrementValue(match.AwayTeamFouls);
-            // If the foul results in a card, update the card count
-            switch (matchEvent.card)
+            case "foul committed" when match.MatchStatistics != null:
             {
-                case "Yellow Card" when IsHomeTeam(matchEvent, match):
-                    match.HomeTeamYellowCards = IncrementValue(match.HomeTeamYellowCards);
-                    break;
-                case "Yellow Card":
-                    match.AwayTeamYellowCards = IncrementValue(match.AwayTeamYellowCards);
-                    break;
-                case "Red Card" when IsHomeTeam(matchEvent, match):
-                    match.HomeTeamRedCards = IncrementValue(match.HomeTeamRedCards);
-                    break;
-                case "Red Card":
-                    match.AwayTeamRedCards = IncrementValue(match.AwayTeamRedCards);
-                    break;
-            }
-        }
+                // Update fouls counter for the team that committed the foul
+                if (IsHomeTeam(matchEvent, match))
+                    match.MatchStatistics.HomeTeamFouls = IncrementValue(
+                        match.MatchStatistics.HomeTeamFouls
+                    );
+                else
+                    match.MatchStatistics.AwayTeamFouls = IncrementValue(
+                        match.MatchStatistics.AwayTeamFouls
+                    );
 
-        if (matchEvent.action == "foul won")
-        {
-            // When a foul is won, the opposing team gets a free kick
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
-            else
-                match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
+                // If the foul results in a card, update the card count
+                switch (matchEvent.card)
+                {
+                    case "Yellow Card" when IsHomeTeam(matchEvent, match):
+                        match.MatchStatistics.HomeTeamYellowCards = IncrementValue(
+                            match.MatchStatistics.HomeTeamYellowCards
+                        );
+                        break;
+                    case "Yellow Card":
+                        match.MatchStatistics.AwayTeamYellowCards = IncrementValue(
+                            match.MatchStatistics.AwayTeamYellowCards
+                        );
+                        break;
+                    case "Red Card" when IsHomeTeam(matchEvent, match):
+                        match.MatchStatistics.HomeTeamRedCards = IncrementValue(
+                            match.MatchStatistics.HomeTeamRedCards
+                        );
+                        break;
+                    case "Red Card":
+                        match.MatchStatistics.AwayTeamRedCards = IncrementValue(
+                            match.MatchStatistics.AwayTeamRedCards
+                        );
+                        break;
+                }
+
+                break;
+            }
+            case "foul won" when match.MatchStatistics != null:
+            {
+                // When a foul is won, the opposing team gets a free kick
+                if (IsHomeTeam(matchEvent, match))
+                    match.MatchStatistics.HomeTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.HomeTeamFreeKicks
+                    );
+                else
+                    match.MatchStatistics.AwayTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.AwayTeamFreeKicks
+                    );
+                break;
+            }
         }
     }
 

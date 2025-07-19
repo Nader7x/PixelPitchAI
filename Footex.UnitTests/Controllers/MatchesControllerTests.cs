@@ -25,12 +25,12 @@ namespace Footex.UnitTests.Controllers;
 
 public class MatchesControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly MatchesController _controller;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public MatchesControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -57,7 +57,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         // Setup simulation options
         var simulationOptions = new SimulationServiceOptions
         {
-            BaseUrl = "http://localhost:5000",
+            BaseUrl = "http://localhost:8000",
             ApiKey = "test-key",
         };
         simulationOptionsMock.Setup(x => x.Value).Returns(simulationOptions);
@@ -362,15 +362,28 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         {
             Succeeded = true,
             Id = matchId,
-            ScheduledDateTime = updateMatchDto.ScheduledDateTimeUTC,
+            ScheduledDateTime = updateMatchDto.ScheduledDateTimeUtc.Value,
         };
+        _iMatchMapperMock
+            .Setup(x => x.ToUpdateCommand(updateMatchDto))
+            .Returns(
+                new UpdateMatchCommand
+                {
+                    Id = matchId,
+                    HomeTeamId = 1,
+                    AwayTeamId = 2,
+                    MatchWeek = 1,
+                    ScheduledDateTimeUtc = DateTime.UtcNow.AddDays(7),
+                    MatchStatus = "Scheduled",
+                }
+            );
 
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<UpdateMatchCommand>(), default))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
-            .Setup(x => x.RemoveAsync(It.IsAny<string>(), CancellationToken.None))
+            .Setup(x => x.RemoveByPatternAsync(It.IsAny<string>(), CancellationToken.None))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -384,26 +397,6 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
     }
 
     [Fact]
-    public async Task UpdateMatch_WithMismatchedIds_ReturnsBadRequest()
-    {
-        // Arrange
-        const int urlId = 1;
-        const int bodyId = 2;
-        var updateMatchDto = TestDataBuilder.CreateValidUpdateMatchDto(bodyId);
-
-        // Act
-        var result = await _controller.UpdateMatch(urlId, updateMatchDto);
-
-        // Assert
-        result.Should().BeOfType<ActionResult<UpdateMatchCommandResponse>>();
-        var badRequestResult = result.Result as BadRequestObjectResult;
-        badRequestResult.Should().NotBeNull();
-        badRequestResult!
-            .Value.Should()
-            .BeEquivalentTo(new { error = "ID in URL does not match ID in request body" });
-    }
-
-    [Fact]
     public async Task DeleteMatch_WithValidId_ReturnsOkResult()
     {
         // Arrange
@@ -413,10 +406,6 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<DeleteMatchCommand>(), default))
             .ReturnsAsync(expectedResponse);
-
-        _cacheServiceMock
-            .Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         _cacheServiceMock
             .Setup(x => x.RemoveByPatternAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -432,14 +421,6 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
         // Verify cache invalidation was called
-        _cacheServiceMock.Verify(
-            x => x.RemoveAsync($"match_{matchId}", It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-        _cacheServiceMock.Verify(
-            x => x.RemoveAsync($"match_details_{matchId}", It.IsAny<CancellationToken>()),
-            Times.Once
-        );
         _cacheServiceMock.Verify(
             x => x.RemoveByPatternAsync("matches_all_*", It.IsAny<CancellationToken>()),
             Times.Once

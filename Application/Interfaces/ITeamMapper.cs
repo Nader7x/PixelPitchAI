@@ -15,4 +15,5 @@ public interface ITeamMapper
     DeleteTeamCommand ToDeleteCommand(int id);
     Team ToTeamfromCreate(CreateTeamCommand command);
     TeamDto ToTeamDto(Team team);
+    void UpdateTeamFromCommand(UpdateTeamCommand command, Team team);
 }

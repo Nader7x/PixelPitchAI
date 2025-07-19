@@ -11,9 +11,9 @@ public class GetSeasonTeamsQuery : IRequest<GetSeasonTeamsQueryResponse>
 
 public class GetSeasonTeamsQueryResponse
 {
-    public bool Succeeded { get; set; }
-    public string? error { get; set; }
-    public IReadOnlyList<TeamSeason>? TeamSeasons { get; set; }
+    public bool Succeeded { get; init; }
+    public string? Error { get; init; }
+    public IReadOnlyList<TeamSeason>? TeamSeasons { get; init; }
 }
 
 public class GetSeasonTeamsQueryHandler(IUnitOfWork unitOfWork)
@@ -26,13 +26,22 @@ public class GetSeasonTeamsQueryHandler(IUnitOfWork unitOfWork)
         CancellationToken cancellationToken
     )
     {
-        var seasonTeams = await _unitOfWork.TeamSeasons.GetTeamsBySeasonIdAsync(request.SeasonId);
-        if (seasonTeams.Count == 0)
-            return new GetSeasonTeamsQueryResponse
-            {
-                Succeeded = false,
-                error = "Season not found",
-            };
-        return new GetSeasonTeamsQueryResponse { Succeeded = true, TeamSeasons = seasonTeams };
+        try
+        {
+            var seasonTeams = await _unitOfWork.TeamSeasons.GetTeamsBySeasonIdAsync(
+                request.SeasonId
+            );
+            // if (seasonTeams.Count == 0)
+            //     return new GetSeasonTeamsQueryResponse
+            //     {
+            //         Succeeded = false,
+            //         Error = "Season not found",
+            //     };
+            return new GetSeasonTeamsQueryResponse { Succeeded = true, TeamSeasons = seasonTeams };
+        }
+        catch (Exception ex)
+        {
+            return new GetSeasonTeamsQueryResponse { Succeeded = false, Error = ex.Message };
+        }
     }
 }

@@ -19,10 +19,12 @@ public class NotificationsController(
     ICacheService cacheService
 ) : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly ICacheService _cacheService = cacheService;
+
     private readonly IHubContext<NotificationService, INotificationService> _hubContext =
         hubContext;
-    private readonly ICacheService _cacheService = cacheService;
+
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     [HttpGet("user/{userId}")]
     [ProducesResponseType(typeof(GetUserNotificationsQueryResponse), StatusCodes.Status200OK)]
@@ -32,15 +34,11 @@ public class NotificationsController(
     public async Task<IActionResult> GetAllUserNotifications(string userId)
     {
         if (string.IsNullOrEmpty(userId))
-        {
             return BadRequest("User ID cannot be null or empty.");
-        }
         // Check if the user exists
         var user = await _unitOfWork.ApplicationUser.GetByIdAsync(userId);
         if (user == null)
-        {
             return NotFound($"User with ID '{userId}' not found.");
-        }
         var query = new GetUserNotificationsQuery { UserId = userId };
         var result = await mediator.Send(query);
 
@@ -68,7 +66,7 @@ public class NotificationsController(
         if (notification == null)
             return NotFound();
         notification.IsRead = true;
-        _unitOfWork.Notifications.UpdateAsync(notification);
+        _unitOfWork.Notifications.Update(notification);
         await _unitOfWork.SaveChangesAsync();
         return Ok();
     }
@@ -84,7 +82,7 @@ public class NotificationsController(
         foreach (var notification in notifications)
         {
             notification.IsRead = true;
-            _unitOfWork.Notifications.UpdateAsync(notification);
+            _unitOfWork.Notifications.Update(notification);
         }
 
         await _unitOfWork.SaveChangesAsync();
@@ -101,7 +99,7 @@ public class NotificationsController(
         var notification = await _unitOfWork.Notifications.GetByIdAsync(notificationId);
         if (notification == null)
             return NotFound();
-        _unitOfWork.Notifications.DeleteAsync(notification);
+        _unitOfWork.Notifications.Delete(notification);
         await _unitOfWork.SaveChangesAsync();
         return NoContent();
     }
@@ -118,7 +116,7 @@ public class NotificationsController(
         if (notificationsEnumerate.Length == 0)
             return NotFound();
         foreach (var notification in notificationsEnumerate)
-            _unitOfWork.Notifications.DeleteAsync(notification);
+            _unitOfWork.Notifications.Delete(notification);
         await _unitOfWork.SaveChangesAsync();
         return NoContent();
     }

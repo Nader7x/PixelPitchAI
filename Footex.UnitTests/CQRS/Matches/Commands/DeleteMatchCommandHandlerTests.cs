@@ -36,7 +36,9 @@ public class DeleteMatchCommandHandlerTests
         var existingMatch = TestDataBuilder.CreateValidMatch(command.Id);
         existingMatch.MatchStatus = "Scheduled";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdAsync(command.Id)).ReturnsAsync(existingMatch);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingMatch);
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -49,7 +51,7 @@ public class DeleteMatchCommandHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(existingMatch), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(existingMatch), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -59,7 +61,9 @@ public class DeleteMatchCommandHandlerTests
         // Arrange
         var command = new DeleteMatchCommand { Id = 999 };
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdAsync(command.Id)).ReturnsAsync((Match?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Match?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -70,7 +74,7 @@ public class DeleteMatchCommandHandlerTests
         result.NotFound.Should().BeTrue();
         result.Error.Should().Contain($"Match with ID {command.Id} not found");
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(It.IsAny<Match>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(It.IsAny<Match>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -82,7 +86,9 @@ public class DeleteMatchCommandHandlerTests
         var existingMatch = TestDataBuilder.CreateValidMatch(command.Id);
         existingMatch.MatchStatus = "Completed";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdAsync(command.Id)).ReturnsAsync(existingMatch);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingMatch);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -92,7 +98,7 @@ public class DeleteMatchCommandHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Contain("Cannot delete a match that is Completed");
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(It.IsAny<Match>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(It.IsAny<Match>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -104,7 +110,9 @@ public class DeleteMatchCommandHandlerTests
         var existingMatch = TestDataBuilder.CreateValidMatch(command.Id);
         existingMatch.MatchStatus = "InProgress";
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdAsync(command.Id)).ReturnsAsync(existingMatch);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingMatch);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -114,7 +122,7 @@ public class DeleteMatchCommandHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Contain("Cannot delete a match that is InProgress");
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(It.IsAny<Match>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(It.IsAny<Match>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -129,7 +137,9 @@ public class DeleteMatchCommandHandlerTests
         var existingMatch = TestDataBuilder.CreateValidMatch(command.Id);
         existingMatch.MatchStatus = matchStatus;
 
-        _unitOfWorkMock.Setup(x => x.Matches.GetByIdAsync(command.Id)).ReturnsAsync(existingMatch);
+        _unitOfWorkMock
+            .Setup(x => x.Matches.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingMatch);
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -142,7 +152,7 @@ public class DeleteMatchCommandHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(existingMatch), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(existingMatch), Times.Once);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -154,7 +164,7 @@ public class DeleteMatchCommandHandlerTests
         var exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Matches.GetByIdAsync(It.IsAny<int>()))
+            .Setup(x => x.Matches.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -165,7 +175,7 @@ public class DeleteMatchCommandHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Matches.DeleteAsync(It.IsAny<Match>()), Times.Never);
+        _unitOfWorkMock.Verify(x => x.Matches.Delete(It.IsAny<Match>()), Times.Never);
         _unitOfWorkMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

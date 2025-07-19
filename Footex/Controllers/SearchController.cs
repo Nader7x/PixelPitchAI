@@ -31,7 +31,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (page < 1)
             page = 1;
 
-        if (pageSize < 1 || pageSize > 50)
+        if (pageSize is < 1 or > 50)
             pageSize = 10;
 
         var results = await advancedSearchService.SearchAsync(query, page, pageSize);
@@ -190,7 +190,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50)
+        if (limit is < 1 or > 50)
             limit = 10;
 
         var teams = advanced
@@ -252,7 +252,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50)
+        if (limit is < 1 or > 50)
             limit = 10;
 
         var coaches = advanced
@@ -312,7 +312,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 50)
+        if (limit is < 1 or > 50)
             limit = 10;
 
         var seasons = await advancedSearchService.SearchSeasonsAsync(
@@ -370,7 +370,7 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest("Search query cannot be empty");
 
-        if (limit < 1 || limit > 20)
+        if (limit is < 1 or > 20)
             limit = 5;
 
         try
@@ -423,13 +423,15 @@ public class SearchController(IAdvancedSearchService advancedSearchService) : Co
         [FromQuery] int pageSize = 10
     )
     {
-        if (queries == null || !queries.Any())
-            return BadRequest("At least one search query is required");
+        switch (queries.Count)
+        {
+            case 0:
+                return BadRequest("At least one search query is required");
+            case > 10:
+                return BadRequest("Maximum 10 queries allowed per bulk search");
+        }
 
-        if (queries.Count > 10)
-            return BadRequest("Maximum 10 queries allowed per bulk search");
-
-        if (pageSize < 1 || pageSize > 50)
+        if (pageSize is < 1 or > 50)
             pageSize = 10;
 
         var results = new Dictionary<string, SearchResultDto>();

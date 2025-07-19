@@ -13,10 +13,41 @@ namespace Footex.UnitTests.CQRS.Matches.Queries;
 
 public class GetLiveMatchQueryHandlerTests
 {
+    public static readonly IEnumerable<object[]> GetMatchesForTheory =
+    [
+        new object[]
+        {
+            new Match
+            {
+                Id = 1,
+                CreatorId = "creator_id",
+                IsLive = true,
+            },
+        },
+        new object[]
+        {
+            new Match
+            {
+                Id = 2,
+                CreatorId = "creator_id",
+                IsLive = true,
+            },
+        },
+        new object[]
+        {
+            new Match
+            {
+                Id = 3,
+                CreatorId = "creator_id",
+                IsLive = true,
+            },
+        },
+    ];
+
     private readonly NoRecursionFixture _fixture;
     private readonly GetLiveMatchQueryHandler _handler;
-    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public GetLiveMatchQueryHandlerTests(ITestOutputHelper testOutputHelper)
     {
@@ -37,7 +68,7 @@ public class GetLiveMatchQueryHandlerTests
     {
         // Arrange
         var userId = "user123";
-        var liveMatch = new Match()
+        var liveMatch = new Match
         {
             Id = 42,
             CreatorId = "creator_id",
@@ -80,9 +111,7 @@ public class GetLiveMatchQueryHandlerTests
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
         if (!result.Succeeded)
-        {
             throw new Exception(result?.Error);
-        }
         _testOutputHelper.WriteLine(
             $"Result: {result?.Succeeded}, Has Live Match: {result?.HasLiveMatch}"
         );
@@ -106,7 +135,7 @@ public class GetLiveMatchQueryHandlerTests
         _unitOfWorkMock
             .Setup(x => x.Matches.GetLiveMatchAsync(userId))
             .ReturnsAsync(
-                new Match()
+                new Match
                 {
                     Id = 0,
                     CreatorId = "creator_id", // Simulating no live match found
@@ -135,7 +164,7 @@ public class GetLiveMatchQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetLiveMatchAsync(invalidUserId))
-            .ReturnsAsync(new Match() { Id = 0, CreatorId = "creator_id" });
+            .ReturnsAsync(new Match { Id = 0, CreatorId = "creator_id" });
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -215,35 +244,4 @@ public class GetLiveMatchQueryHandlerTests
         result?.LiveMatch?.Should().BeOfType<LiveMatchDto?>();
         result?.Error.Should().BeNull();
     }
-
-    public static readonly IEnumerable<object[]> GetMatchesForTheory =
-    [
-        new object[]
-        {
-            new Match
-            {
-                Id = 1,
-                CreatorId = "creator_id",
-                IsLive = true,
-            },
-        },
-        new object[]
-        {
-            new Match
-            {
-                Id = 2,
-                CreatorId = "creator_id",
-                IsLive = true,
-            },
-        },
-        new object[]
-        {
-            new Match
-            {
-                Id = 3,
-                CreatorId = "creator_id",
-                IsLive = true,
-            },
-        },
-    ];
 }

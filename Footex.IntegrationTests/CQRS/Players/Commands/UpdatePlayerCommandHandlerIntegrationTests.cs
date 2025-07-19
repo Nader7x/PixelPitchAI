@@ -9,31 +9,20 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Players.Commands;
 
-[Collection("Database")]
-public class UpdatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWebApplicationFactory>
+public class UpdatePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public UpdatePlayerCommandHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _scope = factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_WithValidCommand_UpdatesPlayerInDatabase()
     {
         // Arrange
         var team = TestData.CreateTestDbTeam();
-        _context.Teams.Add(team);
-        await _context.SaveChangesAsync();
+        Context.Teams.Add(team);
+        await Context.SaveChangesAsync();
 
         var player = TestData.CreateTestDbPlayer(team.Id);
-        _context.Players.Add(player);
-        await _context.SaveChangesAsync();
+        Context.Players.Add(player);
+        await Context.SaveChangesAsync();
 
         var command = new UpdatePlayerCommand
         {
@@ -49,14 +38,14 @@ public class UpdatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();
         response.Succeeded.Should().BeTrue();
 
         // Verify player was updated in database
-        var updatedPlayer = await _context.Players.FindAsync(player.Id);
+        var updatedPlayer = await Context.Players.FindAsync(player.Id);
         updatedPlayer.Should().NotBeNull();
         updatedPlayer!.FullName.Should().Be(command.FullName);
         updatedPlayer.KnownName.Should().Be(command.KnownName);
@@ -84,7 +73,7 @@ public class UpdatePlayerCommandHandlerIntegrationTests : IClassFixture<FootexWe
         };
 
         // Act
-        var response = await _mediator.Send(command);
+        var response = await Mediator.Send(command);
 
         // Assert
         response.Should().NotBeNull();

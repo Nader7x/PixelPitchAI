@@ -51,7 +51,9 @@ public class GetStadiumByIdQueryHandlerTests
             Capacity = stadium.Capacity,
         };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync(stadium);
+        _unitOfWorkMock
+            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stadium);
         _iStadiumMapperMock.Setup(x => x.ToDto(stadium)).Returns(expectedStadiumDto);
 
         // Act
@@ -65,7 +67,10 @@ public class GetStadiumByIdQueryHandlerTests
         result.Stadium!.Id.Should().Be(stadiumId);
         result.Error.Should().BeNull();
 
-        _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iStadiumMapperMock.Verify(x => x.ToDto(stadium), Times.Once);
     }
 
@@ -76,7 +81,9 @@ public class GetStadiumByIdQueryHandlerTests
         var stadiumId = 999;
         var query = new GetStadiumByIdQuery { Id = stadiumId };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync((Stadium?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stadium?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -88,7 +95,10 @@ public class GetStadiumByIdQueryHandlerTests
         result.Stadium.Should().BeNull();
         result.Error.Should().Be($"Stadium with ID {stadiumId} not found");
 
-        _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
@@ -96,12 +106,12 @@ public class GetStadiumByIdQueryHandlerTests
     public async Task Handle_WhenExceptionThrown_ReturnsFailureResponse()
     {
         // Arrange
-        var stadiumId = 1;
+        const int stadiumId = 1;
         var query = new GetStadiumByIdQuery { Id = stadiumId };
-        var exceptionMessage = "Database connection failed";
+        const string exceptionMessage = "Database connection failed";
 
         _unitOfWorkMock
-            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId))
+            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception(exceptionMessage));
 
         // Act
@@ -114,7 +124,10 @@ public class GetStadiumByIdQueryHandlerTests
         result.Stadium.Should().BeNull();
         result.Error.Should().Be(exceptionMessage);
 
-        _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(stadiumId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
@@ -127,7 +140,9 @@ public class GetStadiumByIdQueryHandlerTests
         // Arrange
         var query = new GetStadiumByIdQuery { Id = invalidId };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(invalidId)).ReturnsAsync((Stadium?)null);
+        _unitOfWorkMock
+            .Setup(x => x.Stadiums.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stadium?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -139,7 +154,10 @@ public class GetStadiumByIdQueryHandlerTests
         result.Stadium.Should().BeNull();
         result.Error.Should().Be($"Stadium with ID {invalidId} not found");
 
-        _unitOfWorkMock.Verify(x => x.Stadiums.GetByIdAsync(invalidId), Times.Once);
+        _unitOfWorkMock.Verify(
+            x => x.Stadiums.GetByIdAsync(invalidId, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
         _iStadiumMapperMock.Verify(x => x.ToDto(It.IsAny<Stadium>()), Times.Never);
     }
 
@@ -147,7 +165,7 @@ public class GetStadiumByIdQueryHandlerTests
     public async Task Handle_WithValidStadium_MapsCorrectly()
     {
         // Arrange
-        var stadiumId = 1;
+        const int stadiumId = 1;
         var query = new GetStadiumByIdQuery { Id = stadiumId };
         var stadium = CreateValidStadium(stadiumId);
         var expectedStadiumDto = new StadiumDto
@@ -166,7 +184,10 @@ public class GetStadiumByIdQueryHandlerTests
             BuiltDate = stadium.BuiltDate,
         };
 
-        _unitOfWorkMock.Setup(x => x.Stadiums.GetByIdAsync(stadiumId)).ReturnsAsync(stadium);
+        _unitOfWorkMock
+            .Setup(x => x.Stadiums.GetByIdAsync(stadiumId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stadium);
+
         _iStadiumMapperMock.Setup(x => x.ToDto(stadium)).Returns(expectedStadiumDto);
 
         // Act
@@ -176,18 +197,18 @@ public class GetStadiumByIdQueryHandlerTests
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Stadium.Should().NotBeNull();
-        result.Stadium!.Id.Should().Be(expectedStadiumDto.Id);
-        result.Stadium.Name.Should().Be(expectedStadiumDto.Name);
-        result.Stadium.City.Should().Be(expectedStadiumDto.City);
-        result.Stadium.Country.Should().Be(expectedStadiumDto.Country);
-        result.Stadium.Capacity.Should().Be(expectedStadiumDto.Capacity);
-        result.Stadium.SurfaceType.Should().Be(expectedStadiumDto.SurfaceType);
-        result.Stadium.Address.Should().Be(expectedStadiumDto.Address);
-        result.Stadium.Latitude.Should().Be(expectedStadiumDto.Latitude);
-        result.Stadium.Longitude.Should().Be(expectedStadiumDto.Longitude);
-        result.Stadium.Description.Should().Be(expectedStadiumDto.Description);
-        result.Stadium.Facilities.Should().Be(expectedStadiumDto.Facilities);
-        result.Stadium.BuiltDate.Should().Be(expectedStadiumDto.BuiltDate);
+        result.Stadium?.Id.Should().Be(expectedStadiumDto.Id);
+        result.Stadium?.Name.Should().Be(expectedStadiumDto.Name);
+        result.Stadium?.City.Should().Be(expectedStadiumDto.City);
+        result.Stadium?.Country.Should().Be(expectedStadiumDto.Country);
+        result.Stadium?.Capacity.Should().Be(expectedStadiumDto.Capacity);
+        result.Stadium?.SurfaceType.Should().Be(expectedStadiumDto.SurfaceType);
+        result.Stadium?.Address.Should().Be(expectedStadiumDto.Address);
+        result.Stadium?.Latitude.Should().Be(expectedStadiumDto.Latitude);
+        result.Stadium?.Longitude.Should().Be(expectedStadiumDto.Longitude);
+        result.Stadium?.Description.Should().Be(expectedStadiumDto.Description);
+        result.Stadium?.Facilities.Should().Be(expectedStadiumDto.Facilities);
+        result.Stadium?.BuiltDate.Should().Be(expectedStadiumDto.BuiltDate);
     }
 
     private Stadium CreateValidStadium(int id)

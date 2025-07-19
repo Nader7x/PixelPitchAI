@@ -1,105 +1,54 @@
+using Dapper;
 using Domain.Enums;
 using Domain.Models;
 using Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Footex.IntegrationTests.Common;
 
 public static class TestData
 {
-    // Sample IDs for testing - in a real implementation, these would be
-    // populated with actual test data from your test database
-    private static readonly Guid _sampleMatchId = Guid.Parse(
-        "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-    );
-    private static readonly Guid _liveMatchId = Guid.Parse("b3c56789-ab12-4d3e-9f80-7d61234e5678");
-    private static readonly Guid _sampleTeamId = Guid.Parse("dea12856-c198-4129-b3f3-38250d9f2152");
-    private static readonly Guid _samplePlayerId = Guid.Parse(
-        "7c9e6679-7425-40de-944b-e07fc1f90ae7"
-    );
-    private static readonly Guid _sampleSeasonId = Guid.Parse(
-        "e0a8d3d0-770a-4f89-a9c0-7e6d4e1b4c0e"
-    );
-    private static readonly Guid _sampleStadiumId = Guid.Parse(
-        "b23a3d3c-a434-4ba5-9f7a-059d041f55b3"
-    );
-    private static readonly Guid _sampleCoachId = Guid.Parse(
-        "afc65e75-d452-4a17-94f6-c3abcd92a4b1"
-    );
-
-    public static Guid GetSampleMatchId()
+    public static Competition CreateTestCompetition()
     {
-        return _sampleMatchId;
-    }
-
-    public static Guid GetLiveMatchId()
-    {
-        return _liveMatchId;
-    }
-
-    public static Guid GetSampleTeamId()
-    {
-        return _sampleTeamId;
-    }
-
-    public static Guid GetSamplePlayerId()
-    {
-        return _samplePlayerId;
-    }
-
-    public static Guid GetSampleSeasonId()
-    {
-        return _sampleSeasonId;
-    }
-
-    public static Guid GetSampleStadiumId()
-    {
-        return _sampleStadiumId;
-    }
-
-    public static Guid GetSampleCoachId()
-    {
-        return _sampleCoachId;
+        return new Competition
+        {
+            Name = "Test Competition" + Guid.NewGuid(),
+            Description = "Competitions Description",
+            Country = "Competition Country",
+        };
     }
 
     public static Team CreateTeam(string name)
     {
         return new Team
         {
-            Id = 1,
             Name = name,
             Country = "Testland",
             FoundationDate = new DateTime(1900, 1, 1),
         };
     }
 
-    public static Player CreatePlayer(string player, int teamId)
-    {
-        return new Player
-        {
-            Id = 0,
-            FullName = player,
-            TeamId = teamId,
-        };
-    }
-
-    public static Coach CreateCoach(string headCoach, int teamId)
-    {
-        return new Coach
-        {
-            Id = 0,
-            FirstName = headCoach,
-            TeamId = teamId,
-        };
-    }
-
-    public static Team CreateTestTeam()
+    public static Team CreateTestTeam(string name = "Test Team")
     {
         return new Team
         {
             Id = 0,
-            Name = "Test Team",
+            Name = name + " " + Guid.NewGuid(),
             ShortName = "TT",
+            Country = "Testland",
+            FoundationDate = new DateTime(1900, 1, 1),
+        };
+    }
+
+    public static Team CreateTestDbTeam(string prefix = "", string name = "")
+    {
+        return new Team
+        {
+            Name = string.IsNullOrWhiteSpace(name) ? $"Test Team {Guid.NewGuid()} {prefix}" : name,
+            ShortName =
+                $"TT{Guid.NewGuid().ToString()[..5]} {(!prefix.IsNullOrEmpty() ? prefix.First() : prefix)}",
             Country = "Testland",
             FoundationDate = new DateTime(1900, 1, 1),
         };
@@ -118,6 +67,18 @@ public static class TestData
         };
     }
 
+    public static Season CreateTestDbSeason()
+    {
+        return new Season
+        {
+            Name = "Test Season " + Guid.NewGuid(),
+            StartDate = new DateTime(2023, 1, 1),
+            EndDate = new DateTime(2024, 1, 1),
+            LeagueName = "Premier League",
+            Country = "England",
+        };
+    }
+
     public static Stadium CreateTestStadium()
     {
         return new Stadium
@@ -129,9 +90,20 @@ public static class TestData
         };
     }
 
-    public static TeamSeasons CreateTestSeasonTeam(int seasonId, int homeTeamId)
+    public static Stadium CreateTestDbStadium(string name = "Test Stadium")
     {
-        return new TeamSeasons
+        return new Stadium
+        {
+            Name = name + Guid.NewGuid(),
+            Capacity = 50000,
+            Country = "England",
+            City = "London",
+        };
+    }
+
+    public static TeamSeason CreateTestSeasonTeam(int seasonId, int homeTeamId)
+    {
+        return new TeamSeason
         {
             Id = 0,
             SeasonId = seasonId,
@@ -139,26 +111,82 @@ public static class TestData
         };
     }
 
-    public static Coach CreateTestCoach(int homeTeamId)
+    public static TeamSeason CreateTestDbSeasonTeam(int seasonId, int teamId)
+    {
+        return new TeamSeason { SeasonId = seasonId, TeamId = teamId };
+    }
+
+    public static Coach CreateTestCoach(int teamId)
     {
         return new Coach
         {
-            Id = 0,
             FirstName = "Test",
             LastName = "Coach",
-            TeamId = homeTeamId,
+            Nationality = "TestLand",
+            DateOfBirth = new DateTime(),
+            YearsOfExperience = 5,
+            Biography = "bio",
+            Role = "Head Coach",
+            TeamId = teamId,
         };
     }
 
-    public static Match CreateTestMatch(int homeTeamId, int awayTeamId)
+    public static Coach CreateTestDbCoach(
+        int teamId = 0,
+        string firstName = "Test",
+        string lastName = "Coach"
+    )
     {
+        if (teamId > 0)
+            return new Coach
+            {
+                FirstName = firstName == "Test" ? "Test" + " " + Guid.NewGuid() : firstName,
+                LastName = lastName == "Coach" ? "Coach" + " " + Guid.NewGuid() : lastName,
+                TeamId = teamId,
+                DateOfBirth = new DateTime(1980, 1, 1),
+                Nationality = "England",
+                YearsOfExperience = 10,
+                Role = "Head Coach",
+                PreferredFormation = "4-3-3",
+            };
+        return new Coach
+        {
+            FirstName = firstName,
+            LastName = lastName,
+            DateOfBirth = new DateTime(1980, 1, 1),
+            Nationality = "England",
+            YearsOfExperience = 10,
+            Role = "Head Coach",
+            PreferredFormation = "4-3-3",
+        };
+    }
+
+    public static Match CreateTestMatch(
+        int homeTeamId,
+        int awayTeamId,
+        int seasonId,
+        bool db = false,
+        string creatorId = ""
+    )
+    {
+        if (db)
+            return new Match
+            {
+                HomeTeamId = homeTeamId,
+                AwayTeamId = awayTeamId,
+                ScheduledDateTimeUtc = DateTime.UtcNow,
+                CreatorId = creatorId,
+                HomeTeamSeasonId = seasonId,
+                AwayTeamSeasonId = seasonId,
+                MatchWeek = 1,
+            };
         return new Match
         {
             Id = 0,
             HomeTeamId = homeTeamId,
             AwayTeamId = awayTeamId,
             ScheduledDateTimeUtc = DateTime.UtcNow,
-            StadiumId = 0,
+            StadiumId = 1,
             MatchWeek = null,
             HomeCoachId = null,
             AwayCoachId = null,
@@ -167,66 +195,14 @@ public static class TestData
             WinningTeamId = null,
             LosingTeamId = null,
             IsDraw = null, // Assuming stadium is not set for this test match
-            HomeTeamSeasonId = 0,
+            HomeTeamSeasonId = 1,
             HomeTeamSeason = null, // Assuming season is not set for this test match
-            AwayTeamSeasonId = 0,
+            AwayTeamSeasonId = 2,
             AwayTeamSeason = null,
             HomeTeamInMatchName = null,
             AwayTeamInMatchName = null, // Assuming season is not set for this test match
             MatchStatus = "Scheduled",
             ModelSimulationStartTimeUtc = null,
-            HomeTeamPossession = null,
-            AwayTeamPossession = null,
-            HomeTeamShots = null,
-            AwayTeamShots = null,
-            HomeTeamShotsOnTarget = null,
-            AwayTeamShotsOnTarget = null,
-            HomeTeamCorners = null,
-            AwayTeamCorners = null,
-            HomeTeamFouls = null,
-            AwayTeamFouls = null,
-            HomeTeamYellowCards = null,
-            AwayTeamYellowCards = null,
-            HomeTeamRedCards = null,
-            AwayTeamRedCards = null,
-            HomeTeamOffsides = null,
-            AwayTeamOffsides = null,
-            HomeTeamPasses = null,
-            HomeTeamPassesCompleted = null,
-            AwayTeamPassesCompleted = null,
-            AwayTeamPasses = null,
-            HomeTeamPassAccuracy = null,
-            AwayTeamPassAccuracy = null,
-            HomeTeamPossessionDurationSeconds = null,
-            AwayTeamPossessionDurationSeconds = null,
-            LastEventTimestampSeconds = null,
-            LastEventPossessingTeamName = null,
-            HomeTeamDribbles = null,
-            AwayTeamDribbles = null,
-            HomeTeamSaves = null,
-            AwayTeamSaves = null,
-            HomeTeamDuels = null,
-            AwayTeamDuels = null,
-            HomeTeamDuelsWon = null,
-            AwayTeamDuelsWon = null,
-            HomeTeamClearances = null,
-            AwayTeamClearances = null,
-            HomeTeamPossessionWon = null,
-            AwayTeamPossessionWon = null,
-            HomeTeamRecoveries = null,
-            AwayTeamRecoveries = null,
-            HomeTeamGoalKicks = null,
-            AwayTeamGoalKicks = null,
-            HomeLongBalls = null,
-            AwayLongBalls = null,
-            HomeAccurateLongBalls = null,
-            AwayAccurateLongBalls = null,
-            HomeTeamLongBallsAccuracy = null,
-            AwayTeamLongBallsAccuracy = null,
-            HomeTeamFreeKicks = null,
-            AwayTeamFreeKicks = null,
-            AwayTeamShotsOffTarget = null,
-            HomeTeamShotsOffTarget = null,
             IsLive = false,
             CreatedAt = default,
             UpdatedAt = default,
@@ -241,18 +217,41 @@ public static class TestData
         };
     }
 
-    public static Player CreateTestPlayer(int teamId)
+    public static Player CreateTestPlayer(int teamId = 0)
     {
         return new Player
         {
-            Id = 0,
             FullName = "Test Player",
             KnownName = "TP",
-            Nationality = "Testland",
-            ShirtNumber = 8,
+            Nationality = "England",
+            ShirtNumber = 10,
             PreferredFoot = "Right",
-            TeamId = 0,
-            PhotoUrl = "http://example.com/photo.jpg",
+            TeamId = teamId,
+            Position = nameof(PlayerPosition.CentralMidfielder),
+        };
+    }
+
+    public static Player CreateTestDbPlayer(int teamId = 0)
+    {
+        if (teamId > 0)
+            return new Player
+            {
+                FullName = "Test Player" + Guid.NewGuid(),
+                KnownName = "TP",
+                Nationality = "England",
+                ShirtNumber = 10,
+                PreferredFoot = "Right",
+                TeamId = teamId,
+                Position = nameof(PlayerPosition.CentralMidfielder),
+                PhotoUrl = "www.photourl.example.com",
+            };
+        return new Player
+        {
+            FullName = "Test Player",
+            KnownName = "TP",
+            Nationality = "England",
+            ShirtNumber = 10,
+            PreferredFoot = "Right",
             Position = nameof(PlayerPosition.CentralMidfielder),
         };
     }
@@ -263,27 +262,29 @@ public static class TestData
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
 
         // Create and add teams
-        var team1 = CreateTeam("Test Team 1");
-        var team2 = CreateTeam("Test Team 2");
-        dbContext.Teams.AddRange(team1, team2);
+        var team1 = CreateTestDbTeam();
+        var team2 = CreateTestDbTeam();
+        await dbContext.Teams.AddRangeAsync(team1, team2);
+        await dbContext.SaveChangesAsync();
 
         // Create and add players
-        var player1 = CreatePlayer("Test Player 1", team1.Id);
-        var player2 = CreatePlayer("Test Player 2", team2.Id);
-        dbContext.Players.AddRange(player1, player2);
+        var player1 = CreateTestDbPlayer(team1.Id);
+        var player2 = CreateTestDbPlayer(team2.Id);
+        await dbContext.Players.AddRangeAsync(player1, player2);
+        await dbContext.SaveChangesAsync();
 
         // Create and add coaches
-        var coach1 = CreateCoach("Head Coach 1", team1.Id);
-        var coach2 = CreateCoach("Head Coach 2", team2.Id);
-        dbContext.Coaches.AddRange(coach1, coach2);
+        var coach1 = CreateTestDbCoach(team1.Id);
+        var coach2 = CreateTestDbCoach(team2.Id);
+        await dbContext.Coaches.AddRangeAsync(coach1, coach2);
 
         // Create and add seasons
-        var season = CreateTestSeason();
-        dbContext.Seasons.Add(season);
+        var season = CreateTestDbSeason();
+        await dbContext.Seasons.AddAsync(season);
 
         // Create and add stadiums
-        var stadium = CreateTestStadium();
-        dbContext.Stadiums.Add(stadium);
+        var stadium = CreateTestDbStadium();
+        await dbContext.Stadiums.AddAsync(stadium);
 
         // Save changes to the database
         await dbContext.SaveChangesAsync();
@@ -299,15 +300,14 @@ public static class TestData
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
 
         // Create players
-        var team = CreateTestTeam();
-        dbContext.Teams.Add(team);
+        var team = CreateTestDbTeam();
+        await dbContext.Teams.AddAsync(team);
         await dbContext.SaveChangesAsync();
 
         for (var i = 0; i < count; i++)
         {
             var player = new Player
             {
-                Id = 0,
                 FullName = $"Test Player {i + 1}",
                 KnownName = $"TP{i + 1}",
                 Nationality = testNationality,
@@ -316,7 +316,7 @@ public static class TestData
                 TeamId = team.Id,
                 Position = ((PlayerPosition)(i % 4 + 1)).ToString(),
             };
-            dbContext.Players.Add(player);
+            await dbContext.Players.AddAsync(player);
         }
 
         await dbContext.SaveChangesAsync();
@@ -332,15 +332,14 @@ public static class TestData
         var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
 
         // Create team
-        var team = CreateTestTeam();
-        dbContext.Teams.Add(team);
+        var team = CreateTestDbTeam();
+        await dbContext.Teams.AddAsync(team);
         await dbContext.SaveChangesAsync();
 
         for (var i = 0; i < count; i++)
         {
             var player = new Player
             {
-                Id = 0,
                 FullName = $"Test Player {i + 1}",
                 KnownName = $"TP{i + 1}",
                 Nationality = "Testland",
@@ -349,7 +348,7 @@ public static class TestData
                 TeamId = team.Id,
                 Position = ((PlayerPosition)(i % 4 + 1)).ToString(),
             };
-            dbContext.Players.Add(player);
+            await dbContext.Players.AddAsync(player);
         }
 
         await dbContext.SaveChangesAsync();
@@ -368,7 +367,6 @@ public static class TestData
         {
             var player = new Player
             {
-                Id = 0,
                 FullName = $"Test Player {i + 1}",
                 KnownName = $"TP{i + 1}",
                 Nationality = "Testland",
@@ -387,7 +385,6 @@ public static class TestData
     {
         return new Notification
         {
-            Id = Guid.Empty.ToString(),
             Content = "Test Notification",
             UserId = userId,
             Type = NotificationType.MatchUpdate,
@@ -397,11 +394,11 @@ public static class TestData
         };
     }
 
-    public static ApplicationUser CreateTestUser()
+    public static ApplicationUser CreateTestUser(bool db = false)
     {
         return new ApplicationUser
         {
-            Id = "test-user-id",
+            Id = db ? Guid.NewGuid().ToString() : "test_user_id",
             UserName = "testuser",
             Email = "testuser@example.com",
             EmailConfirmed = true,
@@ -426,12 +423,12 @@ public static class TestData
         };
     }
 
-    public static Stadium CreateStadium(string StadiumName)
+    public static Stadium CreateStadium(string stadiumName)
     {
         return new Stadium
         {
             Id = 0,
-            Name = StadiumName,
+            Name = stadiumName,
             City = "Test City",
             Country = "Testland",
             Capacity = 50000,
@@ -440,5 +437,121 @@ public static class TestData
             ImageUrl = null,
             SurfaceType = null,
         };
+    }
+
+    /// <summary>
+    /// Defines what and how to seed.
+    /// </summary>
+    public class SeedingOptions
+    {
+        public int StadiumsToCreate { get; set; } = 1;
+        public int TeamsToCreate { get; set; } = 1;
+        public int PlayersPerTeam { get; set; } = 1;
+        public int CoachesPerTeam { get; set; } = 1;
+        public int SeasonsToCreate { get; set; } = 1;
+        public bool ClearDatabase { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Seeds a single instance of each primary entity and returns them.
+    /// Ideal for simple tests requiring one of everything.
+    /// </summary>
+    public static async Task<(
+        Team Team,
+        Player Player,
+        Coach Coach,
+        Season Season,
+        Stadium Stadium
+    )> SeedAndGetSingleAsync(IServiceProvider serviceProvider)
+    {
+        var options = new SeedingOptions
+        {
+            StadiumsToCreate = 1,
+            TeamsToCreate = 1,
+            PlayersPerTeam = 1,
+            CoachesPerTeam = 1,
+            SeasonsToCreate = 1,
+            ClearDatabase = false,
+        };
+
+        var (teams, players, coaches, seasons, stadiums) = await SeedAndGetMultipleAsync(
+            serviceProvider,
+            options
+        );
+
+        return (teams.First(), players.First(), coaches.First(), seasons.First(), stadiums.First());
+    }
+
+    /// <summary>
+    /// Seeds a configurable number of entities and returns them in lists.
+    /// Ideal for complex tests requiring multiple entities.
+    /// </summary>
+    public static async Task<(
+        List<Team> Teams,
+        List<Player> Players,
+        List<Coach> Coaches,
+        List<Season> Seasons,
+        List<Stadium> Stadiums
+    )> SeedAndGetMultipleAsync(IServiceProvider serviceProvider, SeedingOptions options)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+
+        if (options.ClearDatabase)
+        {
+            var connection = dbContext.Database.GetDbConnection();
+            // Truncate tables for a clean slate. Order is important due to foreign keys.
+            await connection.ExecuteAsync(
+                @"TRUNCATE TABLE ""Players"", ""Coaches"", ""TeamSeasons"", ""Teams"", ""Seasons"", ""Stadiums"", ""Competitions"" RESTART IDENTITY"
+            );
+        }
+
+        var createdStadiums = new List<Stadium>();
+        var createdSeasons = new List<Season>();
+        var createdTeams = new List<Team>();
+        var createdPlayers = new List<Player>();
+        var createdCoaches = new List<Coach>();
+
+        // 1. Create entities that don't depend on others
+        for (var i = 0; i < options.StadiumsToCreate; i++)
+        {
+            createdStadiums.Add(CreateTestDbStadium());
+        }
+        await dbContext.Stadiums.AddRangeAsync(createdStadiums);
+
+        for (var i = 0; i < options.SeasonsToCreate; i++)
+        {
+            createdSeasons.Add(CreateTestDbSeason());
+        }
+        await dbContext.Seasons.AddRangeAsync(createdSeasons);
+        await dbContext.SaveChangesAsync(); // Save to get IDs
+
+        // 2. Create Teams and their dependent entities (Players, Coaches)
+        for (var i = 0; i < options.TeamsToCreate; i++)
+        {
+            var stadium = createdStadiums.Count != 0;
+            var team = CreateTestDbTeam();
+            createdTeams.Add(team);
+            await dbContext.Teams.AddAsync(team);
+            await dbContext.SaveChangesAsync(); // Save to get Team ID
+
+            for (var p = 0; p < options.PlayersPerTeam; p++)
+            {
+                createdPlayers.Add(CreateTestDbPlayer(team.Id));
+            }
+
+            for (var c = 0; c < options.CoachesPerTeam; c++)
+            {
+                createdCoaches.Add(CreateTestDbCoach(team.Id));
+            }
+        }
+
+        await dbContext.Players.AddRangeAsync(createdPlayers);
+        await dbContext.Coaches.AddRangeAsync(createdCoaches);
+
+        // 3. Final save for all remaining entities
+        await dbContext.SaveChangesAsync();
+
+        return (createdTeams, createdPlayers, createdCoaches, createdSeasons, createdStadiums);
     }
 }

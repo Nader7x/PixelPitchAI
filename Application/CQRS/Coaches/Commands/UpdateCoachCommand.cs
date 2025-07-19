@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Application.Interfaces;
 using Domain.Interfaces;
 using MediatR;
 
@@ -11,13 +12,13 @@ public class UpdateCoachCommand : IRequest<UpdateCoachCommandResponse>
 
     [Required]
     [StringLength(50, MinimumLength = 2)]
-    public string? FirstName { get; set; }
+    public string? FirstName { get; init; }
 
     [Required]
     [StringLength(50, MinimumLength = 2)]
-    public string? LastName { get; set; }
+    public string? LastName { get; init; }
 
-    public DateTime DateOfBirth { get; set; }
+    public DateTime? DateOfBirth { get; set; }
 
     [StringLength(50)]
     public string? Nationality { get; set; }
@@ -44,14 +45,14 @@ public class UpdateCoachCommand : IRequest<UpdateCoachCommandResponse>
 
 public class UpdateCoachCommandResponse
 {
-    public bool Succeeded { get; set; }
-    public bool NotFound { get; set; }
-    public int Id { get; set; }
-    public string FullName { get; set; }
-    public string Error { get; set; }
+    public bool Succeeded { get; init; }
+    public bool NotFound { get; init; }
+    public int Id { get; init; }
+    public string? FullName { get; init; }
+    public string? Error { get; init; }
 }
 
-public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
+public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork, ICoachMapper coachMapper)
     : IRequestHandler<UpdateCoachCommand, UpdateCoachCommandResponse>
 {
     public async Task<UpdateCoachCommandResponse> Handle(
@@ -61,8 +62,7 @@ public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
     {
         try
         {
-            // Check if coach exists
-            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id);
+            var coach = await unitOfWork.Coaches.GetByIdAsync(request.Id, cancellationToken);
             if (coach == null)
                 return new UpdateCoachCommandResponse
                 {
@@ -71,15 +71,17 @@ public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
                     Error = $"Coach with ID {request.Id} not found",
                 };
 
-            // Check for name conflicts (if name was changed)
             if (coach.FirstName != request.FirstName || coach.LastName != request.LastName)
             {
-                var existingCoach = (
-                    await unitOfWork.Coaches.GetAllAsync(c =>
-                        c.FirstName == request.FirstName && c.LastName == request.LastName
-                    )
-                ).FirstOrDefault();
-                if (existingCoach != null && existingCoach.Id != request.Id)
+                var newNameExists = await unitOfWork.Coaches.AnyAsync(
+                    c =>
+                        c.Id != request.Id
+                        && c.FirstName == request.FirstName
+                        && c.LastName == request.LastName,
+                    cancellationToken
+                );
+
+                if (newNameExists)
                     return new UpdateCoachCommandResponse
                     {
                         Succeeded = false,
@@ -88,11 +90,13 @@ public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
                     };
             }
 
-            // Check if team exists
             if (request.TeamId.HasValue)
             {
-                var team = await unitOfWork.Teams.GetByIdAsync(request.TeamId.Value);
-                if (team == null)
+                var teamExists = await unitOfWork.Teams.AnyAsync(
+                    t => t.Id == request.TeamId.Value,
+                    cancellationToken
+                );
+                if (!teamExists)
                     return new UpdateCoachCommandResponse
                     {
                         Succeeded = false,
@@ -100,36 +104,8 @@ public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
                     };
             }
 
-            // Update coach properties
-            if (!string.IsNullOrEmpty(request.FirstName) && request.FirstName != coach.FirstName)
-                coach.FirstName = request.FirstName;
-            if (!string.IsNullOrEmpty(request.LastName) && request.LastName != coach.LastName)
-                coach.LastName = request.LastName;
+            coachMapper.ToCoachFromUpdate(request, coach);
 
-            if (request.DateOfBirth != null && request.DateOfBirth != coach.DateOfBirth)
-                coach.DateOfBirth = request.DateOfBirth;
-
-            if (!string.IsNullOrEmpty(request.Nationality))
-                coach.Nationality = request.Nationality;
-            if (!string.IsNullOrEmpty(request.Role))
-                coach.Role = request.Role;
-            if (!string.IsNullOrEmpty(request.PhotoUrl))
-                coach.PhotoUrl = request.PhotoUrl;
-            if (!string.IsNullOrEmpty(request.TeamId.ToString()) && request.TeamId != coach.TeamId)
-                coach.TeamId = request.TeamId;
-            if (!string.IsNullOrEmpty(request.PreferredFormation))
-                coach.PreferredFormation = request.PreferredFormation;
-            if (!string.IsNullOrEmpty(request.CoachingStyle))
-                coach.CoachingStyle = request.CoachingStyle;
-            if (!string.IsNullOrEmpty(request.Biography))
-                coach.Biography = request.Biography;
-            if (
-                request.YearsOfExperience != null
-                && request.YearsOfExperience != coach.YearsOfExperience
-            )
-                coach.YearsOfExperience = request.YearsOfExperience;
-            // Update the coach in the database
-            unitOfWork.Coaches.UpdateAsync(coach);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new UpdateCoachCommandResponse
@@ -141,7 +117,14 @@ public class UpdateCoachCommandHandler(IUnitOfWork unitOfWork)
         }
         catch (Exception ex)
         {
-            return new UpdateCoachCommandResponse { Succeeded = false, Error = ex.Message };
+            var innermostException = ex;
+            while (innermostException.InnerException != null)
+                innermostException = innermostException.InnerException;
+            return new UpdateCoachCommandResponse
+            {
+                Succeeded = false,
+                Error = innermostException.Message,
+            };
         }
     }
 }

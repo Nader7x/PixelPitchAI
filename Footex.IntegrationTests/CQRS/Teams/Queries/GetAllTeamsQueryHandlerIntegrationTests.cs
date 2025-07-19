@@ -8,62 +8,43 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Queries;
 
-public class GetAllTeamsQueryHandlerIntegrationTests
-    : IClassFixture<FootexWebApplicationFactory>,
-        IDisposable
+public class GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly FootballDbContext _context;
-    private readonly FootexWebApplicationFactory _factory;
-    private readonly IMediator _mediator;
-    private readonly IServiceScope _scope;
-
-    public GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    {
-        _factory = factory;
-        _scope = _factory.Services.CreateScope();
-        _mediator = _scope.ServiceProvider.GetRequiredService<IMediator>();
-        _context = _scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-    }
-
     [Fact]
     public async Task Handle_ReturnsAllTeams()
     {
         // Arrange
-        _context.Teams.RemoveRange(_context.Teams);
-        await _context.SaveChangesAsync();
+        Context.Teams.RemoveRange(Context.Teams);
+        await Context.SaveChangesAsync();
         var team1 = TestData.CreateTestDbTeam();
         var team2 = TestData.CreateTestDbTeam();
         team2.Name = "Second Team";
         team2.ShortName = "ST2";
-        await _context.Teams.AddRangeAsync(team1, team2);
-        await _context.SaveChangesAsync();
+        await Context.Teams.AddRangeAsync(team1, team2);
+        await Context.SaveChangesAsync();
 
         // Act
-        var response = await _mediator.Send(new GetAllTeamsQuery());
+        var response = await Mediator.Send(new GetAllTeamsQuery());
 
         // Assert
         response.Should().NotBeNull();
         response.Teams.Should().HaveCount(2);
-        response.Teams.Select(t => t.Name).Should().Contain(new[] { team1.Name, team2.Name });
+        response.Teams?.Select(t => t.Name).Should().Contain([team1.Name, team2.Name]);
     }
 
     [Fact]
     public async Task Handle_WhenNoTeamsExist_ReturnsEmptyList()
     {
         // Arrange
-        _context.Teams.RemoveRange(_context.Teams);
-        await _context.SaveChangesAsync();
+        Context.Teams.RemoveRange(Context.Teams);
+        await Context.SaveChangesAsync();
 
         // Act
-        var response = await _mediator.Send(new GetAllTeamsQuery());
+        var response = await Mediator.Send(new GetAllTeamsQuery());
 
         // Assert
         response.Should().NotBeNull();
         response.Teams.Should().BeEmpty();
-    }
-
-    public void Dispose()
-    {
-        _scope?.Dispose();
     }
 }

@@ -12,9 +12,13 @@ public class ClearanceEventProcessor : BaseEventProcessor
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
         if (IsHomeTeam(matchEvent, match))
-            match.HomeTeamClearances = IncrementValue(match.HomeTeamClearances);
+            match.MatchStatistics.HomeTeamClearances = IncrementValue(
+                match.MatchStatistics.HomeTeamClearances
+            );
         else
-            match.AwayTeamClearances = IncrementValue(match.AwayTeamClearances);
+            match.MatchStatistics.AwayTeamClearances = IncrementValue(
+                match.MatchStatistics.AwayTeamClearances
+            );
     }
 
     public override void ProcessEventCounters(

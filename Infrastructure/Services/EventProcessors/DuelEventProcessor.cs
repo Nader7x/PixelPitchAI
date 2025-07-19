@@ -6,24 +6,34 @@ public class DuelEventProcessor : BaseEventProcessor
 {
     public override bool CanProcess(FootballMatchEvent matchEvent)
     {
-        return matchEvent.action == "duel"
-            || matchEvent.action == "50/50"
-            || matchEvent.action == "shield";
+        return matchEvent.action is "duel" or "50/50" or "shield";
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
         if (IsHomeTeam(matchEvent, match))
         {
-            match.HomeTeamDuels = IncrementValue(match.HomeTeamDuels);
-            if (matchEvent.outcome == "won" || matchEvent.outcome == "Success")
-                match.HomeTeamDuelsWon = IncrementValue(match.HomeTeamDuelsWon);
+            if (match.MatchStatistics == null)
+                return;
+            match.MatchStatistics.HomeTeamDuels = IncrementValue(
+                match.MatchStatistics.HomeTeamDuels
+            );
+            if (matchEvent.outcome is "won" or "Success")
+                match.MatchStatistics.HomeTeamDuelsWon = IncrementValue(
+                    match.MatchStatistics.HomeTeamDuelsWon
+                );
         }
         else
         {
-            match.AwayTeamDuels = IncrementValue(match.AwayTeamDuels);
-            if (matchEvent.outcome == "won" || matchEvent.outcome == "Success")
-                match.AwayTeamDuelsWon = IncrementValue(match.AwayTeamDuelsWon);
+            if (match.MatchStatistics == null)
+                return;
+            match.MatchStatistics.AwayTeamDuels = IncrementValue(
+                match.MatchStatistics.AwayTeamDuels
+            );
+            if (matchEvent.outcome is "won" or "Success")
+                match.MatchStatistics.AwayTeamDuelsWon = IncrementValue(
+                    match.MatchStatistics.AwayTeamDuelsWon
+                );
         }
     }
 

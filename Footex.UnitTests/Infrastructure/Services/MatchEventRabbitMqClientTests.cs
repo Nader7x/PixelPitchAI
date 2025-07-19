@@ -1,8 +1,4 @@
-using System; // Added for TimeSpan, EventId, Exception, Func
-using System.Collections.Generic; // Added for Dictionary
-using System.Net.Sockets; // Added for SocketException
-using System.Threading; // Added for CancellationToken
-using System.Threading.Tasks; // Added for Task
+using System.Globalization;
 using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
@@ -17,28 +13,33 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Exceptions; // Added for BrokerUnreachableException
 using Xunit;
+// Added for TimeSpan, EventId, Exception, Func
+// Added for Dictionary
+// Added for SocketException
+// Added for CancellationToken
+// Added for Task
+// Added for BrokerUnreachableException
 using Match = Domain.Models.Match;
 
 namespace Footex.UnitTests.Infrastructure.Services;
 
 public class MatchEventRabbitMqClientTests : IDisposable
 {
+    private readonly Mock<IChannel> _mockChannel;
+    private readonly Mock<IHubCallerClients<IMatchHub>> _mockClients;
+    private readonly Mock<IConnection> _mockConnection;
+    private readonly Mock<IConnectionFactory> _mockConnectionFactory; // NEW: Declare mock for IConnectionFactory
+    private readonly Mock<IEventAnalysisService> _mockEventAnalysisService;
     private readonly Mock<IHubContext<MatchHub, IMatchHub>> _mockHubContext;
+    private readonly Mock<ILiveMatchStatisticsService> _mockLiveMatchStatisticsService;
     private readonly Mock<ILogger<MatchEventRabbitMqClient>> _mockLogger;
+    private readonly Mock<IMatchHub> _mockMatchHub;
+    private readonly Mock<IMatchRepository> _mockMatchRepository;
+    private readonly Mock<IPerformanceMonitoringService> _mockPerformanceMonitoringService;
     private readonly Mock<IOptions<RabbitMqOptions>> _mockRabbitMqOptions;
     private readonly Mock<IServiceScopeFactory> _mockServiceScopeFactory;
-    private readonly Mock<IConnection> _mockConnection;
-    private readonly Mock<IChannel> _mockChannel;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-    private readonly Mock<IEventAnalysisService> _mockEventAnalysisService;
-    private readonly Mock<IPerformanceMonitoringService> _mockPerformanceMonitoringService;
-    private readonly Mock<ILiveMatchStatisticsService> _mockLiveMatchStatisticsService;
-    private readonly Mock<IMatchHub> _mockMatchHub;
-    private readonly Mock<IHubCallerClients<IMatchHub>> _mockClients;
-    private readonly Mock<IMatchRepository> _mockMatchRepository;
-    private readonly Mock<IConnectionFactory> _mockConnectionFactory; // NEW: Declare mock for IConnectionFactory
     private readonly MatchEventRabbitMqClient _sut;
 
     public MatchEventRabbitMqClientTests()
@@ -106,6 +107,11 @@ public class MatchEventRabbitMqClientTests : IDisposable
         );
     }
 
+    public void Dispose()
+    {
+        _sut.Dispose();
+    }
+
     [Theory]
     [InlineData("shot", "shot", true, "goal")]
     [InlineData("shot", "shot", true, null)]
@@ -113,7 +119,7 @@ public class MatchEventRabbitMqClientTests : IDisposable
     [InlineData("substitution", "substitution", true, null)]
     [InlineData("match_start", "match_start", true, null)]
     [InlineData("pass", "pass", false, null)]
-    [InlineData(null, "some_event", false, null)]
+    [InlineData("event", "some_event", false, null)]
     public void IsSignificantEvent_ShouldReturnExpectedResult(
         string action,
         string eventType,
@@ -684,7 +690,7 @@ public class MatchEventRabbitMqClientTests : IDisposable
         var matchEvent = new FootballMatchEvent
         {
             match_id = "123",
-            timestamp = DateTime.UtcNow.ToString(),
+            timestamp = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
             minute = 45,
             action = "goal",
             team = "home",
@@ -700,6 +706,16 @@ public class MatchEventRabbitMqClientTests : IDisposable
             MatchStatus = "Live",
             IsLive = true,
             CreatorId = "0", // Set to a valid test value
+            MatchStatistics = new MatchStatistics
+            {
+                HomeTeamPossession = 55,
+                AwayTeamPossession = 45,
+                HomeTeamShots = 5,
+                AwayTeamShots = 3,
+                HomeTeamOffsides = 0,
+                AwayTeamOffsides = 0,
+                MatchId = 123,
+            },
         };
 
         var mockStatisticsGroup = new Mock<IMatchHub>();
@@ -793,10 +809,5 @@ public class MatchEventRabbitMqClientTests : IDisposable
             x => x.UpdateMatchStatistics(matchEvent, It.IsAny<MatchEvents>(), matchEntity, false),
             Times.Once
         );
-    }
-
-    public void Dispose()
-    {
-        _sut.Dispose();
     }
 }

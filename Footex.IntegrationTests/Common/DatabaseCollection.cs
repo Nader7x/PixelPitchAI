@@ -1,6 +1,6 @@
+using Xunit;
+
 namespace Footex.IntegrationTests.Common;
 
-public class DatabaseCollection
-{
-    
-}
+[CollectionDefinition("Database collection")]
+public class DatabaseCollection : ICollectionFixture<FootexWebApplicationFactory> { }

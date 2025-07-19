@@ -1,6 +1,7 @@
+using Footex.IntegrationTests.Common;
+using Xunit;
+
 namespace Footex.PerformanceTests.Common;
 
-public class PerformanceTestsCollection
-{
-    
-}
+[CollectionDefinition("Performance tests collection")]
+public class PerformanceTestsCollection : ICollectionFixture<FootexWebApplicationFactory> { }

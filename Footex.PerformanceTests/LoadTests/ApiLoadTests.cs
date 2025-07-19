@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Footex.PerformanceTests.LoadTests;
 
+[Collection("Performance tests collection")]
 public class ApiLoadTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {
@@ -212,7 +213,7 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
     public async Task MixedWorkload_LoadTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var loadSimulation = Simulation.KeepConstant(5 , TimeSpan.FromMinutes(3));
+        var loadSimulation = Simulation.KeepConstant(5, TimeSpan.FromMinutes(3));
         var matchesScenario = Scenario
             .Create(
                 "mixed_matches",

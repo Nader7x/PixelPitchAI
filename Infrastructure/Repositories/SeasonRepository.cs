@@ -18,7 +18,7 @@ public class SeasonRepository(FootballDbContext context)
     public async Task<Season?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
         return await _context.Seasons.FirstOrDefaultAsync(
-            s => s.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase),
+            s => s.Name.ToLower() == name.ToLower(),
             cancellationToken
         );
     }

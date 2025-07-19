@@ -8,55 +8,77 @@ public class GoalkeeperEventProcessor : BaseEventProcessor
     {
         return matchEvent.action == "Save"
             || matchEvent.action == "goal keeper"
-            || (matchEvent.action == "shot" && matchEvent.outcome == "Saved");
+            || matchEvent is { action: "shot", outcome: "Saved" };
     }
 
     public override void ProcessMatchEvent(FootballMatchEvent matchEvent, Match match)
     {
-        if (matchEvent.action == "Save")
+        switch (matchEvent.action)
         {
-            // Direct save action with various outcomes
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
-            else
-                match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
+            case "Save" when match.MatchStatistics != null:
+            {
+                // Direct save action with various outcomes
+                if (IsHomeTeam(matchEvent, match))
+                    match.MatchStatistics.HomeTeamSaves = IncrementValue(
+                        match.MatchStatistics.HomeTeamSaves
+                    );
+                else
+                    match.MatchStatistics.AwayTeamSaves = IncrementValue(
+                        match.MatchStatistics.AwayTeamSaves
+                    );
 
-            // Different save outcomes: In Play Danger, In Play Safe, No Touch, Saved Twice, Success, Touched Out
-            // All are counted as saves but could be tracked separately if needed
-            switch (matchEvent.outcome)
-            {
-                case "In Play Danger":
-                case "In Play Safe":
-                case "No Touch":
-                case "Saved Twice":
-                case "Success":
-                case "Touched Out":
-                    // All these outcomes count as successful saves
-                    break;
+                // Different save outcomes: In Play Danger, In Play Safe, No Touch, Saved Twice, Success, Touched Out
+                // All are counted as saves but could be tracked separately if needed
+                switch (matchEvent.outcome)
+                {
+                    case "In Play Danger":
+                    case "In Play Safe":
+                    case "No Touch":
+                    case "Saved Twice":
+                    case "Success":
+                    case "Touched Out":
+                        // All these outcomes count as successful saves
+                        break;
+                }
+
+                break;
             }
-        }
-        else if (matchEvent.action == "goal keeper")
-        {
             // General goalkeeper action - could be a catch, a punch, etc.
-            if (IsHomeTeam(matchEvent, match))
-                match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
-            else
-                match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
-        }
-        else if (matchEvent.action == "shot" && matchEvent.outcome == "Saved")
-        {
-            // Shot that was saved - credit save to opposing team
-            if (IsHomeTeam(matchEvent, match))
+            case "goal keeper" when IsHomeTeam(matchEvent, match) && match.MatchStatistics != null:
+                match.MatchStatistics.HomeTeamSaves = IncrementValue(
+                    match.MatchStatistics.HomeTeamSaves
+                );
+                break;
+            case "goal keeper" when match.MatchStatistics != null:
+                match.MatchStatistics.AwayTeamSaves = IncrementValue(
+                    match.MatchStatistics.AwayTeamSaves
+                );
+                break;
+            case "shot" when matchEvent.outcome == "Saved" && match.MatchStatistics != null:
             {
-                // Home team shot was saved by away team
-                match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
-                match.HomeTeamShotsOnTarget = IncrementValue(match.HomeTeamShotsOnTarget);
-            }
-            else
-            {
-                // Away team shot was saved by home team
-                match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
-                match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
+                // Shot that was saved - credit save to an opposing team
+                if (IsHomeTeam(matchEvent, match))
+                {
+                    // Away team saved Home team shot
+                    match.MatchStatistics.AwayTeamSaves = IncrementValue(
+                        match.MatchStatistics.AwayTeamSaves
+                    );
+                    match.MatchStatistics.HomeTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOnTarget
+                    );
+                }
+                else
+                {
+                    // The home team saved away team shot
+                    match.MatchStatistics.HomeTeamSaves = IncrementValue(
+                        match.MatchStatistics.HomeTeamSaves
+                    );
+                    match.MatchStatistics.AwayTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOnTarget
+                    );
+                }
+
+                break;
             }
         }
     }

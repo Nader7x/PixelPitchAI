@@ -3,6 +3,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Footex.IntegrationTests.Common;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Footex.PerformanceTests.Benchmarks;
 
@@ -15,16 +16,18 @@ public class ApiBenchmarks
     private HttpClient _httpClient = null!;
 
     [GlobalSetup]
-    public void Setup()
+    public async void Setup()
     {
-        _factory = new FootexWebApplicationFactory();
-        _factory.InitializeAsync().GetAwaiter().GetResult();
-        _httpClient = _factory.CreateClient(
-            new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
-            {
-                BaseAddress = new Uri("https://localhost:7082"),
-            }
-        );
+        try
+        {
+            _factory = new FootexWebApplicationFactory();
+            await _factory.InitializeAsync();
+            _httpClient = await _factory.CreateAuthenticatedClientAsync();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error during setup: {e.Message}");
+        }
     }
 
     [GlobalCleanup]
@@ -131,20 +134,20 @@ public class ApiBenchmarks
         return await response.Content.ReadAsStringAsync();
     }
 
-    public IEnumerable<object[]> FilterParameters()
+    public static IEnumerable<object[]> FilterParameters()
     {
-        yield return new object[] { "Brazil", "Right", 1 };
-        yield return new object[] { "Argentina", "Left", null! };
-        yield return new object[] { "", "Right", 2 };
-        yield return new object[] { "Spain", "", null! };
+        yield return ["Brazil", "Right", 1];
+        yield return ["Argentina", "Left", null!];
+        yield return ["", "Right", 2];
+        yield return ["Spain", "", null!];
     }
 
-    public IEnumerable<object[]> PaginationParameters()
+    public static IEnumerable<object[]> PaginationParameters()
     {
-        yield return new object[] { 1, 10 };
-        yield return new object[] { 1, 25 };
-        yield return new object[] { 2, 10 };
-        yield return new object[] { 1, 50 };
+        yield return [1, 10];
+        yield return [1, 25];
+        yield return [2, 10];
+        yield return [1, 50];
     }
 }
 

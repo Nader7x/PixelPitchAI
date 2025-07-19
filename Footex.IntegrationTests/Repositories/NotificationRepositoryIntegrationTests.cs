@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("IntegrationTests")]
 public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly INotificationRepository _notificationRepository;
@@ -15,7 +14,8 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
     public NotificationRepositoryIntegrationTests(FootexWebApplicationFactory factory)
         : base(factory)
     {
-        _notificationRepository = ServiceProvider.GetRequiredService<INotificationRepository>();
+        _notificationRepository =
+            FactoryServiceScope.ServiceProvider.GetRequiredService<INotificationRepository>();
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
 
         notification.IsRead = true;
         notification.Content = "Updated content"; // Act
-        var result = _notificationRepository.UpdateAsync(notification);
+        var result = _notificationRepository.Update(notification);
         await Context.SaveChangesAsync();
 
         // Assert
@@ -202,7 +202,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var notification = await SeedNotificationAsync();
         var notificationId = notification.Id; // Act
-        _notificationRepository.DeleteAsync(notification);
+        _notificationRepository.Delete(notification);
         await Context.SaveChangesAsync();
 
         // Assert

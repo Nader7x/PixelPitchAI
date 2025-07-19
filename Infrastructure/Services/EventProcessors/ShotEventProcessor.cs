@@ -14,89 +14,122 @@ public class ShotEventProcessor : BaseEventProcessor
         // Handle free kick and penalty shot types
         switch (matchEvent.type)
         {
-            case "Free Kick":
+            case "Free Kick" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamFreeKicks = IncrementValue(match.HomeTeamFreeKicks);
+                    match.MatchStatistics.HomeTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.HomeTeamFreeKicks
+                    );
                 else
-                    match.AwayTeamFreeKicks = IncrementValue(match.AwayTeamFreeKicks);
-                break;
-            case "Penalty":
-                // Penalty shots are tracked in the matchEvents entity
-                break;
-            case "Open Play":
-                // Regular shot in open play
+                    match.MatchStatistics.AwayTeamFreeKicks = IncrementValue(
+                        match.MatchStatistics.AwayTeamFreeKicks
+                    );
                 break;
         }
 
         // Update shots counter
         if (IsHomeTeam(matchEvent, match))
-            match.HomeTeamShots = IncrementValue(match.HomeTeamShots);
-        else
-            match.AwayTeamShots = IncrementValue(match.AwayTeamShots);
+        {
+            if (match.MatchStatistics != null)
+                match.MatchStatistics.HomeTeamShots = IncrementValue(
+                    match.MatchStatistics.HomeTeamShots
+                );
+        }
+        else if (match.MatchStatistics != null)
+        {
+            match.MatchStatistics.AwayTeamShots = IncrementValue(
+                match.MatchStatistics.AwayTeamShots
+            );
+        }
 
         // Process outcome
         switch (matchEvent.outcome)
         {
-            case "Goal":
+            case "Goal" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
                 {
-                    match.HomeTeamShotsOnTarget = IncrementValue(match.HomeTeamShotsOnTarget);
+                    match.MatchStatistics.HomeTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOnTarget
+                    );
                     match.HomeTeamScore = IncrementValue(match.HomeTeamScore);
                 }
                 else
                 {
-                    match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
+                    match.MatchStatistics.AwayTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOnTarget
+                    );
                     match.AwayTeamScore = IncrementValue(match.AwayTeamScore);
                 }
 
                 UpdateMatchResult(match);
                 break;
 
-            case "Off T":
-            case "Wayward":
+            case "Off T" when match.MatchStatistics is not null:
+            case "Wayward" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
+                    match.MatchStatistics.HomeTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOffTarget
+                    );
                 else
-                    match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
+                    match.MatchStatistics.AwayTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOffTarget
+                    );
                 break;
 
-            case "Saved":
+            case "Saved" when match.MatchStatistics is not null:
                 if (IsHomeTeam(matchEvent, match))
                 {
-                    match.HomeTeamShotsOnTarget = IncrementValue(match.HomeTeamShotsOnTarget);
-                    match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
+                    match.MatchStatistics.HomeTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOnTarget
+                    );
+                    match.MatchStatistics.AwayTeamSaves = IncrementValue(
+                        match.MatchStatistics.AwayTeamSaves
+                    );
                 }
                 else
                 {
-                    match.AwayTeamShotsOnTarget = IncrementValue(match.AwayTeamShotsOnTarget);
-                    match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
+                    match.MatchStatistics.AwayTeamShotsOnTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOnTarget
+                    );
+                    match.MatchStatistics.HomeTeamSaves = IncrementValue(
+                        match.MatchStatistics.HomeTeamSaves
+                    );
                 }
+
                 break;
 
-            case "Blocked":
-                // Shots that are blocked are still counted as shots, but not on target
-                break;
-
-            case "Post":
+            case "Post" when match.MatchStatistics is not null:
                 // Shot hit the post - counted as a shot but not on target
                 if (IsHomeTeam(matchEvent, match))
-                    match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
+                    match.MatchStatistics.HomeTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOffTarget
+                    );
                 else
-                    match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
+                    match.MatchStatistics.AwayTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOffTarget
+                    );
                 break;
 
-            case "Saved Off Target":
+            case "Saved Off Target" when match.MatchStatistics is not null:
                 // Shot saved but was going off target anyway
                 if (IsHomeTeam(matchEvent, match))
                 {
-                    match.HomeTeamShotsOffTarget = IncrementValue(match.HomeTeamShotsOffTarget);
-                    match.AwayTeamSaves = IncrementValue(match.AwayTeamSaves);
+                    match.MatchStatistics.HomeTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.HomeTeamShotsOffTarget
+                    );
+                    match.MatchStatistics.AwayTeamSaves = IncrementValue(
+                        match.MatchStatistics.AwayTeamSaves
+                    );
                 }
                 else
                 {
-                    match.AwayTeamShotsOffTarget = IncrementValue(match.AwayTeamShotsOffTarget);
-                    match.HomeTeamSaves = IncrementValue(match.HomeTeamSaves);
+                    match.MatchStatistics.AwayTeamShotsOffTarget = IncrementValue(
+                        match.MatchStatistics.AwayTeamShotsOffTarget
+                    );
+                    match.MatchStatistics.HomeTeamSaves = IncrementValue(
+                        match.MatchStatistics.HomeTeamSaves
+                    );
                 }
+
                 break;
         }
     }

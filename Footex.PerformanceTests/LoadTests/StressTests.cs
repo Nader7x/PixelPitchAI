@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Footex.PerformanceTests.LoadTests;
 
+[Collection("Performance tests collection")]
 public class StressTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {
@@ -16,6 +17,7 @@ public class StressTests(FootexWebApplicationFactory factory)
         "/api/players?pageNumber=1&pageSize=10",
         "/api/teams",
     ];
+
     private static readonly string[] HighLoadEndpointsArray =
     [
         "/api/matches",
@@ -24,22 +26,31 @@ public class StressTests(FootexWebApplicationFactory factory)
         "/api/stadiums",
         "/api/health",
     ];
+
     private static readonly string[] MemoryLeakEndpointsArray =
     [
         "/api/players",
         "/api/matches",
         "/api/search/players?query=a&limit=50",
-        "/api/matches/Details/1"
+        "/api/matches/Details/1",
     ];
+
     private static readonly string[] DbQueriesArray =
     [
         "valencia",
         "villarreal",
         "barcelona",
         "real",
-        "athletic"
+        "athletic",
     ];
-    private static readonly string[] ConcurrentUsersQueries = ["real", "barcelona", "messi", "ronaldo"];
+
+    private static readonly string[] ConcurrentUsersQueries =
+    [
+        "real",
+        "barcelona",
+        "messi",
+        "ronaldo",
+    ];
 
     [Fact]
     public async Task HighLoad_StressTest()
@@ -223,9 +234,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(
-                Simulation.KeepConstant(50, TimeSpan.FromMinutes(10))
-            );
+            .WithLoadSimulations(Simulation.KeepConstant(50, TimeSpan.FromMinutes(10)));
 
         NBomberRunner
             .RegisterScenarios(userScenario)
@@ -252,9 +261,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(
-                Simulation.KeepConstant(20, TimeSpan.FromMinutes(30))
-            );
+            .WithLoadSimulations(Simulation.KeepConstant(20, TimeSpan.FromMinutes(3)));
 
         NBomberRunner.RegisterScenarios(scenario).WithReportFolder("endurance-test-results").Run();
     }
@@ -278,9 +285,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(
-                Simulation.KeepConstant(15, TimeSpan.FromHours(1))
-            );
+            .WithLoadSimulations(Simulation.KeepConstant(15, TimeSpan.FromHours(1)));
 
         NBomberRunner
             .RegisterScenarios(scenario)

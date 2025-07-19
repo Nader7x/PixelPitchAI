@@ -1,49 +1,42 @@
 using Application.CQRS.Players.Queries;
 using Domain.Interfaces;
+using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Players.Queries;
 
-public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
+public class GetPlayerByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly GetPlayerByIdQueryHandler _handler;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetPlayerByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _handler = ServiceProvider.GetRequiredService<GetPlayerByIdQueryHandler>();
-        _unitOfWork = ServiceProvider.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_ValidPlayerId_ReturnsPlayerSuccessfully()
     {
         // Arrange
-        var team = TestData.CreateTeam("Test Team");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam();
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
-        var player = TestData.CreatePlayer("John Doe", team.Id);
-        await _unitOfWork.Players.AddAsync(player);
-        await _unitOfWork.SaveChangesAsync();
+        var player = TestData.CreateTestDbPlayer(team.Id);
+        await UnitOfWork.Players.AddAsync(player);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetPlayerByIdQuery { Id = player.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Player);
-        Assert.Equal(player.Id, result.Player.Id);
-        Assert.Equal(player.FullName, result.Player.FullName);
-        Assert.Equal(player.ShirtNumber, result.Player.ShirtNumber);
-        Assert.Equal(player.Position, result.Player.Position);
-        Assert.Equal(team.Id, result.Player.TeamId);
-        Assert.Null(result.Error);
+        result.Succeeded.Should().BeTrue();
+        result.Player.Should().NotBeNull();
+        result.Player!.Id.Should().Be(player.Id);
+        result.Player.FullName.Should().Be(player.FullName);
+        result.Player.ShirtNumber.Should().Be(player.ShirtNumber);
+        result.Player.Position.Should().Be(player.Position);
+        result.Player.TeamId.Should().Be(team.Id);
+        result.Error.Should().BeNull();
     }
 
     [Fact]
@@ -54,124 +47,123 @@ public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         var query = new GetPlayerByIdQuery { Id = nonExistentId };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.True(result.NotFound);
-        Assert.Null(result.Player);
-        Assert.Contains($"Player with ID {nonExistentId} not found", result.Error);
+        result.Succeeded.Should().BeFalse();
+        result.NotFound.Should().BeTrue();
+        result.Player.Should().BeNull();
+        result.Error.Should().Contain($"Player with ID {nonExistentId} not found");
     }
 
     [Fact]
     public async Task Handle_PlayerWithDetailedInformation_ReturnsCompletePlayerDto()
     {
         // Arrange
-        var team = TestData.CreateTeam("Barcelona");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        var team = TestData.CreateTestDbTeam("Barcelona");
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
-        var player = TestData.CreatePlayer("Lionel Messi", team.Id);
+        var player = TestData.CreateTestDbPlayer(team.Id);
         player.Nationality = "Argentina";
         player.PreferredFoot = "Left";
         player.PhotoUrl = "https://example.com/messi.jpg";
 
-        await _unitOfWork.Players.AddAsync(player);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Players.AddAsync(player);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetPlayerByIdQuery { Id = player.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Player);
-        Assert.Equal(player.Nationality, result.Player.Nationality);
-        Assert.Equal(player.PreferredFoot, result.Player.PreferredFoot);
-        Assert.Equal(player.PhotoUrl, result.Player.PhotoUrl);
+        result.Succeeded.Should().BeTrue();
+        result.Player.Should().NotBeNull();
+        result.Player!.Nationality.Should().Be(player.Nationality);
+        result.Player.PreferredFoot.Should().Be(player.PreferredFoot);
+        result.Player.PhotoUrl.Should().Be(player.PhotoUrl);
     }
 
     [Fact]
     public async Task Handle_DeletedPlayer_ReturnsNotFoundResponse()
     {
         // Arrange
-        var team = TestData.CreateTeam("Test Team");
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
-
-        var player = TestData.CreatePlayer("Deleted Player", team.Id);
-        await _unitOfWork.Players.AddAsync(player);
-        await _unitOfWork.SaveChangesAsync();
+        var player = TestData.CreateTestDbPlayer();
+        await UnitOfWork.Players.AddAsync(player);
+        await UnitOfWork.SaveChangesAsync();
+        // Simulate deletion by removing the player
+        UnitOfWork.Players.Delete(player);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetPlayerByIdQuery { Id = player.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.True(result.NotFound);
-        Assert.Null(result.Player);
-        Assert.Contains($"Player with ID {player.Id} not found", result.Error);
+        result.Succeeded.Should().BeFalse();
+        result.NotFound.Should().BeTrue();
+        result.Player.Should().BeNull();
+        result.Error.Should().Contain($"Player with ID {player.Id} not found");
     }
 
     [Fact]
     public async Task Handle_PlayerWithTeamInformation_ReturnsPlayerWithTeamDetails()
     {
         // Arrange
-        var team = TestData.CreateTeam("Manchester United");
+        var team = TestData.CreateTestDbTeam();
         team.Logo = "https://example.com/man-utd-logo.png";
-        await _unitOfWork.Teams.AddAsync(team);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Teams.AddAsync(team);
+        await UnitOfWork.SaveChangesAsync();
 
-        var player = TestData.CreatePlayer("Marcus Rashford", team.Id);
-        await _unitOfWork.Players.AddAsync(player);
-        await _unitOfWork.SaveChangesAsync();
+        var player = TestData.CreateTestDbPlayer(team.Id);
+        await UnitOfWork.Players.AddAsync(player);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetPlayerByIdQuery { Id = player.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Player);
-        Assert.Equal(team.Id, result.Player.TeamId);
+        result.Succeeded.Should().BeTrue();
+        result.Player.Should().NotBeNull();
+        result.Player!.TeamId.Should().Be(team.Id);
     }
 
     [Fact]
     public async Task Handle_MultiplePlayersInDatabase_ReturnsCorrectPlayer()
     {
         // Arrange
-        var team1 = TestData.CreateTeam("Team 1");
-        var team2 = TestData.CreateTeam("Team 2");
-        await _unitOfWork.Teams.AddAsync(team1);
-        await _unitOfWork.Teams.AddAsync(team2);
-        await _unitOfWork.SaveChangesAsync();
+        var team1 = TestData.CreateTestDbTeam();
+        var team2 = TestData.CreateTestDbTeam();
+        await UnitOfWork.Teams.AddAsync(team1);
+        await UnitOfWork.Teams.AddAsync(team2);
+        await UnitOfWork.SaveChangesAsync();
 
-        var player1 = TestData.CreatePlayer("Player 1", team1.Id);
-        var player2 = TestData.CreatePlayer("Player 2", team2.Id);
-        var player3 = TestData.CreatePlayer("Player 3", team1.Id);
+        var player1 = TestData.CreateTestDbPlayer(team1.Id);
+        var player2 = TestData.CreateTestDbPlayer(team2.Id);
+        var player3 = TestData.CreateTestDbPlayer(team1.Id);
 
-        await _unitOfWork.Players.AddAsync(player1);
-        await _unitOfWork.Players.AddAsync(player2);
-        await _unitOfWork.Players.AddAsync(player3);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Players.AddAsync(player1);
+        await UnitOfWork.Players.AddAsync(player2);
+        await UnitOfWork.Players.AddAsync(player3);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetPlayerByIdQuery { Id = player2.Id };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result.Succeeded);
-        Assert.NotNull(result.Player);
-        Assert.Equal(player2.Id, result.Player.Id);
-        Assert.Equal(player2.FullName, result.Player.FullName);
-        Assert.Equal(team2.Id, result.Player.TeamId);
-        Assert.NotEqual(player1.Id, result.Player.Id);
-        Assert.NotEqual(player3.Id, result.Player.Id);
+        result.Succeeded.Should().BeTrue();
+        result.Player.Should().NotBeNull();
+        result.Player!.Id.Should().Be(player2.Id);
+        result.Player.FullName.Should().Be(player2.FullName);
+        result.Player.TeamId.Should().Be(team2.Id);
+        result.Player.Id.Should().NotBe(player1.Id);
+        result.Player.Id.Should().NotBe(player3.Id);
     }
 
     [Fact]
@@ -184,17 +176,17 @@ public class GetPlayerByIdQueryHandlerIntegrationTests : BaseIntegrationTest
         var query = new GetPlayerByIdQuery { Id = -1 };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.Error);
-        Assert.Null(result.Player);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Player.Should().BeNull();
     }
 
     private Task DisposeContext()
     {
-        _unitOfWork.Dispose();
+        UnitOfWork.Dispose();
         return Task.CompletedTask;
     }
 }

@@ -7,8 +7,8 @@ namespace Infrastructure.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly ISmtpClient _smtpClient;
     private readonly IConfiguration _configuration;
+    private readonly ISmtpClient _smtpClient;
 
     public EmailService(ISmtpClient smtpClient, IConfiguration configuration)
     {

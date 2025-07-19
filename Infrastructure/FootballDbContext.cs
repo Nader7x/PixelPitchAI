@@ -20,15 +20,14 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     public virtual DbSet<TeamSeason> TeamSeasons { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }
+    public virtual DbSet<MatchStatistics> MatchStatistics { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply all configurations from the Configurations namespace
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // Configure identity tables - customize table names
         modelBuilder.Entity<ApplicationUser>().ToTable("Users");
         modelBuilder.Entity<IdentityRole>().ToTable("Roles");
         modelBuilder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
@@ -41,8 +40,5 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-
-        // Query splitting should be configured at the provider level in Program.cs
-        // or can be set per query using AsSplitQuery()
     }
 }

@@ -128,8 +128,8 @@ public class PerformanceTestHelpers
 
     public static string[] GetRealisticNationalities()
     {
-        return new[]
-        {
+        return
+        [
             "Brazil",
             "Argentina",
             "France",
@@ -142,13 +142,13 @@ public class PerformanceTestHelpers
             "Belgium",
             "Croatia",
             "Poland",
-        };
+        ];
     }
 
     public static string[] GetRealisticCountries()
     {
-        return new[]
-        {
+        return
+        [
             "England",
             "Spain",
             "Italy",
@@ -159,11 +159,11 @@ public class PerformanceTestHelpers
             "Netherlands",
             "Portugal",
             "Belgium",
-        };
+        ];
     }
 
     public static (int pageNumber, int pageSize)[] GetRealisticPaginationParams()
     {
-        return new[] { (1, 10), (1, 20), (1, 50), (2, 10), (2, 20), (3, 10), (5, 10) };
+        return [(1, 10), (1, 20), (1, 50), (2, 10), (2, 20), (3, 10), (5, 10)];
     }
 }

@@ -17,13 +17,13 @@ namespace Footex.UnitTests.Controllers;
 
 public class TeamsControllerTests : IClassFixture<TestFixtureBase>
 {
-    private readonly TestFixtureBase _testFixtureBase;
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<ITeamMapper> _teamMapperMock;
-    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly TeamsController _controller;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
+    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ITeamMapper> _teamMapperMock;
+    private readonly TestFixtureBase _testFixtureBase;
 
     public TeamsControllerTests(TestFixtureBase testFixtureBase)
     {
@@ -72,7 +72,7 @@ public class TeamsControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Teams = new List<TeamDto>
             {
-                new TeamDto
+                new()
                 {
                     Id = 1,
                     Name = "Arsenal",
@@ -124,7 +124,7 @@ public class TeamsControllerTests : IClassFixture<TestFixtureBase>
             Succeeded = true,
             Teams = new List<TeamDto>
             {
-                new TeamDto
+                new()
                 {
                     Id = 1,
                     Name = "Arsenal",

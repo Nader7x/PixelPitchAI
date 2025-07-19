@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Application.CQRS.Players.Commands;
 using Application.Interfaces;
 using AutoFixture;
@@ -56,11 +57,7 @@ public class CreatePlayerCommandHandlerTests
         };
 
         _unitOfWorkMock
-            .Setup(x =>
-                x.Players.FindAsync(
-                    It.IsAny<System.Linq.Expressions.Expression<System.Func<Player, bool>>>()
-                )
-            )
+            .Setup(x => x.Players.FindAsync(It.IsAny<Expression<Func<Player, bool>>>()))
             .ReturnsAsync((Player?)null);
 
         _playerMapperMock.Setup(x => x.ToPlayerFromCreate(command)).Returns(player);

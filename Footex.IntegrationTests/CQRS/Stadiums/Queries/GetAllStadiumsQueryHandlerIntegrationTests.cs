@@ -8,32 +8,23 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Stadiums.Queries;
 
-public class GetAllStadiumsQueryHandlerIntegrationTests : BaseIntegrationTest
+public class GetAllStadiumsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
+    : BaseIntegrationTest(factory)
 {
-    private readonly IMediator _mediator;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetAllStadiumsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-        : base(factory)
-    {
-        _mediator = factory.Services.GetRequiredService<IMediator>();
-        _unitOfWork = factory.Services.GetRequiredService<IUnitOfWork>();
-    }
-
     [Fact]
     public async Task Handle_NoFilters_ReturnsAllStadiums()
     {
         // Arrange
         var stadium1 = TestData.CreateTestDbStadium("StadiumA");
         var stadium2 = TestData.CreateTestDbStadium("StadiumB");
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetAllStadiumsQuery();
 
         // Act
-        var result = await _mediator.Send(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
@@ -50,14 +41,14 @@ public class GetAllStadiumsQueryHandlerIntegrationTests : BaseIntegrationTest
         stadium1.Country = "England";
         var stadium2 = TestData.CreateTestDbStadium("SpainStadium");
         stadium2.Country = "Spain";
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetAllStadiumsQuery { Country = "England" };
 
         // Act
-        var result = await _mediator.Send(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
@@ -72,14 +63,14 @@ public class GetAllStadiumsQueryHandlerIntegrationTests : BaseIntegrationTest
         stadium1.City = "London";
         var stadium2 = TestData.CreateTestDbStadium("MadridStadium");
         stadium2.City = "Madrid";
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetAllStadiumsQuery { City = "London" };
 
         // Act
-        var result = await _mediator.Send(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
@@ -96,14 +87,14 @@ public class GetAllStadiumsQueryHandlerIntegrationTests : BaseIntegrationTest
         var stadium2 = TestData.CreateTestDbStadium("LondonSpain");
         stadium2.City = "London";
         stadium2.Country = "Spain";
-        await _unitOfWork.Stadiums.AddAsync(stadium1);
-        await _unitOfWork.Stadiums.AddAsync(stadium2);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Stadiums.AddAsync(stadium1);
+        await UnitOfWork.Stadiums.AddAsync(stadium2);
+        await UnitOfWork.SaveChangesAsync();
 
         var query = new GetAllStadiumsQuery { Country = "England", City = "London" };
 
         // Act
-        var result = await _mediator.Send(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();
@@ -117,7 +108,7 @@ public class GetAllStadiumsQueryHandlerIntegrationTests : BaseIntegrationTest
         var query = new GetAllStadiumsQuery { Country = "Nonexistent", City = "Nowhere" };
 
         // Act
-        var result = await _mediator.Send(query, CancellationToken.None);
+        var result = await Mediator.Send(query, CancellationToken.None);
 
         // Assert
         result.Succeeded.Should().BeTrue();

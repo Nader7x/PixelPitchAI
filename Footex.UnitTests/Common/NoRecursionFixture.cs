@@ -4,23 +4,21 @@ using AutoFixture.Xunit2;
 namespace Footex.UnitTests.Common;
 
 /// <summary>
-/// Custom AutoFixture configuration that prevents circular reference issues
+///     Custom AutoFixture configuration that prevents circular reference issues
 /// </summary>
 public class NoRecursionFixture : Fixture
 {
     public NoRecursionFixture()
     {
         // Remove the default ThrowingRecursionBehavior that causes circular reference exceptions
-        this.Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => this.Behaviors.Remove(b));
+        Behaviors.OfType<ThrowingRecursionBehavior>().ToList().ForEach(b => Behaviors.Remove(b));
 
         // Add OmitOnRecursionBehavior to handle circular references gracefully
-        this.Behaviors.Add(new OmitOnRecursionBehavior());
-        this.Customizations.Add(new IFormFileSpecimenBuilder());
+        Behaviors.Add(new OmitOnRecursionBehavior());
+        Customizations.Add(new IFormFileSpecimenBuilder());
 
         // Limit recursion depth as an additional safety measure
-        this.RepeatCount = 3;
+        RepeatCount = 3;
 
         // Configure specific customizations for domain models that might cause issues
         ConfigureDomainModelCustomizations();
@@ -36,7 +34,7 @@ public class NoRecursionFixture : Fixture
 }
 
 /// <summary>
-/// AutoData attribute that uses the NoRecursionFixture
+///     AutoData attribute that uses the NoRecursionFixture
 /// </summary>
 public class NoRecursionAutoDataAttribute : AutoDataAttribute
 {
@@ -45,7 +43,7 @@ public class NoRecursionAutoDataAttribute : AutoDataAttribute
 }
 
 /// <summary>
-/// InlineAutoData attribute that uses the NoRecursionFixture
+///     InlineAutoData attribute that uses the NoRecursionFixture
 /// </summary>
 public class NoRecursionInlineAutoDataAttribute : InlineAutoDataAttribute
 {
