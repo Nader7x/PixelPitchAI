@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class StadiumMapper : IStadiumMapper
 {
     // Map from Stadium to StadiumDto
@@ -34,4 +34,6 @@ public partial class StadiumMapper : IStadiumMapper
     public partial DeleteStadiumCommand ToDeleteCommand(int id);
 
     public partial Stadium ToStadiumFromCreate(CreateStadiumCommand request);
+
+    public partial void UpdateStadiumFromCommand(UpdateStadiumCommand command, Stadium stadium);
 }

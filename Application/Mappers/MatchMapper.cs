@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper(UseDeepCloning = true)] // Added UseDeepCloning for potentially complex object graphs
+[Mapper(AllowNullPropertyAssignment = false, UseDeepCloning = true)] // Added UseDeepCloning for potentially complex object graphs
 public partial class MatchMapper : IMatchMapper
 {
     // Map from Match to MatchDto
@@ -64,4 +64,6 @@ public partial class MatchMapper : IMatchMapper
     public partial List<UserMatchDto> ToUserMatchesDtoS(IEnumerable<Match> matches);
 
     public partial LiveMatchDto ToLiveMatchDto(Match match);
+
+    public partial void UpdateMatchFromCommand(UpdateMatchCommand command, Match match);
 }

@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class PlayerMapper : IPlayerMapper
 {
     // Map from Player to PlayerDto
@@ -37,4 +37,6 @@ public partial class PlayerMapper : IPlayerMapper
     public partial DeletePlayerCommand ToDeleteCommand(int id);
 
     public partial Player ToPlayerFromCreate(CreatePlayerCommand request);
+
+    public partial void ToPlayerFromUpdate(UpdatePlayerCommand request, Player player);
 }

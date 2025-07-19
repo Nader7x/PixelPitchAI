@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class CoachMapper : ICoachMapper
 {
     // Map from Coach to CoachDto
@@ -22,9 +22,6 @@ public partial class CoachMapper : ICoachMapper
     // Map from UpdateCoachDto to UpdateCoachCommand
     public partial UpdateCoachCommand ToUpdateCommand(UpdateCoachDto dto);
 
-    // Map from GetAllCoachesQuery parameters
-    public partial GetAllCoachesQuery ToGetAllQuery(string nationality, int? teamId);
-
     // Map from GetCoachByIdQuery parameter
     public partial GetCoachByIdQuery ToGetByIdQuery(int id);
 
@@ -32,4 +29,9 @@ public partial class CoachMapper : ICoachMapper
     public partial DeleteCoachCommand ToDeleteCommand(int id);
 
     public partial Coach ToCoachFromCreate(CreateCoachCommand request);
+
+    public partial void ToCoachFromUpdate(UpdateCoachCommand command, Coach coach);
+
+    // Map from GetAllCoachesQuery parameters
+    public partial GetAllCoachesQuery ToGetAllQuery(string nationality, int? teamId);
 }

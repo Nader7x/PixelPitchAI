@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class UserMapper : IUserMapper
 {
     // Map from ApplicationUser to UserProfileDto (or similar DTO)
@@ -39,4 +39,6 @@ public partial class UserMapper : IUserMapper
     public partial ApplicationUser ToUserFromRegister(RegisterUserCommand request);
 
     public partial RegisterUserCommand ToRegisterCommandFromDto(RegisterUserDto dto);
+
+    public partial void UpdateUserFromCommand(UpdateUserCommand command, ApplicationUser user);
 }

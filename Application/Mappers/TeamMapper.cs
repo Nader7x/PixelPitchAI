@@ -7,7 +7,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class TeamMapper : ITeamMapper
 {
     // Map from list of Team to list of TeamDto
@@ -32,4 +32,6 @@ public partial class TeamMapper : ITeamMapper
     public partial Team ToTeamfromCreate(CreateTeamCommand command);
 
     public partial TeamDto ToTeamDto(Team team);
+
+    public partial void UpdateTeamFromCommand(UpdateTeamCommand command, Team team);
 }

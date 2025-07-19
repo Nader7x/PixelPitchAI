@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Interfaces;
 
-public interface IIdentityService
+public interface IdentityService
 {
     Task<(bool Succeeded, string UserId, IdentityResult result)> CreateUserAsync(
         ApplicationUser user,

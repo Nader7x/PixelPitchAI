@@ -6,7 +6,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Application.Mappers;
 
-[Mapper]
+[Mapper(AllowNullPropertyAssignment = false)]
 public partial class SeasonMapper : ISeasonMapper
 {
     // Map from Season to SeasonDto
@@ -20,4 +20,6 @@ public partial class SeasonMapper : ISeasonMapper
 
     // Map from UpdateSeasonDto to UpdateSeasonCommand
     public partial UpdateSeasonCommand ToUpdateCommand(UpdateSeasonDto dto);
+
+    public partial void UpdateSeasonFromCommand(UpdateSeasonCommand command, Season season);
 }
