@@ -21,6 +21,7 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         _factory = factory;
         _stadiumRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<IStadiumsRepository>();
+        FreeDbAsync(Context.Stadiums).Wait();
     }
 
     [Fact]

@@ -501,14 +501,15 @@ public class MatchEventRabbitMqClient : BackgroundService
 
     protected virtual async Task CloseChannelAsync()
     {
-        if (_channel is { IsOpen: true })
+        var channelToClose = Interlocked.Exchange(ref _channel, null);        
+        if (channelToClose is { IsOpen: true })
         {
-            _channel.CallbackExceptionAsync -= _channelCallbackExceptionHandler;
+            channelToClose.CallbackExceptionAsync -= _channelCallbackExceptionHandler;
             if (!string.IsNullOrEmpty(_consumerTag))
             {
                 try
                 {
-                    await _channel.BasicCancelAsync(_consumerTag);
+                    await channelToClose.BasicCancelAsync(_consumerTag);
                     _logger.LogInformation("Consumer '{Tag}' cancelled.", _consumerTag);
                 }
                 catch (Exception ex)
@@ -521,7 +522,7 @@ public class MatchEventRabbitMqClient : BackgroundService
 
             try
             {
-                await _channel.CloseAsync();
+                await channelToClose.CloseAsync();
                 _logger.LogInformation("RabbitMQ channel closed.");
             }
             catch (Exception ex)
@@ -529,7 +530,7 @@ public class MatchEventRabbitMqClient : BackgroundService
                 _logger.LogWarning(ex, "Exception during channel close.");
             }
 
-            _channel.Dispose();
+            channelToClose.Dispose();
             _channel = null;
         }
     }
@@ -548,13 +549,25 @@ public class MatchEventRabbitMqClient : BackgroundService
                 await _connection.CloseAsync();
                 _logger.LogInformation("RabbitMQ connection closed.");
             }
+            catch (AlreadyClosedException ex)
+            {
+                _logger.LogWarning(ex, "RabbitMQ connection already closed during explicit close attempt. This is expected during some shutdown scenarios.");
+            }
+            catch (ObjectDisposedException ex) // Catches if the object itself was already disposed
+            {
+                _logger.LogWarning(ex, "RabbitMQ connection object already disposed during explicit close attempt.");
+            }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Exception during connection close.");
+                _logger.LogWarning(ex, "Unexpected exception during connection close.");
             }
 
-            _connection.Dispose();
-            _connection = null;
+            // After the try-catch, ensure _connection is robustly disposed and nulled
+            if (_connection != null)
+            {
+                _connection.Dispose(); // This might still throw if it was already disposed by another mechanism
+                _connection = null;
+            }
         }
 
         _connection = null;

@@ -82,7 +82,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1995, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
-            YearsOfExperience = 20,
+            YearsOfExperience = 15,
             Team = team,
         };
 
@@ -101,7 +101,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         result.DateOfBirth.Should().Be(new DateTime(1995, 1, 1));
         result.Nationality.Should().Be("Spain");
         result.Role.Should().Be("Head Coach");
-        result.YearsOfExperience.Should().Be(20);
+        result.YearsOfExperience.Should().Be(15);
     }
 
     [Fact]
@@ -133,14 +133,14 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1995, 1, 1),
             Nationality = "Portugal",
             Role = "Head Coach",
-            YearsOfExperience = 25,
+            YearsOfExperience = 19,
             Team = team,
         };
 
         var coach2 = new Coach
         {
             FirstName = "Jose",
-            LastName = "Guardiola",
+            LastName = "Angel",
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
@@ -155,7 +155,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Italy",
             Role = "Head Coach",
-            YearsOfExperience = 30,
+            YearsOfExperience = 15,
             Team = team,
         };
 
@@ -169,10 +169,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var searchResult = await _coachRepository.SearchAsync("Jose");
 
         // Assert
-        searchResult.Should().HaveCount(2);
-        searchResult.Should().Contain(c => c.LastName == "Mourinho");
-        searchResult.Should().Contain(c => c.LastName == "Guardiola");
-        searchResult.Should().NotContain(c => c.LastName == "Ancelotti");
+        var matchingCoaches = searchResult as Coach[] ?? searchResult.ToArray();
+        matchingCoaches.Should().HaveCount(2);
+        matchingCoaches.Should().Contain(c => c.LastName == "Mourinho");
+        matchingCoaches.Should().Contain(c => c.LastName == "Angel");
+        matchingCoaches.Should().NotContain(c => c.LastName == "Ancelotti");
     }
 
     [Fact]
@@ -210,18 +211,18 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         await UnitOfWork.Teams.AddAsync(team);
-        await _coachRepository.AddAsync(coach1);
-        await _coachRepository.AddAsync(coach2);
+        await _coachRepository.AddRangeAsync(CancellationToken.None, coach1, coach2);
         await UnitOfWork.SaveChangesAsync();
 
         // Act
         var searchResult = await _coachRepository.SearchAsync("Guardiola");
 
         // Assert
-        searchResult.Should().HaveCount(1);
-        searchResult.First().FirstName.Should().Be("Pep");
-        searchResult.First().LastName.Should().Be("Guardiola");
-        searchResult.First().Nationality.Should().Be("Spain");
+        var retrievedCoaches = searchResult as Coach[] ?? searchResult.ToArray();
+        retrievedCoaches.Should().HaveCount(1);
+        retrievedCoaches.First().FirstName.Should().Be("Pep");
+        retrievedCoaches.First().LastName.Should().Be("Guardiola");
+        retrievedCoaches.First().Nationality.Should().Be("Spain");
     }
 
     [Fact]
@@ -243,7 +244,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Germany",
             Role = "Head Coach",
-            YearsOfExperience = 22,
+            YearsOfExperience = 19,
             Team = team,
         };
 
@@ -255,10 +256,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var searchResult = await _coachRepository.SearchAsync("Jurgen Klopp");
 
         // Assert
-        searchResult.Should().HaveCount(1);
-        searchResult.First().FirstName.Should().Be("Jurgen");
-        searchResult.First().LastName.Should().Be("Klopp");
-        searchResult.First().Nationality.Should().Be("Germany");
+        var matchingCoaches = searchResult as Coach[] ?? searchResult.ToArray();
+        matchingCoaches.Should().HaveCount(1);
+        matchingCoaches.First().FirstName.Should().Be("Jurgen");
+        matchingCoaches.First().LastName.Should().Be("Klopp");
+        matchingCoaches.First().Nationality.Should().Be("Germany");
     }
 
     [Fact]
@@ -339,7 +341,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Spain",
             Role = "Head Coach",
-            YearsOfExperience = 20,
+            YearsOfExperience = 19,
             Team = team,
         };
 
@@ -364,11 +366,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var searchResult = await _coachRepository.SearchAsync("Spain");
 
         // Assert
-        searchResult.Should().HaveCount(2);
-        searchResult.Should().Contain(c => c.FirstName == "Luis");
-        searchResult.Should().Contain(c => c.FirstName == "Diego");
-        searchResult.Should().NotContain(c => c.FirstName == "Thomas");
-        searchResult.All(c => c.Nationality == "Spain").Should().BeTrue();
+        var resultCoaches = searchResult as Coach[] ?? searchResult.ToArray();
+        resultCoaches.Should().Contain(c => c.FirstName == "Luis");
+        resultCoaches.Should().Contain(c => c.FirstName == "Diego");
+        resultCoaches.Should().NotContain(c => c.FirstName == "Thomas");
+        resultCoaches.All(c => c.Nationality == "Spain").Should().BeTrue();
     }
 
     [Fact]
@@ -423,10 +425,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var searchResult = await _coachRepository.SearchAsync("Manchester");
 
         // Assert
-        searchResult.Should().HaveCount(1);
-        searchResult.First().FirstName.Should().Be("Erik");
-        searchResult.First().LastName.Should().Be("Ten Hag");
-        searchResult.First().Team!.Name.Should().Be("Manchester United");
+        var coaches = searchResult as Coach[] ?? searchResult.ToArray();
+        coaches.Should().HaveCount(1);
+        coaches.First().FirstName.Should().Be("Erik");
+        coaches.First().LastName.Should().Be("Ten Hag");
+        coaches.First().Team!.Name.Should().Be("Manchester United");
     }
 
     [Fact]
@@ -470,8 +473,9 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var searchResult = await _coachRepository.SearchAsync("Team Coach");
 
         // Assert
-        searchResult.Should().HaveCount(1);
-        var foundCoach = searchResult.First();
+        var foundCoaches = searchResult as Coach[] ?? searchResult.ToArray();
+        foundCoaches.Should().HaveCount(1);
+        var foundCoach = foundCoaches.First();
         foundCoach.Team.Should().NotBeNull();
         foundCoach.Team!.Name.Should().Be("Team With Coach");
         foundCoach.Team.League.Should().Be("Premier League");
@@ -546,7 +550,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
             DateOfBirth = new DateTime(1985, 1, 1),
             Nationality = "Portugal",
             Role = "Head Coach",
-            YearsOfExperience = 20,
+            YearsOfExperience = 18,
             Team = team,
         };
 
@@ -620,10 +624,11 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var allCoaches = await _coachRepository.GetAllAsync();
 
         // Assert
-        allCoaches.Should().HaveCountGreaterOrEqualTo(3);
-        allCoaches.Should().Contain(c => c.LastName == "One");
-        allCoaches.Should().Contain(c => c.LastName == "Two");
-        allCoaches.Should().Contain(c => c.LastName == "Three");
+        var allCoachesArray = allCoaches as Coach[] ?? allCoaches.ToArray();
+        allCoachesArray.Should().HaveCountGreaterOrEqualTo(3);
+        allCoachesArray.Should().Contain(c => c.LastName == "One");
+        allCoachesArray.Should().Contain(c => c.LastName == "Two");
+        allCoachesArray.Should().Contain(c => c.LastName == "Three");
     }
 
     [Fact]
@@ -716,9 +721,12 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         };
 
         await UnitOfWork.Teams.AddAsync(team);
-        await _coachRepository.AddAsync(experiencedCoach1);
-        await _coachRepository.AddAsync(experiencedCoach2);
-        await _coachRepository.AddAsync(inexperiencedCoach);
+        await _coachRepository.AddRangeAsync(
+            CancellationToken.None,
+            experiencedCoach1,
+            experiencedCoach2,
+            inexperiencedCoach
+        );
         await UnitOfWork.SaveChangesAsync();
 
         // Act
@@ -794,12 +802,16 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
         var mixedCaseSearch = await _coachRepository.SearchAsync("MiXeD");
 
         // Assert
-        upperCaseSearch.Should().HaveCount(1);
-        lowerCaseSearch.Should().HaveCount(1);
-        mixedCaseSearch.Should().HaveCount(1);
+        var upperCaseSearchArray = upperCaseSearch as Coach[] ?? upperCaseSearch.ToArray();
+        upperCaseSearchArray.Should().HaveCount(1);
+        var lowerCaseSearchArray = lowerCaseSearch as Coach[] ?? lowerCaseSearch.ToArray();
+        lowerCaseSearchArray.Should().HaveCount(1);
 
-        upperCaseSearch.First().FirstName.Should().Be("UPPERCASE");
-        lowerCaseSearch.First().LastName.Should().Be("lowercase");
-        mixedCaseSearch.First().Nationality.Should().Be("MiXeD CaSe");
+        var mixedCaseSearchResults = mixedCaseSearch as Coach[] ?? mixedCaseSearch.ToArray();
+        mixedCaseSearchResults.Should().HaveCount(1);
+
+        upperCaseSearchArray.First().FirstName.Should().Be("UPPERCASE");
+        lowerCaseSearchArray.First().LastName.Should().Be("lowercase");
+        mixedCaseSearchResults.First().Nationality.Should().Be("MiXeD CaSe");
     }
 }

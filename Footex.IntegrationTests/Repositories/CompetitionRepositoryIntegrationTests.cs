@@ -132,6 +132,9 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetAllAsync_WhenNoCompetitions_ShouldReturnEmptyList()
     {
         // Act
+        // Ensure the database is empty
+        Context.Competitions.RemoveRange(Context.Competitions);
+        await Context.SaveChangesAsync();
         var result = await _competitionRepository.GetAllAsync();
 
         // Assert

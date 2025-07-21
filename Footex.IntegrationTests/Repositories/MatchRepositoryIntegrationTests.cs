@@ -206,6 +206,10 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var futureDate = DateTime.UtcNow.AddDays(5);
         var pastDate = DateTime.UtcNow.AddDays(-5);
 
+        // free db
+        Context.Matches.RemoveRange(Context.Matches);
+        await Context.SaveChangesAsync();
+
         var upcomingMatch = await SeedMatchAsync(matchDate: futureDate);
         var pastMatch = await SeedMatchAsync(matchDate: pastDate);
 

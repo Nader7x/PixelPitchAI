@@ -27,7 +27,7 @@ public class CachePerformanceTests(
             var scenario = Scenario
                 .Create(
                     "player_cache_test",
-                    async context =>
+                    async _ =>
                     {
                         // Test the same player ID multiple times to trigger the cache
                         const int playerId = 1;
@@ -43,10 +43,7 @@ public class CachePerformanceTests(
                             "X-Cache-Hit",
                             out var cacheHeaderValue
                         );
-                        context.Logger.Information(
-                            "Cache Hit: {CacheHeaderValue}",
-                            cacheHeaderValue
-                        );
+                        _.Logger.Information("Cache Hit: {CacheHeaderValue}", cacheHeaderValue);
 
                         return response;
                     }
@@ -70,7 +67,7 @@ public class CachePerformanceTests(
         var scenario = Scenario
             .Create(
                 "stadium_cache_test",
-                async context =>
+                async _ =>
                 {
                     // Test the same stadium ID multiple times to trigger cache
                     var stadiumId = 1;
@@ -86,7 +83,7 @@ public class CachePerformanceTests(
                         "X-Cache-Hit",
                         out var cacheHeaderValue
                     );
-                    context.Logger.Information("Cache Hit: {CacheHeaderValue}", cacheHeaderValue);
+                    _.Logger.Information("Cache Hit: {CacheHeaderValue}", cacheHeaderValue);
 
                     return response;
                 }
@@ -105,7 +102,7 @@ public class CachePerformanceTests(
         var scenario = Scenario
             .Create(
                 "coach_cache_test",
-                async context =>
+                async _ =>
                 {
                     // Test coaches filter endpoint with the same parameters
                     var request = Http.CreateRequest(
@@ -123,7 +120,7 @@ public class CachePerformanceTests(
                         "X-Cache-Hit",
                         out var cacheHeaderValue
                     );
-                    context.Logger.Information("Cache Hit: {CacheHeaderValue}", cacheHeaderValue);
+                    _.Logger.Information("Cache Hit: {CacheHeaderValue}", cacheHeaderValue);
 
                     return response;
                 }
@@ -143,9 +140,9 @@ public class CachePerformanceTests(
         var cachedScenario = Scenario
             .Create(
                 "cached_requests",
-                async context =>
+                async _ =>
                 {
-                    var playerId = 1; // Same ID to ensure cache hits
+                    const int playerId = 1; // Same ID to ensure cache hits
                     var request = Http.CreateRequest("GET", $"/api/players/{playerId}")
                         .WithHeader("Accept", "application/json");
 
@@ -159,7 +156,7 @@ public class CachePerformanceTests(
         var nonCachedScenario = Scenario
             .Create(
                 "non_cached_requests",
-                async context =>
+                async _ =>
                 {
                     var playerId = Random.Shared.Next(100, 200); // Different IDs to avoid cache
                     var request = Http.CreateRequest("GET", $"/api/players/{playerId}")

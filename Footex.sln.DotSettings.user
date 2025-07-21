@@ -67,6 +67,7 @@
 	
 	
 	
+	
 	<s:String x:Key="/Default/CodeInspection/Highlighting/SweaWarningsMode/@EntryValue">DoNotShowAndRun</s:String>
 	<s:Int64 x:Key="/Default/Dpa/Thresholds/=AspControllerActionDuration/@EntryIndexedValue">2000000</s:Int64>
 	<s:Int64 x:Key="/Default/Dpa/Thresholds/=SqlCommandDuration/@EntryIndexedValue">4000000</s:Int64>
@@ -77,21 +78,14 @@
   &lt;Assembly Path="C:\Users\elnag\.nuget\packages\dapper\2.1.66\lib\net8.0\Dapper.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	
-	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">C:\Users\elnag\.dotnet\dotnet.exe</s:String>
-	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Users\elnag\.dotnet\sdk\8.0.406\MSBuild.dll</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ad970b0a_002Dbf01_002D444d_002D8ee7_002Df422519c40fb/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;And&gt;&#xD;
-    &lt;Namespace&gt;Footex.IntegrationTests.CQRS&lt;/Namespace&gt;&#xD;
-    &lt;Project Location="D:\programming\GitHub\Footex\Footex.IntegrationTests" Presentation="&amp;lt;Footex.IntegrationTests&amp;gt;" /&gt;&#xD;
-  &lt;/And&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=f89ae61e_002D9c28_002D4571_002Dba9c_002D9703a4a0866b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Or&gt;&#xD;
-    &lt;Project Location="D:\programming\GitHub\Footex\Footex.IntegrationTests" Presentation="&amp;lt;Footex.IntegrationTests&amp;gt;" /&gt;&#xD;
-    &lt;Project Location="D:\programming\GitHub\Footex\Footex.PerformanceTests" Presentation="&amp;lt;Footex.PerformanceTests&amp;gt;" /&gt;&#xD;
-    &lt;Project Location="D:\programming\GitHub\Footex\Footex.UnitTests" Presentation="&amp;lt;Footex.UnitTests&amp;gt;" /&gt;&#xD;
-  &lt;/Or&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">C:\Program Files\dotnet\dotnet.exe</s:String>
+	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Program Files\dotnet\sdk\8.0.411\MSBuild.dll</s:String>
+	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">C:\Users\elnag\AppData\Local\JetBrains\Rider2025.1\resharper-host\temp\Rider\vAny\CoverageData\_Footex.-353235264\Snapshot\snapshot.utdcvr</s:String>
+	
+	
+	
+	
+	
 	
 	
 	

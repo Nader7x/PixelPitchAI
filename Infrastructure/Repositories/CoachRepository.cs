@@ -12,6 +12,10 @@ public class CoachRepository(FootballDbContext context)
 
     public async Task<IEnumerable<Coach>> SearchAsync(string query)
     {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return [];
+        }
         var searchTerm = query.ToLower().Trim();
 
         return await _context

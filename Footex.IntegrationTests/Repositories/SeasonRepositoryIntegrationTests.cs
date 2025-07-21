@@ -1,4 +1,3 @@
-using Domain.Interfaces;
 using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
@@ -8,7 +7,6 @@ using Xunit;
 
 namespace Footex.IntegrationTests.Repositories;
 
-[Collection("RepositoryTests")]
 public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
 {
     private readonly ISeasonRepository _seasonRepository;
@@ -18,6 +16,7 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
     {
         _seasonRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<ISeasonRepository>();
+        FreeDbAsync(Context.Seasons).Wait();
     }
 
     [Fact]

@@ -116,7 +116,9 @@ public class CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFact
 
         // The exact behavior depends on business requirements
         var currentSeasons = await UnitOfWork.Seasons.GetAllAsync();
-        var activeCurrent = currentSeasons.Where(s => s.IsActive).ToList();
+        var activeCurrent = currentSeasons
+            .Where(s => s.IsActive && s.CompetitionId == competition.Id)
+            .ToList();
 
         // Should have only one current
         activeCurrent.Count.Should().BeLessThanOrEqualTo(1);

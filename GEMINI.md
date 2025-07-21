@@ -8,7 +8,7 @@ Footex is a football management API built with .NET 8. It provides a comprehensi
 
 ## Architecture
 
-The project follows the principles of Clean Architecture, with a clear separation of concerns between the different layers of the application. The main layers are:
+The p.oject follows the principles of Clean Architecture, with a clear separation of concerns between the different layers of the application. The main layers are:
 
 - **Domain**: Contains the core business entities, interfaces, and logic of the application.
 - **Application**: Implements the business logic of the application, including CQRS commands and queries, DTOs, and services.

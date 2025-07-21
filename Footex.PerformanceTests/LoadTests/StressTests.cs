@@ -285,7 +285,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(15, TimeSpan.FromHours(1)));
+            .WithLoadSimulations(Simulation.KeepConstant(15, TimeSpan.FromMinutes(1)));
 
         NBomberRunner
             .RegisterScenarios(scenario)

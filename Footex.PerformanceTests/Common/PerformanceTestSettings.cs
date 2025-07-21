@@ -10,7 +10,7 @@ public class PerformanceTestSettings
     ///     Base URL for the API under test
     /// </summary>
     [Required]
-    public string BaseUrl { get; set; } = "https://localhost:7001";
+    public string BaseUrl { get; set; } = "https://localhost:7082";
 
     /// <summary>
     ///     Duration settings for load tests

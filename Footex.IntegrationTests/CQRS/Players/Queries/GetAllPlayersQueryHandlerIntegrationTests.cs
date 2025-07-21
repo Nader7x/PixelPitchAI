@@ -117,7 +117,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests(FootexWebApplicationFacto
         await TestData.SeedTestData(scope.ServiceProvider);
 
         // Get existing team ID from seeded data
-        var testTeamId = 1;
+        const int testTeamId = 1;
         await TestData.SeedPlayersForTeam(scope.ServiceProvider, testTeamId, 3);
 
         var query = new GetAllPlayersQuery { TeamId = testTeamId };

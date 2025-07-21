@@ -48,7 +48,7 @@ public static class TestData
         {
             Name = string.IsNullOrWhiteSpace(name) ? $"Test Team {Guid.NewGuid()} {prefix}" : name,
             ShortName =
-                $"TT{Guid.NewGuid().ToString()[..5]} {(!prefix.IsNullOrEmpty() ? prefix.First() : prefix)}",
+                $"TT{Guid.NewGuid().ToString()[..5]} {(!string.IsNullOrWhiteSpace(prefix) ? prefix.First() : prefix)}",
             Country = "Testland",
             FoundationDate = new DateTime(1900, 1, 1),
         };
@@ -340,7 +340,7 @@ public static class TestData
         {
             var player = new Player
             {
-                FullName = $"Test Player {i + 1}",
+                FullName = $"Test Player {i + 1}" + Guid.NewGuid(),
                 KnownName = $"TP{i + 1}",
                 Nationality = "Testland",
                 ShirtNumber = i + 1,
@@ -367,7 +367,7 @@ public static class TestData
         {
             var player = new Player
             {
-                FullName = $"Test Player {i + 1}",
+                FullName = $"Test Player {i + 1}" + Guid.NewGuid(),
                 KnownName = $"TP{i + 1}",
                 Nationality = "Testland",
                 ShirtNumber = i + 1,

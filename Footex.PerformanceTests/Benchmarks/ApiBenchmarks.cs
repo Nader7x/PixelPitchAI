@@ -3,7 +3,6 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Footex.IntegrationTests.Common;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Footex.PerformanceTests.Benchmarks;
 
@@ -16,7 +15,7 @@ public class ApiBenchmarks
     private HttpClient _httpClient = null!;
 
     [GlobalSetup]
-    public async void Setup()
+    public async Task Setup()
     {
         try
         {
@@ -27,14 +26,18 @@ public class ApiBenchmarks
         catch (Exception e)
         {
             Console.WriteLine($"Error during setup: {e.Message}");
+            throw; // Re-throw the exception to ensure benchmark failure is recorded
         }
     }
 
     [GlobalCleanup]
-    public void Cleanup()
+    public async Task Cleanup()
     {
         _httpClient?.Dispose();
-        _factory?.DisposeAsync().GetAwaiter().GetResult();
+        if (_factory != null)
+        {
+            await _factory.DisposeAsync();
+        }
     }
 
     [Benchmark]

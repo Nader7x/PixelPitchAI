@@ -39,6 +39,8 @@ public class GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFacto
     [Fact]
     public async Task Handle_WhenNoCoachesExist_ReturnsEmptyList()
     {
+        Context.Coaches.RemoveRange(Context.Coaches);
+        await Context.SaveChangesAsync();
         // Arrange
         var query = new GetAllCoachesQuery();
 

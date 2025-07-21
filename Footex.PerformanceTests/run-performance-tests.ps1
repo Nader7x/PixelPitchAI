@@ -10,6 +10,9 @@ param(
     [string]$OutputPath = ".\performance-results",
 
     [Parameter(Mandatory = $false)]
+    [string]$LogFilePath = $null, # New parameter for log file path
+
+    [Parameter(Mandatory = $false)]
     [switch]$OpenResults
 )
 
@@ -35,6 +38,12 @@ function Write-Warning
     Write-Host $Message -ForegroundColor Yellow
 }
 
+function Write-Error
+{
+    param([string]$Message)
+    Write-Host $Message -ForegroundColor Red
+}
+
 function Ensure-Directory
 {
     param([string]$Path)
@@ -45,12 +54,29 @@ function Ensure-Directory
     }
 }
 
+# Function to run a command and optionally log its output
+function Invoke-LoggedCommand {
+    param(
+        [string]$Command,
+        [string[]]$Arguments,
+        [string]$LogFile = $null
+    )
+
+    if ($null -ne $LogFile) {
+        Write-Info "Executing: $Command $($Arguments -join ' ') | Out-File -Append -FilePath $LogFile"
+        Invoke-Expression "$Command $($Arguments -join ' ') | Out-File -Append -FilePath '$LogFile'"
+    } else {
+        Write-Info "Executing: $Command $($Arguments -join ' ')"
+        & $Command @Arguments
+    }
+}
+
 function Run-LoadTests
 {
     Write-Header "Running Load Tests (NBomber)"
 
     Write-Info "Building project..."
-    dotnet build Footex.PerformanceTests --configuration Release
+    Invoke-LoggedCommand "dotnet" @("build", "Footex.PerformanceTests", "--configuration", "Release") $LogFilePath
 
     if ($LASTEXITCODE -ne 0)
     {
@@ -59,13 +85,13 @@ function Run-LoadTests
     }
 
     Write-Info "Running API Load Tests..."
-    dotnet test Footex.PerformanceTests --filter "ClassName=ApiLoadTests" --logger "console;verbosity=detailed"
+    Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=ApiLoadTests", "--logger", "console;verbosity=detailed") $LogFilePath
 
     Write-Info "Running Cache Performance Tests..."
-    dotnet test Footex.PerformanceTests --filter "ClassName=CachePerformanceTests" --logger "console;verbosity=detailed"
+    Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=CachePerformanceTests", "--logger", "console;verbosity=detailed") $LogFilePath
 
     Write-Info "Running Search Performance Tests..."
-    dotnet test Footex.PerformanceTests --filter "ClassName=SearchPerformanceTests" --logger "console;verbosity=detailed"
+    Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=SearchPerformanceTests", "--logger", "console;verbosity=detailed") $LogFilePath
 }
 
 function Run-StressTests
@@ -81,10 +107,10 @@ function Run-StressTests
     }
 
     Write-Info "Building project..."
-    dotnet build Footex.PerformanceTests --configuration Release
+    Invoke-LoggedCommand "dotnet" @("build", "Footex.PerformanceTests", "--configuration", "Release") $LogFilePath
 
     Write-Info "Running Stress Tests..."
-    dotnet test Footex.PerformanceTests --filter "ClassName=StressTests" --logger "console;verbosity=detailed"
+    Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=StressTests", "--logger", "console;verbosity=detailed") $LogFilePath
 }
 
 function Run-Benchmarks
@@ -92,7 +118,7 @@ function Run-Benchmarks
     Write-Header "Running Benchmarks (BenchmarkDotNet)"
 
     Write-Info "Building project in Release mode..."
-    dotnet build Footex.PerformanceTests --configuration Release
+    Invoke-LoggedCommand "dotnet" @("build", "Footex.PerformanceTests", "--configuration", "Release") $LogFilePath
 
     if ($LASTEXITCODE -ne 0)
     {
@@ -101,13 +127,13 @@ function Run-Benchmarks
     }
 
     Write-Info "Running API Benchmarks..."
-    dotnet run --project Footex.PerformanceTests --configuration Release api
+    Invoke-LoggedCommand "dotnet" @("run", "--project", "Footex.PerformanceTests", "--configuration", "Release", "api") $LogFilePath
 
     Write-Info "Running Search Benchmarks..."
-    dotnet run --project Footex.PerformanceTests --configuration Release search
+    Invoke-LoggedCommand "dotnet" @("run", "--project", "Footex.PerformanceTests", "--configuration", "Release", "search") $LogFilePath
 
     Write-Info "Running Cache Benchmarks..."
-    dotnet run --project Footex.PerformanceTests --configuration Release cache
+    Invoke-LoggedCommand "dotnet" @("run", "--project", "Footex.PerformanceTests", "--configuration", "Release", "cache") $LogFilePath
 }
 
 function Show-Help
@@ -115,7 +141,7 @@ function Show-Help
     Write-Header "Footex API Performance Test Runner"
 
     Write-Host "USAGE:" -ForegroundColor Yellow
-    Write-Host "  .\run-performance-tests.ps1 -TestType <type> [-OutputPath <path>] [-OpenResults]"
+    Write-Host "  .\run-performance-tests.ps1 -TestType <type> [-OutputPath <path>] [-LogFilePath <path>] [-OpenResults]"
     Write-Host ""
 
     Write-Host "TEST TYPES:" -ForegroundColor Yellow
@@ -130,13 +156,14 @@ function Show-Help
 
     Write-Host "OPTIONS:" -ForegroundColor Yellow
     Write-Host "  -OutputPath   Specify output directory for results (default: .\performance-results)"
+    Write-Host "  -LogFilePath  Specify a file path to record all CLI output (e.g., C:\logs\perf_run.log)"
     Write-Host "  -OpenResults  Open results folder after completion"
     Write-Host ""
 
     Write-Host "EXAMPLES:" -ForegroundColor Yellow
     Write-Host "  .\run-performance-tests.ps1 -TestType load"
-    Write-Host "  .\run-performance-tests.ps1 -TestType benchmark -OpenResults"
-    Write-Host "  .\run-performance-tests.ps1 -TestType all -OutputPath C:\temp\perf-results"
+    Write-Host "  .\run-performance-tests.ps1 -TestType benchmark -OpenResults -LogFilePath .\benchmark_log.txt"
+    Write-Host "  .\run-performance-tests.ps1 -TestType all -OutputPath C:\temp\perf-results -LogFilePath C:\logs\full_perf_run.log"
     Write-Host ""
 
     Write-Host "PREREQUISITES:" -ForegroundColor Yellow
@@ -158,23 +185,24 @@ function Check-Prerequisites
     Write-Info "Checking prerequisites..."
 
     # Check Docker
-    try
+    docker version | Out-Null
+    if ($LASTEXITCODE -eq 0)
     {
-        docker version | Out-Null
         Write-Info "✓ Docker is running"
     }
-    catch
+    else
     {
-        Write-Warning "⚠ Docker may not be running. Some tests may fail."
+        Write-Warning "Docker may not be running. Some tests may fail."
     }
 
     # Check .NET
-    try
+    dotnet --version > $null
+    if ($LASTEXITCODE -eq 0)
     {
         $dotnetVersion = dotnet --version
         Write-Info "✓ .NET SDK: $dotnetVersion"
     }
-    catch
+    else
     {
         Write-Error "✗ .NET SDK not found. Please install .NET 8 SDK."
         return $false
@@ -214,6 +242,19 @@ if (-not (Check-Prerequisites))
 
 Ensure-Directory $OutputPath
 
+# If a log file path is provided, ensure the directory exists and clear existing content
+if ($null -ne $LogFilePath) {
+    $logDirectory = Split-Path -Parent $LogFilePath
+    Ensure-Directory $logDirectory
+    # Clear existing log file content on each run if it exists
+    if (Test-Path $LogFilePath) {
+        Clear-Content $LogFilePath
+        Write-Info "Cleared existing log file: $LogFilePath"
+    }
+    Write-Info "All CLI output will be recorded to: $LogFilePath"
+}
+
+
 switch ( $TestType.ToLower())
 {
     "load" {
@@ -224,13 +265,13 @@ switch ( $TestType.ToLower())
     }
     "cache" {
         Write-Info "Running cache-specific tests..."
-        dotnet test Footex.PerformanceTests --filter "ClassName=CachePerformanceTests" --logger "console;verbosity=detailed"
-        dotnet run --project Footex.PerformanceTests --configuration Release cache
+        Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=CachePerformanceTests", "--logger", "console;verbosity=detailed") $LogFilePath
+        Invoke-LoggedCommand "dotnet" @("run", "--project", "Footex.PerformanceTests", "--configuration", "Release", "cache") $LogFilePath
     }
     "search" {
         Write-Info "Running search-specific tests..."
-        dotnet test Footex.PerformanceTests --filter "ClassName=SearchPerformanceTests" --logger "console;verbosity=detailed"
-        dotnet run --project Footex.PerformanceTests --configuration Release search
+        Invoke-LoggedCommand "dotnet" @("test", "Footex.PerformanceTests", "--filter", "ClassName=SearchPerformanceTests", "--logger", "console;verbosity=detailed") $LogFilePath
+        Invoke-LoggedCommand "dotnet" @("run", "--project", "Footex.PerformanceTests", "--configuration", "Release", "search") $LogFilePath
     }
     "benchmark" {
         Run-Benchmarks

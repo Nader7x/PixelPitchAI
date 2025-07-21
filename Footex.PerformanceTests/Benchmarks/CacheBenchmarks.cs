@@ -14,18 +14,21 @@ public class CacheBenchmarks
     private HttpClient _httpClient = null!;
 
     [GlobalSetup]
-    public void Setup()
+    public async Task Setup()
     {
         _factory = new FootexWebApplicationFactory();
-        _factory.InitializeAsync().GetAwaiter().GetResult();
-        _httpClient = _factory.CreateClient();
+        await _factory.InitializeAsync();
+        _httpClient = await _factory.CreateAuthenticatedClientAsync();
     }
 
     [GlobalCleanup]
-    public void Cleanup()
+    public async Task Cleanup()
     {
         _httpClient?.Dispose();
-        _factory?.DisposeAsync().GetAwaiter().GetResult();
+        if (_factory != null)
+        {
+            await _factory.DisposeAsync();
+        }
     }
 
     [Benchmark]

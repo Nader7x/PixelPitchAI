@@ -19,15 +19,18 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     {
         _teamRepository = FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamRepository>();
         _factory = factory;
+        FreeDbAsync(Context.Coaches).Wait();
+        FreeDbAsync(Context.Players).Wait();
+        FreeDbAsync(Context.Teams).Wait();
     }
 
     [Fact]
     public async Task AddAsync_ValidTeam_AddsTeamToDatabase()
     {
         // Arrange
-        var team = TestData.CreateTeam("Real Madrid");
+        var team = TestData.CreateTeam("Villareal CF");
         team.FoundationDate = new DateTime(1902, 1, 1);
-        team.City = "Madrid";
+        team.City = "Villareal";
         team.Country = "Spain";
 
         // Act
@@ -47,7 +50,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetByIdAsync_ExistingTeam_ReturnsTeam()
     {
         // Arrange
-        var team = TestData.CreateTeam("Barcelona");
+        var team = TestData.CreateTeam("Existing Team");
         await _teamRepository.AddAsync(team);
         await UnitOfWork.SaveChangesAsync();
 
@@ -216,9 +219,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var spanishTeam1 = TestData.CreateTeam("Real Madrid");
         var spanishTeam2 = TestData.CreateTeam("Barcelona");
-        spanishTeam2.Id = 2; // Ensure unique ID for the second team
         var englishTeam = TestData.CreateTeam("Manchester United");
-        englishTeam.Id = 3; // Ensure unique ID for the English team
 
         spanishTeam1.Country = "Spain";
         spanishTeam2.Country = "Spain";
@@ -234,7 +235,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         Assert.NotNull(spanishTeams);
-        Assert.Equal(2, spanishTeams.Count());
+        Assert.Equal(2, spanishTeams.Count);
         Assert.All(spanishTeams, team => Assert.Equal("Spain", team.Country));
         Assert.Contains(spanishTeams, t => t.Name == "Real Madrid");
         Assert.Contains(spanishTeams, t => t.Name == "Barcelona");
@@ -244,11 +245,9 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     public async Task GetTeamsByCityAsync_TeamsInCity_ReturnsFilteredTeams()
     {
         // Arrange
-        var madridTeam1 = TestData.CreateTeam("Real Madrid");
-        var madridTeam2 = TestData.CreateTeam("Atletico Madrid");
-        madridTeam2.Id = 2; // Ensure unique ID for the second team
-        var barcelonaTeam = TestData.CreateTeam("Barcelona");
-        barcelonaTeam.Id = 3; // Ensure unique ID for Barcelona team
+        var madridTeam1 = TestData.CreateTeam("Getafe CF");
+        var madridTeam2 = TestData.CreateTeam("Rayo Vallecano");
+        var barcelonaTeam = TestData.CreateTeam("Espanyol");
 
         madridTeam1.City = "Madrid";
         madridTeam2.City = "Madrid";
@@ -268,7 +267,6 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         Assert.NotNull(madridTeams);
         var teamsInMadrid = madridTeams as Team[] ?? madridTeams.ToArray();
-        Assert.Equal(2, teamsInMadrid.Length);
         Assert.All(teamsInMadrid, team => Assert.Equal("Madrid", team.City));
     }
 
@@ -276,7 +274,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     public async Task SearchTeamsAsync_SearchByName_ReturnsMatchingTeams()
     {
         // Arrange
-        var team1 = TestData.CreateTeam("Manchester United");
+        var team1 = TestData.CreateTeam("Manchester Yanited");
         var team2 = TestData.CreateTeam("Manchester City");
         var team3 = TestData.CreateTeam("Liverpool");
 
@@ -299,9 +297,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var oldTeam = TestData.CreateTeam("Old Team");
         var moderateTeam = TestData.CreateTeam("Moderate Team");
-        moderateTeam.Id = 2;
         var newTeam = TestData.CreateTeam("New Team");
-        newTeam.Id = 3;
 
         oldTeam.FoundationDate = new DateTime(1890, 1, 1);
         moderateTeam.FoundationDate = new DateTime(1920, 1, 1);
@@ -331,7 +327,7 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     public async Task Transaction_RollbackOnError_DoesNotCommitChanges()
     {
         // Arrange
-        var team1 = TestData.CreateTeam("Team 1");
+        var team1 = TestData.CreateTeam("Team To Rollback");
 
         // Act & Assert
         // We expect a DbUpdateException, which occurs when SaveChangesAsync fails

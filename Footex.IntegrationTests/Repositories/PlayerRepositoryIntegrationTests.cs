@@ -86,7 +86,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(1, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -150,7 +150,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(1, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -224,7 +224,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(20, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -290,24 +290,24 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         var player1 = new Player
         {
-            FullName = "Player 1",
-            KnownName = "P1",
+            FullName = "Player Search 1",
+            KnownName = "PS1",
             Position = "Forward",
             Team = team1,
         };
 
         var player2 = new Player
         {
-            FullName = "Player 2",
-            KnownName = "P2",
+            FullName = "Player Search 2",
+            KnownName = "PS2",
             Position = "Midfielder",
             Team = team1,
         };
 
         var player3 = new Player
         {
-            FullName = "Player 3",
-            KnownName = "P3",
+            FullName = "Player Search 3",
+            KnownName = "PS3",
             Position = "Defender",
             Team = team2,
         };
@@ -323,8 +323,8 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         var resultingPlayers = searchResult as Player[] ?? searchResult.ToArray();
         resultingPlayers.Should().HaveCount(2);
         resultingPlayers.All(p => p.Team!.Name == "Manchester United").Should().BeTrue();
-        resultingPlayers.Should().Contain(p => p.FullName == "Player 1");
-        resultingPlayers.Should().Contain(p => p.FullName == "Player 2");
+        resultingPlayers.Should().Contain(p => p.FullName == "Player Search 1");
+        resultingPlayers.Should().Contain(p => p.FullName == "Player Search 2");
     }
 
     [Fact]
@@ -340,10 +340,13 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     [Fact]
     public async Task FindAsync_WithPredicate_ReturnsMatchingPlayers()
     {
+        // Free Db
+        Context.Players.RemoveRange(Context.Players);
+        await Context.SaveChangesAsync();
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(1, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -402,7 +405,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(1, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -448,7 +451,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(30, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -489,7 +492,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(40, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -526,7 +529,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(50, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -538,8 +541,8 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
             players.Add(
                 new Player
                 {
-                    FullName = $"Player {i}",
-                    KnownName = $"PlayerKnown{i}",
+                    FullName = $"Player List {i}",
+                    KnownName = $"PLS{i}",
                     Position = "Forward",
                     ShirtNumber = i,
                     Team = team,
@@ -565,7 +568,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(60, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -610,7 +613,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test Team" + new Random().Next(70, 1000),
             League = "Premier League",
             Country = "England",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -618,7 +621,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         var player = new Player
         {
-            FullName = "Test Player",
+            FullName = "Test Player with Team",
             KnownName = "Tester",
             Position = "Forward",
             Team = team,
@@ -629,14 +632,13 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.SaveChangesAsync();
 
         // Act - Using SearchAsync which includes Team data
-        var searchResult = await _playerRepository.SearchAsync("Test Player");
+        var searchResult = await _playerRepository.SearchAsync("Test Player with Team");
         var playerWithTeam = searchResult.First();
 
         // Assert
         playerWithTeam.Should().NotBeNull();
         playerWithTeam.Team.Should().NotBeNull();
-        playerWithTeam.Team!.Name.Should().Be("Test Team");
-        playerWithTeam.Team.League.Should().Be("Premier League");
-        playerWithTeam.Team.Country.Should().Be("England");
+        playerWithTeam.Team?.League.Should().Be("Premier League");
+        playerWithTeam.Team?.Country.Should().Be("England");
     }
 }

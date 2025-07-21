@@ -1,6 +1,7 @@
 using Domain.Interfaces;
 using Infrastructure;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static System.GC;
@@ -21,6 +22,17 @@ public abstract class BaseIntegrationTest : IDisposable
         Mediator = FactoryServiceScope.ServiceProvider.GetRequiredService<IMediator>();
         UnitOfWork = FactoryServiceScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         Context = FactoryServiceScope.ServiceProvider.GetRequiredService<FootballDbContext>();
+    }
+
+    protected async Task FreeDbAsync<T>(DbSet<T> dbSet)
+        where T : class
+    {
+        // Ensure the database is cleared before each test
+        if (await dbSet.AnyAsync())
+        {
+            dbSet.RemoveRange(dbSet);
+            await Context.SaveChangesAsync();
+        }
     }
 
     public void Dispose()

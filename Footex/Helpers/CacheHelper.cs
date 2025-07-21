@@ -5,14 +5,10 @@ namespace Footex.Helpers;
 /// <summary>
 ///     Helper class for managing Redis cache operations consistently across the application
 /// </summary>
-public class CacheHelper
+public class CacheHelper(ICacheService cacheService)
 {
-    private readonly ICacheService _cacheService;
-
-    public CacheHelper(ICacheService cacheService)
-    {
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
+    private readonly ICacheService _cacheService =
+        cacheService ?? throw new ArgumentNullException(nameof(cacheService));
 
     /// <summary>
     ///     Invalidates match-related caches when match data is updated

@@ -2,7 +2,7 @@ using Footex.PerformanceTests.Benchmarks;
 
 namespace Footex.PerformanceTests;
 
-public class BenchmarkRunner
+public abstract class BenchmarkRunner
 {
     public static void Main(string[] args)
     {

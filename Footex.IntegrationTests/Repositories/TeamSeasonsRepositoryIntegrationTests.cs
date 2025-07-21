@@ -17,6 +17,9 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         _teamSeasonsRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
+        FreeDbAsync(Context.Teams).Wait();
+        FreeDbAsync(Context.Seasons).Wait();
+        FreeDbAsync(Context.TeamSeasons).Wait();
     }
 
     [Fact]
