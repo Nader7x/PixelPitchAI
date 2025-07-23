@@ -78,7 +78,7 @@ public class RedisCacheService : ICacheService
 
     public async Task SetAsync<T>(
         string key,
-        T value,
+        T? value,
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default
     )
@@ -87,6 +87,11 @@ public class RedisCacheService : ICacheService
         if (string.IsNullOrEmpty(key))
         {
             _logger.LogWarning("Attempt to set cache value with null or empty key");
+            return;
+        }
+        if (value == null)
+        {
+            _logger.LogWarning("Attempt to set cache value with null value for key: {Key}", key);
             return;
         }
 
