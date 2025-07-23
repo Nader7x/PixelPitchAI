@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Application.Interfaces;
 using Infrastructure.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
@@ -89,12 +90,6 @@ public class RedisCacheService : ICacheService
             return;
         }
 
-        if (value == null)
-        {
-            _logger.LogWarning("Attempt to set null value in cache for key: {Key}", key);
-            return;
-        }
-
         if (IsCircuitOpen())
         {
             _logger.LogDebug("Circuit breaker open - skipping cache SET for key: {Key}", key);
@@ -103,11 +98,17 @@ public class RedisCacheService : ICacheService
 
         try
         {
+            var jsonOptions = new JsonSerializerOptions
+            {
+                ReferenceHandler = ReferenceHandler.Preserve,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
             var options = expiration.HasValue
                 ? new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiration }
                 : _options;
 
-            var serializedValue = JsonSerializer.Serialize(value);
+            var serializedValue = JsonSerializer.Serialize(value , jsonOptions);
             await _cache.SetStringAsync(key, serializedValue, options, cancellationToken);
 
             ResetCircuitBreaker(); // Successful operation

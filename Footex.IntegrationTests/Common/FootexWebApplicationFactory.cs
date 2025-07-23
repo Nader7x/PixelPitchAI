@@ -72,7 +72,11 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
            projectDir 
         );
         builder.UseEnvironment("Testing");
-        builder.ConfigureAppConfiguration((_, config) => { config.AddUserSecrets<Program>(); }
+        builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddUserSecrets<Program>();
+                config.AddEnvironmentVariables();
+            }
         );
         builder.ConfigureServices(services =>
         {

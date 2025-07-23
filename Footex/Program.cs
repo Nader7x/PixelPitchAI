@@ -26,7 +26,7 @@ var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
 if (File.Exists(envPath))
     Env.Load(envPath);
 else
-    // Try loading from current directory
+    // Try loading from the current directory
     Env.Load();
 
 // Initialize Serilog first
@@ -62,8 +62,8 @@ try
         // *before* UseForwardedHeaders to identify it.
     });
     // Override configuration with environment variables
-    builder.Configuration.AddEnvironmentVariables();
     builder.Configuration.AddUserSecrets<Program>();
+    builder.Configuration.AddEnvironmentVariables();
 
    
     // Bind simulation service configuration
