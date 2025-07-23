@@ -117,10 +117,11 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
         var result = await _matchRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        result.Should().Contain(m => m.Id == match1.Id);
-        result.Should().Contain(m => m.Id == match2.Id);
+        var matches = result as Match[] ?? result.ToArray();
+        matches.Should().NotBeNull();
+        matches.Should().HaveCountGreaterThanOrEqualTo(2);
+        matches.Should().Contain(m => m.Id == match1.Id);
+        matches.Should().Contain(m => m.Id == match2.Id);
     }
 
     [Fact]
@@ -135,7 +136,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
+        result.Should().HaveCountGreaterThanOrEqualTo(2);
         result.All(m => m.HomeTeam != null).Should().BeTrue();
         result.All(m => m.AwayTeam != null).Should().BeTrue();
     }
@@ -175,7 +176,7 @@ public class MatchRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
+        result.Should().HaveCountGreaterThanOrEqualTo(2);
         result.Should().Contain(m => m.Id == match1.Id);
         result.Should().Contain(m => m.Id == match2.Id);
     }

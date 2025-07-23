@@ -1,4 +1,3 @@
-using Domain.Interfaces;
 using Domain.Models;
 using Domain.Repositories;
 using FluentAssertions;
@@ -17,6 +16,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     {
         _playerRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<IPlayerRepository>();
+        FreeDbAsync(Context.Coaches,Context.Players,Context.Matches, Context.Teams).Wait();
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         // Arrange
         var team = new Team
         {
-            Name = "Test Team",
+            Name = "Test TeamTeam" + new Random().Next(1, 1000),
             League = "Test League",
             Country = "Test Country",
             FoundationDate = new DateTime(2000, 1, 1),
@@ -33,8 +33,8 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
 
         var player = new Player
         {
-            FullName = "John Doe",
-            KnownName = "Johnny",
+            FullName = "John DoeDoe",
+            KnownName = "JohnnyD",
             Nationality = "USA",
             Position = "Forward",
             PreferredFoot = "Right",
@@ -47,12 +47,12 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
         await UnitOfWork.Players.AddAsync(player);
         await UnitOfWork.SaveChangesAsync();
 
-        var result = await _playerRepository.GetByFullNameAsync("John Doe");
+        var result = await _playerRepository.GetByFullNameAsync("John DoeDoe");
 
         // Assert
         result.Should().NotBeNull();
-        result!.FullName.Should().Be("John Doe");
-        result.KnownName.Should().Be("Johnny");
+        result!.FullName.Should().Be("John DoeDoe");
+        result.KnownName.Should().Be("JohnnyD");
         result.Nationality.Should().Be("USA");
         result.Position.Should().Be("Forward");
         result.PreferredFoot.Should().Be("Right");

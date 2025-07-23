@@ -40,7 +40,7 @@ public class LoginUserCommandHandler(
     {
         try
         {
-            // Find user by email
+            // Find the user by email
             var user = await userRepository.GetByEmailAsync(request.Email);
             if (user == null)
                 return new LoginUserCommandResponse
@@ -65,11 +65,12 @@ public class LoginUserCommandHandler(
                 user,
                 request.IpAddress ?? "0.0.0.0"
             );
-            await userRepository.AddRefreshTokenAsync(user, refreshToken);
+            // await userRepository.AddRefreshTokenAsync(user, refreshToken);
             userRepository.Update(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             // get usr roles
             var roles = await userRepository.GetUserRolesAsync(user);
+            var expires = tokenService.GetTokenExpirationTime(accessToken);
             // Return successful response
             return new LoginUserCommandResponse
             {

@@ -261,7 +261,7 @@ public class ConfirmEmailCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_EmptyToken_ShouldStillCallUserManager(string token)
+    public async Task Handle_EmptyToken_ShouldStillCallUserManager(string? token)
     {
         // Arrange
         var command = _fixture

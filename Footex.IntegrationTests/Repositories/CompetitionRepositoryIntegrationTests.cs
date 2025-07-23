@@ -123,7 +123,7 @@ public class CompetitionRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         var competitions = result as Competition[] ?? result.ToArray();
         competitions.Should().NotBeNull();
-        competitions.Should().HaveCountGreaterOrEqualTo(2);
+        competitions.Should().HaveCountGreaterThanOrEqualTo(2);
         competitions.Should().Contain(c => c.Id == competition1.Id);
         competitions.Should().Contain(c => c.Id == competition2.Id);
     }

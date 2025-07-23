@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class NotificationsControllerIntegrationTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {

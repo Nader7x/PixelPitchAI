@@ -625,7 +625,7 @@ public class CoachRepositoryIntegrationTests : BaseIntegrationTest
 
         // Assert
         var allCoachesArray = allCoaches as Coach[] ?? allCoaches.ToArray();
-        allCoachesArray.Should().HaveCountGreaterOrEqualTo(3);
+        allCoachesArray.Should().HaveCountGreaterThanOrEqualTo(3);
         allCoachesArray.Should().Contain(c => c.LastName == "One");
         allCoachesArray.Should().Contain(c => c.LastName == "Two");
         allCoachesArray.Should().Contain(c => c.LastName == "Three");

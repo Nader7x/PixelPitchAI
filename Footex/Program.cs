@@ -35,6 +35,11 @@ Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    builder.Services.Configure<HostOptions>(ho =>
+    {
+        ho.ServicesStartConcurrently = true;
+        ho.ServicesStopConcurrently = false;
+    });
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders =
@@ -60,16 +65,7 @@ try
     builder.Configuration.AddEnvironmentVariables();
     builder.Configuration.AddUserSecrets<Program>();
 
-    // Configure Kestrel for HTTPS in development
-    if (builder.Environment.IsDevelopment())
-        builder.WebHost.ConfigureKestrel(serverOptions =>
-        {
-            serverOptions.ConfigureHttpsDefaults(httpsOptions =>
-            {
-                httpsOptions.ServerCertificate = null; // Let .NET handle certificate selection
-            });
-        });
-
+   
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
     {
@@ -128,15 +124,15 @@ try
         c.AddServer(
             new OpenApiServer
             {
-                Url = "http://localhost:5025",
-                Description = "Development HTTP Server",
+                Url = "https://localhost:7082",
+                Description = "Development HTTPS Server",
             }
         );
         c.AddServer(
             new OpenApiServer
             {
-                Url = "https://localhost:7082",
-                Description = "Development HTTPS Server",
+                Url = "http://localhost:5025",
+                Description = "Development HTTP Server",
             }
         );
 

@@ -5,7 +5,7 @@ using AutoFixture;
 using Domain.Interfaces;
 using FluentAssertions;
 using Footex.UnitTests.Common;
-using MockQueryable.Moq;
+using MockQueryable;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;

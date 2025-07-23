@@ -1,7 +1,7 @@
+using System.Collections;
 using Domain.Interfaces;
 using Infrastructure;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static System.GC;
@@ -24,16 +24,35 @@ public abstract class BaseIntegrationTest : IDisposable
         Context = FactoryServiceScope.ServiceProvider.GetRequiredService<FootballDbContext>();
     }
 
-    protected async Task FreeDbAsync<T>(DbSet<T> dbSet)
-        where T : class
+    protected async Task FreeDbAsync(params object[] dbSets) // Accepts any objects, we'll cast them inside
     {
-        // Ensure the database is cleared before each test
-        if (await dbSet.AnyAsync())
+        if (dbSets.Length == 0)
+            return;
+
+        foreach (var dbSetObject in dbSets)
         {
-            dbSet.RemoveRange(dbSet);
-            await Context.SaveChangesAsync();
+            switch (dbSetObject)
+            {
+                // Check if the passed object is an IEnumerable (which DbSet<T> is)
+                case IEnumerable<object> enumerableSet:
+                    // If it's already IEnumerable<object>, use it directly
+                    Context.RemoveRange(enumerableSet);
+                    break;
+                case IEnumerable nonGenericEnumerable:
+                    // If it's a non-generic IEnumerable (like DbSet<T> cast to IEnumerable),
+                    // cast its elements to the object to use RemoveRange.
+                    Context.RemoveRange(nonGenericEnumerable.Cast<object>());
+                    break;
+                default:
+                    // Optional: Log a warning or throw an exception if an unexpected type is passed
+                    Console.WriteLine($"Warning: Skipping unexpected type in FreeDbAsync: {dbSetObject?.GetType().Name ?? "null"}");
+                    break;
+            }
         }
+
+        await Context.SaveChangesAsync();
     }
+
 
     public void Dispose()
     {

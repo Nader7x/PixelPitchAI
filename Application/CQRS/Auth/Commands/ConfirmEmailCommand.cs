@@ -14,7 +14,7 @@ public class ConfirmEmailCommand : IRequest<ConfirmEmailCommandResponse>
 public class ConfirmEmailCommandResponse
 {
     public bool Succeeded { get; set; }
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }
 
 public class ConfirmEmailCommandHandler

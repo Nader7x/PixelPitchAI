@@ -230,7 +230,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             var message = Encoding.UTF8.GetString(body);
             _logger.LogInformation("Received match event: {Message}", message);
 
-            var matchEvent = JsonSerializer.Deserialize<FootballMatchEvent>(
+            var matchEvent = JsonSerializer.Deserialize(
                 message,
                 MatchEventJsonContext.Default.FootballMatchEvent
             );

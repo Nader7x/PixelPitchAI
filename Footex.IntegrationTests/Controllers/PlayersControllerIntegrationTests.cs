@@ -13,14 +13,12 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class PlayersControllerIntegrationTests(
     FootexWebApplicationFactory factory,
     ITestOutputHelper testOutputHelper
 ) : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly ITestOutputHelper _testOutputHelper = testOutputHelper;
-
     [Fact]
     public async Task GetAllPlayers_ReturnsSuccessStatusCode()
     {
@@ -59,7 +57,7 @@ public class PlayersControllerIntegrationTests(
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<GetAllPlayersQueryResponse>();
-        _testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync());
+        testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync());
         result.Should().NotBeNull();
         result?.Succeeded.Should().BeTrue();
         result?.Players.Should().NotBeEmpty();

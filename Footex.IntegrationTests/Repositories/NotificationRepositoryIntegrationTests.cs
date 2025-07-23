@@ -224,10 +224,11 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         var result = await _notificationRepository.GetAllAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCountGreaterOrEqualTo(2);
-        result.Should().Contain(n => n.Id == notification1.Id);
-        result.Should().Contain(n => n.Id == notification2.Id);
+        var notifications = result as Notification[] ?? result.ToArray();
+        notifications.Should().NotBeNull();
+        notifications.Should().HaveCountGreaterThanOrEqualTo(2);
+        notifications.Should().Contain(n => n.Id == notification1.Id);
+        notifications.Should().Contain(n => n.Id == notification2.Id);
     }
 
     private async Task<ApplicationUser> SeedUserAsync()

@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  DOTNET_VERSION: "8.0"
+  DOTNET_VERSION: "9.0.x"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
@@ -67,20 +67,25 @@ jobs:
     needs: unit-tests
 
     services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: footex_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+      redis:
+        image: redis:7
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
-
+          - 6379:6379
+      rabbitmq:
+        image: rabbitmq:3-management
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -105,8 +110,6 @@ jobs:
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults \
             --logger "trx;LogFileName=integration-tests.trx"
-        env:
-          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=footex_test;Username=test_user;Password=test_password"
 
       - name: Upload Integration Test Results
         uses: actions/upload-artifact@v4

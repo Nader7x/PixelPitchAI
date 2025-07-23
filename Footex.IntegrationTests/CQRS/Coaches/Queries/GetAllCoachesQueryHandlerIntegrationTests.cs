@@ -1,16 +1,18 @@
 using Application.CQRS.Coaches.Queries;
-using Domain.Interfaces;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Coaches.Queries;
 
-public class GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    : BaseIntegrationTest(factory)
+public class GetAllCoachesQueryHandlerIntegrationTests
+    : BaseIntegrationTest
 {
+    public GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    {
+        FreeDbAsync(Context.Matches,Context.Coaches,Context.Players, Context.Teams).Wait();
+    }
+
     [Fact]
     public async Task Handle_WhenCoachesExist_ReturnsAllCoaches()
     {
@@ -31,7 +33,7 @@ public class GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFacto
         result.Succeeded.Should().BeTrue();
         result.Should().NotBeNull();
         result.Coaches.Should().NotBeNull();
-        result.Coaches.Count.Should().BeGreaterOrEqualTo(2);
+        result.Coaches.Count.Should().BeGreaterThanOrEqualTo(2);
         result.Coaches.Should().Contain(c => c.FirstName == "Coach" && c.LastName == "One");
         result.Coaches.Should().Contain(c => c.FirstName == "Coach" && c.LastName == "Two");
     }
@@ -39,8 +41,6 @@ public class GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFacto
     [Fact]
     public async Task Handle_WhenNoCoachesExist_ReturnsEmptyList()
     {
-        Context.Coaches.RemoveRange(Context.Coaches);
-        await Context.SaveChangesAsync();
         // Arrange
         var query = new GetAllCoachesQuery();
 

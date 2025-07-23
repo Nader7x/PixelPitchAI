@@ -1,6 +1,7 @@
 using Application.CQRS.Players.Queries;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using Infrastructure;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -57,7 +58,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests(FootexWebApplicationFacto
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
         result.Players.Should().NotBeNull();
-        result.Players!.Count.Should().BeLessOrEqualTo(pageSize);
+        result.Players!.Count.Should().BeLessThanOrEqualTo(pageSize);
         result.Error.Should().BeNull();
     }
 
@@ -113,14 +114,13 @@ public class GetAllPlayersQueryHandlerIntegrationTests(FootexWebApplicationFacto
     public async Task Handle_WithTeamIdFilter_ReturnsPlayersFromSpecificTeam()
     {
         // Arrange
-        using var scope = _factory.Services.CreateScope();
-        await TestData.SeedTestData(scope.ServiceProvider);
-
+        var team = TestData.CreateTestDbTeam();
+        await Context.Teams.AddAsync(team);
+        await Context.SaveChangesAsync();
         // Get existing team ID from seeded data
-        const int testTeamId = 1;
-        await TestData.SeedPlayersForTeam(scope.ServiceProvider, testTeamId, 3);
+        await TestData.SeedPlayersForTeam(FactoryServiceScope.ServiceProvider, team.Id, 3);
 
-        var query = new GetAllPlayersQuery { TeamId = testTeamId };
+        var query = new GetAllPlayersQuery { TeamId = team.Id };
 
         // Act
         var result = await Mediator.Send(query);
@@ -130,7 +130,7 @@ public class GetAllPlayersQueryHandlerIntegrationTests(FootexWebApplicationFacto
         result.Succeeded.Should().BeTrue();
         result.Players.Should().NotBeNull();
         result.Players!.Count.Should().BeGreaterThan(0);
-        result.Players.All(p => p.TeamId == testTeamId).Should().BeTrue();
+        result.Players.All(p => p.TeamId == team.Id).Should().BeTrue();
         result.Error.Should().BeNull();
     }
 
@@ -221,7 +221,6 @@ public class GetAllPlayersQueryHandlerIntegrationTests(FootexWebApplicationFacto
         var query = new GetAllPlayersQuery
         {
             PreferredFoot = testPreferredFoot,
-            TeamId = 1, // This should be ignored since PreferredFoot has higher priority
         };
 
         // Act

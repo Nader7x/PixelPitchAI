@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MockQueryable.Moq;
+using MockQueryable;
 using Moq;
 using Xunit;
 using Match = Domain.Models.Match;
@@ -92,15 +92,15 @@ public class TestAsyncQueryProvider<TEntity> : IAsyncQueryProvider
         var executionResult = typeof(IQueryProvider)
             .GetMethod(nameof(IQueryProvider.Execute), 1, new[] { typeof(Expression) })
             ?.MakeGenericMethod(resultType)
-            .Invoke(this, new[] { expression });
+            .Invoke(this, [expression]);
 
         return (TResult)
             (
                 typeof(Task)
                     .GetMethod(nameof(Task.FromResult))
                     ?.MakeGenericMethod(resultType)
-                    .Invoke(null, new[] { executionResult }) ?? Task.FromResult(default(TResult))
-            )!;
+                    .Invoke(null, [executionResult]) ?? Task.FromResult(default(TResult))
+            );
     }
 }
 
@@ -215,12 +215,12 @@ public class UnifiedSearchServiceTests
     };
 
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private Mock<ICoachRepository> _mockCoachRepo = null!;
-    private Mock<IMatchRepository> _mockMatchRepo = null!;
-    private Mock<IPlayerRepository> _mockPlayerRepo = null!;
-    private Mock<IStadiumsRepository> _mockStadiumRepo = null!;
-    private Mock<ITeamRepository> _mockTeamRepo = null!;
-    private UnifiedSearchService _searchService = null!;
+    private Mock<ICoachRepository>? _mockCoachRepo;
+    private Mock<IMatchRepository>? _mockMatchRepo;
+    private Mock<IPlayerRepository>? _mockPlayerRepo;
+    private Mock<IStadiumsRepository>? _mockStadiumRepo;
+    private Mock<ITeamRepository>? _mockTeamRepo;
+    private UnifiedSearchService? _searchService;
 
     public UnifiedSearchServiceTests()
     {
@@ -337,7 +337,8 @@ public class UnifiedSearchServiceTests
 
         dbSet.As<IQueryable<T>>().Setup(m => m.Expression).Returns(queryable.Expression);
         dbSet.As<IQueryable<T>>().Setup(m => m.ElementType).Returns(queryable.ElementType);
-        dbSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(queryable.GetEnumerator());
+        using var enumerator = queryable.GetEnumerator();
+        dbSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(enumerator);
 
         return dbSet;
     }
@@ -356,7 +357,7 @@ public class UnifiedSearchServiceTests
         var query = "a";
 
         // Act
-        var result = await _searchService.SearchAsync(query);
+        var result = await _searchService?.SearchAsync(query)!;
 
         // Assert
         Assert.NotNull(result);
@@ -372,7 +373,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService.SearchAsync(query);
+        var result = await _searchService?.SearchAsync(query);
 
         // Assert
         Assert.NotNull(result);
@@ -397,7 +398,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService.SearchAsync(query);
+        var result = await _searchService?.SearchAsync(query);
 
         // Assert
         Assert.NotNull(result);
@@ -467,7 +468,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService.SearchWithFiltersAsync(null!);
+        var result = await _searchService?.SearchWithFiltersAsync(null!);
 
         // Assert
         Assert.NotNull(result);
@@ -559,7 +560,7 @@ public class UnifiedSearchServiceTests
             .Returns(_testPlayers.AsQueryable().BuildMock());
 
         // Act
-        var result = await _searchService.SearchWithFiltersAsync(filters);
+        var result = await _searchService?.SearchWithFiltersAsync(filters);
 
         // Assert
         Assert.NotNull(result);

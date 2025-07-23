@@ -7,6 +7,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
+using MockQueryable;
 using MockQueryable.Moq;
 using Moq;
 using Xunit;

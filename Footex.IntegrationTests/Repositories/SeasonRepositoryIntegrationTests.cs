@@ -431,10 +431,11 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
         var allSeasons = await _seasonRepository.GetAllAsync();
 
         // Assert
-        allSeasons.Should().HaveCountGreaterOrEqualTo(3);
-        allSeasons.Should().Contain(s => s.Name == "Season A");
-        allSeasons.Should().Contain(s => s.Name == "Season B");
-        allSeasons.Should().Contain(s => s.Name == "Season C");
+        var enumerable = allSeasons as Season[] ?? allSeasons.ToArray();
+        enumerable.Should().HaveCountGreaterThanOrEqualTo(3);
+        enumerable.Should().Contain(s => s.Name == "Season A");
+        enumerable.Should().Contain(s => s.Name == "Season B");
+        enumerable.Should().Contain(s => s.Name == "Season C");
     }
 
     [Fact]

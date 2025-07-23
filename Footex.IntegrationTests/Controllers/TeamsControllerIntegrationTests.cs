@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class TeamsControllerIntegrationTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {

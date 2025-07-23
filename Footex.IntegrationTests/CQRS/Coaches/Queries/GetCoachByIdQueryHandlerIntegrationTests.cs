@@ -8,9 +8,14 @@ using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Coaches.Queries;
 
-public class GetCoachByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    : BaseIntegrationTest(factory)
+public class GetCoachByIdQueryHandlerIntegrationTests
+    : BaseIntegrationTest
 {
+    public GetCoachByIdQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    {
+        FreeDbAsync(Context.Matches,Context.Coaches,Context.Players, Context.Teams).Wait();
+    }
+
     [Fact]
     public async Task Handle_ValidCoachId_ReturnsCoachSuccessfully()
     {

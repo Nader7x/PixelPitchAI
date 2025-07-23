@@ -129,10 +129,11 @@ public class StadiumRepositoryIntegrationTests : BaseIntegrationTest
         var allStadiums = await _stadiumRepository.GetAllAsync();
 
         // Assert
-        allStadiums.Should().HaveCountGreaterOrEqualTo(3);
-        allStadiums.Should().Contain(s => s.Name == "Stadium One");
-        allStadiums.Should().Contain(s => s.Name == "Stadium Two");
-        allStadiums.Should().Contain(s => s.Name == "Stadium Three");
+        var stadiums = allStadiums as Stadium[] ?? allStadiums.ToArray();
+        stadiums.Should().HaveCountGreaterThanOrEqualTo(3);
+        stadiums.Should().Contain(s => s.Name == "Stadium One");
+        stadiums.Should().Contain(s => s.Name == "Stadium Two");
+        stadiums.Should().Contain(s => s.Name == "Stadium Three");
     }
 
     [Fact]

@@ -408,37 +408,6 @@ public static class TestData
             LastName = "User",
         };
     }
-
-    public static Season CreateSeason(string seasonName, string leagueName = "Test League")
-    {
-        return new Season
-        {
-            Id = 0,
-            Name = seasonName,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(9),
-            LeagueName = leagueName,
-            Country = "Testland",
-            IsActive = true,
-        };
-    }
-
-    public static Stadium CreateStadium(string stadiumName)
-    {
-        return new Stadium
-        {
-            Id = 0,
-            Name = stadiumName,
-            City = "Test City",
-            Country = "Testland",
-            Capacity = 50000,
-            BuiltDate = null,
-            Description = null,
-            ImageUrl = null,
-            SurfaceType = null,
-        };
-    }
-
     /// <summary>
     /// Defines what and how to seed.
     /// </summary>

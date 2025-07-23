@@ -157,7 +157,7 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         var matchEventsEnumerable = result as MatchEvents[] ?? result.ToArray();
         matchEventsEnumerable.Should().NotBeNull();
-        matchEventsEnumerable.Should().HaveCountGreaterOrEqualTo(2);
+        matchEventsEnumerable.Should().HaveCountGreaterThanOrEqualTo(2);
         matchEventsEnumerable.Should().Contain(me => me.Id == matchEvents1.Id);
         matchEventsEnumerable.Should().Contain(me => me.Id == matchEvents2.Id);
     }

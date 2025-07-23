@@ -5,12 +5,13 @@ using Application.Dtos;
 using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
+using Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class AuthControllerTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {
@@ -50,7 +51,7 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
     public async Task Login_WithValidCredentials_ReturnsToken()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        CreateValidUser();
+        // await CreateValidUser();
         // Arrange
         var loginRequest = new UserLoginDto
         {
@@ -66,16 +67,16 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
         var loginResponse = await response.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
 
         loginResponse.Should().NotBeNull();
-        loginResponse?.AccessToken.Should().NotBeNullOrEmpty();
-        loginResponse?.RefreshToken.Should().NotBeNullOrEmpty();
-        loginResponse?.TokenExpires.Should().BeAfter(DateTime.UtcNow);
+        loginResponse.AccessToken.Should().NotBeNullOrEmpty();
+        loginResponse.RefreshToken.Should().NotBeNullOrEmpty();
+        loginResponse.TokenExpires.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]
     public async Task Login_WithInvalidCredentials_ReturnsBadRequest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        CreateValidUser();
+        await CreateValidUser();
         // Arrange
         var loginRequest = new UserLoginDto
         {
@@ -94,7 +95,7 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
     public async Task RefreshToken_WithValidToken_ReturnsNewToken()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        CreateValidUser();
+        // await CreateValidUser();
         var loginRequest = new UserLoginDto
         {
             Email = "testuser@example.com",
@@ -103,9 +104,7 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
 
         var loginResponse = await httpClient.PostAsJsonAsync("/api/auth/login", loginRequest);
         var tokens = await loginResponse.Content.ReadFromJsonAsync<LoginUserCommandResponse>();
-
-        var refreshRequest = new { token = tokens?.RefreshToken };
-
+        
         // Act
         var response = await httpClient.PostAsync("/api/auth/refresh-token", null);
 
@@ -115,22 +114,25 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
             await response.Content.ReadFromJsonAsync<RefreshTokenCommandResponse>();
 
         refreshResponse.Should().NotBeNull();
-        refreshResponse?.AccessToken.Should().NotBeNullOrEmpty();
-        refreshResponse?.RefreshToken.Should().NotBeNullOrEmpty();
-        refreshResponse?.TokenExpires.Should().BeAfter(DateTime.UtcNow + TimeSpan.FromMinutes(5));
-        refreshResponse?.AccessToken.Should().NotBe(tokens?.AccessToken);
+        refreshResponse.AccessToken.Should().NotBeNullOrEmpty();
+        refreshResponse.RefreshToken.Should().NotBeNullOrEmpty();
+        refreshResponse.TokenExpires.Should().BeAfter(DateTime.UtcNow + TimeSpan.FromMinutes(5));
+        refreshResponse.AccessToken.Should().NotBe(tokens?.AccessToken);
     }
 
-    private async void CreateValidUser()
+    private async Task CreateValidUser()
     {
         try
         {
             var scope = factory.Services.CreateScope();
-            var userManager = scope.ServiceProvider.GetRequiredService<
-                UserManager<ApplicationUser>
-            >();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
             var testUser = TestData.CreateTestUser(true);
             await userManager.CreateAsync(testUser, "Password123!");
+            await userManager.AddToRoleAsync(testUser, "Admin");
+            await userManager.AddToRoleAsync(testUser, "User");
+            await context.SaveChangesAsync();
+            Console.WriteLine("Test user created successfully.");
         }
         catch (Exception e)
         {

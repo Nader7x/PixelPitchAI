@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Application.CQRS.Coaches.Queries;
 using Application.Dtos;
 using Application.Interfaces;
@@ -7,7 +6,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
-using MockQueryable.Moq;
+using MockQueryable;
 using Moq;
 using Xunit;
 

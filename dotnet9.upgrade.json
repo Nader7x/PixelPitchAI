@@ -1,0 +1,835 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "",
+    "targetDisplayName": ".NET 9.0"
+  },
+  "analysisStartTime": "2025-07-21T14:37:53.7133065Z",
+  "analysisEndTime": "2025-07-21T14:38:05.9141795Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 7,
+      "issues": 2,
+      "incidents": 33,
+      "effort": 33
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 7,
+        "Optional": 0,
+        "Potential": 26,
+        "Information": 0
+      },
+      "category": {
+        "NuGet": 26,
+        "Project": 7
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "Application\\Application.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 3,
+      "ruleInstances": [
+        {
+          "incidentId": "c858332d-16a1-4235-b59b-28f173285d4f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Application\\Application.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+              "protected": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7"
+            },
+            "kind": "File",
+            "path": "Application\\Application.csproj",
+            "snippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "label": "Microsoft.AspNetCore.Authentication.JwtBearer 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Authentication.JwtBearer",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "479d9557-ac7f-4f49-adcf-c1eeb9b9179d",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Application\\Application.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore 9.0.7"
+            },
+            "kind": "File",
+            "path": "Application\\Application.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "36400aac-799a-4595-a2e8-301d625ea6b2",
+          "ruleId": "Project.0002",
+          "projectPath": "Application\\Application.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Application\\Application.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Domain\\Domain.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "ruleInstances": [
+        {
+          "incidentId": "5f6ea791-da6e-4d23-ba7c-e30f0ed16e8b",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Domain\\Domain.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7"
+            },
+            "kind": "File",
+            "path": "Domain\\Domain.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "74be0222-d9e6-4971-b598-d8273de0b8ad",
+          "ruleId": "Project.0002",
+          "projectPath": "Domain\\Domain.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Domain\\Domain.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Footex\\Footex.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 6,
+      "ruleInstances": [
+        {
+          "incidentId": "747711ae-782a-47b1-850a-714f9b2a7751",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+              "protected": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "label": "Microsoft.AspNetCore.Authentication.JwtBearer 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Authentication.JwtBearer",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "190dae9c-ee0e-48c0-801f-c24d14457753",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "57f1f980-ca7f-407e-85e3-debb3d7bba12",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.OpenApi, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.OpenApi 9.0.7",
+              "protected": "Microsoft.AspNetCore.OpenApi, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.OpenApi 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Microsoft.AspNetCore.OpenApi, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.OpenApi 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.OpenApi, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.OpenApi 9.0.7",
+            "label": "Microsoft.AspNetCore.OpenApi 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.OpenApi",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "19c878f0-fb05-4457-a96e-83f75ede80dc",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore.Design 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "39654f00-e6c3-4d98-b3d0-549ce38e81a0",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+              "protected": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+            "label": "Microsoft.Extensions.Configuration 8.0.0",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Configuration",
+              "PackageVersion": "8.0.0",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "431a399c-030c-4717-ac8a-bd81fd2d9e76",
+          "ruleId": "Project.0002",
+          "projectPath": "Footex\\Footex.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Footex\\Footex.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 6,
+      "ruleInstances": [
+        {
+          "incidentId": "dfc7a77d-81f1-41ea-975c-237e648679df",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+              "protected": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "label": "Microsoft.AspNetCore.Mvc.Testing 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Mvc.Testing",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ec5e3976-20fc-41fd-94ad-8e9b15bee5c1",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore.InMemory 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.InMemory",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "6559944a-96a2-4902-9441-143abed3c5b0",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+              "protected": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+            "label": "Microsoft.Extensions.Configuration.Json 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Configuration.Json",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "45d546b7-91b8-43a4-a3f8-415a6ca7b026",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+              "protected": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Authentication.JwtBearer 9.0.7",
+            "label": "Microsoft.AspNetCore.Authentication.JwtBearer 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Authentication.JwtBearer",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d669bca3-8f4a-42bb-990d-ef645cf5837f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+              "protected": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+            "label": "Microsoft.Extensions.Logging.Abstractions 8.0.3",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Logging.Abstractions",
+              "PackageVersion": "8.0.3",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "c5c822b9-39de-4a07-8386-5c6bddd1066f",
+          "ruleId": "Project.0002",
+          "projectPath": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Footex.IntegrationTests\\Footex.IntegrationTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 7,
+      "ruleInstances": [
+        {
+          "incidentId": "7af05626-9a92-481f-bc49-e96df6c5479c",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+              "protected": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "label": "Microsoft.AspNetCore.Mvc.Testing 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Mvc.Testing",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ff48ccdf-982c-4037-822b-9085e21b7287",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+              "protected": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Configuration, 8.0.0\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration 9.0.7",
+            "label": "Microsoft.Extensions.Configuration 8.0.0",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Configuration",
+              "PackageVersion": "8.0.0",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d14f23a2-6ec7-4457-96dc-5612e64a23a1",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+              "protected": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Configuration.Json, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Configuration.Json 9.0.7",
+            "label": "Microsoft.Extensions.Configuration.Json 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Configuration.Json",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "2f14abef-d72e-4020-b302-958ed988aae6",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.DependencyInjection, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.DependencyInjection 9.0.7",
+              "protected": "Microsoft.Extensions.DependencyInjection, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.DependencyInjection 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.Extensions.DependencyInjection, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.DependencyInjection 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.DependencyInjection, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.DependencyInjection 9.0.7",
+            "label": "Microsoft.Extensions.DependencyInjection 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.DependencyInjection",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "8998480a-d005-432e-b069-a6ac8dffc546",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Logging, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging 9.0.7",
+              "protected": "Microsoft.Extensions.Logging, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.Extensions.Logging, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Logging, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging 9.0.7",
+            "label": "Microsoft.Extensions.Logging 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Logging",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "87ba7829-8588-4ec1-9078-3fef49e2f239",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Logging.Console, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Console 9.0.7",
+              "protected": "Microsoft.Extensions.Logging.Console, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Console 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Microsoft.Extensions.Logging.Console, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Console 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Logging.Console, 8.0.1\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Console 9.0.7",
+            "label": "Microsoft.Extensions.Logging.Console 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Logging.Console",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "0fb4751c-34dc-4ea3-9907-aab3191ae53c",
+          "ruleId": "Project.0002",
+          "projectPath": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Footex.PerformanceTests\\Footex.PerformanceTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Footex.UnitTests\\Footex.UnitTests.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 4,
+      "ruleInstances": [
+        {
+          "incidentId": "8a9f7133-87a8-4208-ac74-b1204e82f69e",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.UnitTests\\Footex.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+              "protected": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.UnitTests\\Footex.UnitTests.csproj",
+            "snippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Mvc.Testing, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Mvc.Testing 9.0.7",
+            "label": "Microsoft.AspNetCore.Mvc.Testing 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Mvc.Testing",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "4390daf2-ddc3-4c3d-8807-cfe1b35b2ae7",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.UnitTests\\Footex.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.UnitTests\\Footex.UnitTests.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.InMemory, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.InMemory 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore.InMemory 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.InMemory",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "4eb0da5c-90f0-4df3-a161-649345dae3ee",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Footex.UnitTests\\Footex.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+              "protected": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7"
+            },
+            "kind": "File",
+            "path": "Footex.UnitTests\\Footex.UnitTests.csproj",
+            "snippet": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Logging.Abstractions, 8.0.3\n\nRecommendation:\n\nMicrosoft.Extensions.Logging.Abstractions 9.0.7",
+            "label": "Microsoft.Extensions.Logging.Abstractions 8.0.3",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Logging.Abstractions",
+              "PackageVersion": "8.0.3",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "146dc106-1d7d-4474-9ae0-00c9d582b610",
+          "ruleId": "Project.0002",
+          "projectPath": "Footex.UnitTests\\Footex.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Footex.UnitTests\\Footex.UnitTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    },
+    {
+      "path": "Infrastructure\\Infrastructure.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 5,
+      "ruleInstances": [
+        {
+          "incidentId": "0231a0d7-e8af-414e-9ce3-754651729eb0",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Infrastructure\\Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7"
+            },
+            "kind": "File",
+            "path": "Infrastructure\\Infrastructure.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.15\n\nRecommendation:\n\nMicrosoft.AspNetCore.Identity.EntityFrameworkCore 9.0.7",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "cd6ea499-edaa-4084-9d60-8ec43528eadd",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Infrastructure\\Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7"
+            },
+            "kind": "File",
+            "path": "Infrastructure\\Infrastructure.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Design 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore.Design 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "8ae507b3-cd37-41e8-90e8-b6f65b5515e3",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Infrastructure\\Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Tools, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Tools 9.0.7",
+              "protected": "Microsoft.EntityFrameworkCore.Tools, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Tools 9.0.7"
+            },
+            "kind": "File",
+            "path": "Infrastructure\\Infrastructure.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Tools, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Tools 9.0.7",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Tools, 8.0.15\n\nRecommendation:\n\nMicrosoft.EntityFrameworkCore.Tools 9.0.7",
+            "label": "Microsoft.EntityFrameworkCore.Tools 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Tools",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "c0d42412-03cc-4aca-ab4a-bf53fca5c5a4",
+          "ruleId": "NuGet.0002",
+          "projectPath": "Infrastructure\\Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Caching.StackExchangeRedis, 8.0.15\n\nRecommendation:\n\nMicrosoft.Extensions.Caching.StackExchangeRedis 9.0.7",
+              "protected": "Microsoft.Extensions.Caching.StackExchangeRedis, 8.0.15\n\nRecommendation:\n\nMicrosoft.Extensions.Caching.StackExchangeRedis 9.0.7"
+            },
+            "kind": "File",
+            "path": "Infrastructure\\Infrastructure.csproj",
+            "snippet": "Microsoft.Extensions.Caching.StackExchangeRedis, 8.0.15\n\nRecommendation:\n\nMicrosoft.Extensions.Caching.StackExchangeRedis 9.0.7",
+            "protectedSnippet": "Microsoft.Extensions.Caching.StackExchangeRedis, 8.0.15\n\nRecommendation:\n\nMicrosoft.Extensions.Caching.StackExchangeRedis 9.0.7",
+            "label": "Microsoft.Extensions.Caching.StackExchangeRedis 8.0.15",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Caching.StackExchangeRedis",
+              "PackageVersion": "8.0.15",
+              "PackageNewVersion": "9.0.7",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "7d307f06-74c4-4f50-8908-e347e49283ea",
+          "ruleId": "Project.0002",
+          "projectPath": "Infrastructure\\Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net9.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net9.0"
+            },
+            "kind": "File",
+            "path": "Infrastructure\\Infrastructure.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net9.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net9.0"
+          }
+        }
+      ]
+    }
+  ],
+  "rules": {
+    "NuGet.0002": {
+      "id": "NuGet.0002",
+      "description": "NuGet package upgrade is recommended for selected target framework.\n\nStandard .NET packages are recommended to have versions matching version of .NET that project targets.\n\nSome other packages also are known to work better for selected target frameworks.",
+      "label": "NuGet package upgrade is recommended",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262530",
+          "isCustom": false
+        }
+      ]
+    },
+    "Project.0002": {
+      "id": "Project.0002",
+      "description": "Project\u0027s target framework(s) needs to be changed to the new target framework that you selected for this upgrade.\n\nDuring upgrade target framework will be adjusted to corresponding platform when applicable. In some cases project would result in multiple target frameworks after the upgrade if it was using features that now have their own platforms in modern .NET frameworks (windows, iOS, Android etc).",
+      "label": "Project\u0027s target framework(s) needs to be changed",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Overview of porting from .NET Framework to .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": ".NET project SDKs",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    }
+  }
+}

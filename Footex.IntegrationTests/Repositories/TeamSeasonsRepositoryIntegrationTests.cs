@@ -17,9 +17,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         _teamSeasonsRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
-        FreeDbAsync(Context.Teams).Wait();
-        FreeDbAsync(Context.Seasons).Wait();
-        FreeDbAsync(Context.TeamSeasons).Wait();
+        FreeDbAsync(Context.Coaches,Context.Players,Context.Matches,Context.Teams,Context.Seasons,Context.TeamSeasons).Wait();
     }
 
     [Fact]
@@ -234,7 +232,7 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
         // Assert
         var teamSeasons = result as TeamSeason[] ?? result.ToArray();
         teamSeasons.Should().NotBeNull();
-        teamSeasons.Should().HaveCountGreaterOrEqualTo(2);
+        teamSeasons.Should().HaveCountGreaterThanOrEqualTo(2);
         teamSeasons.Should().Contain(ts => ts.Id == teamSeason1.Id);
         teamSeasons.Should().Contain(ts => ts.Id == teamSeason2.Id);
     }

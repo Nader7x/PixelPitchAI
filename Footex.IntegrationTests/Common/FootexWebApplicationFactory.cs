@@ -48,13 +48,13 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await dbContext.Database.MigrateAsync();
 
         var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole>>();
-        var dataSeeder = scopedServices.GetRequiredService<DataSeeder>();
+        // var dataSeeder = scopedServices.GetRequiredService<DataSeeder>();
 
         if (!await roleManager.RoleExistsAsync("Admin"))
             await roleManager.CreateAsync(new IdentityRole("Admin"));
         if (!await roleManager.RoleExistsAsync("User"))
             await roleManager.CreateAsync(new IdentityRole("User"));
-        await dataSeeder.SeedAllAsync();
+        // await dataSeeder.SeedAllAsync();
     }
 
     public new async Task DisposeAsync()
@@ -66,7 +66,7 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var projectDir = GetProjectDirectory<Program>();
+        var projectDir = GetProjectDirectory();
         Console.WriteLine($"Current directory : {projectDir}");
         builder.UseContentRoot(
            projectDir 
@@ -159,19 +159,19 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         return client;
     }
 
-    private static string GetProjectDirectory<TEntryPoint>() where TEntryPoint : class
+    private static string GetProjectDirectory()
     {
         // Get the directory of the currently executing assembly (the benchmark runner or test assembly)
         // This will typically be within your project's bin/Release/net8.0 or a BenchmarkDotNet temp folder.
         var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-        var currentDirectory = new DirectoryInfo(Path.GetDirectoryName(assemblyLocation) ?? "D:\\programming\\GitHub\\Footex\\Footex");
+        var currentDirectory = new DirectoryInfo(Path.GetDirectoryName(assemblyLocation) ?? @"D:\programming\GitHub\Footex\Footex");
 
         Console.WriteLine(
             $"[DEBUG] Starting project directory search from assembly location: {currentDirectory.FullName}");
 
         // Traverse up the directory tree to find the solution root (which contains the .sln file)
         // This is a robust way to find the top-level directory of your solution.
-        while (currentDirectory != null && !Directory.GetFiles(currentDirectory.FullName, "*.sln").Any())
+        while (currentDirectory != null && Directory.GetFiles(currentDirectory.FullName, "*.sln").Length == 0)
         {
             currentDirectory = currentDirectory.Parent;
         }

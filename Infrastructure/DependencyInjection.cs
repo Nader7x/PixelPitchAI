@@ -62,7 +62,7 @@ public static class DependencyInjection
         ConnectionMultiplexer redis;
         try
         {
-            // Try remote connection first
+            // Try a remote connection first
             if (!string.IsNullOrEmpty(remoteConnectionString))
                 redis = ConnectionMultiplexer.Connect(
                     new ConfigurationOptions

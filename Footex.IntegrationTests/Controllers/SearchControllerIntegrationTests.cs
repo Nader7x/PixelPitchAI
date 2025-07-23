@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class SearchControllerIntegrationTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {

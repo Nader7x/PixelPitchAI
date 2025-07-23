@@ -11,14 +11,12 @@ using Xunit;
 using Xunit.Abstractions;
 
 namespace Footex.IntegrationTests.Controllers;
-
+[Collection("Database collection")]
 public class CoachesControllerIntegrationTests(
     FootexWebApplicationFactory factory,
     ITestOutputHelper testOutputHelper
 ) : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly ITestOutputHelper _testOutputHelper = testOutputHelper;
-
     [Fact]
     public async Task GetAllCoaches_ReturnsSuccessStatusCode()
     {
@@ -54,7 +52,7 @@ public class CoachesControllerIntegrationTests(
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            _testOutputHelper.WriteLine(errorContent);
+            testOutputHelper.WriteLine(errorContent);
         }
 
         // Assert
@@ -103,7 +101,7 @@ public class CoachesControllerIntegrationTests(
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            _testOutputHelper.WriteLine(errorContent);
+            testOutputHelper.WriteLine(errorContent);
         }
 
         // Assert
@@ -149,7 +147,7 @@ public class CoachesControllerIntegrationTests(
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            _testOutputHelper.WriteLine(errorContent);
+            testOutputHelper.WriteLine(errorContent);
         }
 
         // Assert
@@ -262,7 +260,7 @@ public class CoachesControllerIntegrationTests(
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            _testOutputHelper.WriteLine(errorContent);
+            testOutputHelper.WriteLine(errorContent);
         }
 
         // Assert

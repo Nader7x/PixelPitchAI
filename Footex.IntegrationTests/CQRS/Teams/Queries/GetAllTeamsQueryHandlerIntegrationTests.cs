@@ -1,26 +1,28 @@
 using Application.CQRS.Teams.Queries;
+using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
 using Infrastructure;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Footex.IntegrationTests.CQRS.Teams.Queries;
 
-public class GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory)
-    : BaseIntegrationTest(factory)
+public class GetAllTeamsQueryHandlerIntegrationTests
+    : BaseIntegrationTest
 {
+    public GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
+    {
+        FreeDbAsync(Context.Coaches,Context.Players,Context.Teams).Wait();
+    }
     [Fact]
     public async Task Handle_ReturnsAllTeams()
     {
         // Arrange
-        Context.Teams.RemoveRange(Context.Teams);
-        await Context.SaveChangesAsync();
         var team1 = TestData.CreateTestDbTeam();
         var team2 = TestData.CreateTestDbTeam();
-        team2.Name = "Second Team";
-        team2.ShortName = "ST2";
         await Context.Teams.AddRangeAsync(team1, team2);
         await Context.SaveChangesAsync();
 
@@ -36,9 +38,6 @@ public class GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory
     [Fact]
     public async Task Handle_WhenNoTeamsExist_ReturnsEmptyList()
     {
-        // Arrange
-        Context.Teams.RemoveRange(Context.Teams);
-        await Context.SaveChangesAsync();
 
         // Act
         var response = await Mediator.Send(new GetAllTeamsQuery());

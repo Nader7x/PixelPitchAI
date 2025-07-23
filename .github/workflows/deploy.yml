@@ -21,7 +21,7 @@ on:
         type: boolean
 
 env:
-  DOTNET_VERSION: "8.0.x"
+  DOTNET_VERSION: "9.0.x"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
@@ -132,7 +132,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-deployment, build-and-push ]
     if: needs.pre-deployment.outputs.target_environment == 'staging'
-    # Environment URL: https://footex-staging.yourdomain.com
 
     steps:
       - name: Checkout code
@@ -164,7 +163,7 @@ jobs:
 
       - name: Health check
         run: |
-          HEALTH_URL="https://footex-staging.yourdomain.com/api/health"
+          HEALTH_URL="${{}}/api/health"
           for i in {1..10}; do
             if curl -f $HEALTH_URL; then
               echo "Health check passed"
@@ -189,8 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-deployment, build-and-push ]
     if: needs.pre-deployment.outputs.target_environment == 'production'
-    # Environment URL: https://footex.yourdomain.com
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -201,7 +199,6 @@ jobs:
       - name: Deploy to Azure Container Apps - Production
         uses: azure/CLI@v1
         with:
-          azcliversion: 2.30.0
           inlineScript: |
             az containerapp update \
               --name footex-api-production \
