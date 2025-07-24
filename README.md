@@ -7,7 +7,7 @@
 
 ![Coverage](https://img.shields.io/badge/Coverage-89.2%25-brightgreen)
 ![Tests](https://img.shields.io/badge/Tests-644-brightgreen)
-![.NET](https://img.shields.io/badge/.NET-8.0-blue)
+![.NET](https://img.shields.io/badge/.NET-9.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 A comprehensive **enterprise-level football management platform** built with .NET 8, featuring real-time match simulation, team management, advanced analytics, and **production-ready CI/CD pipeline**.
