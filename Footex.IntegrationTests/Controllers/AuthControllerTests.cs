@@ -27,6 +27,7 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
             FirstName = "User1",
             UserName = "test@example.com",
             LastName = "LastName",
+            PhoneNumber = "0124647879546",
         };
 
         var formData = new MultipartFormDataContent
@@ -76,7 +77,6 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
     public async Task Login_WithInvalidCredentials_ReturnsBadRequest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        await CreateValidUser();
         // Arrange
         var loginRequest = new UserLoginDto
         {
@@ -120,23 +120,23 @@ public class AuthControllerTests(FootexWebApplicationFactory factory)
         refreshResponse.AccessToken.Should().NotBe(tokens?.AccessToken);
     }
 
-    private async Task CreateValidUser()
-    {
-        try
-        {
-            var scope = factory.Services.CreateScope();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
-            var testUser = TestData.CreateTestUser(true);
-            await userManager.CreateAsync(testUser, "Password123!");
-            await userManager.AddToRoleAsync(testUser, "Admin");
-            await userManager.AddToRoleAsync(testUser, "User");
-            await context.SaveChangesAsync();
-            Console.WriteLine("Test user created successfully.");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-        }
-    }
+    // private async Task CreateValidUser()
+    // {
+    //     try
+    //     {
+    //         var scope = factory.Services.CreateScope();
+    //         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    //         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+    //         var testUser = TestData.CreateTestUser(true);
+    //         await userManager.CreateAsync(testUser, "Password123!");
+    //         await userManager.AddToRoleAsync(testUser, "Admin");
+    //         await userManager.AddToRoleAsync(testUser, "User");
+    //         await context.SaveChangesAsync();
+    //         Console.WriteLine("Test user created successfully.");
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         Console.WriteLine(e.Message);
+    //     }
+    // }
 }

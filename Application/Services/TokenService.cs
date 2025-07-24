@@ -76,7 +76,6 @@ public class TokenService(
     )
     {
         var refreshToken = await userRepository.GetRefreshTokenAsync(token);
-        Console.WriteLine(refreshToken);
         if (refreshToken is not { IsActive: true })
             throw new SecurityTokenException("Invalid refresh token");
 

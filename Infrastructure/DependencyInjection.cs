@@ -11,7 +11,7 @@ using Infrastructure.Services.EventProcessors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog.Sinks.PostgreSQL;
+using Serilog.Sinks.PostgreSQL.ColumnWriters;
 using StackExchange.Redis;
 
 // Add this using
@@ -182,26 +182,24 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Register Serilog column mappings for PostgreSQL
-        if (configuration.GetSection("SerilogColumnOptions").Exists())
+        if (!configuration.GetSection("SerilogColumnOptions").Exists()) return services;
+        // Create dictionary of column writers for PostgreSQL
+        IDictionary<string, ColumnWriterBase> columnWriters = new Dictionary<
+            string,
+            ColumnWriterBase
+        >
         {
-            // Create dictionary of column writers for PostgreSQL
-            IDictionary<string, ColumnWriterBase> columnWriters = new Dictionary<
-                string,
-                ColumnWriterBase
-            >
-            {
-                { "message", new RenderedMessageColumnWriter() },
-                { "message_template", new MessageTemplateColumnWriter() },
-                { "level", new LevelColumnWriter() },
-                { "timestamp", new TimestampColumnWriter() },
-                { "exception", new ExceptionColumnWriter() },
-                { "properties", new PropertiesColumnWriter() },
-                { "source_context", new SinglePropertyColumnWriter("SourceContext") },
-            };
+            { "message", new RenderedMessageColumnWriter() },
+            { "message_template", new MessageTemplateColumnWriter() },
+            { "level", new LevelColumnWriter() },
+            { "timestamp", new TimestampColumnWriter() },
+            { "exception", new ExceptionColumnWriter() },
+            { "properties", new PropertiesColumnWriter() },
+            { "source_context", new SinglePropertyColumnWriter("SourceContext") },
+        };
 
-            // Register the column writers for use in Program.cs
-            services.AddSingleton(columnWriters);
-        }
+        // Register the column writers for use in Program.cs
+        services.AddSingleton(columnWriters);
 
         return services;
     }

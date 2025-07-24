@@ -14,6 +14,8 @@ public class IdentityService(
         string password
     )
     {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user), "User cannot be null");
         var result = await userManager.CreateAsync(user, password);
         return (result.Succeeded, user.Id, result);
     }
@@ -40,6 +42,9 @@ public class IdentityService(
 
     public async Task<bool> CheckPasswordAsync(ApplicationUser? user, string password)
     {
+        if (user == null)
+            return false;
+        
         return await userManager.CheckPasswordAsync(user, password);
     }
 
@@ -48,6 +53,12 @@ public class IdentityService(
         if (!await roleManager.RoleExistsAsync(role))
             await roleManager.CreateAsync(new IdentityRole(role));
 
+        if (user == null) 
+            return false;
+        
+        if (await IsInRoleAsync(user.Id, role))
+            return true;      
+        
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded;
     }

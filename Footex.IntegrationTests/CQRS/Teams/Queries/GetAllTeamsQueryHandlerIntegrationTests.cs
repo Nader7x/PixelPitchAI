@@ -15,7 +15,7 @@ public class GetAllTeamsQueryHandlerIntegrationTests
 {
     public GetAllTeamsQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
     {
-        FreeDbAsync(Context.Coaches,Context.Players,Context.Teams).Wait();
+        FreeDbAsync(Context.Matches,Context.Coaches,Context.Players,Context.Teams).Wait();
     }
     [Fact]
     public async Task Handle_ReturnsAllTeams()

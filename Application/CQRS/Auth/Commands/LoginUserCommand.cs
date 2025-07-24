@@ -81,7 +81,7 @@ public class LoginUserCommandHandler(
                 AccessToken = accessToken,
                 RefreshToken = refreshToken.Token,
                 Roles = roles,
-                TokenExpires = tokenService.GetTokenExpirationTime(accessToken),
+                TokenExpires = expires,
             };
         }
         catch (Exception ex)

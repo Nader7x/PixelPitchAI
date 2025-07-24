@@ -4,21 +4,6 @@ on:
   push:
     branches: [ main ]
     tags: [ "v*" ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment to deploy to"
-        required: true
-        default: "staging"
-        type: choice
-        options:
-          - "staging"
-          - "production"
-      force_deploy:
-        description: "Force deployment even if tests fail"
-        required: false
-        default: false
-        type: boolean
 
 env:
   DOTNET_VERSION: "9.0.x"
@@ -163,7 +148,7 @@ jobs:
 
       - name: Health check
         run: |
-          HEALTH_URL="${{}}/api/health"
+          HEALTH_URL="https://footex-staging.yourdomain.com/api/health"
           for i in {1..10}; do
             if curl -f $HEALTH_URL; then
               echo "Health check passed"

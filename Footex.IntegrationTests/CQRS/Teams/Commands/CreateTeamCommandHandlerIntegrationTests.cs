@@ -99,12 +99,13 @@ public class CreateTeamCommandHandlerIntegrationTests(FootexWebApplicationFactor
     {
         // Arrange
         var existingTeam = TestData.CreateTestDbTeam();
+        existingTeam.ShortName = "SHTNME";
         Context.Teams.Add(existingTeam);
         await Context.SaveChangesAsync();
 
         var command = new CreateTeamCommand
         {
-            Name = "Another Team",
+            Name = "Another Short Name Team",
             ShortName = existingTeam.ShortName, // Duplicate short name
             FoundationDate = new DateTime(1900, 1, 1),
             City = "Test City",

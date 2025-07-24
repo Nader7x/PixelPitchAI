@@ -7,7 +7,6 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "src/**"
       - "**/packages.lock.json"
       - "**/package-lock.json"
       - "**/*.csproj"
@@ -15,17 +14,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      scan_type:
-        description: "Type of security scan"
-        required: true
-        type: choice
-        options:
-          - "full"
-          - "dependencies"
-          - "code"
-          - "containers"
-        default: "full"
 
 env:
   DOTNET_VERSION: "9.0.x"
@@ -125,7 +113,7 @@ jobs:
       - name: 🔍 Run Security DevSkim
         uses: microsoft/DevSkim-Action@v1
         with:
-          directory-to-scan: ./src
+          directory-to-scan: .
 
       - name: 📤 Upload DevSkim Results
         uses: github/codeql-action/upload-sarif@v3
@@ -148,14 +136,12 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
-          head: HEAD
           extra_args: --debug --only-verified
 
       - name: 🔍 Run GitLeaks
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CR_PAT }}
 
   container-scan:
     name: 🐳 Container Security Scan
@@ -168,7 +154,7 @@ jobs:
 
       - name: 🏗️ Build Docker Image
         run: |
-          docker build -t footex-security-scan:latest -f src/Footex.API/Dockerfile .
+          docker build -t footex-security-scan:latest -f Footex/Dockerfile .
 
       - name: 🔍 Run Trivy Container Scan
         uses: aquasecurity/trivy-action@master
@@ -186,7 +172,7 @@ jobs:
       - name: 🔍 Run Hadolint Dockerfile Linting
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: src/Footex.API/Dockerfile
+          dockerfile: Footex/Dockerfile
           format: sarif
           output-file: hadolint-results.sarif
 
@@ -254,62 +240,6 @@ jobs:
 
           echo "✅ Workflow analysis complete."
 
-  compliance-check:
-    name: 📋 Compliance & License Check
-    runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
-
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
-
-      - name: 🔧 Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: 📦 Restore Dependencies
-        run: dotnet restore
-
-      - name: 📋 Generate License Report
-        run: |
-          echo "📋 Generating license compliance report..."
-
-          # Install license checker tool
-          dotnet tool install --global license-reporter
-
-          # Generate license report
-          license-reporter --input . --output license-report.json --format json
-
-          # Convert to human-readable format
-          cat license-report.json | jq -r '.licenses[] | "\(.name): \(.license)"' > license-summary.txt
-
-          echo "📊 License Summary:"
-          cat license-summary.txt
-
-      - name: 🔍 Check for Restricted Licenses
-        run: |
-          echo "🔍 Checking for restricted licenses..."
-
-          # List of licenses that may require legal review
-          RESTRICTED_LICENSES=("GPL-3.0" "AGPL-3.0" "LGPL-3.0" "CPAL-1.0" "OSL-3.0")
-
-          for license in "${RESTRICTED_LICENSES[@]}"; do
-            if grep -q "$license" license-summary.txt; then
-              echo "⚠️ Found potentially restricted license: $license"
-            fi
-          done
-
-          echo "✅ License compliance check completed"
-
-      - name: 📤 Upload Compliance Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: compliance-reports
-          path: |
-            license-report.json
-            license-summary.txt
-
   security-summary:
     name: 📊 Security Summary
     runs-on: ubuntu-latest
@@ -320,7 +250,6 @@ jobs:
         secrets-scan,
         container-scan,
         infrastructure-scan,
-        compliance-check,
       ]
     if: always()
 
@@ -344,7 +273,6 @@ jobs:
           echo "| Secrets Detection | ${{ needs.secrets-scan.result }} | TruffleHog & GitLeaks scan |" >> security-summary.md
           echo "| Container Scan | ${{ needs.container-scan.result }} | Trivy & Hadolint analysis |" >> security-summary.md
           echo "| Infrastructure Scan | ${{ needs.infrastructure-scan.result }} | Checkov IaC analysis |" >> security-summary.md
-          echo "| Compliance Check | ${{ needs.compliance-check.result }} | License compliance review |" >> security-summary.md
           echo "" >> security-summary.md
 
           echo "## 🔗 Recommendations" >> security-summary.md
@@ -353,7 +281,6 @@ jobs:
           echo "- Update vulnerable dependencies identified" >> security-summary.md
           echo "- Address any code quality issues found" >> security-summary.md
           echo "- Ensure container images are rebuilt with latest base images" >> security-summary.md
-          echo "- Monitor license compliance for any new dependencies" >> security-summary.md
 
           cat security-summary.md
 

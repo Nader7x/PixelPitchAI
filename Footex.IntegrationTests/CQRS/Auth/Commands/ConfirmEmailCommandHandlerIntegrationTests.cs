@@ -18,13 +18,14 @@ public class ConfirmEmailCommandHandlerIntegrationTests : BaseIntegrationTest
         _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
             UserManager<ApplicationUser>
         >();
+        FreeDbAsync(Context.Users).Wait();
     }
 
     [Fact]
     public async Task Handle_ValidConfirmation_Succeeds()
     {
         // Arrange
-        var password = "Password123!";
+        const string password = "Password123!";
         var user = new ApplicationUser
         {
             FirstName = "Test",

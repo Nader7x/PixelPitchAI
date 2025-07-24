@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Domain.Interfaces;
-using Domain.Models;
 using MediatR;
 
 namespace Application.CQRS.Auth.Commands;
@@ -32,9 +31,6 @@ public class RegisterUserCommandHandler(
     IUserMapper userMapper
 ) : IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>
 {
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly IUserMapper _userMapper = userMapper;
-
     public async Task<RegisterUserCommandResponse> Handle(
         RegisterUserCommand request,
         CancellationToken cancellationToken
@@ -43,7 +39,7 @@ public class RegisterUserCommandHandler(
         try
         {
             // Create an application user
-            var user = _userMapper.ToUserFromRegister(request);
+            var user = userMapper.ToUserFromRegister(request);
 
             // Register user
             var (succeeded, userId, result) = await identityService.CreateUserAsync(
@@ -60,7 +56,7 @@ public class RegisterUserCommandHandler(
 
             // Add to a default role
             await identityService.AddUserToRoleAsync(user, "User");
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
             // Return response
             return new RegisterUserCommandResponse { Succeeded = true, UserId = userId };
         }

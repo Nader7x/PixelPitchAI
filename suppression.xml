@@ -23,4 +23,14 @@
     </suppress>
     -->
   <!-- Add your suppressions here -->
-</suppressions>
+  <suppress>
+    <notes><![CDATA[
+        Suppress vulnerabilities inherited from PostgreSQL in Testcontainers.PostgreSql - only used for integration testing, not exposed to production. Issue tracked in #123.
+        ]]></notes>
+    <packageUrl regex="true">^pkg:nuget/Testcontainers.PostgreSql@.*$</packageUrl>
+    <cve>CVE-2019-10210</cve>
+    <cve>CVE-2019-10211</cve>
+    <cve>CVE-2015-3167</cve>
+    <cve>CVE-2015-3166</cve>
+    <!-- Add more PostgreSQL CVEs here if needed -->
+  </suppress></suppressions>

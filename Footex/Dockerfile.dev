@@ -78,6 +78,10 @@ exec dotnet watch run --urls "http://0.0.0.0:8080;https://0.0.0.0:8081" --no-res
 # Health check for development
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8080/api/health || exit 1
+  
+# Add these lines towards the end of your Dockerfile.dev
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
 
 # Entry point for development with watch and automatic restart
 ENTRYPOINT ["/app/start-dev.sh"]

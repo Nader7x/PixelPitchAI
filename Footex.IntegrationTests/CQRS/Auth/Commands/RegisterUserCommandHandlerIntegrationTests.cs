@@ -1,9 +1,7 @@
 using Application.CQRS.Auth.Commands;
-using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Footex.IntegrationTests.Common;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -20,6 +18,7 @@ public class RegisterUserCommandHandlerIntegrationTests : BaseIntegrationTest
         _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
             UserManager<ApplicationUser>
         >();
+        FreeDbAsync(Context.Users).Wait();
     }
 
     [Fact]
