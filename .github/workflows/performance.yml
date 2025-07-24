@@ -30,6 +30,7 @@ permissions:
 
 
 jobs:
+  
   # Job 1: Performance Load Tests
   load-tests:
     name: Load Tests
@@ -88,6 +89,10 @@ jobs:
 
       - name: Build solution
         run: dotnet build Footex.sln --no-restore --configuration Release
+        
+      - name: Install PowerShell Core
+        run: |
+          sudo snap install powershell --classic
 
       - name: Start Footex API in background
         run: |
