@@ -78,7 +78,7 @@ public class PerformanceTestSuite
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
-            FileName = "pwsh.exe",
+            FileName = "pwsh",
             Arguments = $"./run-performance-tests.ps1 -TestType {testType}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
