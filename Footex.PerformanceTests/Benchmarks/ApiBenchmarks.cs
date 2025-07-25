@@ -8,7 +8,7 @@ namespace Footex.PerformanceTests.Benchmarks;
 
 [Config(typeof(BenchmarkConfig))]
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
+[SimpleJob(RuntimeMoniker.Net81)]
 public class ApiBenchmarks
 {
     private FootexWebApplicationFactory _factory = null!;
