@@ -7,7 +7,7 @@ namespace Footex.PerformanceTests.Benchmarks;
 
 [Config(typeof(CacheBenchmarkConfig))]
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
+[SimpleJob(RuntimeMoniker.Net90)]
 public class CacheBenchmarks
 {
     private FootexWebApplicationFactory _factory = null!;

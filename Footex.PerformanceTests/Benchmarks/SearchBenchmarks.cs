@@ -7,7 +7,7 @@ namespace Footex.PerformanceTests.Benchmarks;
 
 [Config(typeof(SearchBenchmarkConfig))]
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
+[SimpleJob(RuntimeMoniker.Net90)]
 public class SearchBenchmarks
 {
     private FootexWebApplicationFactory _factory = null!;

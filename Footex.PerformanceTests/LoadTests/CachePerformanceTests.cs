@@ -1,7 +1,5 @@
 using Footex.IntegrationTests.Common;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Testing;
-using NBomber.CSharp;
 using NBomber.Http.CSharp;
 using Xunit;
 using Xunit.Abstractions;

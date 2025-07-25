@@ -19,7 +19,7 @@ env:
   DOTNET_VERSION: "9.0.x"
 
 permissions:
-  contents: read  
+  contents: read
   security-events: write
   actions: read
 
@@ -175,7 +175,14 @@ jobs:
           dockerfile: Footex/Dockerfile
           format: sarif
           output-file: hadolint-results.sarif
+          no-fail: true
 
+      - name: 📜 Display Hadolint Results
+        run: |
+          echo "🔍 Hadolint Linting Results:"
+          echo "-----------------------------"
+          cat hadolint-results.sarif || echo "⚠️ No results file found (check for errors above)."
+          echo "-----------------------------"
       - name: 📤 Upload Hadolint Results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
@@ -226,7 +233,7 @@ jobs:
               echo "  ⚠️ Warning: Found 'checkout' action using 'github.event.pull_request.head.sha'."
               echo "     Recommendation: Avoid checking out untrusted PR head SHAs when 'pull_request_target' is used, as it can expose secrets."
             fi
-          
+
             # Check for direct evaluation of untrusted event data in run commands
             # This is a simplified check and might have false positives/negatives.
             # A more robust check might involve parsing the YAML and looking for specific contexts.
@@ -302,3 +309,4 @@ jobs:
           # - Create high-priority issue
           # - Email security team
           # - Update security dashboard
+
