@@ -1,5 +1,6 @@
 using Footex.IntegrationTests.Common;
 using Microsoft.AspNetCore.Http;
+using NBomber.CSharp;
 using NBomber.Http.CSharp;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,16 +13,13 @@ public class CachePerformanceTests(
     ITestOutputHelper testOutputHelper
 ) : IClassFixture<FootexWebApplicationFactory>
 {
-    private readonly ITestOutputHelper _testOutputHelper = testOutputHelper;
-    private readonly FootexWebApplicationFactory _factory = factory;
-
     [Fact]
     public async Task PlayerCache_PerformanceTest()
     {
         try
         {
             // Create an authenticated HTTP client for the tests
-            var httpClient = await _factory.CreateAuthenticatedClientAsync();
+            var httpClient = await factory.CreateAuthenticatedClientAsync();
             var scenario = Scenario
                 .Create(
                     "player_cache_test",
@@ -54,14 +52,14 @@ public class CachePerformanceTests(
         }
         catch (Exception e)
         {
-            _testOutputHelper.WriteLine(e.Message);
+            testOutputHelper.WriteLine(e.Message);
         }
     }
 
     [Fact]
     public async Task StadiumCache_PerformanceTest()
     {
-        var httpClient = await _factory.CreateAuthenticatedClientAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var scenario = Scenario
             .Create(
                 "stadium_cache_test",
@@ -96,7 +94,7 @@ public class CachePerformanceTests(
     [Fact]
     public async Task CoachCache_PerformanceTest()
     {
-        var httpClient = await _factory.CreateAuthenticatedClientAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         var scenario = Scenario
             .Create(
                 "coach_cache_test",
@@ -133,7 +131,7 @@ public class CachePerformanceTests(
     [Fact]
     public async Task CacheVsNonCache_ComparisonTest()
     {
-        var httpClient = await _factory.CreateAuthenticatedClientAsync();
+        var httpClient = await factory.CreateAuthenticatedClientAsync();
         // Scenario that hits cached endpoints
         var cachedScenario = Scenario
             .Create(
