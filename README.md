@@ -1,21 +1,21 @@
 # Footex - Football Management API
 
-[![CI Pipeline](https://github.com/your-org/Footex/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/ci.yml)
-[![Performance Tests](https://github.com/your-org/Footex/actions/workflows/performance.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/performance.yml)
-[![Security Monitoring](https://github.com/your-org/Footex/actions/workflows/security-monitoring.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/security-monitoring.yml)
-[![Code Quality](https://github.com/your-org/Footex/actions/workflows/code-quality.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/code-quality.yml)
+[![CI Pipeline](https://github.com/Nader7x/Footex/actions/workflows/ci.yml/badge.svg)](https://github.com/Nader7x/Footex/actions/workflows/ci.yml)
+[![Performance Tests](https://github.com/Nader7x/Footex/actions/workflows/performance.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/performance.yml)
+[![Security Monitoring](https://github.com/Nader7x/Footex/actions/workflows/security-monitoring.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/security-monitoring.yml)
+[![Code Quality](https://github.com/Nader7x/Footex/actions/workflows/code-quality.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/code-quality.yml)
 
-![Coverage](https://img.shields.io/badge/Coverage-89.2%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-92.2%25-brightgreen)
 ![Tests](https://img.shields.io/badge/Tests-644-brightgreen)
 ![.NET](https://img.shields.io/badge/.NET-9.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-A comprehensive **enterprise-level football management platform** built with .NET 8, featuring real-time match simulation, team management, advanced analytics, and **production-ready CI/CD pipeline**.
+A comprehensive **enterprise-level football management platform** built with .NET 9, featuring real-time match simulation, team management, advanced analytics, and **production-ready CI/CD pipeline**.
 
 ## 🏆 Project Highlights
 
 - **🎓 Graduation Project Ready**: Enterprise-level implementation suitable for academic evaluation
-- **📊 89.2% Code Coverage**: 644 comprehensive tests (219 unit + 390 integration + 35 performance)
+- **📊 92.2% Code Coverage**: 1075 comprehensive tests (624 unit + 416 integration + 35 performance)
 - **🚀 Complete CI/CD Pipeline**: 7 GitHub Actions workflows with full automation
 - **🔒 Enterprise Security**: Multi-layered security scanning and compliance
 - **⚡ Performance Validated**: Load tested up to 500 RPS with <150ms response times
