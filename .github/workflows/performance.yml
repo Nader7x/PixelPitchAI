@@ -345,20 +345,21 @@ jobs:
 
       - name: Generate Performance Report
         run: |
-          npm install -g markdown-pdf
-
+          npm install -g md-to-pdf
           # Create performance report
           cat > performance-report.md << 'EOF'
           # Performance Test Report
 
           **Date**: $(date)
+
           **Commit**: ${{ github.sha }}
+
           **Branch**: ${{ github.ref_name }}
 
           ## Test Results Summary
 
           - Load Tests: ${{ needs.load-tests.result }}
-          - Stress Tests: ${{ needs.stress-tests.result }}  
+          - Stress Tests: ${{ needs.stress-tests.result }}
           - Benchmarks: ${{ needs.benchmarks.result }}
 
           ## Artifacts Generated
@@ -366,12 +367,11 @@ jobs:
           Performance test artifacts have been uploaded and are available for download.
 
           EOF
-
           # Convert to PDF if results exist
           if [ -d "./performance-results" ]; then
-            markdown-pdf performance-report.md
+            md-to-pdf performance-report.md
           fi
-
+      
       - name: Upload Performance Report
         uses: actions/upload-artifact@v4
         with:
