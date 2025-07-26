@@ -29,7 +29,7 @@ public class TeamsControllerIntegrationTests(FootexWebApplicationFactory factory
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<GetAllTeamsQueryResponse>();
         result.Should().NotBeNull();
-        result?.Succeeded.Should().BeTrue();
+        result.Succeeded.Should().BeTrue();
     }
 
     [Fact]
@@ -40,6 +40,8 @@ public class TeamsControllerIntegrationTests(FootexWebApplicationFactory factory
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
         var team = TestData.CreateTestDbTeam();
+        team.Country = "England";
+        team.League = "Premier League";
         context.Teams.Add(team);
         await context.SaveChangesAsync();
 
@@ -52,8 +54,8 @@ public class TeamsControllerIntegrationTests(FootexWebApplicationFactory factory
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<GetAllTeamsQueryResponse>();
         result.Should().NotBeNull();
-        result?.Succeeded.Should().BeTrue();
-        result?.Teams.Should().NotBeEmpty();
+        result.Succeeded.Should().BeTrue();
+        result.Teams.Should().NotBeEmpty();
     }
 
     [Fact]

@@ -106,8 +106,6 @@ public class RedisCacheService : ICacheService
             var jsonOptions = new JsonSerializerOptions
             {
                 ReferenceHandler = ReferenceHandler.Preserve,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false
             };
             var options = expiration.HasValue
                 ? new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiration }

@@ -30,7 +30,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(GetAllTeamsQueryResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll()
     {
-        // Try to get from cache first
+        // Try to get from the cache first
         const string cacheKey = "teams_all";
         var cachedResult = await _cacheService.GetAsync<GetAllTeamsQueryResponse>(cacheKey);
 
@@ -40,13 +40,13 @@ public class TeamsController(
             return Ok(cachedResult);
         }
 
-        // Cache miss, fetch from database
+        // Cache miss, fetch from a database
         var query = new GetAllTeamsQuery();
         var result = await mediator.Send(query);
 
-        // Store in cache if successful
+        // Store in a cache if successful
         if (result.Succeeded)
-            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
 
         Response.Headers.Append("X-Cache-Hit", "false");
         return Ok(result);

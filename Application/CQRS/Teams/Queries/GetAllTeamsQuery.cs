@@ -36,16 +36,18 @@ public class GetAllTeamsQueryHandler(IUnitOfWork unitOfWork, ITeamMapper teamMap
 
             if (!string.IsNullOrWhiteSpace(request.League))
                 teams = teams.Where(t => t.League == request.League);
+            
+            var teamDtoS = teamMapper.ToDtoList(await teams.ToListAsync(cancellationToken));
 
             return new GetAllTeamsQueryResponse
             {
                 Succeeded = true,
-                Teams = teamMapper.ToDtoList(await teams.ToListAsync(cancellationToken)),
+                Teams = teamDtoS
             };
         }
         catch (Exception e)
         {
-            return new GetAllTeamsQueryResponse { Succeeded = false, Error = e.Message };
+            return new GetAllTeamsQueryResponse { Succeeded = false, Error = e.InnerException?.Message };
         }
     }
 }
