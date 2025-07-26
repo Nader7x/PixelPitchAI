@@ -346,14 +346,25 @@ jobs:
       - name: Generate Performance Report
         run: |
           npm install -g md-to-pdf
-          # Create performance report
+
+          # Create a config file for md-to-pdf to disable the sandbox for Puppeteer
+          cat > md-to-pdf.json << 'EOF'
+          {
+            "launch_options": {
+              "args": [
+                "--no-sandbox",
+                "--disable-setuid-sandbox"
+              ]
+            }
+          }
+          EOF
+
+          # Create the markdown report content
           cat > performance-report.md << 'EOF'
           # Performance Test Report
 
           **Date**: $(date)
-
           **Commit**: ${{ github.sha }}
-
           **Branch**: ${{ github.ref_name }}
 
           ## Test Results Summary
@@ -365,11 +376,11 @@ jobs:
           ## Artifacts Generated
 
           Performance test artifacts have been uploaded and are available for download.
-
           EOF
-          # Convert to PDF if results exist
+
+          # Convert to PDF using the new config
           if [ -d "./performance-results" ]; then
-            md-to-pdf performance-report.md
+            md-to-pdf performance-report.md --config-file md-to-pdf.json
           fi
       
       - name: Upload Performance Report
