@@ -10,7 +10,7 @@ param(
     [string]$OutputPath = ".\performance-results",
 
     [Parameter(Mandatory = $false)]
-    [string]$LogFilePath = $null, # New parameter for log file path
+    [string]$LogFilePath = $null,
 
     [Parameter(Mandatory = $false)]
     [switch]$OpenResults
@@ -207,6 +207,8 @@ function Check-Prerequisites
         Write-Error "✗ .NET SDK not found. Please install .NET 8 SDK."
         return $false
     }
+
+    Write-Host "Script running in directory: $(Get-Location)" -ForegroundColor Magenta
 
     # Check if in correct directory
     if (!(Test-Path "Footex.sln"))

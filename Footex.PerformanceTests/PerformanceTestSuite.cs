@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Application.Helpers;
 using Footex.PerformanceTests.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -79,7 +80,8 @@ public class PerformanceTestSuite
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "pwsh",
-            Arguments = $"./run-performance-tests.ps1 -TestType {testType}",
+            Arguments = $"-NoProfile ./run-performance-tests.ps1 -TestType {testType} -LogFilePath ./PerformanceLogs/{testType}.log",
+            WorkingDirectory = DirectoryExtensions.GetSolutionDirectory(),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -130,7 +132,7 @@ public class PerformanceTestSuite
         Assert.True(_settings.Duration.ShortTestMinutes > 0);
         Assert.True(_settings.Load.LightLoadRps > 0);
         Assert.True(
-            _settings.Cache.ExpectedCacheHitRatio > 0 && _settings.Cache.ExpectedCacheHitRatio <= 1
+            _settings.Cache.ExpectedCacheHitRatio is > 0 and <= 1
         );
 
         _logger.LogInformation("Configuration validation passed");

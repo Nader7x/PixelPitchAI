@@ -134,7 +134,7 @@ public class SearchSettings
     /// <summary>
     ///     Search result limits to test
     /// </summary>
-    public int[] ResultLimits { get; set; } = { 5, 10, 20, 50 };
+    public int[] ResultLimits { get; set; } = [5, 10, 20, 50];
 
     /// <summary>
     ///     Percentage of searches that use fuzzy search

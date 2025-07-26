@@ -184,12 +184,13 @@ try
                 return;
             // Apply custom column writers for PostgresSQL sink
             var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
-            loggerConfiguration.WriteTo.PostgreSQL(
-                connectionString,
-                "Logs",
-                columnWriters,
-                needAutoCreateTable: true
-            );
+            if (connectionString != null)
+                loggerConfiguration.WriteTo.PostgreSQL(
+                    connectionString,
+                    "Logs",
+                    columnWriters,
+                    needAutoCreateTable: true
+                );
         }
     );
 
@@ -369,7 +370,7 @@ try
                 }
             }
 
-            if (!app.Environment.IsDevelopment() || !app.Environment.IsEnvironment("Testing"))
+            if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
             {
                 using var dataScope = app.Services.CreateScope();
                 var dataSeeder = dataScope.ServiceProvider.GetRequiredService<DataSeeder>();

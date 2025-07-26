@@ -48,14 +48,6 @@ jobs:
           POSTGRES_DB: footex_perf_test
           POSTGRES_USER: perf_user
           POSTGRES_PASSWORD: perf_password
-          ConnectionStrings__DefaultConnection: ${{ secrets.DEFAULT_CONNECTION }}
-          ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
-          ConnectionStrings__RemoteRedisConnection: ${{ secrets.REMOTE_REDIS_CONNECTION }}
-          JWT__Secret: ${{ secrets.JWT_SECRET }}
-          AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
-          SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
-          SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
-          ConnectionStrings__RemoteRedisPassword: ${{ secrets.REMOTE_REDIS_PASSWORD }}
 
         options: >-
           --health-cmd pg_isready
@@ -74,6 +66,19 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmqctl status"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
 
     steps:
       - name: Checkout code
@@ -174,6 +179,19 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmqctl status"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
 
     steps:
       - name: Checkout code
@@ -203,7 +221,7 @@ jobs:
 
       - name: Wait for API to be ready
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/api/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f https://localhost:7082/api/health; do sleep 2; done'
 
       - name: Run Stress Tests
         run: |
@@ -241,6 +259,22 @@ jobs:
     if: |
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
+      
+      
+    services: 
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmqctl status"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
 
     steps:
       - name: Checkout code

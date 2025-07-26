@@ -211,7 +211,8 @@ jobs:
         if: always()
         with:
           sarif_file: checkov-results.sarif
-
+          
+      # checkov:skip=CKV_GHA_2:This script is a linter and does not execute untrusted input from file names.
       - name: 🔍 Analyze GitHub Actions Security
         run: |
           #!/bin/bash
