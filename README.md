@@ -3,7 +3,6 @@
 [![CI Pipeline](https://github.com/Nader7x/Footex/actions/workflows/ci.yml/badge.svg)](https://github.com/Nader7x/Footex/actions/workflows/ci.yml)
 [![Performance Tests](https://github.com/Nader7x/Footex/actions/workflows/performance.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/performance.yml)
 [![Security Monitoring](https://github.com/Nader7x/Footex/actions/workflows/security-monitoring.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/security-monitoring.yml)
-[![Code Quality](https://github.com/Nader7x/Footex/actions/workflows/code-quality.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/code-quality.yml)
 
 ![Coverage](https://img.shields.io/badge/Coverage-92.2%25-brightgreen)
 ![Tests](https://img.shields.io/badge/Tests-644-brightgreen)
