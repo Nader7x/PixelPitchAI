@@ -139,8 +139,12 @@ public class LoginUserCommandHandlerTests
     {
         // Arrange
         var command = _fixture.Create<LoginUserCommand>();
+
+        // Create a user but explicitly set the LastLogin to a known past date.
         var user = _fixture.Create<ApplicationUser>();
+        user.LastLogin = DateTime.UtcNow.AddDays(-1); // Set to yesterday
         var oldLastLogin = user.LastLogin;
+
         var roles = new List<string> { "User" };
         var refreshToken = new RefreshToken
         {
@@ -149,13 +153,10 @@ public class LoginUserCommandHandlerTests
         };
 
         _mockUserRepository.Setup(x => x.GetByEmailAsync(command.Email)).ReturnsAsync(user);
-
         _mockUserRepository
             .Setup(x => x.CheckPasswordAsync(user, command.Password))
             .ReturnsAsync(true);
-
         _mockUserRepository.Setup(x => x.GetUserRolesAsync(user)).ReturnsAsync(roles);
-
         _mockTokenService
             .Setup(x => x.GenerateTokenAsync(user, command.IpAddress))
             .ReturnsAsync(("access-token", refreshToken));
@@ -164,10 +165,13 @@ public class LoginUserCommandHandlerTests
         await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        user.LastLogin.Should().BeAfter(oldLastLogin ?? DateTime.MinValue);
-        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromDays(5));
+        // This now correctly checks if today's date is after yesterday's date.
+        user.LastLogin.Should().BeAfter(oldLastLogin.Value);
 
-        // Assert
+        // This is a much more precise and meaningful check.
+        user.LastLogin.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+
+        // This verify is also good to have.
         _mockUserRepository.Verify(
             x =>
                 x.Update(
@@ -177,4 +181,5 @@ public class LoginUserCommandHandlerTests
         );
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
 }
