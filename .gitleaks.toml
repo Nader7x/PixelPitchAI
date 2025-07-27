@@ -61,7 +61,7 @@ secretGroup = 1
 [[rules]]
 id = "connection-string-password"
 description = "Database Connection String with Password"
-regex = '''Password\s*=\s*["']([^"']{9,}|REDACTED)["']'''
+regex = '''Password\s*=\s*["']([^"']{9,})["']'''
 secretGroup = 1
 
 [extend]
