@@ -293,7 +293,6 @@ jobs:
 
       - name: Run Benchmarks
         run: |
-          cd Footex.PerformanceTests
           echo "Running Benchmarks..."
           dotnet run --project Footex.PerformanceTests --configuration Release all
 
