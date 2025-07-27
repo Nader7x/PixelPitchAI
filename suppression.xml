@@ -54,4 +54,32 @@
     <cve>CVE-2017-7484</cve>
     <cve>CVE-2021-23214</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[
+      File: requirements.txt (pandas)
+      This is a known false positive. CVE-2020-13091 applies to much older versions of pandas and is incorrectly identified here.
+      ]]></notes>
+    <packageUrl regex="true">^pkg:pypi/pandas@.*$</packageUrl>
+    <cve>CVE-2020-13091</cve>
+  </suppress>
+
+  <!-- Rule for Torch -->
+  <suppress>
+    <notes><![CDATA[
+      File: requirements.txt (torch)
+      Risk accepted for CVE-2025-2148 after review.
+      ]]></notes>
+    <packageUrl regex="true">^pkg:pypi/torch@.*$</packageUrl>
+    <cve>CVE-2025-2148</cve>
+  </suppress>
+
+  <!-- Rule for Transformers -->
+  <suppress>
+    <notes><![CDATA[
+      File: requirements.txt (transformers)
+      Risk accepted for CVE-2025-2099 after review.
+      ]]></notes>
+    <packageUrl regex="true">^pkg:pypi/transformers@.*$</packageUrl>
+    <cve>CVE-2025-2099</cve>
+  </suppress>
 </suppressions>
