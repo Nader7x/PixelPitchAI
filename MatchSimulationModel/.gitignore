@@ -9,3 +9,8 @@ football_api.log
 .idea
 logs
 Guides&Docs
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
