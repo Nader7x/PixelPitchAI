@@ -49,7 +49,6 @@ regexes = [
   '''SIMULATION_API_KEY=.*''',
   '''Password\s*=\s*["'](devpass|temp|fake|dummy|12345678|password123|REDACTED|0000).*["']''', # Ignores common fake passwords
   '''.*__Default__Password=["']?(dev|test|placeholder|0000).*["']?''',                         # Broader match for certificate passwords
-  '''Password\s*=\s*["'][^"']{9,}["']''',
 ]
 
 [[rules]]
@@ -63,6 +62,11 @@ id = "connection-string-password"
 description = "Database Connection String with Password"
 regex = '''Password\s*=\s*["']([^"']{9,})["']'''
 secretGroup = 1
+[rules.allowlist]
+description = "Allow 'REDACTED' as a placeholder for this rule"
+regexes = [
+  '''(?i)REDACTED''' # This tells this specific rule to ignore REDACTED
+]
 
 [extend]
 # Use default rules plus our custom ones
