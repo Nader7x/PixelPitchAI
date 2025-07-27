@@ -288,8 +288,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore Footex.sln
 
-      - name: Build solution
-        run: dotnet build Footex.sln --no-restore --configuration Release
+      - name: Build project
+        run: dotnet build Footex.PerformanceTests --configuration Release
 
       - name: Run Benchmarks
         run: |
