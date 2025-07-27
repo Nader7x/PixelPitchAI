@@ -1,0 +1,730 @@
+{
+  "Marcelo": {
+    "name": "Marcelo",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 3,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Karim Benzema": {
+    "name": "Karim Benzema",
+    "team": "Unknown",
+    "actions": {
+      "shots": 6
+    },
+    "foot_analysis": {
+      "Left": 3,
+      "Right": 3
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Mateo Kovačić": {
+    "name": "Mateo Kovačić",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Luka Modrić": {
+    "name": "Luka Modrić",
+    "team": "Unknown",
+    "actions": {
+      "shots": 6
+    },
+    "foot_analysis": {
+      "Left": 2,
+      "Right": 4
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Antoine Griezmann": {
+    "name": "Antoine Griezmann",
+    "team": "Unknown",
+    "actions": {
+      "shots": 7
+    },
+    "foot_analysis": {
+      "Left": 6,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Gareth Bale": {
+    "name": "Gareth Bale",
+    "team": "Unknown",
+    "actions": {
+      "shots": 4
+    },
+    "foot_analysis": {
+      "Left": 2,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Raphaël Varane": {
+    "name": "Raphaël Varane",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Cucho Hernández": {
+    "name": "Cucho Hernández",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Ivan Rakitić": {
+    "name": "Ivan Rakitić",
+    "team": "Unknown",
+    "actions": {
+      "shots": 13
+    },
+    "foot_analysis": {
+      "Left": 3,
+      "Right": 10
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Philippe Coutinho": {
+    "name": "Philippe Coutinho",
+    "team": "Unknown",
+    "actions": {
+      "shots": 12
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 12
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Sergi Roberto": {
+    "name": "Sergi Roberto",
+    "team": "Unknown",
+    "actions": {
+      "shots": 5
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 4
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Gonzalo Melero": {
+    "name": "Gonzalo Melero",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Gerard Piqué": {
+    "name": "Gerard Piqué",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 3
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Álex Gallar": {
+    "name": "Álex Gallar",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Chimy Ávila": {
+    "name": "Chimy Ávila",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Jordi Alba": {
+    "name": "Jordi Alba",
+    "team": "Unknown",
+    "actions": {
+      "shots": 6
+    },
+    "foot_analysis": {
+      "Left": 6,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Arturo Vidal": {
+    "name": "Arturo Vidal",
+    "team": "Unknown",
+    "actions": {
+      "shots": 7
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 6
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Martin Braithwaite": {
+    "name": "Martin Braithwaite",
+    "team": "Unknown",
+    "actions": {
+      "shots": 6
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 5
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Samuel Chukwueze": {
+    "name": "Samuel Chukwueze",
+    "team": "Unknown",
+    "actions": {
+      "shots": 8
+    },
+    "foot_analysis": {
+      "Left": 7,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Karl Toko Ekambi": {
+    "name": "Karl Toko Ekambi",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 3
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Arthur": {
+    "name": "Arthur",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Santi Cazorla": {
+    "name": "Santi Cazorla",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Vicente Iborra": {
+    "name": "Vicente Iborra",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Malcom": {
+    "name": "Malcom",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Sabin Merino": {
+    "name": "Sabin Merino",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Aymeric Laporte": {
+    "name": "Aymeric Laporte",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 2,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Ibai Gómez": {
+    "name": "Ibai Gómez",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Neymar": {
+    "name": "Neymar",
+    "team": "Unknown",
+    "actions": {
+      "shots": 12
+    },
+    "foot_analysis": {
+      "Left": 5,
+      "Right": 7
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Daniel Carvajal": {
+    "name": "Daniel Carvajal",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Munir El Haddadi": {
+    "name": "Munir El Haddadi",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 3,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Left",
+    "position": null
+  },
+  "Javi López": {
+    "name": "Javi López",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "David López": {
+    "name": "David López",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Adri Embarba": {
+    "name": "Adri Embarba",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Jérémy Mathieu": {
+    "name": "Jérémy Mathieu",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Tito": {
+    "name": "Tito",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Jonhatan Montiel": {
+    "name": "Jonhatan Montiel",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Rafinha": {
+    "name": "Rafinha",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Jérémie Boga": {
+    "name": "Jérémie Boga",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Clément Lenglet": {
+    "name": "Clément Lenglet",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Iñigo Pérez": {
+    "name": "Iñigo Pérez",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Jon Moncayola": {
+    "name": "Jon Moncayola",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 3
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Toni Lato": {
+    "name": "Toni Lato",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Rubén Rochina": {
+    "name": "Rubén Rochina",
+    "team": "Unknown",
+    "actions": {
+      "shots": 3
+    },
+    "foot_analysis": {
+      "Left": 2,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Hernâni": {
+    "name": "Hernâni",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Roger Martí": {
+    "name": "Roger Martí",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Rubén Pérez": {
+    "name": "Rubén Pérez",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Gerard Moreno": {
+    "name": "Gerard Moreno",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Alberto Moreno": {
+    "name": "Alberto Moreno",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Adnan Januzaj": {
+    "name": "Adnan Januzaj",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 0
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  },
+  "Mikel Oyarzabal": {
+    "name": "Mikel Oyarzabal",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 1,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Both",
+    "position": null
+  },
+  "Juanmi": {
+    "name": "Juanmi",
+    "team": "Unknown",
+    "actions": {
+      "shots": 2
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 2
+    },
+    "position_coordinates": [],
+    "preferred_foot": "Right",
+    "position": null
+  },
+  "Paco Alcácer": {
+    "name": "Paco Alcácer",
+    "team": "Unknown",
+    "actions": {
+      "shots": 1
+    },
+    "foot_analysis": {
+      "Left": 0,
+      "Right": 1
+    },
+    "position_coordinates": [],
+    "preferred_foot": null,
+    "position": null
+  }
+}

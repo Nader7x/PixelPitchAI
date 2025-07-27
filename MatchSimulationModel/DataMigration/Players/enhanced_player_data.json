@@ -1,0 +1,121 @@
+{
+  "Nabil Fekir": {
+    "player_id": 2948,
+    "name": "Nabil Fekir",
+    "position": "CAM",
+    "preferred_foot": "Left",
+    "source": "known_database"
+  },
+  "Thibaut Courtois": {
+    "player_id": 3509,
+    "name": "Thibaut Courtois",
+    "position": "GK",
+    "preferred_foot": "Left",
+    "source": "known_database"
+  },
+  "Mateo Kovačić": {
+    "player_id": 5456,
+    "name": "Mateo Kovačić",
+    "position": "CM",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Luka Modrić": {
+    "player_id": 5463,
+    "name": "Luka Modrić",
+    "position": "CM",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Ivan Rakitić": {
+    "player_id": 5470,
+    "name": "Ivan Rakitić",
+    "position": "CM",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Ousmane Dembélé": {
+    "player_id": 5477,
+    "name": "Ousmane Dembélé",
+    "position": "RW",
+    "preferred_foot": "Both",
+    "source": "known_database"
+  },
+  "Antoine Griezmann": {
+    "player_id": 5487,
+    "name": "Antoine Griezmann",
+    "position": "CF",
+    "preferred_foot": "Left",
+    "source": "known_database"
+  },
+  "Toni Kroos": {
+    "player_id": 5574,
+    "name": "Toni Kroos",
+    "position": "CM",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Youssef En-Nesyri": {
+    "player_id": 6301,
+    "name": "Youssef En-Nesyri",
+    "position": "ST",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Stefan Savić": {
+    "player_id": 6376,
+    "name": "Stefan Savić",
+    "position": "CB",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Jan Oblak": {
+    "player_id": 6378,
+    "name": "Jan Oblak",
+    "position": "GK",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Yassine Bounou": {
+    "player_id": 6785,
+    "name": "Yassine Bounou",
+    "position": "GK",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Frenkie de Jong": {
+    "player_id": 8118,
+    "name": "Frenkie de Jong",
+    "position": "CM",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Martin Ødegaard": {
+    "player_id": 8252,
+    "name": "Martin Ødegaard",
+    "position": "CAM",
+    "preferred_foot": "Left",
+    "source": "known_database"
+  },
+  "Alexander Isak": {
+    "player_id": 8819,
+    "name": "Alexander Isak",
+    "position": "ST",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Karim Benzema": {
+    "player_id": 19677,
+    "name": "Karim Benzema",
+    "position": "ST",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  },
+  "Marc-André ter Stegen": {
+    "player_id": 20055,
+    "name": "Marc-André ter Stegen",
+    "position": "GK",
+    "preferred_foot": "Right",
+    "source": "known_database"
+  }
+}

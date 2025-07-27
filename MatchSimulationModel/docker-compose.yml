@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  football-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football-match-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/gpt2-football-finetuned
+      - XGB_MODEL_PATH=/app/tuned_xgboost_model.json
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - API_KEY=${API_KEY:-football_simulation_production_key}
+      - HEADERLINES_DIR=/app/HeaderLines
+      - INPUTTOKENS_DIR=/app/InputTokens
+      - SIMMATCHES_DIR=/app/SimulatedMatches
+      - STATUS_DIR=/app/SimulationStatus
+    volumes:
+      - ./HeaderLines:/app/HeaderLines
+      - ./InputTokens:/app/InputTokens
+      - ./SimulatedMatches:/app/SimulatedMatches
+      - ./SimulationStatus:/app/SimulationStatus
+      - ./football_api.log:/app/football_api.log
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - football-api-network
+
+  # Optional: Add nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: football-api-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - football-api
+    restart: unless-stopped
+    networks:
+      - football-api-network
+    profiles:
+      - production
+
+networks:
+  football-api-network:
+    driver: bridge
+
+volumes:
+  api-data:
+    driver: local

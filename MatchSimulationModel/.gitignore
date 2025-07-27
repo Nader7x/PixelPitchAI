@@ -1,0 +1,11 @@
+# Ignore the fine-tuned GPT-2 model folder and all its contents
+gpt2-football-finetuned/
+/.idea
+.env
+/.env
+/football_api.log
+football_api.log
+.vscode/
+.idea
+logs
+Guides&Docs

@@ -1,0 +1,32 @@
+Teams requiring stadium data:
+========================================
+
+• Athletic Club (Bilbao) - NEEDS_STADIUM
+• Atlético Madrid (Madrid) - NEEDS_STADIUM
+• Barcelona (Barcelona) - NEEDS_STADIUM
+• Celta Vigo (Vigo) - NEEDS_STADIUM
+• Cádiz (Cádiz) - NEEDS_STADIUM
+• Deportivo Alavés (Vitoria-Gasteiz) - NEEDS_STADIUM
+• Eibar (Eibar) - NEEDS_STADIUM
+• Elche (Elche) - NEEDS_STADIUM
+• Espanyol (Barcelona) - NEEDS_STADIUM
+• Getafe (Getafe) - NEEDS_STADIUM
+• Girona (Girona) - NEEDS_STADIUM
+• Granada (Granada) - NEEDS_STADIUM
+• Huesca (Huesca) - NEEDS_STADIUM
+• Las Palmas (Las Palmas de Gran Canaria) - NEEDS_STADIUM
+• Leganés (Leganés) - NEEDS_STADIUM
+• Levante UD (Valencia) - NEEDS_STADIUM
+• Mallorca (Palma) - NEEDS_STADIUM
+• Málaga (Málaga) - NEEDS_STADIUM
+• Osasuna (Pamplona) - NEEDS_STADIUM
+• RC Deportivo La Coruña (A Coruña) - NEEDS_STADIUM
+• Rayo Vallecano (Madrid) - NEEDS_STADIUM
+• Real Betis (Sevilla) - NEEDS_STADIUM
+• Real Madrid (Madrid) - NEEDS_STADIUM
+• Real Sociedad (San Sebastián) - NEEDS_STADIUM
+• Real Valladolid (Valladolid) - NEEDS_STADIUM
+• Sevilla (Sevilla) - NEEDS_STADIUM
+• Sporting Gijón (Gijón) - NEEDS_STADIUM
+• Valencia (Valencia) - NEEDS_STADIUM
+• Villarreal (Villarreal) - NEEDS_STADIUM

@@ -1,0 +1,13 @@
+[MATCH START]
+Barcelona_2021 faced Real_Madrid_2021 .
+Barcelona_2021 had high possession; Real_Madrid_2021 had medium possession.
+Barcelona_2021 had excellent passing accuracy; Real_Madrid_2021 had good passing accuracy.
+Barcelona_2021 used mostly ground passes; Real_Madrid_2021 used mostly ground passes.
+Barcelona_2021 used few low passes; Real_Madrid_2021 used few low passes.
+Barcelona_2021 used few high passes; Real_Madrid_2021 used few high passes.
+Barcelona_2021 had moderate shots; Real_Madrid_2021 had moderate shots.
+Barcelona_2021 created good chances; Real_Madrid_2021 created very dangerous chances.
+Barcelona_2021 applied low pressing; Real_Madrid_2021 applied moderate pressing.
+Barcelona_2021 made moderate tackles; Real_Madrid_2021 made many tackles.
+Barcelona_2021 were effective in tackles; Real_Madrid_2021 were effective in tackles.
+[EVENTS START]
