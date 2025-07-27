@@ -24,11 +24,8 @@ public class SearchBenchmarks
     [GlobalCleanup]
     public async Task Cleanup()
     {
-        _httpClient?.Dispose();
-        if (_factory != null)
-        {
-            await _factory.DisposeAsync();
-        }
+        _httpClient.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Benchmark]

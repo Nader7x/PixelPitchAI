@@ -16,6 +16,33 @@ param(
     [switch]$OpenResults
 )
 
+# Check for --help or -h in $args
+if ($args -contains "--help" -or $args -contains "-h") {
+    Show-Help
+    exit 0
+}
+
+# Prompt for TestType if not provided or is "help"
+if ([string]::IsNullOrWhiteSpace($TestType) -or $TestType -eq "help") {
+    $TestType = Read-Host "Enter test type (load, stress, cache, search, benchmark, all, help)"
+}
+
+# Prompt for OutputPath if not provided
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Read-Host "Enter output path (default: .\performance-results)"
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+        $OutputPath = ".\performance-results"
+    }
+}
+
+# Prompt for LogFilePath if not provided
+if ([string]::IsNullOrWhiteSpace($LogFilePath)) {
+    $LogFilePath = Read-Host "Enter log file path (optional, press Enter to skip)"
+    if ([string]::IsNullOrWhiteSpace($LogFilePath)) {
+        $LogFilePath = $null
+    }
+}
+
 function Write-Header
 {
     param([string]$Title)
@@ -245,10 +272,9 @@ if (-not (Check-Prerequisites))
 Ensure-Directory $OutputPath
 
 # If a log file path is provided, ensure the directory exists and clear existing content
-if ($null -ne $LogFilePath) {
+if (![string]::IsNullOrWhiteSpace($LogFilePath)) {
     $logDirectory = Split-Path -Parent $LogFilePath
     Ensure-Directory $logDirectory
-    # Clear existing log file content on each run if it exists
     if (Test-Path $LogFilePath) {
         Clear-Content $LogFilePath
         Write-Info "Cleared existing log file: $LogFilePath"

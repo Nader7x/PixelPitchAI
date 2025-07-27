@@ -258,7 +258,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all') ) || github.event_name == 'push' && github.ref == 'refs/heads/main'
       
       
     services: 
@@ -295,7 +295,7 @@ jobs:
         run: |
           cd Footex.PerformanceTests
           echo "Running Benchmarks..."
-          dotnet run --configuration Release -- --job short --memory --filter "*ApiBenchmarks*"
+          dotnet run --project Footex.PerformanceTests --configuration Release all
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@v4

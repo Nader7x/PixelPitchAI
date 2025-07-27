@@ -33,11 +33,8 @@ public class ApiBenchmarks
     [GlobalCleanup]
     public async Task Cleanup()
     {
-        _httpClient?.Dispose();
-        if (_factory != null)
-        {
-            await _factory.DisposeAsync();
-        }
+        _httpClient.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Benchmark]
@@ -137,12 +134,12 @@ public class ApiBenchmarks
         return await response.Content.ReadAsStringAsync();
     }
 
-    public static IEnumerable<object[]> FilterParameters()
+    public static IEnumerable<object?[]> FilterParameters()
     {
         yield return ["Brazil", "Right", 1];
-        yield return ["Argentina", "Left", null!];
+        yield return ["Argentina", "Left", null];
         yield return ["", "Right", 2];
-        yield return ["Spain", "", null!];
+        yield return ["Spain", "", null];
     }
 
     public static IEnumerable<object[]> PaginationParameters()
