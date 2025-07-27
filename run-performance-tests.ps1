@@ -42,6 +42,9 @@ if ([string]::IsNullOrWhiteSpace($LogFilePath)) {
         $LogFilePath = $null
     }
 }
+if ($LogFilePath -eq "") {
+    $LogFilePath = $null
+}
 
 function Write-Header
 {

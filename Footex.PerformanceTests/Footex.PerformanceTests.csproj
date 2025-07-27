@@ -9,6 +9,7 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
