@@ -60,14 +60,8 @@ secretGroup = 1
 [[rules]]
 id = "connection-string-password"
 description = "Database Connection String with Password"
-regex = '''Password\s*=\s*["']([^"']{9,})["']'''
+regex = '''Password\s*=\s*["'](?!REDACTED["'])([^"']{9,})["']'''
 secretGroup = 1
-[rules.allowlist]
-description = "Allow 'REDACTED' as a placeholder for this rule"
-regexes = [
-  '''(?i)REDACTED''' # This tells this specific rule to ignore REDACTED
-]
-
 [extend]
 # Use default rules plus our custom ones
 useDefault = true
