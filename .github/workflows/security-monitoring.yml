@@ -138,6 +138,12 @@ jobs:
           path: ./
           extra_args: --debug --only-verified
 
+      - name: 🐞 Display Gitleaks Config for Debugging
+        run: |
+          echo "--- Contents of .gitleaks.toml that the runner sees ---"
+          cat .gitleaks.toml
+          echo "--------------------------------------------------------"
+
       - name: 🔍 Run GitLeaks
         uses: gitleaks/gitleaks-action@v2
         env:
