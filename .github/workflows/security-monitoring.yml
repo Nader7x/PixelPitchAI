@@ -212,8 +212,8 @@ jobs:
         with:
           sarif_file: checkov-results.sarif
           
-      # checkov:skip=CKV_GHA_2:This script is a linter and does not execute untrusted input from file names.
       - name: 🔍 Analyze GitHub Actions Security
+        # checkov:skip=CKV_GHA_2:This script is a linter and does not execute untrusted input from file names.
         run: |
           #!/bin/bash
           echo "🔍 Analyzing GitHub Actions workflows for common security concerns..."
@@ -234,7 +234,7 @@ jobs:
               echo "  ⚠️ Warning: Found 'checkout' action using 'github.event.pull_request.head.sha'."
               echo "     Recommendation: Avoid checking out untrusted PR head SHAs when 'pull_request_target' is used, as it can expose secrets."
             fi
-
+            
             # Check for direct evaluation of untrusted event data in run commands
             # This is a simplified check and might have false positives/negatives.
             # A more robust check might involve parsing the YAML and looking for specific contexts.
