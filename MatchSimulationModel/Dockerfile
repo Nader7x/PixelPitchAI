@@ -9,7 +9,9 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* 
+
+
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
@@ -20,6 +22,15 @@ COPY . .
 
 # Create necessary directories
 RUN mkdir -p HeaderLines InputTokens SimulatedMatches SimulationStatus
+
+# Create a non-root user
+RUN useradd -m appuser
+
+# Change ownership of the working directory and necessary folders
+RUN chown -R appuser:appuser /app /HeaderLines /InputTokens /SimulatedMatches /SimulationStatus
+
+# Switch to the non-root user
+USER appuser
 
 # Set environment variables
 ENV MODEL_PATH=./gpt2-football-finetuned
@@ -37,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "ModelApiEnhanced:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "run.py"]
