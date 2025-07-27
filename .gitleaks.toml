@@ -36,9 +36,9 @@ paths = [
 ]
 regexes = [
   # Allow test passwords in test files
-  '''Password\s*=\s*["'](Test|Password|Strong|Wrong|Default).*["']''',
+  '''Password\s*=\s*["'](Test|Password|Strong|Wrong|Default|REDACTED).*["']''',
   # Allow common placeholder values
-  '''(password|secret|key).*=.*["'](your|my|test|example|placeholder|changeme|default).*["']''',
+  '''(password|secret|key).*=.*["'](your|my|test|example|placeholder|changeme|default|REDACTED).*["']''',
   # Allow empty connection strings
   '''ConnectionString.*=.*["']["']''',
   # Allow Dockerfile environment variables with obvious test values (certificates)
@@ -61,7 +61,7 @@ secretGroup = 1
 [[rules]]
 id = "connection-string-password"
 description = "Database Connection String with Password"
-regex = '''Password\s*=\s*["']([^"']{9,})["']'''
+regex = '''Password\s*=\s*["']([^"']{9,}|REDACTED)["']'''
 secretGroup = 1
 
 [extend]
