@@ -1,0 +1,55 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "teams": "Teams",
+    "schedule": "Schedule",
+    "players": "Players",
+    "coaches": "Coaches",
+    "stadiums": "Stadiums",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "search": "Search",
+    "shop": "Shop",
+    "admin": "Admin Dashboard"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "reset": "Reset to Defaults"
+  },
+  "settings": {
+    "title": "Settings & Preferences",
+    "subtitle": "Customize your Football Simulation experience",
+    "general": "General Settings",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "display": "Display",
+    "account": "Account Security",
+    "theme": "Theme",
+    "language": "Language",
+    "timezone": "Timezone",
+    "sound": "Sound Effects",
+    "saved": "Settings saved successfully!",
+    "reset": "Settings reset to defaults"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System Default"
+  },
+  "dashboard": {
+    "welcome": "Welcome to PixelPitchAI",
+    "simulate": "Simulate New Matches",
+    "viewDetails": "View Match Details",
+    "liveMatches": "Live Matches",
+    "latestMatches": "Latest Matches"
+  }
+}

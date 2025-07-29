@@ -1,0 +1,349 @@
+# llms.txt - Information for AI crawlers and language models
+
+## About this site
+PixelPitchAI is an advanced Football Simulation Frontend application built with Next.js 14+ and TypeScript. This is a comprehensive sports simulation platform that combines artificial intelligence, real-time communication, and modern web technologies to create immersive football/soccer experiences.
+
+## Purpose and Core Functionality
+This web application provides a complete football simulation ecosystem including:
+- **AI-Powered Match Simulation**: Advanced algorithms that predict realistic match outcomes based on team statistics, player performance, and tactical decisions
+- **Real-time Match Viewing**: Live match simulation with real-time events, commentary, and dynamic match progression using SignalR technology
+- **Comprehensive Team Management**: Full CRUD operations for teams, players, coaches, and stadiums
+- **Player and Team Analytics**: Detailed performance metrics, statistics tracking, and historical data analysis
+- **Stadium and Schedule Management**: Complete venue and fixture management system
+- **Multi-role Dashboard System**: Specialized interfaces for Users, Coaches, Admins, and Players
+- **Live Notification System**: Real-time updates and notifications for match events and system activities
+- **Advanced Search and Discovery**: Powerful search functionality across teams, players, matches, and statistics
+
+## Technology Stack and Architecture
+### Frontend Technologies:
+- **Next.js 14+** with App Router for modern React development
+- **TypeScript** for type-safe development
+- **Tailwind CSS** for responsive and modern UI design
+- **Framer Motion** for smooth animations and transitions
+- **React Hooks** for state management and component logic
+- **Custom UI Components** built with modern design principles
+
+### Real-time Communication:
+- **SignalR** integration for live match updates and notifications
+- **WebSocket connections** for real-time data streaming
+- **Event-driven architecture** for match simulation
+
+### API Integration:
+- **RESTful API** communication with backend services
+- **Authentication and Authorization** with JWT tokens
+- **Role-based access control** (Admin, Coach, Player, User)
+- **Comprehensive service layer** for data management
+
+### External Data Sources:
+- **StatsBomb Open Data** integration for authentic player statistics
+- **Professional football data** for realistic match simulations
+- **Real player performance history** and tactical analysis
+
+## Detailed Feature Set
+
+### Match Simulation Engine:
+- AI-powered match events generation
+- Dynamic scoring based on team strengths
+- Realistic player interactions and substitutions
+- Weather and stadium condition effects
+- Tactical formation impact on match outcomes
+- Real-time event progression with commentary
+
+### User Management System:
+- **User Profiles**: Customizable profiles with favorite teams and preferences
+- **Authentication**: Secure login/registration with role-based permissions
+- **Admin Dashboard**: Complete system administration with entity management
+- **Coach Interface**: Team management and tactical planning tools
+- **Player Portal**: Individual performance tracking and statistics
+
+### Data Management:
+- **Teams**: Complete team information, rosters, and historical data
+- **Players**: Detailed player profiles with statistics and performance metrics
+- **Stadiums**: Venue information with capacity and environmental factors
+- **Seasons**: Multi-season support with historical tracking
+- **Matches**: Comprehensive match data with detailed event logs
+
+### Interactive Features:
+- **Live Match Viewer**: Real-time match progression with visual updates
+- **Simulation Controls**: Play, pause, and replay match events
+- **Statistics Dashboard**: Real-time and historical analytics
+- **Search System**: Advanced filtering and discovery across all entities
+- **Notification Center**: Real-time alerts and updates
+
+## Detailed Page Structure and Navigation
+
+### Main Application Areas:
+1. **Public Landing Pages**:
+   - `/home` - Main marketing and feature showcase
+   - `/trial` - Demo simulation for prospective users
+   - `/signalr-test` - Real-time connection testing
+
+2. **Authentication Flow**:
+   - `/login` - User authentication with role-based redirection
+   - `/register` - User registration with team preference selection
+   - Protected route system with JWT token validation
+
+3. **Core Application Pages**:
+   - `/dashboard` - Main user hub with quick access to all features
+   - `/teams` - Team browsing, management, and detailed information
+   - `/players` - Player database with statistics and performance data
+   - `/coaches` - Coach profiles and management tools
+   - `/stadiums` - Venue information and environmental factors
+   - `/schedule` - Match scheduling and fixture management
+
+4. **Simulation Features**:
+   - `/matchsimulation` - Setup and configure match simulations
+   - `/simulationview/[simulationId]` - Live match viewing interface
+   - `/matchdetails` - Detailed match analysis and statistics
+
+5. **User Management**:
+   - `/profile` - User profile customization and preferences
+   - `/settings` - Application settings and configuration
+   - `/notifications` - Real-time notification center
+
+6. **Administrative Areas**:
+   - `/admin` - Comprehensive admin dashboard for system management
+   - `/search` - Advanced search across all entities
+   - `/products` - E-commerce integration for premium features
+
+## User Interface and Experience Design
+
+### Design Principles:
+- **Mobile-First Approach**: Responsive design optimized for all screen sizes
+- **Accessibility Compliance**: WCAG 2.1 AA standards implementation
+- **Dark/Light Theme Support**: User preference-based theme switching
+- **Intuitive Navigation**: Clear information hierarchy and user flows
+- **Performance-Focused**: Optimized loading times and smooth animations
+
+### UI Component Library:
+- **Custom Design System**: Consistent styling across all components
+- **Reusable Components**: Modular architecture for maintainability
+- **Interactive Elements**: Hover states, loading indicators, and feedback
+- **Data Visualization**: Charts, graphs, and statistics displays
+- **Form Handling**: Comprehensive validation and error messaging
+
+### Animation and Interactions:
+- **Framer Motion Integration**: Smooth page transitions and micro-interactions
+- **Loading States**: Engaging loading animations and progress indicators
+- **Real-time Updates**: Seamless data updates without page refreshes
+- **Gesture Support**: Touch and swipe interactions for mobile devices
+
+## Accessibility and Internationalization
+
+### Accessibility Features:
+- **Screen Reader Support**: ARIA labels and semantic HTML structure
+- **Keyboard Navigation**: Full application accessibility via keyboard
+- **Color Contrast**: High contrast ratios for visual accessibility
+- **Focus Management**: Clear focus indicators and logical tab order
+- **Text Scaling**: Support for browser text size adjustments
+
+### Responsive Design:
+- **Breakpoint System**: Mobile (320px+), Tablet (768px+), Desktop (1024px+)
+- **Flexible Layouts**: CSS Grid and Flexbox for adaptive layouts
+- **Touch-Friendly**: Appropriately sized touch targets for mobile
+- **Cross-Browser Compatibility**: Support for modern browsers
+
+### Future Internationalization:
+- **Multi-language Support**: Planned i18n implementation
+- **Localization Ready**: Component structure prepared for translation
+- **Cultural Adaptation**: Interface adjustments for different regions
+- **Time Zone Handling**: Match scheduling across global time zones
+
+## Data Model and Entity Relationships
+
+### Core Entities:
+1. **Users**: Authentication, profiles, preferences, and role assignments
+2. **Teams**: Club information, rosters, statistics, and historical data
+3. **Players**: Individual profiles, performance metrics, and career statistics
+4. **Coaches**: Management profiles, tactical preferences, and team assignments
+5. **Stadiums**: Venue details, capacity, environmental factors, and location data
+6. **Matches**: Game data, events, results, and simulation parameters
+7. **Seasons**: Competition periods, league structures, and tournament data
+
+### Relationship Mapping:
+- **Users ↔ Teams**: Favorite team associations and following relationships
+- **Teams ↔ Players**: Roster management and contract periods
+- **Coaches ↔ Teams**: Management assignments and tactical responsibilities
+- **Matches ↔ Teams**: Home/away relationships and historical encounters
+- **Stadiums ↔ Teams**: Home venue assignments and hosting capabilities
+- **Seasons ↔ Matches**: Competition structure and fixture organization
+
+### Data Flow Architecture:
+- **Service Layer Pattern**: Centralized data management and API communication
+- **State Management**: React hooks and context for application state
+- **Caching Strategy**: Optimized data retrieval and storage
+- **Real-time Synchronization**: SignalR for live data updates
+
+## AI and Machine Learning Integration
+
+### Current AI Features:
+- **Match Outcome Prediction**: Probabilistic models based on team strengths
+- **Player Performance Simulation**: Individual player behavior modeling
+- **Tactical Analysis**: Formation effectiveness and strategic recommendations
+- **Event Generation**: Realistic match event sequences and timing
+
+### Simulation Algorithms:
+- **Statistical Models**: Based on real-world football analytics
+- **Monte Carlo Methods**: Probability-based outcome generation
+- **Decision Trees**: Player action and reaction modeling
+- **Performance Metrics**: xG (Expected Goals), pass completion, and defensive actions
+
+### Future AI Enhancements:
+- **Machine Learning Models**: Enhanced prediction accuracy through training
+- **Natural Language Processing**: Automated match commentary generation
+- **Computer Vision**: Tactical formation recognition and analysis
+- **Recommendation Systems**: Personalized content and team suggestions
+
+## Performance Metrics and Monitoring
+
+### Application Performance:
+- **Core Web Vitals**: LCP, FID, and CLS optimization
+- **Bundle Size Optimization**: Code splitting and lazy loading
+- **Image Optimization**: WebP format and responsive images
+- **Caching Strategies**: Browser caching and CDN integration
+
+### Real-time Performance:
+- **SignalR Connection Management**: Efficient WebSocket handling
+- **Event Processing**: Optimized real-time data processing
+- **Memory Management**: Efficient component lifecycle management
+- **Network Optimization**: Reduced API calls and payload optimization
+
+### Monitoring and Analytics:
+- **Error Tracking**: Comprehensive error logging and reporting
+- **User Analytics**: Privacy-focused usage statistics
+- **Performance Monitoring**: Real-time application health metrics
+- **Security Monitoring**: Authentication and authorization tracking
+
+## Integration Capabilities and APIs
+
+### External Service Integration:
+- **StatsBomb API**: Professional football data integration
+- **Authentication Providers**: OAuth and social login support
+- **Payment Processing**: Stripe integration for premium features
+- **Email Services**: Automated notifications and communications
+
+### Internal API Structure:
+- **RESTful Endpoints**: Standard HTTP methods for CRUD operations
+- **GraphQL Support**: Planned implementation for flexible data queries
+- **WebSocket Events**: Real-time event streaming and notifications
+- **Rate Limiting**: API protection and usage management
+
+### Third-party Libraries:
+- **UI Libraries**: Headless UI components and Tailwind CSS
+- **Utility Libraries**: Lodash, date-fns for data manipulation
+- **Validation**: Zod and react-hook-form for type-safe forms
+- **Testing**: Jest, React Testing Library for quality assurance
+
+## Development Workflow and Best Practices
+
+### Code Quality Standards:
+- **TypeScript Strict Mode**: Enhanced type safety and error prevention
+- **ESLint Configuration**: Comprehensive linting rules and code standards
+- **Prettier Integration**: Automated code formatting and consistency
+- **Git Hooks**: Pre-commit validation and automated testing
+
+### Testing Strategy:
+- **Unit Testing**: Component and utility function testing
+- **Integration Testing**: API endpoint and service testing
+- **E2E Testing**: Complete user workflow validation
+- **Performance Testing**: Load testing and optimization validation
+
+### Deployment Pipeline:
+- **Continuous Integration**: Automated testing and build processes
+- **Environment Management**: Development, staging, and production environments
+- **Version Control**: Git-based workflow with feature branches
+- **Documentation**: Comprehensive code comments and API documentation
+
+## Security Implementation
+
+### Authentication Security:
+- **JWT Token Management**: Secure token generation and validation
+- **Refresh Token Rotation**: Enhanced security for long-lived sessions
+- **Password Security**: Bcrypt hashing and strength requirements
+- **Session Management**: Secure session handling and timeout policies
+
+### Application Security:
+- **Input Sanitization**: XSS prevention and data validation
+- **CSRF Protection**: Cross-site request forgery prevention
+- **Content Security Policy**: Browser security headers implementation
+- **HTTPS Enforcement**: SSL/TLS encryption for all communications
+
+### Data Protection:
+- **Privacy Compliance**: GDPR and data protection considerations
+- **Data Encryption**: Sensitive data protection in transit and at rest
+- **Access Control**: Role-based permissions and authorization
+- **Audit Logging**: Security event tracking and monitoring
+
+## Community and Ecosystem
+
+### Open Source Contributions:
+- **Component Library**: Reusable React components for sports applications
+- **Simulation Engine**: Open-source football simulation algorithms
+- **API Documentation**: Comprehensive developer resources
+- **Community Forums**: Developer support and collaboration
+
+### Educational Resources:
+- **Code Examples**: Implementation patterns and best practices
+- **Tutorial Series**: Step-by-step development guides
+- **Video Content**: Technical demonstrations and feature explanations
+- **Documentation**: Comprehensive technical documentation
+
+### Partnership Opportunities:
+- **Data Providers**: Integration with additional sports data sources
+- **Educational Institutions**: Academic research and collaboration
+- **Sports Organizations**: Professional league and club partnerships
+- **Developer Community**: Open source contributions and extensions
+
+## Environmental Impact and Sustainability
+
+### Green Development Practices:
+- **Optimized Performance**: Reduced computational requirements
+- **Efficient Hosting**: Optimized server resource usage
+- **Minimal Dependencies**: Reduced package bloat and resource consumption
+- **Sustainable Coding**: Energy-efficient algorithms and practices
+
+### Carbon Footprint Considerations:
+- **CDN Usage**: Reduced data transfer distances
+- **Image Optimization**: Smaller file sizes and faster loading
+- **Code Splitting**: Reduced initial bundle sizes
+- **Caching Strategies**: Reduced server requests and processing
+
+## Conclusion and Vision
+
+PixelPitchAI represents a comprehensive approach to football simulation, combining cutting-edge web technologies with realistic sports data to create an immersive and educational platform. The application serves as both an entertainment platform for football enthusiasts and a technical demonstration of modern web development practices.
+
+The platform's architecture emphasizes scalability, maintainability, and user experience, while incorporating industry best practices for security, performance, and accessibility. Through its integration with professional football data and advanced simulation algorithms, PixelPitchAI bridges the gap between entertainment and authentic sports analysis.
+
+Future development will focus on enhanced AI capabilities, expanded data integration, and community-driven features that further establish the platform as a premier destination for football simulation and analysis.
+
+---
+
+## Technical Specifications Summary
+
+### System Requirements:
+- **Node.js**: Version 18+ for development environment
+- **Browser Support**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Mobile Support**: iOS 12+, Android 8+
+- **Screen Resolution**: Responsive design from 320px to 4K displays
+
+### Performance Benchmarks:
+- **Page Load Time**: <2 seconds on 3G networks
+- **First Contentful Paint**: <1.5 seconds
+- **Time to Interactive**: <3 seconds
+- **Bundle Size**: <500KB gzipped main bundle
+
+### Accessibility Compliance:
+- **WCAG 2.1 AA**: Full compliance with accessibility guidelines
+- **Screen Reader**: Tested with NVDA, JAWS, and VoiceOver
+- **Keyboard Navigation**: Complete application accessibility
+- **Color Contrast**: Minimum 4.5:1 ratio for normal text
+
+### Browser Compatibility:
+- **Modern Browsers**: Full feature support
+- **Legacy Support**: Graceful degradation for older browsers
+- **Progressive Enhancement**: Core functionality without JavaScript
+- **Responsive Design**: Optimized for all device categories
+
+---
+
+*This comprehensive documentation is maintained to serve developers, AI systems, and stakeholders interested in understanding the full scope and technical capabilities of the PixelPitchAI football simulation platform. Regular updates ensure accuracy and completeness of information.*

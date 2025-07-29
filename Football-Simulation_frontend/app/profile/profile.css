@@ -1,0 +1,96 @@
+/* Football animation styles */
+.football-field-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to bottom, #4ade80, #16a34a);
+  overflow: hidden;
+}
+
+.field-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+}
+
+.center-circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  border: 4px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.penalty-box-top {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 300px;
+  height: 150px;
+  border-bottom: 4px solid rgba(255, 255, 255, 0.7);
+  border-left: 4px solid rgba(255, 255, 255, 0.7);
+  border-right: 4px solid rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+}
+
+.penalty-box-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 300px;
+  height: 150px;
+  border-top: 4px solid rgba(255, 255, 255, 0.7);
+  border-left: 4px solid rgba(255, 255, 255, 0.7);
+  border-right: 4px solid rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+}
+
+/* Dark mode styles for football field */
+.dark-field {
+  background: linear-gradient(to bottom, #1f2937, #111827) !important;
+}
+
+.dark-field .field-line,
+.dark-field .center-circle,
+.dark-field .penalty-box-top,
+.dark-field .penalty-box-bottom,
+.dark-field .goal-top,
+.dark-field .goal-bottom {
+  border-color: rgba(156, 163, 175, 0.5) !important;
+  background-color: rgba(156, 163, 175, 0.5) !important;
+}
+
+/* Profile page layout fixes */
+.profile-page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #1f2937, #111827);
+}
+
+.profile-content-wrapper {
+  display: flex;
+  flex: 1;
+  height: 100%;
+}
+
+.sidebar-wrapper {
+  height: 100%;
+  min-height: 100vh;
+}
+
+/* Ensure sidebar fills full height */
+@media (min-height: 100vh) {
+  .sidebar-wrapper {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+}

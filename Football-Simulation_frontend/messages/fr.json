@@ -1,0 +1,55 @@
+{
+  "navigation": {
+    "dashboard": "Tableau de Bord",
+    "teams": "Équipes",
+    "schedule": "Calendrier",
+    "players": "Joueurs",
+    "coaches": "Entraîneurs",
+    "stadiums": "Stades",
+    "settings": "Paramètres",
+    "notifications": "Notifications",
+    "search": "Rechercher",
+    "shop": "Boutique",
+    "admin": "Tableau de Bord Admin"
+  },
+  "common": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "close": "Fermer",
+    "reset": "Rétablir les Valeurs par Défaut"
+  },
+  "settings": {
+    "title": "Paramètres et Préférences",
+    "subtitle": "Personnalisez votre expérience de Simulation de Football",
+    "general": "Paramètres Généraux",
+    "notifications": "Notifications",
+    "privacy": "Confidentialité",
+    "display": "Affichage",
+    "account": "Sécurité du Compte",
+    "theme": "Thème",
+    "language": "Langue",
+    "timezone": "Fuseau Horaire",
+    "sound": "Effets Sonores",
+    "saved": "Paramètres sauvegardés avec succès !",
+    "reset": "Paramètres remis aux valeurs par défaut"
+  },
+  "theme": {
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Défaut du Système"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue à PixelPitchAI",
+    "simulate": "Simuler de Nouveaux Matchs",
+    "viewDetails": "Voir les Détails du Match",
+    "liveMatches": "Matchs en Direct",
+    "latestMatches": "Derniers Matchs"
+  }
+}

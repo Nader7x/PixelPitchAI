@@ -44,7 +44,7 @@ The project follows Clean Architecture principles with the following layers:
 
 ## 🛠️ Technology Stack
 
-- **.NET 8** - Main framework
+- **.NET 9** - Main framework
 - **ASP.NET Core** - Web API
 - **Entity Framework Core** - ORM
 - **PostgreSQL** - Primary database

@@ -1,0 +1,40 @@
+# Docker Compose for Development Environment
+# Provides hot reload and development features
+
+version: '3.8'
+
+services:
+  # Next.js Development Server
+  football-frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football-simulation-dev
+    ports:
+      - '3000:3000'
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      # Add your development environment variables here
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - NEXT_PUBLIC_SIGNALR_URL=http://localhost:5000/hubs
+    networks:
+      - football-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+networks:
+  football-network:
+    driver: bridge
+
+volumes:
+  node_modules:
+  next_cache:

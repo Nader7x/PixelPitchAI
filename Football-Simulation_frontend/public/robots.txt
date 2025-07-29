@@ -1,0 +1,24 @@
+# Robots.txt for Football Simulation Frontend
+
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Common directories to disallow for better SEO
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /settings/
+
+# Allow specific public pages
+Allow: /
+Allow: /home
+Allow: /teams
+Allow: /players
+Allow: /schedule
+Allow: /stadiums
+
+# Sitemap location (update this URL to match your actual domain)
+Sitemap: https://pixelpitchai.com/sitemap.xml

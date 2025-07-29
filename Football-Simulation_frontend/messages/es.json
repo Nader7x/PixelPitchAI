@@ -1,0 +1,55 @@
+{
+  "navigation": {
+    "dashboard": "Tablero",
+    "teams": "Equipos",
+    "schedule": "Calendario",
+    "players": "Jugadores",
+    "coaches": "Entrenadores",
+    "stadiums": "Estadios",
+    "settings": "Configuración",
+    "notifications": "Notificaciones",
+    "search": "Buscar",
+    "shop": "Tienda",
+    "admin": "Panel de Administración"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "close": "Cerrar",
+    "reset": "Restablecer a Predeterminados"
+  },
+  "settings": {
+    "title": "Configuración y Preferencias",
+    "subtitle": "Personaliza tu experiencia de Simulación de Fútbol",
+    "general": "Configuración General",
+    "notifications": "Notificaciones",
+    "privacy": "Privacidad",
+    "display": "Pantalla",
+    "account": "Seguridad de la Cuenta",
+    "theme": "Tema",
+    "language": "Idioma",
+    "timezone": "Zona Horaria",
+    "sound": "Efectos de Sonido",
+    "saved": "¡Configuración guardada exitosamente!",
+    "reset": "Configuración restablecida a valores predeterminados"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Predeterminado del Sistema"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido a PixelPitchAI",
+    "simulate": "Simular Nuevos Partidos",
+    "viewDetails": "Ver Detalles del Partido",
+    "liveMatches": "Partidos en Vivo",
+    "latestMatches": "Últimos Partidos"
+  }
+}
