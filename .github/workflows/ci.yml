@@ -23,6 +23,7 @@ permissions:
   security-events: write
   actions: read
   statuses: write
+  pull-requests: write
 
 
 jobs:
