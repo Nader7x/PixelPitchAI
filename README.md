@@ -11,6 +11,10 @@
 
 A comprehensive **enterprise-level football management platform** built with .NET 9, featuring real-time match simulation, team management, advanced analytics, and **production-ready CI/CD pipeline**.
 
+---
+<video src="https://github.com/user-attachments/assets/4f688e9f-40d2-44fd-942f-53787ecd2d31"></video>
+---
+
 ## 🏆 Project Highlights
 
 - **🎓 Graduation Project Ready**: Enterprise-level implementation suitable for academic evaluation
