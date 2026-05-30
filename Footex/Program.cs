@@ -243,6 +243,8 @@ try
         })
         .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
+    builder.Services.AddOutputCache();
+
     // Add Health Checks
     builder
         .Services.AddHealthChecks()
@@ -255,10 +257,11 @@ try
 
     var app = builder.Build();
     app.UseForwardedHeaders();
+    app.UseOutputCache();
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();
+        app.MapOpenApi().CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
         app.MapScalarApiReference(options =>
         {
             options.WithTitle("Footex API")
