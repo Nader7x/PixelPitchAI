@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Environment
-- Backend: .NET 10 Native AOT
+- Backend: .NET 10
 - Frontend: Next.js (React 19, TypeScript)
 - Database/Infra: PostgreSQL, Redis, RabbitMQ
 
@@ -39,6 +39,7 @@ docker compose -f ./docker-compose.dev.yml down
 
 ## Architecture & Constraints
 - **VSA & Onion**: Follow Vertical Slice Architecture (VSA) grouping by feature. Domain layer remains strictly agnostic of infrastructure/serialization.
-- **Native AOT Compliance**: No reflection, no `dynamic`, no runtime IL emit. All serialization must use compile-time source generators (`[JsonSerializable]`).
+- **Native AOT Compliance**: NOT enforced. This project is a standard .NET 10 web application with dynamic features, EF Core, etc.
+- **Source Generation**: Always prioritize compile-time source generation over runtime reflection when alternative source generation solutions exist.
 - **Zero-Allocation**: Use `Span<T>`, `ReadOnlySpan<T>`, and `Memory<T>` on performance-critical paths. Use `ref struct` / `readonly struct` to avoid heap allocations.
 - **No Synthetic Data**: Strict reliance on realistic domain data; absolutely no "John Doe" or synthetic/fake placeholders.
