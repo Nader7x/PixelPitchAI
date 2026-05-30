@@ -1,4 +1,4 @@
-﻿using Infrastructure;
+using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Footex.Extensions;
@@ -14,7 +14,7 @@ public static class MigrationExtensions
         try
         {
             logger.LogInformation("Starting database migration...");
-            db.Database.MigrateAsync();
+            db.Database.Migrate();
             logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)
