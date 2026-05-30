@@ -26,13 +26,13 @@ public interface IRepository<T>
 
     Task<int> UpdateAsync<TProperty>(
         Expression<Func<T, bool>> predicate,
-        Func<T, TProperty> propertySelector,
+        Expression<Func<T, TProperty>> propertySelector,
         TProperty newValue
     );
 
     Task<int> UpdateAsync<TProperty>(
         Expression<Func<T, bool>> predicate,
-        Func<T, Expression<Func<T, TProperty>>> propertySelector,
+        Expression<Func<T, Expression<Func<T, TProperty>>>> propertySelector,
         Expression<Func<T, TProperty>> valueExpression
     );
 

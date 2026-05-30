@@ -17,7 +17,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
 
@@ -109,63 +109,10 @@ try
         options.LowercaseUrls = true;
     });
 
-    // Configure Swagger with JWT support
-    builder.Services.AddSwaggerGen(c =>
+    // Configure native OpenAPI with JWT support and Scalar UI
+    builder.Services.AddOpenApi("v1", options =>
     {
-        c.SwaggerDoc(
-            "v1",
-            new OpenApiInfo
-            {
-                Title = "Footex API",
-                Version = "v1",
-                Description = "Football League Management API",
-            }
-        ); // Explicitly define the server Swagger UI should use
-        c.AddServer(
-            new OpenApiServer
-            {
-                Url = "https://localhost:7082",
-                Description = "Development HTTPS Server",
-            }
-        );
-        c.AddServer(
-            new OpenApiServer
-            {
-                Url = "http://localhost:5025",
-                Description = "Development HTTP Server",
-            }
-        );
-
-        // Add JWT Authentication to Swagger
-        c.AddSecurityDefinition(
-            "Bearer",
-            new OpenApiSecurityScheme
-            {
-                Description =
-                    "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.Http,
-                Scheme = "Bearer",
-            }
-        );
-
-        c.AddSecurityRequirement(
-            new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer",
-                        },
-                    },
-                    []
-                },
-            }
-        );
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
     });
 
     // Configure Serilog
@@ -311,8 +258,12 @@ try
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Footex API v1"));
+        app.MapOpenApi();
+        app.MapScalarApiReference(options =>
+        {
+            options.WithTitle("Footex API")
+                   .WithPreferredScheme("Bearer");
+        });
         app.ApplyMigrations();
     }
 

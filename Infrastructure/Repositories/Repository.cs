@@ -72,7 +72,7 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
 
     public async Task<int> UpdateAsync<TProperty>(
         Expression<Func<T, bool>> predicate,
-        Func<T, TProperty> propertySelector,
+        Expression<Func<T, TProperty>> propertySelector,
         TProperty newValue
     )
     {
@@ -84,7 +84,7 @@ public class Repository<T>(FootballDbContext context) : IRepository<T>
 
     public async Task<int> UpdateAsync<TProperty>(
         Expression<Func<T, bool>> predicate,
-        Func<T, Expression<Func<T, TProperty>>> propertySelector,
+        Expression<Func<T, Expression<Func<T, TProperty>>>> propertySelector,
         Expression<Func<T, TProperty>> valueExpression
     )
     {
