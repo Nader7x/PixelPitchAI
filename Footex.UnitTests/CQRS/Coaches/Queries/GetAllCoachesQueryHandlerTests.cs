@@ -7,6 +7,7 @@ using Domain.Models;
 using FluentAssertions;
 using Footex.UnitTests.Common;
 using MockQueryable;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
 
@@ -57,7 +58,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -87,7 +88,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
 
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
@@ -119,7 +120,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
 
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
@@ -158,7 +159,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
 
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
@@ -187,7 +188,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -260,7 +261,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act
@@ -283,7 +284,7 @@ public class GetAllCoachesQueryHandlerTests
         {
             new() { Id = 1, Nationality = "england" },
         };
-        var mockQueryable = coaches.AsQueryable().BuildMock();
+        var mockQueryable = coaches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Coaches.GetQueryable()).Returns(mockQueryable);
 
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
@@ -320,7 +321,7 @@ public class GetAllCoachesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetQueryable())
-            .Returns(coaches.AsQueryable().BuildMock());
+            .Returns(coaches.BuildMock());
         _iCoachMapperMock.Setup(x => x.ToDtoList(coaches)).Returns(expectedCoachDtos);
 
         // Act

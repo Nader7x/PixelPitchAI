@@ -59,7 +59,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -90,7 +90,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -122,7 +122,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -154,7 +154,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -201,7 +201,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -236,7 +236,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -264,7 +264,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
@@ -292,7 +292,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
@@ -315,7 +315,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
 
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
@@ -393,7 +393,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtoS);
 
         // Act
@@ -419,7 +419,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -446,7 +446,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act
@@ -481,7 +481,7 @@ public class GetAllSeasonsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetQueryable())
-            .Returns(seasons.AsQueryable().BuildMock());
+            .Returns(seasons.BuildMock());
         _iSeasonMapperMock.Setup(x => x.ToDtoList(seasons)).Returns(expectedSeasonDtos);
 
         // Act

@@ -55,7 +55,7 @@ public class GetAllTeamsQueryHandlerTests
             })
             .ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -94,7 +94,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -134,7 +134,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -188,7 +188,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -216,7 +216,7 @@ public class GetAllTeamsQueryHandlerTests
             throw new ArgumentNullException(nameof(teams));
         var expectedTeamDtoS = new List<TeamDto>();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtoS);
 
         // Act
@@ -246,7 +246,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -274,7 +274,7 @@ public class GetAllTeamsQueryHandlerTests
         var teams = new List<Team> { CreateValidTeam(1), CreateValidTeam(2) };
         var expectedTeamDtos = teams.Select(t => new TeamDto { Id = t.Id }).ToList();
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -302,7 +302,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtos);
 
         // Act
@@ -337,7 +337,7 @@ public class GetAllTeamsQueryHandlerTests
             },
         };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -371,7 +371,7 @@ public class GetAllTeamsQueryHandlerTests
         var teams = new List<Team> { CreateValidTeam(1) };
         var expectedTeamDtos = new List<TeamDto> { new() { Id = 1 } };
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.AsQueryable().BuildMock());
+        _unitOfWorkMock.Setup(x => x.Teams.GetQueryable()).Returns(teams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(teams)).Returns(expectedTeamDtos);
 
         // Act
@@ -408,7 +408,7 @@ public class GetAllTeamsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Teams.GetQueryable())
-            .Returns(allTeams.AsQueryable().BuildMock());
+            .Returns(allTeams.BuildMock());
         _iTeamMapperMock.Setup(x => x.ToDtoList(filteredTeams)).Returns(expectedTeamDtoS);
 
         // Act

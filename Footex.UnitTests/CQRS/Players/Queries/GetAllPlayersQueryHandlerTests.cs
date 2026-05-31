@@ -63,7 +63,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -93,7 +93,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -123,7 +123,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -154,7 +154,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -185,7 +185,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -212,7 +212,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -293,7 +293,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtoS);
 
         // Act
@@ -316,7 +316,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -341,7 +341,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtos);
 
         // Act
@@ -375,7 +375,7 @@ public class GetAllPlayersQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Players.GetQueryable())
-            .Returns(players.AsQueryable().BuildMock());
+            .Returns(players.BuildMock());
         _iPlayerMapperMock.Setup(x => x.ToDtoList(players)).Returns(expectedPlayerDtoS);
 
         // Act

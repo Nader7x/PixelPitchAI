@@ -6,6 +6,7 @@ using Domain.Interfaces;
 using FluentAssertions;
 using Footex.UnitTests.Common;
 using MockQueryable;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -75,7 +76,7 @@ public class GetAllMatchesQueryHandlerTests
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
         // Mock the queryable and its extension methods
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
@@ -109,7 +110,7 @@ public class GetAllMatchesQueryHandlerTests
         var matchDtos = filteredMatches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
         // Mock the queryable and its extension methods
-        var mockQueryable = allMatches.AsQueryable().BuildMock();
+        var mockQueryable = allMatches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
@@ -157,7 +158,7 @@ public class GetAllMatchesQueryHandlerTests
         var matchDtos = filteredMatches.Select(m => new MatchDto { Id = m.Id }).ToList();
 
         // Mock the queryable and its extension methods
-        var mockQueryable = allMatches.AsQueryable().BuildMock();
+        var mockQueryable = allMatches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
@@ -190,7 +191,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatchWithStatus(2, "Completed"),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.Is<IEnumerable<Match>>(m => m.Count() == 2)))
@@ -227,7 +228,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
@@ -263,7 +264,7 @@ public class GetAllMatchesQueryHandlerTests
         };
         var matches = new List<Match> { TestDataBuilder.CreateValidMatch(1) };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
@@ -316,7 +317,7 @@ public class GetAllMatchesQueryHandlerTests
         var query = new GetAllMatchesQuery { TeamId = 999 }; // Non-existent team
         var matches = new List<Match>();
         var matchDtos = new List<MatchDto?>();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
@@ -352,7 +353,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
@@ -388,7 +389,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
@@ -420,7 +421,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock
@@ -452,7 +453,7 @@ public class GetAllMatchesQueryHandlerTests
             TestDataBuilder.CreateValidMatch(2),
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
 
         _IMatchMapperMock
@@ -485,7 +486,7 @@ public class GetAllMatchesQueryHandlerTests
         };
         var matchDtos = matches.Select(m => new MatchDto { Id = m.Id }).ToList();
         // Mock the queryable and its extension methods
-        var mockQueryable = matches.AsQueryable().BuildMock();
+        var mockQueryable = matches.BuildMock();
 
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
@@ -545,7 +546,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns((List<MatchDto?>)null!);
 
         // Act
@@ -597,7 +598,7 @@ public class GetAllMatchesQueryHandlerTests
         var matchDtos = new List<MatchDto> { new() { Id = expectedFilteredMatch.Id } };
 
         // Create a mock queryable
-        var mockQueryable = allMatches.AsQueryable().BuildMock();
+        var mockQueryable = allMatches.BuildMock();
 
         // Setup the repository mock to return our queryable
         _unitOfWorkMock.Setup(x => x.Matches.GetQueryable()).Returns(mockQueryable);
@@ -639,7 +640,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
@@ -670,7 +671,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
@@ -705,7 +706,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock.Setup(x => x.ToDtoList(matches)).Returns(matchDtos);
 
         // Act
@@ -739,7 +740,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
@@ -770,7 +771,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
@@ -802,7 +803,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matches.AsQueryable().BuildMock());
+            .Returns(matches.BuildMock());
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);
@@ -836,7 +837,7 @@ public class GetAllMatchesQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetQueryable())
-            .Returns(matchesReadOnly.AsQueryable().BuildMock());
+            .Returns(matchesReadOnly.ToList().BuildMock());
         _IMatchMapperMock
             .Setup(x => x.ToDtoList(It.IsAny<IEnumerable<Match>>()))
             .Returns(matchDtos);

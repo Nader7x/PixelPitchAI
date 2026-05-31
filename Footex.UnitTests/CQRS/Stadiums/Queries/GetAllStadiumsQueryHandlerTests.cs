@@ -66,7 +66,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -97,7 +97,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -131,7 +131,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -170,7 +170,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -203,7 +203,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -283,7 +283,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -311,7 +311,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -339,7 +339,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 
@@ -375,7 +375,7 @@ public class GetAllStadiumsQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Stadiums.GetQueryable())
-            .Returns(stadiums.AsQueryable().BuildMock());
+            .Returns(stadiums.BuildMock());
 
         _iStadiumMapperMock.Setup(x => x.ToDtoList(stadiums)).Returns(expectedStadiumDtoS);
 

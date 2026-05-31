@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MockQueryable;
+using MockQueryable.Moq;
 using Moq;
 using Xunit;
 using Match = Domain.Models.Match;
@@ -490,7 +491,7 @@ public class UnifiedSearchServiceTests
 
         _unitOfWorkMock
             .Setup(uow => uow.Teams.GetQueryable())
-            .Returns(_testTeams.AsQueryable().BuildMock());
+            .Returns(_testTeams.BuildMock());
 
         // Act
         var result = await _searchService.SearchWithFiltersAsync(filters);
@@ -518,7 +519,7 @@ public class UnifiedSearchServiceTests
         };
         _unitOfWorkMock
             .Setup(uow => uow.Teams.GetQueryable())
-            .Returns(_testTeams.AsQueryable().BuildMock());
+            .Returns(_testTeams.BuildMock());
 
         // Act
         var result = await _searchService.SearchWithFiltersAsync(filters);
@@ -557,7 +558,7 @@ public class UnifiedSearchServiceTests
                     It.IsAny<Expression<Func<Player, object>>[]>()
                 )
             )
-            .Returns(_testPlayers.AsQueryable().BuildMock());
+            .Returns(_testPlayers.BuildMock());
 
         // Act
         var result = await _searchService?.SearchWithFiltersAsync(filters);
@@ -595,7 +596,7 @@ public class UnifiedSearchServiceTests
                     It.IsAny<Expression<Func<Player, object>>[]>()
                 )
             )
-            .Returns(_testPlayers.AsQueryable().BuildMock());
+            .Returns(_testPlayers.BuildMock());
 
         // Act
         var result = await _searchService.SearchWithFiltersAsync(filters);
@@ -619,7 +620,7 @@ public class UnifiedSearchServiceTests
 
         _unitOfWorkMock
             .Setup(uow => uow.Teams.GetQueryable())
-            .Returns(_testTeams.AsQueryable().BuildMock());
+            .Returns(_testTeams.BuildMock());
 
         // Act
         var result = await _searchService.SearchWithFiltersAsync(filters);
@@ -656,10 +657,10 @@ public class UnifiedSearchServiceTests
                     It.IsAny<Expression<Func<Player, object>>[]>()
                 )
             )
-            .Returns(_testPlayers.AsQueryable().BuildMock());
+            .Returns(_testPlayers.BuildMock());
         _unitOfWorkMock
             .Setup(uow => uow.Teams.GetQueryable())
-            .Returns(_testTeams.AsQueryable().BuildMock());
+            .Returns(_testTeams.BuildMock());
 
         // Act
         var result = await _searchService.SearchWithFiltersAsync(filters);
