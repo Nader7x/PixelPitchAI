@@ -8,10 +8,12 @@ param(
 
 Write-Host "Cleaning solution at: $SolutionPath" -ForegroundColor Green
 
-# Find all bin and obj directories recursively
-$foldersToDelete = @()
-$foldersToDelete += Get-ChildItem -Path $SolutionPath -Recurse -Directory -Name "bin" -ErrorAction SilentlyContinue | ForEach-Object { Get-Item (Join-Path $SolutionPath $_) }
-$foldersToDelete += Get-ChildItem -Path $SolutionPath -Recurse -Directory -Name "obj" -ErrorAction SilentlyContinue | ForEach-Object { Get-Item (Join-Path $SolutionPath $_) }
+# Find all bin and obj directories recursively, ignoring virtual environments, node_modules, and git folders
+$foldersToDelete = Get-ChildItem -Path $SolutionPath -Recurse -Directory -ErrorAction SilentlyContinue | 
+    Where-Object { 
+        ($_.Name -eq "bin" -or $_.Name -eq "obj") -and 
+        $_.FullName -notmatch '\\(\.venv|\.git|node_modules)\\?' 
+    }
 
 if ($foldersToDelete.Count -eq 0) {
     Write-Host "No bin or obj folders found." -ForegroundColor Yellow
