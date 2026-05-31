@@ -44,7 +44,7 @@ public class IdentityService(
     {
         if (user == null)
             return false;
-        
+
         return await userManager.CheckPasswordAsync(user, password);
     }
 
@@ -53,12 +53,12 @@ public class IdentityService(
         if (!await roleManager.RoleExistsAsync(role))
             await roleManager.CreateAsync(new IdentityRole(role));
 
-        if (user == null) 
+        if (user == null)
             return false;
-        
+
         if (await IsInRoleAsync(user.Id, role))
-            return true;      
-        
+            return true;
+
         var result = await userManager.AddToRoleAsync(user, role);
         return result.Succeeded;
     }

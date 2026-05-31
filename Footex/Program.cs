@@ -65,7 +65,6 @@ try
     builder.Configuration.AddUserSecrets<Program>();
     builder.Configuration.AddEnvironmentVariables();
 
-   
     // Bind simulation service configuration
     builder.Services.Configure<SimulationServiceOptions>(options =>
     {
@@ -110,10 +109,13 @@ try
     });
 
     // Configure native OpenAPI with JWT support and Scalar UI
-    builder.Services.AddOpenApi("v1", options =>
-    {
-        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-    });
+    builder.Services.AddOpenApi(
+        "v1",
+        options =>
+        {
+            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+        }
+    );
 
     // Configure Serilog
     builder.Host.UseSerilog(
@@ -264,8 +266,7 @@ try
         app.MapOpenApi().CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
         app.MapScalarApiReference(options =>
         {
-            options.WithTitle("Footex API")
-                   .WithPreferredScheme("Bearer");
+            options.WithTitle("Footex API").WithPreferredScheme("Bearer");
         });
         app.ApplyMigrations();
     }
