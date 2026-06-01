@@ -68,8 +68,8 @@ services:
   # Footex API Application (Development)
   footex-api:
     build:
-      context: .
-      dockerfile: Footex/Dockerfile.dev
+      context: ./backend
+      dockerfile: src/Footex/Dockerfile.dev
       args:
         BUILD_CONFIGURATION: Debug
     container_name: footex-api-dev
@@ -120,11 +120,11 @@ services:
     
       
     volumes:
-      - ./Footex:/app/src:rw
-      - ./Application:/app/Application:rw
-      - ./Domain:/app/Domain:rw
-      - ./Infrastructure:/app/Infrastructure:rw
-      - ./Footex/Logs:/app/Logs:rw
+      - ./backend/src/Footex:/app/src:rw
+      - ./backend/src/Application:/app/Application:rw
+      - ./backend/src/Domain:/app/Domain:rw
+      - ./backend/src/Infrastructure:/app/Infrastructure:rw
+      - ./backend/src/Footex/Logs:/app/Logs:rw
       - ./certs:/app/certs:rw
       - dev_temp:/app/temp
       - dataprotection_keys:/root/.aspnet/DataProtection-Keys

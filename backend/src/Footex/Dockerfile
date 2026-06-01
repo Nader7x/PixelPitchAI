@@ -1,22 +1,22 @@
-﻿# Build stage
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy project files
-COPY ["Footex/Footex.csproj", "Footex/"]
-COPY ["Application/Application.csproj", "Application/"]
-COPY ["Domain/Domain.csproj", "Domain/"]
-COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
+COPY ["src/Footex/Footex.csproj", "src/Footex/"]
+COPY ["src/Application/Application.csproj", "src/Application/"]
+COPY ["src/Domain/Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
 
 # Restore dependencies
-RUN dotnet restore "Footex/Footex.csproj"
+RUN dotnet restore "src/Footex/Footex.csproj"
 
 # Copy source code
 COPY . .
 
 # Build the application
-WORKDIR "/src/Footex"
+WORKDIR "/src/src/Footex"
 RUN dotnet build "Footex.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Publish stage

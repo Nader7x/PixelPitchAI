@@ -30,10 +30,10 @@
     <PackageReference Include="MockQueryable.Moq" Version="10.0.8" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Footex\Footex.csproj" />
-    <ProjectReference Include="..\Application\Application.csproj" />
-    <ProjectReference Include="..\Domain\Domain.csproj" />
-    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Footex\Footex.csproj" />
+    <ProjectReference Include="..\..\src\Application\Application.csproj" />
+    <ProjectReference Include="..\..\src\Domain\Domain.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="CQRS\Teams\Commands\" />

@@ -1,17 +1,17 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex", "Footex\Footex.csproj", "{A8DD010A-4574-4F8C-8AEE-73903B4BB5B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex", "src\Footex\Footex.csproj", "{A8DD010A-4574-4F8C-8AEE-73903B4BB5B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{3E5ACE30-C2D7-455C-BAD3-8A6564449E60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\Domain\Domain.csproj", "{3E5ACE30-C2D7-455C-BAD3-8A6564449E60}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{A2B3F6F2-0BC3-4CA1-BA79-B7CA5B9C0AC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\Application\Application.csproj", "{A2B3F6F2-0BC3-4CA1-BA79-B7CA5B9C0AC4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{A2B4FA19-159E-4B62-B1AB-B8F961388A4C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\Infrastructure\Infrastructure.csproj", "{A2B4FA19-159E-4B62-B1AB-B8F961388A4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.UnitTests", "Footex.UnitTests\Footex.UnitTests.csproj", "{B5A24D8A-4159-45EF-B08C-88A8D91280C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.UnitTests", "tests\Footex.UnitTests\Footex.UnitTests.csproj", "{B5A24D8A-4159-45EF-B08C-88A8D91280C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.IntegrationTests", "Footex.IntegrationTests\Footex.IntegrationTests.csproj", "{C9F60338-83FC-4514-B01C-4B75D345D5D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.IntegrationTests", "tests\Footex.IntegrationTests\Footex.IntegrationTests.csproj", "{C9F60338-83FC-4514-B01C-4B75D345D5D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.PerformanceTests", "Footex.PerformanceTests\Footex.PerformanceTests.csproj", "{B5C14337-BD13-4464-B427-D83C05685615}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Footex.PerformanceTests", "tests\Footex.PerformanceTests\Footex.PerformanceTests.csproj", "{B5C14337-BD13-4464-B427-D83C05685615}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

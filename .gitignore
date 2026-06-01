@@ -64,12 +64,11 @@ ScaffoldingReadMe.txt
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-/Footex/Logs
+/backend/src/Footex/Logs
 
 # Environment variables
 .env
 .env.*
-/scripts/
 certs
 /Logs/
 

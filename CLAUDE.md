@@ -8,25 +8,25 @@
 ## Setup
 ```bash
 # Add worktree from bare repository root
-git worktree add ./worktrees/Footex/upgrade-to-dotnet-10 upgrade-to-dotnet-10
+git worktree add ./worktrees/upgrade-to-dotnet-10 upgrade-to-dotnet-10
 ```
 
 ## Build
 ```bash
 # Backend build
-dotnet build ./Footex/Footex.sln
+dotnet build ./backend/Footex.sln
 
 # Frontend build
-cd ./Football-Simulation_frontend && pnpm install && pnpm build
+cd ./frontend && pnpm install && pnpm build
 ```
 
 ## Test
 ```bash
 # Run unit & integration tests
-dotnet test ./Footex/Footex.sln
+dotnet test ./backend/Footex.sln
 
 # Run specific test class
-dotnet test ./Footex/Footex.sln --filter "FullyQualifiedName~Footex.UnitTests.SomeClass"
+dotnet test ./backend/Footex.sln --filter "FullyQualifiedName~Footex.UnitTests.SomeClass"
 ```
 
 ## Database/Infra

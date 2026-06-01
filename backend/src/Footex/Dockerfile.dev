@@ -15,13 +15,13 @@ ENV ASPNETCORE_Kestrel__Certificates__Default__Password="00000000" \
     ASPNETCORE_Kestrel__Certificates__Default__Path="/app/aspnetapp.pfx"
 
 # Copy project files for dependency restoration
-COPY ["Footex/Footex.csproj", "Footex/"]
-COPY ["Application/Application.csproj", "Application/"]
-COPY ["Domain/Domain.csproj", "Domain/"]
-COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
+COPY ["src/Footex/Footex.csproj", "src/Footex/"]
+COPY ["src/Application/Application.csproj", "src/Application/"]
+COPY ["src/Domain/Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
 
 # Restore dependencies
-RUN dotnet restore "Footex/Footex.csproj"
+RUN dotnet restore "src/Footex/Footex.csproj"
 
 # Copy entire source code
 COPY . .
@@ -31,7 +31,7 @@ RUN mkdir -p /app/Logs /app/temp /app/wwwroot && \
     chmod 755 /app/Logs /app/temp /app/wwwroot
 
 # Set working directory to the main project
-WORKDIR /app/Footex
+WORKDIR /app/src/Footex
 
 # Expose ports for HTTP and HTTPS
 EXPOSE 8080

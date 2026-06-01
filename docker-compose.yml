@@ -70,8 +70,8 @@ services:
   # Footex API Application
   footex-api:
     build:
-      context: .
-      dockerfile: Footex/Dockerfile
+      context: ./backend
+      dockerfile: src/Footex/Dockerfile
       args:
         BUILD_CONFIGURATION: Release
     container_name: footex-api
@@ -116,7 +116,7 @@ services:
     networks:
       - footex-network
     volumes:
-      - ./Footex/Logs:/app/Logs
+      - ./backend/src/Footex/Logs:/app/Logs
       - api_temp:/app/temp
     restart: unless-stopped
     deploy:
