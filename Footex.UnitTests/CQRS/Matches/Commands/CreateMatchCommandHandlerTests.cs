@@ -354,7 +354,7 @@ public class CreateMatchCommandHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.AddAsync(It.IsAny<Match>()))
-            .Returns(Task.FromResult<EntityEntry<Match>>(null));
+            .Returns(Task.FromResult<EntityEntry<Match>>(null!));
         _unitOfWorkMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);

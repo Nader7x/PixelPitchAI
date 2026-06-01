@@ -362,7 +362,7 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         {
             Succeeded = true,
             Id = matchId,
-            ScheduledDateTime = updateMatchDto.ScheduledDateTimeUtc.Value,
+            ScheduledDateTime = updateMatchDto.ScheduledDateTimeUtc.GetValueOrDefault(),
         };
         _iMatchMapperMock
             .Setup(x => x.ToUpdateCommand(updateMatchDto))

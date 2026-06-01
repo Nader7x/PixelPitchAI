@@ -81,7 +81,7 @@ public class EventAnalysisServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            _eventAnalysisService.UpdateMatchStatistics(matchEvent, matchEventsEntity, null)
+            _eventAnalysisService.UpdateMatchStatistics(matchEvent, matchEventsEntity, null!)
         );
     }
 
@@ -94,7 +94,7 @@ public class EventAnalysisServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            _eventAnalysisService.UpdateMatchStatistics(matchEvent, null, match)
+            _eventAnalysisService.UpdateMatchStatistics(matchEvent, null!, match)
         );
     }
 }

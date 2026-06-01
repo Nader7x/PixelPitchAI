@@ -346,7 +346,7 @@ public class GetAllTeamsQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-        result.Teams.Count.Should().Be(1);
+        result.Teams!.Count.Should().Be(1);
 
         var teamDto = result.Teams.First();
         teamDto.Id.Should().Be(1);

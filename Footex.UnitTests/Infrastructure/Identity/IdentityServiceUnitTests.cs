@@ -41,24 +41,24 @@ public class IdentityServiceUnitTests
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         // Setup RoleManager mock
         var roleStoreMock = new Mock<IRoleStore<IdentityRole>>();
         _mockRoleManager = new Mock<RoleManager<IdentityRole>>(
             roleStoreMock.Object,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         _identityService = new IdentityService(_mockUserManager.Object, _mockRoleManager.Object);
@@ -356,7 +356,7 @@ public class IdentityServiceUnitTests
         result.Should().BeFalse();
         _mockUserManager.Verify(m => m.FindByIdAsync(userId), Times.Once);
         _mockUserManager.Verify(
-            m => m.IsInRoleAsync(It.IsAny<ApplicationUser?>(), role),
+            m => m.IsInRoleAsync(It.IsAny<ApplicationUser>(), role),
             Times.Never
         );
     }

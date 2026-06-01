@@ -216,12 +216,12 @@ public class UnifiedSearchServiceTests
     };
 
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-    private Mock<ICoachRepository>? _mockCoachRepo;
-    private Mock<IMatchRepository>? _mockMatchRepo;
-    private Mock<IPlayerRepository>? _mockPlayerRepo;
-    private Mock<IStadiumsRepository>? _mockStadiumRepo;
-    private Mock<ITeamRepository>? _mockTeamRepo;
-    private UnifiedSearchService? _searchService;
+    private Mock<ICoachRepository> _mockCoachRepo = null!;
+    private Mock<IMatchRepository> _mockMatchRepo = null!;
+    private Mock<IPlayerRepository> _mockPlayerRepo = null!;
+    private Mock<IStadiumsRepository> _mockStadiumRepo = null!;
+    private Mock<ITeamRepository> _mockTeamRepo = null!;
+    private UnifiedSearchService _searchService = null!;
 
     public UnifiedSearchServiceTests()
     {
@@ -358,7 +358,7 @@ public class UnifiedSearchServiceTests
         var query = "a";
 
         // Act
-        var result = await _searchService?.SearchAsync(query)!;
+        var result = await _searchService!.SearchAsync(query)!;
 
         // Assert
         Assert.NotNull(result);
@@ -374,7 +374,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService?.SearchAsync(query);
+        var result = await _searchService!.SearchAsync(query);
 
         // Assert
         Assert.NotNull(result);
@@ -399,7 +399,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService?.SearchAsync(query);
+        var result = await _searchService!.SearchAsync(query);
 
         // Assert
         Assert.NotNull(result);
@@ -469,7 +469,7 @@ public class UnifiedSearchServiceTests
         SetupMocks(_testPlayers, _testTeams, _testCoaches, _testMatches, _testStadiums);
 
         // Act
-        var result = await _searchService?.SearchWithFiltersAsync(null!);
+        var result = await _searchService!.SearchWithFiltersAsync(null!);
 
         // Assert
         Assert.NotNull(result);
@@ -561,7 +561,7 @@ public class UnifiedSearchServiceTests
             .Returns(_testPlayers.BuildMock());
 
         // Act
-        var result = await _searchService?.SearchWithFiltersAsync(filters);
+        var result = await _searchService!.SearchWithFiltersAsync(filters);
 
         // Assert
         Assert.NotNull(result);

@@ -77,7 +77,7 @@ public class RegisterUserCommandHandlerTests
 
         _mockIdentityService
             .Setup(x => x.CreateUserAsync(user, command.Password))
-            .ReturnsAsync((false, (string?)null, identityResult));
+            .ReturnsAsync((false, string.Empty, identityResult));
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

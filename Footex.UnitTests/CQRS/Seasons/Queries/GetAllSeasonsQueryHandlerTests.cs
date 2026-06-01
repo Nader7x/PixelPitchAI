@@ -490,7 +490,7 @@ public class GetAllSeasonsQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
-        result.Seasons.Count.Should().Be(1);
+        result.Seasons!.Count.Should().Be(1);
 
         var seasonDto = result.Seasons.First();
         seasonDto.Id.Should().Be(1);

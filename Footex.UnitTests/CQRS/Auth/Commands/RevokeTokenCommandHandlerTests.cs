@@ -125,7 +125,7 @@ public class RevokeTokenCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidRefreshToken_ShouldStillCallTokenService(string refreshToken)
+    public async Task Handle_InvalidRefreshToken_ShouldStillCallTokenService(string? refreshToken)
     {
         // Arrange
         var command = _fixture
@@ -136,7 +136,7 @@ public class RevokeTokenCommandHandlerTests
 
         var exceptionMessage = "Invalid refresh token";
         _mockTokenService
-            .Setup(x => x.RevokeTokenAsync(refreshToken, command.IpAddress))
+            .Setup(x => x.RevokeTokenAsync(refreshToken!, command.IpAddress))
             .ThrowsAsync(new ArgumentException(exceptionMessage));
 
         // Act
@@ -148,7 +148,7 @@ public class RevokeTokenCommandHandlerTests
         result.Error.Should().Be(exceptionMessage);
 
         _mockTokenService.Verify(
-            x => x.RevokeTokenAsync(refreshToken, command.IpAddress),
+            x => x.RevokeTokenAsync(refreshToken!, command.IpAddress),
             Times.Once
         );
     }
@@ -157,7 +157,7 @@ public class RevokeTokenCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidIpAddress_ShouldStillCallTokenService(string ipAddress)
+    public async Task Handle_InvalidIpAddress_ShouldStillCallTokenService(string? ipAddress)
     {
         // Arrange
         var command = _fixture
@@ -167,7 +167,7 @@ public class RevokeTokenCommandHandlerTests
             .Create();
 
         _mockTokenService
-            .Setup(x => x.RevokeTokenAsync(command.RefreshToken, ipAddress))
+            .Setup(x => x.RevokeTokenAsync(command.RefreshToken, ipAddress!))
             .Returns(Task.CompletedTask);
 
         _mockUnitOfWork
@@ -183,7 +183,7 @@ public class RevokeTokenCommandHandlerTests
         result.Error.Should().BeNull();
 
         _mockTokenService.Verify(
-            x => x.RevokeTokenAsync(command.RefreshToken, ipAddress),
+            x => x.RevokeTokenAsync(command.RefreshToken, ipAddress!),
             Times.Once
         );
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);

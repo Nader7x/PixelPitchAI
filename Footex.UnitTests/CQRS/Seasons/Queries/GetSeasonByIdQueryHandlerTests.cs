@@ -167,10 +167,10 @@ public class GetSeasonByIdQueryHandlerTests
             Name = season.Name,
             LeagueName = season.LeagueName,
             Country = season.Country,
-            CurrentRound = season.CurrentRound.Value,
-            TotalRounds = season.TotalRounds.Value,
+            CurrentRound = season.CurrentRound.GetValueOrDefault(),
+            TotalRounds = season.TotalRounds.GetValueOrDefault(),
             IsActive = season.IsActive,
-            IsCompleted = season.IsCompleted.Value,
+            IsCompleted = season.IsCompleted.GetValueOrDefault(),
             StartDate = season.StartDate,
             EndDate = season.EndDate,
         };

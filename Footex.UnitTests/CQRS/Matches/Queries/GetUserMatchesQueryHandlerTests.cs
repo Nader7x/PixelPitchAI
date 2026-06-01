@@ -90,7 +90,7 @@ public class GetUserMatchesQueryHandlerTests
         var userId = "nonexistent-user";
         var query = new GetUserMatchesQuery { UserId = userId };
         var emptyMatches = new List<Match>();
-        var emptyMatchDtos = new List<UserMatchDto?>();
+        var emptyMatchDtos = new List<UserMatchDto>();
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetMatchesByUserIdAsync(userId))
@@ -148,10 +148,10 @@ public class GetUserMatchesQueryHandlerTests
         // Arrange
         var query = new GetUserMatchesQuery { UserId = invalidUserId! };
         var emptyMatches = new List<Match>();
-        var emptyMatchDtos = new List<UserMatchDto?>();
+        var emptyMatchDtos = new List<UserMatchDto>();
 
         _unitOfWorkMock
-            .Setup(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId))
+            .Setup(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId!))
             .ReturnsAsync(emptyMatches);
         _iMatchMapperMock.Setup(x => x.ToUserMatchesDtoS(emptyMatches)).Returns(emptyMatchDtos);
 
@@ -164,7 +164,7 @@ public class GetUserMatchesQueryHandlerTests
         result.Matches.Should().NotBeNull();
         result.Matches!.Should().BeEmpty();
 
-        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId), Times.Once);
+        _unitOfWorkMock.Verify(x => x.Matches.GetMatchesByUserIdAsync(invalidUserId!), Times.Once);
     }
 
     [Fact]

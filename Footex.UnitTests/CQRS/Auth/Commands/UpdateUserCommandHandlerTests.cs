@@ -31,14 +31,14 @@ public class UpdateUserCommandHandlerTests
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         // Setup UnitOfWork to return the mock repository
@@ -143,7 +143,7 @@ public class UpdateUserCommandHandlerTests
 
         _mockApplicationUserRepository
             .Setup(x => x.GetByIdAsync(userId))
-            .ReturnsAsync((ApplicationUser)null);
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -175,7 +175,7 @@ public class UpdateUserCommandHandlerTests
         _mockApplicationUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync(user);
 
         _mockUserManager
-            .Setup(x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword))
+            .Setup(x => x.ChangePasswordAsync(user, command.CurrentPassword!, command.NewPassword!))
             .ReturnsAsync(IdentityResult.Success);
 
         _mockUnitOfWork
@@ -190,7 +190,7 @@ public class UpdateUserCommandHandlerTests
         result.Succeeded.Should().BeTrue();
 
         _mockUserManager.Verify(
-            x => x.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword),
+            x => x.ChangePasswordAsync(user, command.CurrentPassword!, command.NewPassword!),
             Times.Once
         );
     }

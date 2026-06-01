@@ -57,11 +57,11 @@ public class CreateTeamCommandHandlerTests
 
         _teamMapperMock.Setup(m => m.ToTeamfromCreate(command)).Returns(teamToReturnFromMapper);
 
-        _unitOfWorkMock.Setup(x => x.Teams.GetByNameAsync(command.Name)).ReturnsAsync((Team)null);
+        _unitOfWorkMock.Setup(x => x.Teams.GetByNameAsync(command.Name)).ReturnsAsync((Team?)null);
 
         _unitOfWorkMock
             .Setup(x => x.Coaches.GetByIdAsync(It.IsAny<int>()))
-            .ReturnsAsync((Coach)null);
+            .ReturnsAsync((Coach?)null);
 
         _unitOfWorkMock
             .Setup(x => x.Teams.AddAsync(It.IsAny<Team>()))

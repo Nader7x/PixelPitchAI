@@ -68,7 +68,7 @@ public class GetMatchByIdQueryHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Matches.GetByIdWithDetailsAsync(matchId))
-            .ReturnsAsync((Func<Match?>)null);
+            .ReturnsAsync((Match?)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

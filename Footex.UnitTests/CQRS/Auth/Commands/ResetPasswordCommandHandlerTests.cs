@@ -26,14 +26,14 @@ public class ResetPasswordCommandHandlerTests
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         _handler = new ResetPasswordCommandHandler(
@@ -87,7 +87,7 @@ public class ResetPasswordCommandHandlerTests
 
         _mockIdentityService
             .Setup(x => x.GetUserByEmailAsync(command.Email))
-            .ReturnsAsync((ApplicationUser)null);
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -229,14 +229,14 @@ public class ResetPasswordCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidEmail_ShouldReturnError(string email)
+    public async Task Handle_InvalidEmail_ShouldReturnError(string? email)
     {
         // Arrange
         var command = _fixture.Build<ResetPasswordCommand>().With(x => x.Email, email).Create();
 
         _mockIdentityService
-            .Setup(x => x.GetUserByEmailAsync(email))
-            .ReturnsAsync((ApplicationUser)null);
+            .Setup(x => x.GetUserByEmailAsync(email!))
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -251,7 +251,7 @@ public class ResetPasswordCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidToken_ShouldStillCallUserManager(string token)
+    public async Task Handle_InvalidToken_ShouldStillCallUserManager(string? token)
     {
         // Arrange
         var command = _fixture
@@ -271,7 +271,7 @@ public class ResetPasswordCommandHandlerTests
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email)).ReturnsAsync(user);
 
         _mockUserManager
-            .Setup(x => x.ResetPasswordAsync(user, token, command.NewPassword))
+            .Setup(x => x.ResetPasswordAsync(user, token!, command.NewPassword))
             .ReturnsAsync(IdentityResult.Failed(identityErrors));
 
         // Act
@@ -283,7 +283,7 @@ public class ResetPasswordCommandHandlerTests
         result.Error.Should().Be("Invalid token.");
 
         _mockUserManager.Verify(
-            x => x.ResetPasswordAsync(user, token, command.NewPassword),
+            x => x.ResetPasswordAsync(user, token!, command.NewPassword),
             Times.Once
         );
     }

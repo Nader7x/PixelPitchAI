@@ -28,14 +28,14 @@ public class ConfirmEmailCommandHandlerTests
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         _handler = new ConfirmEmailCommandHandler(
@@ -91,7 +91,7 @@ public class ConfirmEmailCommandHandlerTests
 
         _mockUserRepository
             .Setup(x => x.GetByIdAsync(command.UserId))
-            .ReturnsAsync((ApplicationUser)null);
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -237,7 +237,7 @@ public class ConfirmEmailCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidUserId_ShouldReturnUserNotFound(string userId)
+    public async Task Handle_InvalidUserId_ShouldReturnUserNotFound(string? userId)
     {
         // Arrange
         var command = _fixture
@@ -246,7 +246,7 @@ public class ConfirmEmailCommandHandlerTests
             .With(x => x.Token, "valid-token")
             .Create();
 
-        _mockUserRepository.Setup(x => x.GetByIdAsync(userId)).ReturnsAsync((ApplicationUser)null);
+        _mockUserRepository.Setup(x => x.GetByIdAsync(userId!)).ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -280,7 +280,7 @@ public class ConfirmEmailCommandHandlerTests
         _mockUserRepository.Setup(x => x.GetByIdAsync(command.UserId)).ReturnsAsync(user);
 
         _mockUserManager
-            .Setup(x => x.ConfirmEmailAsync(user, token))
+            .Setup(x => x.ConfirmEmailAsync(user, token!))
             .ReturnsAsync(IdentityResult.Failed(identityErrors));
 
         // Act
@@ -291,6 +291,6 @@ public class ConfirmEmailCommandHandlerTests
         result.Succeeded.Should().BeFalse();
         result.Error.Should().Be("Invalid token.");
 
-        _mockUserManager.Verify(x => x.ConfirmEmailAsync(user, token), Times.Once);
+        _mockUserManager.Verify(x => x.ConfirmEmailAsync(user, token!), Times.Once);
     }
 }

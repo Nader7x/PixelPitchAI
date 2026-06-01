@@ -31,7 +31,7 @@ public class RecoveryEventProcessorTests
     [InlineData("pass", "Recovery", true)]
     [InlineData("pass", "Complete", false)]
     [InlineData("shot", null, false)]
-    public void CanProcess_ShouldReturnCorrectValue(string action, string type, bool expected)
+    public void CanProcess_ShouldReturnCorrectValue(string action, string? type, bool expected)
     {
         var matchEvent = new FootballMatchEvent { action = action, type = type };
         var result = _processor.CanProcess(matchEvent);

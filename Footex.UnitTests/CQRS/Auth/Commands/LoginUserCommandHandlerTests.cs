@@ -56,7 +56,7 @@ public class LoginUserCommandHandlerTests
         _mockUserRepository.Setup(x => x.GetUserRolesAsync(user)).ReturnsAsync(roles);
 
         _mockTokenService
-            .Setup(x => x.GenerateTokenAsync(user, command.IpAddress))
+            .Setup(x => x.GenerateTokenAsync(user, command.IpAddress!))
             .ReturnsAsync(("access-token", refreshToken));
 
         // Act
@@ -158,7 +158,7 @@ public class LoginUserCommandHandlerTests
             .ReturnsAsync(true);
         _mockUserRepository.Setup(x => x.GetUserRolesAsync(user)).ReturnsAsync(roles);
         _mockTokenService
-            .Setup(x => x.GenerateTokenAsync(user, command.IpAddress))
+            .Setup(x => x.GenerateTokenAsync(user, command.IpAddress!))
             .ReturnsAsync(("access-token", refreshToken));
 
         // Act

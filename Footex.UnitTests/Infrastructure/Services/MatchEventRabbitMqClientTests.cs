@@ -151,7 +151,7 @@ public class MatchEventRabbitMqClientTests : IDisposable
         // Act
         var result = TestUtils.InvokeStaticMethod<MatchEventRabbitMqClient, bool>(
             "IsSignificantEvent",
-            (FootballMatchEvent?)null
+            (FootballMatchEvent?)null!
         );
 
         // Assert

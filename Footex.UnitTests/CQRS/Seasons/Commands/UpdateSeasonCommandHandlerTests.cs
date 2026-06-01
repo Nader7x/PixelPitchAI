@@ -57,7 +57,7 @@ public class UpdateSeasonCommandHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.FindAsync(It.IsAny<Expression<Func<Season, bool>>>()))
-            .ReturnsAsync((Season)null);
+            .ReturnsAsync((Season?)null);
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetAllAsync(It.IsAny<Expression<Func<Season, bool>>>()))
@@ -116,7 +116,7 @@ public class UpdateSeasonCommandHandlerTests
 
         _unitOfWorkMock
             .Setup(x => x.Seasons.GetByIdAsync(command.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Season)null);
+            .ReturnsAsync((Season?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

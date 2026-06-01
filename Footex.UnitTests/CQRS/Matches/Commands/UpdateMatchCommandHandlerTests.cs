@@ -51,7 +51,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Seasons.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeSeasonId.Value, command.AwaySeasonId.Value }
+                            new[] { command.HomeSeasonId.GetValueOrDefault(), command.AwaySeasonId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -63,7 +63,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Teams.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeTeamId.Value, command.AwayTeamId.Value }
+                            new[] { command.HomeTeamId.GetValueOrDefault(), command.AwayTeamId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -123,7 +123,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Seasons.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeSeasonId.Value, command.AwaySeasonId.Value }
+                            new[] { command.HomeSeasonId.GetValueOrDefault(), command.AwaySeasonId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -159,7 +159,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Seasons.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeSeasonId.Value, command.AwaySeasonId.Value }
+                            new[] { command.HomeSeasonId.GetValueOrDefault(), command.AwaySeasonId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -171,7 +171,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Teams.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeTeamId.Value, command.AwayTeamId.Value }
+                            new[] { command.HomeTeamId.GetValueOrDefault(), command.AwayTeamId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -208,7 +208,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Seasons.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeSeasonId.Value, command.AwaySeasonId.Value }
+                            new[] { command.HomeSeasonId.GetValueOrDefault(), command.AwaySeasonId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -220,7 +220,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Teams.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeTeamId.Value, command.AwayTeamId.Value }
+                            new[] { command.HomeTeamId.GetValueOrDefault(), command.AwayTeamId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -285,7 +285,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Seasons.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeSeasonId.Value, command.AwaySeasonId.Value }
+                            new[] { command.HomeSeasonId.GetValueOrDefault(), command.AwaySeasonId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -297,7 +297,7 @@ public class UpdateMatchCommandHandlerTests
                 x.Teams.GetByIdsAsync(
                     It.Is<IEnumerable<int>>(ids =>
                         ids.SequenceEqual(
-                            new[] { command.HomeTeamId.Value, command.AwayTeamId.Value }
+                            new[] { command.HomeTeamId.GetValueOrDefault(), command.AwayTeamId.GetValueOrDefault() }
                         )
                     ),
                     It.IsAny<CancellationToken>()
@@ -306,7 +306,7 @@ public class UpdateMatchCommandHandlerTests
             .ReturnsAsync([homeTeam, awayTeam]);
         _unitOfWorkMock
             .Setup(x =>
-                x.Stadiums.GetByIdAsync(command.StadiumId.Value, It.IsAny<CancellationToken>())
+                x.Stadiums.GetByIdAsync(command.StadiumId.GetValueOrDefault(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync((Stadium?)null);
 

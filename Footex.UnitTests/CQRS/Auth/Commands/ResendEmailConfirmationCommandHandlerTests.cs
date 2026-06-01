@@ -32,14 +32,14 @@ public class ResendEmailConfirmationCommandHandlerTests
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             mockUserStore.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         _handler = new ResendEmailConfirmationCommandHandler(
@@ -99,7 +99,7 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockEmailService.Verify(
             x =>
                 x.SendEmailAsync(
-                    user.Email,
+                    user.Email!,
                     "Confirm Your Email",
                     It.Is<string>(content =>
                         content.Contains($"userId={user.Id}") && content.Contains("token=")
@@ -120,7 +120,7 @@ public class ResendEmailConfirmationCommandHandlerTests
 
         _mockIdentityService
             .Setup(x => x.GetUserByEmailAsync(command.Email))
-            .ReturnsAsync((ApplicationUser)null);
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -205,7 +205,7 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Setup(x => x.GenerateEmailConfirmationTokenAsync(user))
             .ReturnsAsync(token);
 
-        _mockConfiguration.Setup(x => x["AppUrl"]).Returns((string)null); // No app URL configured
+        _mockConfiguration.Setup(x => x["AppUrl"]).Returns((string?)null); // No app URL configured
 
         _mockEmailService
             .Setup(x =>
@@ -223,7 +223,7 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockEmailService.Verify(
             x =>
                 x.SendEmailAsync(
-                    user.Email,
+                    user.Email!,
                     "Confirm Your Email",
                     It.Is<string>(content => content.Contains("https://localhost:3000"))
                 ),
@@ -353,7 +353,7 @@ public class ResendEmailConfirmationCommandHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_InvalidEmail_ShouldReturnSuccessWithoutProcessing(string email)
+    public async Task Handle_InvalidEmail_ShouldReturnSuccessWithoutProcessing(string? email)
     {
         // Arrange
         var command = _fixture
@@ -362,8 +362,8 @@ public class ResendEmailConfirmationCommandHandlerTests
             .Create();
 
         _mockIdentityService
-            .Setup(x => x.GetUserByEmailAsync(email))
-            .ReturnsAsync((ApplicationUser)null);
+            .Setup(x => x.GetUserByEmailAsync(email!))
+            .ReturnsAsync((ApplicationUser?)null);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -373,7 +373,7 @@ public class ResendEmailConfirmationCommandHandlerTests
         result.Succeeded.Should().BeTrue();
         result.Error.Should().BeNull();
 
-        _mockIdentityService.Verify(x => x.GetUserByEmailAsync(email), Times.Once);
+        _mockIdentityService.Verify(x => x.GetUserByEmailAsync(email!), Times.Once);
     }
 
     [Fact]
@@ -422,7 +422,7 @@ public class ResendEmailConfirmationCommandHandlerTests
         _mockEmailService.Verify(
             x =>
                 x.SendEmailAsync(
-                    user.Email,
+                    user.Email!,
                     "Confirm Your Email",
                     It.Is<string>(content =>
                         content.Contains($"userId={userId}")

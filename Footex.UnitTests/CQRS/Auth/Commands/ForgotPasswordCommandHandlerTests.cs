@@ -30,14 +30,14 @@ public class ForgotPasswordCommandHandlerTests
         var userStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStore.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
 
         _fixture = new NoRecursionFixture();
@@ -78,7 +78,7 @@ public class ForgotPasswordCommandHandlerTests
         result.Error.Should().BeNull();
 
         _mockEmailService.Verify(
-            x => x.SendEmailAsync(user.Email, "Reset Your Password", It.IsAny<string>()),
+            x => x.SendEmailAsync(user.Email!, "Reset Your Password", It.IsAny<string>()),
             Times.Once
         );
     }
@@ -145,7 +145,7 @@ public class ForgotPasswordCommandHandlerTests
         var resetToken = "reset-token-123";
         var appUrl = "https://test-app.com";
 
-        string capturedEmailBody = null;
+        string? capturedEmailBody = null;
 
         _mockIdentityService.Setup(x => x.GetUserByEmailAsync(command.Email)).ReturnsAsync(user);
 
