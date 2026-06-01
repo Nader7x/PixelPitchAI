@@ -1,6 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
+import type { NextRequest } from 'next/server';
 
-export default createMiddleware({
+const intlMiddleware = createMiddleware({
   // A list of all locales that are supported
   locales: ['en', 'es', 'fr'],
 
@@ -11,7 +12,11 @@ export default createMiddleware({
   localePrefix: 'as-needed',
 });
 
+export function proxy(request: NextRequest) {
+  return intlMiddleware(request);
+}
+
 export const config = {
-  // Temporarily disable middleware for all routes
+  // Temporarily disable proxy for all routes
   matcher: [],
 };

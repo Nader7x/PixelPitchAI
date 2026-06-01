@@ -4,7 +4,7 @@
 # ============================================
 # Base stage - common for all environments
 # ============================================
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install pnpm globally
 RUN npm install -g pnpm@latest
@@ -14,7 +14,7 @@ FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -58,24 +58,24 @@ RUN pnpm build
 # ============================================
 # Production stage - optimized runtime
 # ============================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy package files and install production dependencies only
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
 # Copy built application from builder stage
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/Tests/healthcheck.js ./healthcheck.js
 
 # Set ownership to nextjs user
 RUN chown -R nextjs:nodejs /app
@@ -85,12 +85,6 @@ USER nextjs
 
 # Expose port
 EXPOSE 3000
-
-# Set environment
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

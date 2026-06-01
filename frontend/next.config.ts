@@ -62,11 +62,6 @@ const nextConfig: NextConfig = {
     // Docker network support
     unoptimized: process.env.NODE_ENV === 'development',
   },
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   // Turbopack configuration (moved from experimental.turbo)
   turbopack: {
     rules: {
@@ -77,7 +72,9 @@ const nextConfig: NextConfig = {
     },
   },
   experimental: {
-    // Other experimental features can be added here if needed
+    // Limit CPU usage during static page generation to prevent container / WSL2 OOM crashes
+    cpus: 2,
+    webpackBuildWorker: true,
   },
   // Optimize bundle splitting
   webpack: (config, { dev, isServer }) => {
