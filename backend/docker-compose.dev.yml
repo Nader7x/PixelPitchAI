@@ -68,7 +68,7 @@ services:
   # Footex API Application (Development)
   footex-api:
     build:
-      context: ./backend
+      context: .
       dockerfile: src/Footex/Dockerfile.dev
       args:
         BUILD_CONFIGURATION: Debug
@@ -120,18 +120,18 @@ services:
     
       
     volumes:
-      - ./backend/src/Footex:/app/src:rw
-      - ./backend/src/Application:/app/Application:rw
-      - ./backend/src/Domain:/app/Domain:rw
-      - ./backend/src/Infrastructure:/app/Infrastructure:rw
-      - ./backend/src/Footex/Logs:/app/Logs:rw
-      - ./certs:/app/certs:rw
+      - ./src/Footex:/app/src:rw
+      - ./src/Application:/app/Application:rw
+      - ./src/Domain:/app/Domain:rw
+      - ./src/Infrastructure:/app/Infrastructure:rw
+      - ./src/Footex/Logs:/app/Logs:rw
+      - ../certs:/app/certs:rw
       - dev_temp:/app/temp
       - dataprotection_keys:/root/.aspnet/DataProtection-Keys
       # Cache directories for faster builds
       - dotnet_packages:/root/.nuget/packages
       # Export certificate to host for browser trust
-      - ./certs:/root/.dotnet/corefx/cryptography/x509stores/my:rw
+      - ../certs:/root/.dotnet/corefx/cryptography/x509stores/my:rw
     restart: unless-stopped
     stdin_open: true
     tty: true
