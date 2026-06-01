@@ -1,45 +1,59 @@
 # CLAUDE.md
 
 ## Environment
-- Backend: .NET 10
-- Frontend: Next.js (React 19, TypeScript)
+- Backend: .NET 10 (SDK 10.0.300)
+- Frontend: Next.js 16 (React 19, TypeScript, pnpm v11)
+- AI/Simulation: Python 3.12 (FastAPI, PyTorch CPU, XGBoost) — managed by `uv`
 - Database/Infra: PostgreSQL, Redis, RabbitMQ
+- Proxy: Caddy 2.7
 
 ## Setup
 ```bash
 # Add worktree from bare repository root
-git worktree add ./worktrees/upgrade-to-dotnet-10 upgrade-to-dotnet-10
+git worktree add ./worktrees/<branch-name> <branch-name>
 ```
 
 ## Build
 ```bash
-# Backend build
+# Backend
 dotnet build ./backend/Footex.sln
 
-# Frontend build
+# Frontend
 cd ./frontend && pnpm install && pnpm build
+
+# AI/Simulation Engine (requires uv)
+cd ./simulation-engine && uv sync --frozen
 ```
 
 ## Test
 ```bash
-# Run unit & integration tests
+# .NET unit + integration tests
 dotnet test ./backend/Footex.sln
 
-# Run specific test class
+# Specific test class
 dotnet test ./backend/Footex.sln --filter "FullyQualifiedName~Footex.UnitTests.SomeClass"
 ```
 
-## Database/Infra
+## Docker
 ```bash
-# Spin up local infrastructure
-docker compose -f ./docker-compose.dev.yml up -d
-# Tear down local infrastructure
-docker compose -f ./docker-compose.dev.yml down
+# Dev stack (all services)
+docker compose -f docker-compose.dev.yml up -d
+
+# Prod stack
+docker compose -f docker-compose.yml up -d
+
+# Build individual images
+docker buildx build -t simulation-engine:latest ./simulation-engine --load
+docker buildx build -t football-simulation:prod ./frontend --load
+docker buildx build -t footex-api:latest ./backend -f ./backend/src/Footex/Dockerfile --load
+
+# Tear down
+docker compose -f docker-compose.dev.yml down
 ```
 
 ## Architecture & Constraints
-- **VSA & Onion**: Follow Vertical Slice Architecture (VSA) grouping by feature. Domain layer remains strictly agnostic of infrastructure/serialization.
-- **Native AOT Compliance**: NOT enforced. This project is a standard .NET 10 web application with dynamic features, EF Core, etc.
-- **Source Generation**: Always prioritize compile-time source generation over runtime reflection when alternative source generation solutions exist.
-- **Zero-Allocation**: Use `Span<T>`, `ReadOnlySpan<T>`, and `Memory<T>` on performance-critical paths. Use `ref struct` / `readonly struct` to avoid heap allocations.
-- **No Synthetic Data**: Strict reliance on realistic domain data; absolutely no "John Doe" or synthetic/fake placeholders.
+- **VSA & Onion**: Vertical Slice Architecture grouping by feature. Domain layer strictly agnostic of infrastructure/serialization.
+- **Source Generation**: Prioritize compile-time source generation over runtime reflection.
+- **Zero-Allocation**: `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>` on hot paths. `ref struct` / `readonly struct` to avoid heap allocations.
+- **No Synthetic Data**: Strict reliance on realistic domain data; no "John Doe" or fake placeholders.
+- **AI Engine**: CPU-only PyTorch (nvidia/CUDA excluded via uv overrides). Model weights mounted as read-only volume, never baked into image.

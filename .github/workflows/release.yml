@@ -7,7 +7,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  DOTNET_VERSION: "9.0.x"
+  DOTNET_VERSION: "10.0.x"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.CR_PAT }}
@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🔧 Setup .NET
         uses: actions/setup-dotnet@v4
@@ -155,7 +155,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🔐 Login to Container Registry
         uses: docker/login-action@v3
