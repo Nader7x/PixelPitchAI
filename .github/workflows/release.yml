@@ -117,11 +117,11 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Restore Dependencies
-        run: dotnet restore
+        run: dotnet restore backend/Footex.sln
 
       - name: 🏗️ Build Application
         run: |
-          dotnet publish src/Footex.API/Footex.API.csproj \
+          dotnet publish backend/src/Footex/Footex.csproj \
             --configuration Release \
             --runtime ${{ matrix.runtime }} \
             --self-contained true \
@@ -180,8 +180,8 @@ jobs:
       - name: 🏗️ Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./src/Footex.API/Dockerfile
+          context: ./backend
+          file: ./backend/src/Footex/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

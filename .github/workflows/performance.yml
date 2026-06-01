@@ -1,14 +1,12 @@
 name: Performance Tests
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
     types: [ labeled ]
   schedule:
-    # Run performance tests daily at 2 AM UTC
-    - cron: "0 2 * * *"
+    # Run performance tests weekly on Sunday at 2 AM UTC
+    - cron: "0 2 * * 0"
   workflow_dispatch: {}
 
 env:
@@ -38,7 +36,6 @@ jobs:
     if: |
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'performance'))
 
     services:
@@ -90,18 +87,15 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Build solution
-        run: dotnet build Footex.sln --no-restore --configuration Release
+        run: dotnet build backend/Footex.sln --no-restore --configuration Release
         
-      - name: Install PowerShell Core
-        run: |
-          sudo snap install powershell --classic
 
       - name: Start Footex API in background
         run: |
-          cd Footex
+          cd backend/src/Footex
           dotnet run --configuration Release --no-build &
           echo $! > ../api.pid
           sleep 30  # Give API time to start
@@ -116,7 +110,7 @@ jobs:
 
       - name: Run Load Tests
         run: |
-          cd Footex.PerformanceTests
+          cd backend/tests/Footex.PerformanceTests
 
           if [[ "${{ github.event.inputs.test_type }}" == "load" ]] || [[ "${{ github.event.inputs.test_type }}" == "all" ]] || [[ "${{ github.event.inputs.test_type }}" == "" ]]; then
             echo "Running Load Tests..."
@@ -152,8 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'stress' || github.event.inputs.test_type == 'all')) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'stress' || github.event.inputs.test_type == 'all'))
 
     services:
       postgres:
@@ -203,14 +196,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Build solution
-        run: dotnet build Footex.sln --no-restore --configuration Release
+        run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
       - name: Start Footex API in background
         run: |
-          cd Footex
+          cd backend/src/Footex
           dotnet run --configuration Release --no-build &
           echo $! > ../api.pid
           sleep 30
@@ -225,7 +218,7 @@ jobs:
 
       - name: Run Stress Tests
         run: |
-          cd Footex.PerformanceTests
+          cd backend/tests/Footex.PerformanceTests
           echo "Running Stress Tests..."
           dotnet test --no-build --configuration Release \
             --filter "Category=StressTest" \
@@ -258,8 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all') ) || github.event_name == 'push' && github.ref == 'refs/heads/main'
-      
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
       
     services: 
       rabbitmq:
@@ -286,15 +278,15 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Build project
-        run: dotnet build Footex.PerformanceTests --configuration Release
+        run: dotnet build backend/tests/Footex.PerformanceTests --configuration Release
 
       - name: Run Benchmarks
         run: |
           echo "Running Benchmarks..."
-          dotnet run --project Footex.PerformanceTests --configuration Release all
+          dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@v4

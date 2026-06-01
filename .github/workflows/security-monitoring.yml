@@ -39,7 +39,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 📦 Restore Dependencies
-        run: dotnet restore
+        run: dotnet restore backend/Footex.sln
 
       - name: 🔍 Run .NET Security Audit
         run: |
@@ -102,8 +102,8 @@ jobs:
 
       - name: 🏗️ Build for Analysis
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
+          dotnet restore backend/Footex.sln
+          dotnet build backend/Footex.sln --configuration Release --no-restore
 
       - name: 🔍 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -160,7 +160,7 @@ jobs:
 
       - name: 🏗️ Build Docker Image
         run: |
-          docker build -t footex-security-scan:latest -f Footex/Dockerfile .
+          docker build -t footex-security-scan:latest -f backend/src/Footex/Dockerfile ./backend
 
       - name: 🔍 Run Trivy Container Scan
         uses: aquasecurity/trivy-action@master
@@ -178,7 +178,7 @@ jobs:
       - name: 🔍 Run Hadolint Dockerfile Linting
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: Footex/Dockerfile
+          dockerfile: backend/src/Footex/Dockerfile
           format: sarif
           output-file: hadolint-results.sarif
           no-fail: true

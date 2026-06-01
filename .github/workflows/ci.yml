@@ -42,14 +42,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Build solution
-        run: dotnet build Footex.sln --no-restore --configuration Release
+        run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
       - name: Run Unit Tests
         run: |
-          dotnet test Footex.UnitTests/Footex.UnitTests.csproj \
+          dotnet test backend/tests/Footex.UnitTests/Footex.UnitTests.csproj \
             --no-build \
             --configuration Release \
             --verbosity normal \
@@ -103,14 +103,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Build solution
-        run: dotnet build Footex.sln --no-restore --configuration Release
+        run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
       - name: Run Integration Tests
         run: |
-          dotnet test Footex.IntegrationTests/Footex.IntegrationTests.csproj \
+          dotnet test backend/tests/Footex.IntegrationTests/Footex.IntegrationTests.csproj \
             --no-build \
             --configuration Release \
             --verbosity normal \
@@ -244,11 +244,11 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore Footex.sln
+        run: dotnet restore backend/Footex.sln
 
       - name: Run Security Audit
         run: |
-          dotnet list package --vulnerable --include-transitive || echo "Security audit completed with warnings"
+          dotnet list backend/Footex.sln package --vulnerable --include-transitive || echo "Security audit completed with warnings"
 
       - name: Run CodeQL Analysis
         uses: github/codeql-action/init@v3
