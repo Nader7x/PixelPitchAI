@@ -1,0 +1,13 @@
+.venv/
+gpt2-football-finetuned/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.idea/
+.vscode/
+logs/
+Matches/
+Matches_Parsed/
+SimulatedMatches/
+DataMigration/

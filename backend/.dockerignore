@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.log
+tests/
+TestResults/
+coverage/
+*.md
+docker-compose*
+Logs/
+*.tmp
+*.temp

@@ -1,19 +1,16 @@
 # Football Match Simulation API Docker Image
 FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy python package definitions
+COPY pyproject.toml uv.lock ./
+
+# Compile virtual environment and install dependencies cleanly
+RUN uv sync --frozen --no-install-project --no-cache
 
 # Copy application code
 COPY . .
@@ -31,6 +28,7 @@ RUN chown -R appuser:appuser /app /HeaderLines /InputTokens /SimulatedMatches /S
 USER appuser
 
 # Set environment variables
+ENV PATH="/app/.venv/bin:$PATH"
 ENV MODEL_PATH=./gpt2-football-finetuned
 ENV XGB_MODEL_PATH=tuned_xgboost_model.json
 ENV HEADERLINES_DIR=./HeaderLines
@@ -41,9 +39,9 @@ ENV STATUS_DIR=./SimulationStatus
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check using native Python standard library (no curl needed)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=10)" || exit 1
 
 # Run the application
 CMD ["python", "run.py"]

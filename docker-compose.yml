@@ -1,4 +1,4 @@
-version: "3.8"
+
 
 services:
   # 1. PostgreSQL Database
@@ -134,9 +134,10 @@ services:
       - ./simulation-engine/SimulatedMatches:/app/SimulatedMatches
       - ./simulation-engine/SimulationStatus:/app/SimulationStatus
       - ./simulation-engine/football_api.log:/app/football_api.log
+      - ./simulation-engine/gpt2-football-finetuned:/app/gpt2-football-finetuned:ro
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=10)"]
       interval: 30s
       timeout: 10s
       retries: 3

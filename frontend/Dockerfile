@@ -58,7 +58,7 @@ RUN pnpm build
 # ============================================
 # Production stage - optimized runtime
 # ============================================
-FROM node:22-alpine AS production
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Set production environment
