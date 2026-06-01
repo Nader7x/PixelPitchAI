@@ -1,0 +1,18 @@
+{$DOMAIN} {
+    # Automatic Let's Encrypt / ZeroSSL setup
+    
+    # Reverse proxy backend API calls and strip /api prefix
+    handle_path /api/* {
+        reverse_proxy footex-api:8080
+    }
+
+    # Reverse proxy AI simulation API calls and strip /ai prefix
+    handle_path /ai/* {
+        reverse_proxy simulation-engine:8000
+    }
+
+    # Reverse proxy frontend calls to Next.js server
+    handle {
+        reverse_proxy football-frontend:3000
+    }
+}

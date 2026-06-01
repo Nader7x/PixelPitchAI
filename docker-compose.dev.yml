@@ -1,0 +1,219 @@
+version: "3.8"
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: footex-postgres-dev
+    environment:
+      POSTGRES_DB: Footex_Api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "0000"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - footex-monorepo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Footex_Api"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 2. Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: footex-redis-dev
+    command: redis-server --appendonly yes --save 60 1000
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - footex-monorepo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # 3. RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: footex-rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_dev_data:/var/lib/rabbitmq
+    networks:
+      - footex-monorepo-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 4. Footex .NET 10 API Application (Development)
+  footex-api:
+    build:
+      context: ./backend
+      dockerfile: src/Footex/Dockerfile.dev
+      args:
+        BUILD_CONFIGURATION: Debug
+    container_name: footex-api-dev
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080;https://+:8081
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=Footex_Api;User Id=postgres;Password=0000;Include Error Detail=true;
+      - ConnectionStrings__RemoteRedisConnection=redis:6379
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__Port=5672
+      - RabbitMQ__QueueName=match_events_queue
+      - RedisCache__LocalConnectionString=redis:6379
+      - RedisCache__InstanceName=Footex_Dev_
+      - RedisCache__DefaultExpirationMinutes=5
+      - JWT__Secret=your-development-super-secret-key-32-chars-long
+      - JWT__ValidIssuer=https://localhost
+      - JWT__ValidAudience=https://localhost
+      - ASPNETCORE_HTTPS_PORT=443
+      - JWT__ExpiryInMinutes=60
+      - AdminUser__Email=admin@footex.com
+      - AdminUser__Password=AdminPassword123!
+      - SIMULATION_API_KEY=football_simulation_production_key
+      - SIMULATION_SERVICE_URL=http://simulation-engine:8000
+      - SmtpSettings__Host=localhost
+      - SmtpSettings__Port=25
+      - SmtpSettings__EnableSSL=false
+      - SmtpSettings__FromEmail=no-reply@footex.local
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - footex-monorepo-network
+    volumes:
+      - ./backend/src/Footex:/app/src:rw
+      - ./backend/src/Application:/app/Application:rw
+      - ./backend/src/Domain:/app/Domain:rw
+      - ./backend/src/Infrastructure:/app/Infrastructure:rw
+      - ./backend/src/Footex/Logs:/app/Logs:rw
+      - ./certs:/app/certs:rw
+      - dev_temp:/app/temp
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
+      - dotnet_packages:/root/.nuget/packages
+      - ./certs:/root/.dotnet/corefx/cryptography/x509stores/my:rw
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # 5. Python AI / Match Simulation API
+  simulation-engine:
+    build:
+      context: ./simulation-engine
+      dockerfile: Dockerfile
+    container_name: football-match-api-dev
+    environment:
+      - MODEL_PATH=/app/gpt2-football-finetuned
+      - XGB_MODEL_PATH=/app/tuned_xgboost_model.json
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - API_KEY=football_simulation_production_key
+      - HEADERLINES_DIR=/app/HeaderLines
+      - INPUTTOKENS_DIR=/app/InputTokens
+      - SIMMATCHES_DIR=/app/SimulatedMatches
+      - STATUS_DIR=/app/SimulationStatus
+    volumes:
+      - ./simulation-engine/HeaderLines:/app/HeaderLines
+      - ./simulation-engine/InputTokens:/app/InputTokens
+      - ./simulation-engine/SimulatedMatches:/app/SimulatedMatches
+      - ./simulation-engine/SimulationStatus:/app/SimulationStatus
+      - ./simulation-engine/football_api.log:/app/football_api.log
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - footex-monorepo-network
+
+  # 6. Next.js Frontend Development Server
+  football-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: football-simulation-dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - NEXT_PUBLIC_API_URL=https://localhost/api
+      - NEXT_PUBLIC_SIGNALR_URL=https://localhost/api/hubs
+    networks:
+      - footex-monorepo-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # 7. Caddy Global Reverse Proxy
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: footex-caddy-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - footex-api
+      - simulation-engine
+      - football-frontend
+    networks:
+      - footex-monorepo-network
+    restart: unless-stopped
+
+networks:
+  footex-monorepo-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  rabbitmq_dev_data:
+    driver: local
+  dev_temp:
+    driver: local
+  dataprotection_keys:
+    driver: local
+  dotnet_packages:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
