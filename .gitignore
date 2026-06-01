@@ -76,3 +76,6 @@ certs
 
 replacements.txt
 # Sensitive data replacements
+
+# Git Worktrees
+worktrees/
