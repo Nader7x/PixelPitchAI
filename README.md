@@ -1,267 +1,94 @@
-# Footex - Football Management API
+# ⚽ Footex — Football Match Simulation & Management Monorepo
 
 [![CI Pipeline](https://github.com/Nader7x/Footex/actions/workflows/ci.yml/badge.svg)](https://github.com/Nader7x/Footex/actions/workflows/ci.yml)
-[![Performance Tests](https://github.com/Nader7x/Footex/actions/workflows/performance.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/performance.yml)
-[![Security Monitoring](https://github.com/Nader7x/Footex/actions/workflows/security-monitoring.yml/badge.svg)](https://github.com/your-org/Footex/actions/workflows/security-monitoring.yml)
-
+![.NET](https://img.shields.io/badge/.NET-10.0-blue)
+![Next.js](https://img.shields.io/badge/Next.js-16.0-black)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-green)
 ![Coverage](https://img.shields.io/badge/Coverage-92.2%25-brightgreen)
-![Tests](https://img.shields.io/badge/Tests-644-brightgreen)
-![.NET](https://img.shields.io/badge/.NET-9.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-A comprehensive **enterprise-level football management platform** built with .NET 9, featuring real-time match simulation, team management, advanced analytics, and **production-ready CI/CD pipeline**.
+Footex is an enterprise-grade football management and live match simulation platform. It operates as a monorepo containing a high-performance C# backend, a real-time responsive frontend dashboard, and a dedicated AI simulation engine.
 
 ---
-<video src="https://github.com/user-attachments/assets/4f688e9f-40d2-44fd-942f-53787ecd2d31"></video>
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    User[Web Client / React Dashboard] <--> |SignalR / HTTPS| Backend[.NET 10 API Gateway]
+    Backend <--> |Redis Cache| Redis[(Redis Cache)]
+    Backend <--> |EF Core| DB[(PostgreSQL Database)]
+    Backend --> |RabbitMQ| Queue{RabbitMQ Event Broker}
+    Queue --> |Consume Match Events| User
+    
+    SimulationService[Simulation Engine / FastAPI] <--> |Async Logits Sampling| ModelORT[ONNX CausalLM INT8]
+    SimulationService --> |Fast Event Parsing| Queue
+    Backend <--> |HTTP Trigger| SimulationService
+```
+
 ---
 
-## 🏆 Project Highlights
+## 📦 Component Layout
 
-- **🎓 Graduation Project Ready**: Enterprise-level implementation suitable for academic evaluation
-- **📊 92.2% Code Coverage**: 1075 comprehensive tests (624 unit + 416 integration + 35 performance)
-- **🚀 Complete CI/CD Pipeline**: 7 GitHub Actions workflows with full automation
-- **🔒 Enterprise Security**: Multi-layered security scanning and compliance
-- **⚡ Performance Validated**: Load tested up to 500 RPS with <150ms response times
-- **🌐 Production Deployment**: Azure Container Apps with blue-green deployment
-- **📚 Comprehensive Documentation**: Auto-generated API docs and technical guides
+The monorepo consists of three core services:
 
-## 🚀 Features
+### 1. ⚡ [Core API Backend](file:///d:/programming/GitHub/Footex/backend)
+An enterprise-grade, clean architecture backend built using **.NET 10 (C#)**.
+* **Core Technologies**: ASP.NET Core, EF Core, PostgreSQL, SignalR, Serilog.
+* **Key Features**: High-performance user management, team databases, statistics tracking, and JWT security.
+* **AOT Compliance**: Fully prepared for Native Ahead-of-Time compilation (zero reflection, static DI, compile-time logging/JSON serializers).
 
-- **Team Management**: Create and manage football teams, players, and coaches
-- **Match Simulation**: Real-time match simulation with live statistics
-- **Stadium Management**: Comprehensive stadium and venue management
-- **Season Management**: Full season tracking and league management
-- **Real-time Updates**: SignalR integration for live match updates
-- **Advanced Search**: Comprehensive search functionality across all entities
-- **Caching**: Redis-based caching for optimal performance
-- **Message Queuing**: RabbitMQ for asynchronous processing
-- **Authentication & Authorization**: JWT-based security
+### 2. 🏟️ [Simulation Engine](file:///d:/programming/GitHub/Footex/simulation-engine)
+A high-performance AI text generation service built with **FastAPI (Python 3.12)**.
+* **Core Models**: Fine-tuned GPT-2 for play-by-play commentary generation, and XGBoost for predictively setting team statistics.
+* **CPU Acceleration**: Uses **INT8 dynamically-quantized ONNX Runtime** with physical core thread pinning, producing a **2.67x (53 tokens/s)** CPU inference speedup.
+* **GPU Capability**: Seamlessly falls back to native PyTorch CUDA execution (e.g. NVIDIA RTX 3090) in production.
+* **Event Broker**: Publishes match events asynchronously to RabbitMQ during live generation.
 
-## 🏗️ Architecture
+### 3. 🌐 [Frontend Dashboard](file:///d:/programming/GitHub/Footex/frontend)
+A modern SPA built with **Next.js 16 (React 19, TypeScript)**.
+* **Core Technologies**: Tailwind CSS v4, DaisyUI, Three.js (React Three Fiber for 3D stadium visualizations).
+* **Key Features**: Real-time scoreboard with SignalR live-commentary, dark/light modes, role-based auth, and multi-language support (next-intl).
 
-The project follows Clean Architecture principles with the following layers:
+---
 
-- **Domain**: Core business entities and interfaces
-- **Application**: Business logic, CQRS commands/queries, and DTOs
-- **Infrastructure**: Data access, external services, and implementations
-- **API (Footex)**: Web API controllers and configuration
+## 🐳 Docker Quick Start
 
-## 🛠️ Technology Stack
-
-- **.NET 9** - Main framework
-- **ASP.NET Core** - Web API
-- **Entity Framework Core** - ORM
-- **PostgreSQL** - Primary database
-- **Redis** - Caching layer
-- **RabbitMQ** - Message broker
-- **SignalR** - Real-time communication
-- **JWT** - Authentication
-- **Docker** - Containerization
-
-## 🐳 Docker Setup
-
-### Prerequisites
-
-- Docker Desktop
-- PowerShell (Windows) or Bash (Linux/Mac)
-
-### Quick Start
-
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd Footex
-   ```
-
-2. **Setup environment files**
-
-   ```powershell
-   .\docker-manage.ps1 setup
-   ```
-
-3. **Configure environment variables**
-
-   - Edit `.env` for production settings
-   - Edit `.env.dev` for development settings
-
-4. **Start development environment**
-   ```powershell
-   .\docker-manage.ps1 dev-up
-   ```
-
-### Docker Management Commands
-
-The project includes a PowerShell script (`docker-manage.ps1`) for easy Docker management:
-
-#### Development Commands
-
-```powershell
-.\docker-manage.ps1 dev-up       # Start development environment
-.\docker-manage.ps1 dev-down     # Stop development environment
-.\docker-manage.ps1 dev-rebuild  # Rebuild and start development
-.\docker-manage.ps1 dev-logs     # Show development logs
-```
-
-#### Production Commands
-
-```powershell
-.\docker-manage.ps1 prod-up       # Start production environment
-.\docker-manage.ps1 prod-down     # Stop production environment
-.\docker-manage.ps1 prod-rebuild  # Rebuild and start production
-.\docker-manage.ps1 prod-logs     # Show production logs
-```
-
-#### Utility Commands
-
-```powershell
-.\docker-manage.ps1 db-only      # Start only database, Redis, and RabbitMQ
-.\docker-manage.ps1 clean        # Remove all containers and volumes
-.\docker-manage.ps1 setup        # Initial setup (copy env files)
-```
-
-### Service Endpoints
-
-#### Development Environment
-
-- **API**: http://localhost:5025
-- **Swagger UI**: http://localhost:5025/swagger
-- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **Redis**: localhost:6379
-
-#### Production Environment
-
-- **API**: http://localhost:8080
-- **RabbitMQ Management**: http://localhost:15672
-- **Redis**: localhost:6379
-
-## 🔧 Environment Configuration
-
-### Required Environment Variables
-
-Create `.env` and `.env.dev` files based on the provided examples:
-
-#### Authentication
-
-- `JWT_KEY`: Secret key for JWT token signing
-- `JWT_ISSUER`: Token issuer
-- `JWT_AUDIENCE`: Token audience
-- `JWT_EXPIRY_HOURS`: Token expiration time
-
-#### Database
-
-- `DB_HOST`: PostgreSQL host
-- `DB_PORT`: PostgreSQL port
-- `DB_NAME`: Database name
-- `DB_USER`: Database username
-- `DB_PASSWORD`: Database password
-
-#### Redis
-
-- `REDIS_HOST`: Redis host
-- `REDIS_PORT`: Redis port
-- `REDIS_PASSWORD`: Redis password (optional)
-
-#### RabbitMQ
-
-- `RABBITMQ_HOST`: RabbitMQ host
-- `RABBITMQ_PORT`: RabbitMQ port
-- `RABBITMQ_USER`: RabbitMQ username
-- `RABBITMQ_PASSWORD`: RabbitMQ password
-
-#### SMTP (Email)
-
-- `SMTP_HOST`: SMTP server host
-- `SMTP_PORT`: SMTP server port
-- `SMTP_USERNAME`: SMTP username
-- `SMTP_PASSWORD`: SMTP password
-- `SMTP_FROM_EMAIL`: From email address
-
-## 🚀 Development
-
-### Running Locally (Without Docker)
-
-1. **Prerequisites**
-
-   - .NET 8 SDK
-   - PostgreSQL
-   - Redis
-   - RabbitMQ
-
-2. **Database Setup**
-
-   ```bash
-   dotnet ef database update -p Infrastructure -s Footex
-   ```
-
-3. **Run the application**
-   ```bash
-   cd Footex
-   dotnet run
-   ```
-
-### Hot Reload Development
-
-The development Docker setup supports hot reload:
-
-- Source code changes are automatically reflected
-- No need to rebuild containers for code changes
-- Debugging is available through IDE
-
-## 📁 Project Structure
-
-```
-Footex/
-├── Application/           # Application layer (CQRS, DTOs, Services)
-├── Domain/               # Domain layer (Entities, Repositories)
-├── Infrastructure/       # Infrastructure layer (Data, External Services)
-├── Footex/              # API layer (Controllers, Configuration)
-├── docs/                # Documentation
-├── docker-compose.yml    # Production Docker configuration
-├── docker-compose.dev.yml # Development Docker configuration
-├── docker-manage.ps1     # Docker management script
-└── README.md            # This file
-```
-
-## 🧪 Testing
-
-Run tests using:
+Bring up the entire ecosystem (including Caddy Reverse Proxy, PostgreSQL, Redis, RabbitMQ, and all services) using Docker Compose:
 
 ```bash
-dotnet test
+# 1. Setup environment files
+.\docker-manage.ps1 setup
+
+# 2. Start the development stack
+.\docker-manage.ps1 dev-up
 ```
 
-## 📖 API Documentation
+### Host Endpoints (Dev)
+* **Web Portal**: `http://localhost:3000`
+* **Swagger API Docs**: `http://localhost:5025/swagger`
+* **RabbitMQ Dashboard**: `http://localhost:15672` (guest/guest)
+* **API Health Check**: `http://localhost:5025/health`
 
-- **Swagger UI**: Available at `/swagger` endpoint in development
-- **API Documentation**: See `docs/` folder for detailed documentation
+---
 
-## 🤝 Contributing
+## 🔧 Infrastructure & Settings
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+The services depend on configuration variables provided in `.env` (production) and `.env.dev` (development). Make sure to configure:
+* **JWT Settings** (`JWT_KEY`, `JWT_ISSUER`)
+* **Database Credentials** (`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`)
+* **SMTP Config** (`SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`)
 
-## 📄 License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🧪 Testing and Verification
+The monorepo contains a robust test suite with 92.2% coverage:
+```bash
+# Test C# Backend projects
+dotnet test ./backend/Footex.sln
 
-## 🐛 Troubleshooting
+# Run simulation benchmarks
+cd simulation-engine && uv run python scripts/performance_comparison.py
+```
 
-### Common Issues
-
-1. **Port conflicts**: Ensure ports 5025, 5432, 6379, 5672, and 15672 are available
-2. **Permission issues**: Ensure Docker has proper permissions
-3. **Environment variables**: Verify all required environment variables are set
-
-### Getting Help
-
-- Check the logs: `.\docker-manage.ps1 dev-logs`
-- Verify services are running: `docker ps`
-- Clean and restart: `.\docker-manage.ps1 clean` then `.\docker-manage.ps1 dev-up`
-
-## 📞 Support
-
-For support and questions, please open an issue in the repository.
+Refer to individual service folders for domain-specific guides and APIs.
