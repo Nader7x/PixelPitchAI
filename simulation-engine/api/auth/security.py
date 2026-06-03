@@ -8,8 +8,8 @@ import uuid
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Depends, Security, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from typing import Optional, Dict, List
 
 from ..config import PIXEL_PITCH_API_KEY
@@ -20,8 +20,37 @@ from ..utils.logging import get_logger
 logger = get_logger(__name__)
 # --- Authentication Setup ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+# --- Password Hashing & Verification ---
+def hash_password(password: str) -> str:
+    """
+    Hash a plain text password using native bcrypt.
+    """
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(password_bytes, salt)
+    return hashed_bytes.decode('utf-8')
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify a plain text password against a hashed bcrypt password string.
+    """
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False
+
+
+def get_password_hash(password: str) -> str:
+    """
+    Generate password hash (alias for hash_password).
+    """
+    return hash_password(password)
 
 # --- In-Memory Storage (Replace with database in production) ---
 fake_users_db = {
@@ -29,7 +58,7 @@ fake_users_db = {
         "username": "admin",
         "full_name": "Administrator",
         "email": "admin@example.com",
-        "hashed_password": pwd_context.hash("adminpassword"),
+        "hashed_password": hash_password("adminpassword"),
         "disabled": False,
     }
 }
@@ -60,18 +89,6 @@ API_KEYS: Dict[str, dict] = {
 user_api_keys: Dict[str, List[str]] = {
     "admin": [DEFAULT_API_KEY, PIXEL_PITCH_API_KEY]
 }
-
-
-# --- Password Functions ---
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """Generate password hash"""
-    return pwd_context.hash(password)
-
 
 # --- User Functions ---
 def get_user(db: dict, username: str) -> Optional[UserInDB]:

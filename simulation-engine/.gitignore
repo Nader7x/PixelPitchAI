@@ -1,5 +1,5 @@
 # Ignore the fine-tuned GPT-2 model folder and all its contents
-gpt2-football-finetuned/
+gpt2-football-finetuned*/
 /.idea
 .env
 /.env
@@ -14,3 +14,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+SimulatedMatches/
+SimulationStatus/
+HeaderLines/
+InputTokens/
+headerlines.*
+performance_*.json

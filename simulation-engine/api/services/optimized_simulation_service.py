@@ -23,7 +23,7 @@ from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fastapi import HTTPException
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, BatchEncoding
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, BatchEncoding, StoppingCriteria, StoppingCriteriaList
 from typing import Optional, List, Tuple, Dict, Any
 from xgboost import XGBRegressor
 
@@ -49,7 +49,7 @@ except ImportError:
         pass
 
 from ..config.settings import (
-    MODEL_PATH, XGB_MODEL_PATH, SPECIAL_TOKENS, SPECIAL_LIST,
+    MODEL_PATH, ONNX_MODEL_PATH, XGB_MODEL_PATH, SPECIAL_TOKENS, SPECIAL_LIST,
     HEADERLINES_DIR, INPUTTOKENS_DIR, SIMMATCHES_DIR, STATUS_DIR
 )
 from ..models.schemas import MatchRequest, SimulationStatus
@@ -57,11 +57,8 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Import external dependencies
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from Parser import parse_and_publish
-from XgBoostClass import MatchStatProcessor
+from ..core.parser import parse_and_publish
+from ..core.xgboost_class import MatchStatProcessor
 
 
 def _generate_features_wrapper(home_team_id: int, away_team_id: int,
@@ -74,7 +71,7 @@ def _generate_features_wrapper(home_team_id: int, away_team_id: int,
         import os
         sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-        from XgBoostClass import MatchStatProcessor
+        from api.core.xgboost_class import MatchStatProcessor
         import torch
         from transformers import GPT2Tokenizer
         import xgboost as xgb
@@ -131,6 +128,19 @@ def _generate_features_wrapper(home_team_id: int, away_team_id: int,
         print(f"Error in feature generation: {str(e)}")
         raise
 
+
+
+class SecondHalfStoppingCriteria(StoppingCriteria):
+    def __init__(self, target_sequence_ids: List[int]):
+        self.target_sequence_ids = target_sequence_ids
+        self.target_length = len(target_sequence_ids)
+
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        if input_ids.shape[-1] < self.target_length:
+            return False
+        # Check if the last tokens match the target sequence
+        last_tokens = input_ids[0, -self.target_length:].tolist()
+        return last_tokens == self.target_sequence_ids
 
 class MemoryMonitor:
     """Real-time memory monitoring and optimization"""
@@ -408,27 +418,63 @@ class UltraOptimizedModelResources:
     def _load_and_optimize_models(self):
         """Load and apply ultra-advanced optimizations to models"""
         try:
-            # Load GPT-2 model with advanced optimizations
-            self.tokenizer = GPT2Tokenizer.from_pretrained(MODEL_PATH)
+            # Determine path to use based on device
+            is_cpu = self.device.type == "cpu"
+            model_load_path = ONNX_MODEL_PATH if is_cpu else MODEL_PATH
+            
+            if is_cpu and not os.path.exists(model_load_path):
+                # Fallback to standard ONNX path if INT8 folder is not found
+                fallback_path = ONNX_MODEL_PATH.replace("-int8", "")
+                if os.path.exists(fallback_path):
+                    model_load_path = fallback_path
+            
+            # Load GPT-2 tokenizer
+            self.tokenizer = GPT2Tokenizer.from_pretrained(model_load_path)
             self.tokenizer.add_special_tokens(SPECIAL_TOKENS)
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
             # Wrap tokenizer with advanced caching
             self.advanced_tokenizer = AdvancedTokenizer(self.tokenizer)
 
-            self.model = GPT2LMHeadModel.from_pretrained(MODEL_PATH)
-            self.model.eval()
+            if is_cpu:
+                logger.info(f"Loading ONNX model from {model_load_path} for CPU inference...")
+                from optimum.onnxruntime import ORTModelForCausalLM
+                import onnxruntime as ort
+                import psutil
 
-            # Apply advanced model optimizations
-            self._apply_ultra_optimizations()
+                # Configure optimized session options for CPU execution
+                session_options = ort.SessionOptions()
+                session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+                physical_cores = psutil.cpu_count(logical=False) or 1
+                session_options.intra_op_num_threads = physical_cores
+                session_options.inter_op_num_threads = 1
+                session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-            self.model.to(self.device)
+                # Check if quantized model is available in the directory
+                file_name = "model.onnx"
+                if os.path.exists(os.path.join(model_load_path, "model_quantized.onnx")):
+                    file_name = "model_quantized.onnx"
+                    logger.info("Quantized INT8 ONNX model detected, loading it...")
+
+                self.model = ORTModelForCausalLM.from_pretrained(
+                    model_load_path,
+                    file_name=file_name,
+                    session_options=session_options
+                )
+                logger.info(f"ONNX model ({file_name}) loaded successfully for CPU execution")
+            else:
+                logger.info(f"Loading PyTorch model from {MODEL_PATH} for GPU inference...")
+                self.model = GPT2LMHeadModel.from_pretrained(MODEL_PATH)
+                self.model.eval()
+                # Apply advanced model optimizations
+                self._apply_ultra_optimizations()
+                self.model.to(self.device)
 
             # Load XGBoost model
             booster = xgb.Booster()
             booster.load_model(XGB_MODEL_PATH)
             self.xgboost_model._Booster = booster
-            self.match_stat = MatchStatProcessor(self.xgboost_model, special_tokens=SPECIAL_LIST)
+            self.match_stat = MatchStatProcessor(self.xgboost_model, tokenizer_path=MODEL_PATH, special_tokens=SPECIAL_LIST)
 
             logger.info(f"Ultra-optimized models loaded successfully")
 
@@ -437,28 +483,8 @@ class UltraOptimizedModelResources:
             raise HTTPException(status_code=500, detail=f"Failed to load models: {str(e)}")
 
     def _apply_ultra_optimizations(self):
-        """Apply ultra-advanced model optimizations"""
+        """Apply ultra-advanced model optimizations appropriately for CPU/GPU"""
         try:
-            # 1. Model Quantization (INT8/FP16)
-            if torch.cuda.is_available() and self.enable_quantization:
-                # Apply dynamic quantization for CPU parts
-                self.model = torch.quantization.quantize_dynamic(
-                    self.model, {torch.nn.Linear}, dtype=torch.qint8
-                )
-                logger.info("Applied INT8 dynamic quantization")
-
-            # 2. Advanced Compilation
-            if hasattr(torch, 'compile') and torch.cuda.is_available():
-                # Use aggressive compilation modes for maximum performance
-                self.model = torch.compile(
-                    self.model,
-                    mode="max-autotune",  # Most aggressive optimization
-                    dynamic=True,
-                    fullgraph=True
-                )
-                logger.info("Applied advanced torch.compile with max-autotune")
-
-            # 3. Memory Format Optimization
             if torch.cuda.is_available():
                 # Use channels_last memory format for better performance
                 for module in self.model.modules():
@@ -468,7 +494,7 @@ class UltraOptimizedModelResources:
 
                 # Use mixed precision with advanced settings
                 self.model.half()  # FP16
-                logger.info("Applied memory format optimizations and FP16")
+                logger.info("Applied memory format optimizations and FP16 for GPU")
 
             # 4. Gradient Checkpointing (for memory efficiency during inference)
             if hasattr(self.model, 'gradient_checkpointing_enable'):
@@ -501,38 +527,8 @@ class UltraOptimizedModelResources:
             logger.warning(f"Could not optimize attention mechanism: {str(e)}")
 
     def _start_background_tasks(self):
-        """Start background optimization tasks"""
-        self.cleanup_thread = threading.Thread(target=self._background_memory_management, daemon=True)
-        self.cleanup_thread.start()
-
-        self.cache_optimization_thread = threading.Thread(target=self._background_cache_optimization, daemon=True)
-        self.cache_optimization_thread.start()
-
-    def _background_memory_management(self):
-        """Background thread for continuous memory management"""
-        while True:
-            try:
-                if self.memory_monitor.should_cleanup():
-                    self.memory_monitor.aggressive_cleanup()
-                    self._optimize_caches()
-
-                time.sleep(5)  # Check every 5 seconds
-
-            except Exception as e:
-                logger.error(f"Error in background memory management: {str(e)}")
-                time.sleep(10)
-
-    def _background_cache_optimization(self):
-        """Background thread for cache optimization"""
-        while True:
-            try:
-                # Optimize cache sizes based on usage patterns
-                self._analyze_and_optimize_caches()
-                time.sleep(30)  # Optimize every 30 seconds
-
-            except Exception as e:
-                logger.error(f"Error in background cache optimization: {str(e)}")
-                time.sleep(60)
+        """Background optimization tasks (Disabled to prevent GC stutters)"""
+        pass
 
     def _optimize_caches(self):
         """Optimize all caches for memory efficiency"""
@@ -857,7 +853,8 @@ class UltraOptimizedSimulationService:
                                       num_tokens_to_generate: int = 300000,
                                       max_length: int = 1024, temperature: float = 0.7,
                                       top_p: float = 0.9, top_k: int = 50) -> str:
-        """Ultra-optimized text generation with advanced performance techniques"""
+        """Ultra-optimized text generation handling max_length constraints efficiently"""
+        import io
         start_time = time.time()
         generation_start = time.perf_counter()
 
@@ -867,159 +864,118 @@ class UltraOptimizedSimulationService:
                 model = self.model_resources.model
                 device = self.model_resources.device
 
-                # Load input tokens with memory pool optimization
                 input_tokens = torch.load(input_tokens_file, map_location=device)
                 if input_tokens is None:
                     raise HTTPException(status_code=400, detail="No input tokens provided")
 
-                # Pre-allocate text buffer for better memory efficiency
-                text_buffer = io.StringIO()
-                text_buffer.write(tokenizer.decode(input_tokens[0]))
-
-                # Get cached resources for maximum performance
                 bad_words_ids = self.model_resources.get_cached_bad_words_ids(home_team, away_team)
 
-                # Ultra-optimized generation parameters
-                generated_tokens = input_tokens.clone()
-                attention_mask = (input_tokens != tokenizer.pad_token_id).long()
+                logger.info(f"Starting ultra-optimized generation: {num_tokens_to_generate} tokens")
+
                 frozen_prefix = input_tokens.clone()
-
-                # Advanced batching with dynamic sizing
-                base_batch_size = 300  # Increased batch size for better throughput
-                adaptive_batch_size = self._calculate_optimal_batch_size(base_batch_size)
-
-                # State tracking with minimal overhead
+                generated_tokens = input_tokens.clone()
+                
                 num_generated = 0
                 first_half_kickoff_detected = False
                 second_half_kickoff_inserted = False
                 first_half_kickoff_team = None
 
-                # Pre-compile patterns for ultra-fast matching
-                patterns = {
-                    'kickoff': self.model_resources.kickoff_pattern,
-                    'second_half': self.model_resources.second_half_pattern,
-                    'match_end': self.model_resources.match_end_pattern
-                }
+                text_buffer = io.StringIO()
+                text_buffer.write(tokenizer.decode(input_tokens[0]))
+                
+                with torch.amp.autocast('cuda', enabled=torch.cuda.is_available(), dtype=torch.float16):
+                    with torch.inference_mode():
+                        while num_generated < num_tokens_to_generate:
+                            tokens_left = num_tokens_to_generate - num_generated
+                            
+                            # Calculate space left in the model's max_length context
+                            space_left = max_length - generated_tokens.shape[1] - 10
+                            
+                            # If context is near max_length, trim it to preserve the recent history
+                            if space_left < 100:
+                                keep_last_n = 400
+                                context_tail = generated_tokens[:, -keep_last_n:]
+                                generated_tokens = torch.cat((frozen_prefix, context_tail), dim=1)
+                                space_left = max_length - generated_tokens.shape[1] - 10
+                            
+                            step_tokens = min(space_left, tokens_left)
+                            if step_tokens <= 0:
+                                break
 
-                logger.info(f"Starting ultra-optimized generation: {num_tokens_to_generate} tokens, "
-                            f"batch size: {adaptive_batch_size}")
-
-                # Ultra-optimized main generation loop
-                memory_cleanup_counter = 0
-
-                while num_generated < num_tokens_to_generate:
-                    # Dynamic batch sizing based on remaining tokens and memory pressure
-                    tokens_remaining = num_tokens_to_generate - num_generated
-                    current_batch_size = min(adaptive_batch_size, tokens_remaining)
-
-                    # Advanced memory management with context truncation
-                    if generated_tokens.shape[1] + current_batch_size >= max_length:
-                        # Keep more context for better generation quality
-                        keep_last_n = min(600, max_length // 2)
-                        context_tail = generated_tokens[:, -keep_last_n:]
-                        generated_tokens = torch.cat((frozen_prefix, context_tail), dim=1)
-                        attention_mask = (generated_tokens != tokenizer.pad_token_id).long()
-
-                    # Prepare optimized input
-                    current_input = generated_tokens[:, -max_length:]
-                    current_attention_mask = attention_mask[:, -max_length:]
-
-                    # Ultra-fast generation with all optimizations enabled
-                    with torch.amp.autocast('cuda', enabled=torch.cuda.is_available(), dtype=torch.float16):
-                        with torch.inference_mode():  # Even faster than no_grad
+                            current_input = generated_tokens[:, -max_length:]
+                            current_attention_mask = (current_input != tokenizer.pad_token_id).long()
+                            
                             output = model.generate(
                                 input_ids=current_input,
                                 attention_mask=current_attention_mask,
-                                max_new_tokens=current_batch_size,
+                                max_new_tokens=step_tokens,
                                 temperature=temperature,
                                 top_p=top_p,
                                 top_k=top_k,
                                 do_sample=True,
                                 pad_token_id=tokenizer.eos_token_id,
                                 bad_words_ids=bad_words_ids,
-                                use_cache=True,
-                                num_return_sequences=1,
-                                # Advanced generation parameters
-                                repetition_penalty=1.05,
-                                length_penalty=1.0,
-                                early_stopping=False,
-                                num_beams=1,  # Keep at 1 for speed
+                                use_cache=True
                             )
+                            
+                            new_tokens = output[:, current_input.shape[1]:]
+                            generated_tokens = torch.cat((generated_tokens, new_tokens), dim=1)
+                            
+                            new_text = tokenizer.decode(new_tokens[0], skip_special_tokens=False)
+                            
+                            if not first_half_kickoff_detected:
+                                kickoff_match = self.model_resources.kickoff_pattern.search(new_text)
+                                if kickoff_match:
+                                    first_half_kickoff_team = kickoff_match.group(1)
+                                    first_half_kickoff_detected = True
 
-                    # Process new tokens with minimal overhead
-                    new_tokens = output[:, -current_batch_size:]
-                    generated_tokens = torch.cat((generated_tokens, new_tokens), dim=1)
-                    new_attention_mask = torch.ones_like(new_tokens, device=device)
-                    attention_mask = torch.cat((attention_mask, new_attention_mask), dim=1)
+                            if "[SECOND HALF START]" in new_text and not second_half_kickoff_inserted and first_half_kickoff_team:
+                                split_point = new_text.index("[SECOND HALF START]") + len("[SECOND HALF START]")
+                                before_second_half = new_text[:split_point]
+                                text_buffer.write(before_second_half)
+                                
+                                second_half_kickoff_team = away_team if first_half_kickoff_team in home_team else home_team
+                                kickoff_event = f"\\n45:00 - {second_half_kickoff_team}  - pass by"
+                                text_buffer.write(kickoff_event)
+                                
+                                injected_text = "[SECOND HALF START]\\n" + kickoff_event.strip()
+                                injected_tokens = tokenizer.encode(injected_text, return_tensors="pt").to(device)
+                                
+                                generated_tokens = torch.cat((frozen_prefix, injected_tokens), dim=1)
+                                second_half_kickoff_inserted = True
+                                
+                                num_generated += len(new_tokens[0])
+                                continue
+                            
+                            text_buffer.write(new_text)
+                            num_generated += len(new_tokens[0])
+                            
+                            if "[MATCH END]" in new_text:
+                                break
 
-                    # Ultra-fast decoding
-                    new_text = tokenizer.decode(new_tokens[0], skip_special_tokens=False)
-
-                    # Optimized pattern matching (only when needed)
-                    if not first_half_kickoff_detected:
-                        kickoff_match = patterns['kickoff'].search(new_text)
-                        if kickoff_match:
-                            first_half_kickoff_team = kickoff_match.group(1)
-                            first_half_kickoff_detected = True
-
-                    # Advanced second half kickoff handling
-                    if (patterns['second_half'].search(new_text) and
-                            not second_half_kickoff_inserted and first_half_kickoff_team):
-                        new_text = self._inject_second_half_kickoff_optimized(
-                            new_text, home_team, away_team, first_half_kickoff_team
-                        )
-                        second_half_kickoff_inserted = True
-
-                    # Use StringIO for efficient text concatenation
-                    text_buffer.write(new_text)
-                    num_generated += current_batch_size
-
-                    # Early termination for efficiency
-                    if patterns['match_end'].search(new_text):
-                        logger.info("Match end detected, terminating generation")
-                        break
-
-                    # Adaptive memory cleanup
-                    memory_cleanup_counter += current_batch_size
-                    if memory_cleanup_counter >= 8000:  # Cleanup every 8K tokens
-                        if self.model_resources.memory_monitor.should_cleanup():
-                            self.model_resources.cleanup_gpu_memory()
-                        memory_cleanup_counter = 0
-
-                    # Dynamic batch size adjustment based on performance
-                    if num_generated % 10000 == 0:
-                        adaptive_batch_size = self._calculate_optimal_batch_size(base_batch_size)
-
-                # Get final text efficiently
                 final_text = text_buffer.getvalue()
+                if "[MATCH END]" not in final_text and num_generated >= num_tokens_to_generate:
+                    final_text += '\\n[MATCH END]'
                 text_buffer.close()
 
-                # Performance metrics
                 generation_time = time.perf_counter() - generation_start
-                total_time = time.time() - start_time
-                tokens_per_second = num_generated / generation_time
+                tokens_per_second = num_generated / generation_time if generation_time > 0 else 0
 
-                # Update performance tracking
                 self.generation_times.append(generation_time)
                 self.avg_generation_time = sum(self.generation_times) / len(self.generation_times)
                 self.throughput_history.append(tokens_per_second)
-
-                # Update global performance stats
+                
                 self.performance_stats['total_tokens_generated'] += num_generated
                 self.performance_stats['total_time_spent'] += generation_time
 
-                avg_throughput = sum(self.throughput_history) / len(self.throughput_history)
-
                 logger.info(f"Ultra-optimized generation completed: {generation_time:.2f}s, "
-                            f"{len(final_text)} chars, {tokens_per_second:.1f} tokens/s, "
-                            f"avg: {avg_throughput:.1f} tokens/s")
+                            f"{len(final_text)} chars, {tokens_per_second:.1f} tokens/s")
 
                 return final_text
 
         except Exception as e:
             error_msg = f"Error in ultra-optimized text generation: {str(e)}"
             logger.error(error_msg)
-            logger.error(f"Exception type: {type(e).__name__}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=error_msg)
@@ -1145,46 +1101,43 @@ class UltraOptimizedSimulationService:
             away_team_season = request.away_team_season.split("/")[-1]
             home_team_name = f"{request.home_team_name.replace(' ', '_')}_{home_team_season}"
             away_team_name = f"{request.away_team_name.replace(' ', '_')}_{away_team_season}"
+            bad_home_team_name = f"{request.home_team_name.replace(' ', '_')}_{away_team_season}"
+            bad_away_team_name = f"{request.away_team_name.replace(' ', '_')}_{home_team_season}"
 
-            # Use high-performance process pool for CPU-intensive operations
+            # Generate features inline using the already loaded model (NO ProcessPool!)
             loop = asyncio.get_event_loop()
-            with concurrent.futures.ProcessPoolExecutor(max_workers=2) as process_pool:
-                # Run feature generation with optimized parameters
-                feature_task = loop.run_in_executor(
-                    process_pool,
-                    _generate_features_wrapper,
-                    request.home_team_id, request.away_team_id,
-                    home_team_season, away_team_season,
-                    home_team_name, away_team_name
+            
+            def generate_features_sync():
+                match_stat = self.model_resources.match_stat
+                features = match_stat.generate_features(
+                    request.home_team_id, request.away_team_id, 
+                    int(home_team_season), int(away_team_season)
                 )
+                header_lines = match_stat.convert_to_text(home_team_name, away_team_name, features)
+                
+                os.makedirs(HEADERLINES_DIR, exist_ok=True)
+                os.makedirs(INPUTTOKENS_DIR, exist_ok=True)
+                
+                header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_header_lines.txt")
+                match_stat.save_text_file(header_lines, header_path)
+                
+                input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_input_tokens.pt")
+                match_stat.tokenize_and_save(header_path, input_tokens_path)
+                return input_tokens_path
 
-                # Pre-create output directory while feature generation runs
-                output_dir_task = loop.run_in_executor(
-                    None,
-                    lambda: os.makedirs(SIMMATCHES_DIR, exist_ok=True)
-                )
-
-                # Wait for both tasks
-                input_tokens_path, _ = await asyncio.gather(feature_task, output_dir_task)
+            input_tokens_path = await loop.run_in_executor(None, generate_features_sync)
+            os.makedirs(SIMMATCHES_DIR, exist_ok=True)
 
             await self.update_simulation_status_async(simulation_id, {"progress": 20.0})
             logger.info(f"Ultra-fast input tokens generated: {input_tokens_path}")
 
-            # Use request batching for optimal GPU utilization
-            generation_request = {
-                'home_team': home_team_name,
-                'away_team': away_team_name,
-                'input_tokens_file': input_tokens_path,
-                'num_tokens_to_generate': request.num_tokens_to_generate,
-                'max_length': request.max_length,
-                'temperature': request.temperature,
-                'top_p': request.top_p,
-                'top_k': request.top_k
-            }
-
-            # Process through ultra-optimized generation pipeline
-            generated_text = await self.request_batcher.add_request(
-                simulation_id, generation_request
+            # Process through ultra-optimized generation pipeline without DynamicBatcher overhead
+            generated_text = await loop.run_in_executor(
+                self.generation_pool,
+                self.generate_text_ultra_optimized,
+                home_team_name, away_team_name, input_tokens_path,
+                request.num_tokens_to_generate, request.max_length,
+                request.temperature, request.top_p, request.top_k
             )
 
             await self.update_simulation_status_async(simulation_id, {"progress": 80.0})
@@ -1192,7 +1145,6 @@ class UltraOptimizedSimulationService:
             # Optimized file I/O with async operations
             simulated_match_path = os.path.join(SIMMATCHES_DIR, f"match_{request.match_id}_{simulation_id}.txt")
 
-            # Use async file writing for better performance
             await loop.run_in_executor(
                 None,
                 lambda: self._write_file_atomic(simulated_match_path, generated_text)
@@ -1200,19 +1152,16 @@ class UltraOptimizedSimulationService:
 
             logger.info(f"Ultra-optimized match saved to {simulated_match_path}")
 
-            # Parse events with high-performance processing
-            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as process_pool:
-                events_task = loop.run_in_executor(
-                    process_pool,
-                    parse_and_publish,
-                    simulated_match_path
-                )
+            # Parse events inline (NO ProcessPool!)
+            events = await loop.run_in_executor(
+                None,
+                parse_and_publish,
+                simulated_match_path
+            )
 
-                # Update performance metrics while parsing
-                generation_time = time.perf_counter() - start_time
-                total_time = time.time() - total_start_time
-
-                events = await events_task
+            # Update performance metrics while parsing
+            generation_time = time.perf_counter() - start_time
+            total_time = time.time() - total_start_time
 
             logger.info(f"Ultra-fast parsing completed: {len(events)} events")
 

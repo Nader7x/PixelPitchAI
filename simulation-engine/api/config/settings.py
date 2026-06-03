@@ -7,6 +7,7 @@ import os
 
 # --- Model Paths and Directories ---
 MODEL_PATH = os.getenv('MODEL_PATH', './gpt2-football-finetuned')
+ONNX_MODEL_PATH = os.getenv('ONNX_MODEL_PATH', './gpt2-football-finetuned-onnx-int8')
 XGB_MODEL_PATH = os.getenv('XGB_MODEL_PATH', 'tuned_xgboost_model.json')
 HEADERLINES_DIR = os.getenv('HEADERLINES_DIR', './HeaderLines')
 INPUTTOKENS_DIR = os.getenv('INPUTTOKENS_DIR', './InputTokens')
