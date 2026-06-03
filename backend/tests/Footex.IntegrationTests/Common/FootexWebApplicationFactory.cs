@@ -191,7 +191,7 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         Console.WriteLine($"[DEBUG] Found solution root: {solutionRoot}");
 
         // Construct the path to your main Footex project folder relative to the solution root.
-        var footexProjectDirectory = Path.Combine(solutionRoot, "Footex");
+        var footexProjectDirectory = Path.Combine(solutionRoot, "src", "Footex");
 
         Console.WriteLine($"[DEBUG] Calculated Footex Project Directory: {footexProjectDirectory}");
         Console.WriteLine(
