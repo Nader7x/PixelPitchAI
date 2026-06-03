@@ -28,6 +28,7 @@ permissions:
   contents: write
   packages: write
   pull-requests: read
+  actions: write
 
 jobs:
   validate-release:
