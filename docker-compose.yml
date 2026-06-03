@@ -111,6 +111,8 @@ services:
     volumes:
       - ./backend/src/Footex/Logs:/app/Logs
       - api_temp:/app/temp
+    ports:
+      - "8080:8080"
     restart: unless-stopped
 
   # 5. Python AI / Match Simulation API
