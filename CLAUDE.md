@@ -3,7 +3,7 @@
 ## Environment
 - Backend: .NET 10 (SDK 10.0.300)
 - Frontend: Next.js 16 (React 19, TypeScript, pnpm v11)
-- AI/Simulation: Python 3.12 (FastAPI, PyTorch CPU, XGBoost) — managed by `uv`
+- AI/Simulation: Python 3.12 (FastAPI, ONNX Runtime CPU INT8, PyTorch CPU, XGBoost) — managed by `uv`
 - Database/Infra: PostgreSQL, Redis, RabbitMQ
 - Proxy: Caddy 2.7
 
@@ -56,4 +56,4 @@ docker compose -f docker-compose.dev.yml down
 - **Source Generation**: Prioritize compile-time source generation over runtime reflection.
 - **Zero-Allocation**: `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>` on hot paths. `ref struct` / `readonly struct` to avoid heap allocations.
 - **No Synthetic Data**: Strict reliance on realistic domain data; no "John Doe" or fake placeholders.
-- **AI Engine**: CPU-only PyTorch (nvidia/CUDA excluded via uv overrides). Model weights mounted as read-only volume, never baked into image.
+- **AI Engine**: CPU execution via ONNX Runtime INT8 quantized model for local dev, PyTorch on GPU in production. Model weights mounted as read-only volume, never baked into image.
