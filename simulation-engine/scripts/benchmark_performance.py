@@ -8,9 +8,12 @@ import psutil
 import statistics
 import time
 import torch
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from datetime import datetime
 from typing import Dict, List, Optional
-
 from api.models.schemas import MatchRequest
 from api.services.optimized_simulation_service import get_optimized_simulation_service
 

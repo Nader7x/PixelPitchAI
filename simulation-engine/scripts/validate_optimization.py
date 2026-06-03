@@ -8,6 +8,10 @@ import os
 import sys
 import time
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from api.models.schemas import MatchRequest
 from api.services.optimized_simulation_service import optimized_simulation_service
 

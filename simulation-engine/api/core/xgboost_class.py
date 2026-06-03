@@ -10,7 +10,7 @@ class MatchStatProcessor:
         self.tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_path)
         if special_tokens:
             self.tokenizer.add_special_tokens({"additional_special_tokens": special_tokens})
-            print("special tokens added ✅")
+            print("special tokens added")
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def generate_features(self, teamA_id: int, teamB_id: int, team_A_season: int, team_B_season: int):

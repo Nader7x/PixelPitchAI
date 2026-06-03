@@ -7,6 +7,8 @@ import asyncio
 import concurrent.futures
 import functools
 import json
+import os
+import sys
 import time
 import torch
 import xgboost as xgb
@@ -25,14 +27,8 @@ from ..utils.logging import get_logger
 # Initialize logger
 logger = get_logger(__name__)
 
-# Import external dependencies (relative to project root)
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from Parser import parse_and_publish
-from XgBoostClass import MatchStatProcessor
+from ..core.parser import parse_and_publish
+from ..core.xgboost_class import MatchStatProcessor
 
 
 class ModelResources:
@@ -76,7 +72,7 @@ class ModelResources:
             booster = xgb.Booster()
             booster.load_model(XGB_MODEL_PATH)
             self.xgboost_model._Booster = booster
-            self.match_stat = MatchStatProcessor(self.xgboost_model, special_tokens=SPECIAL_LIST)
+            self.match_stat = MatchStatProcessor(self.xgboost_model, tokenizer_path=MODEL_PATH, special_tokens=SPECIAL_LIST)
 
             logger.info(f"XGBoost model loaded from {XGB_MODEL_PATH}")
         except Exception as e:
@@ -363,7 +359,7 @@ class SimulationService:
                 initial_text += new_text
 
                 if num >= num_tokens_to_generate:
-                    intitial_text += '\n[MATCH END]'
+                    initial_text += '\n[MATCH END]'
                     break
 
                 # Stop if [MATCH END] is found

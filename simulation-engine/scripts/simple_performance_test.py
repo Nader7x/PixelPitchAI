@@ -9,7 +9,7 @@ import time
 import torch
 
 # Add the project root to the path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
     from api.services.simulation_service import SimulationService, get_simulation_service

@@ -50,7 +50,10 @@ special_list = ["Deportivo_Alavés_2016", "Deportivo_Alavés_2017", "Deportivo_A
 import xgboost as xgb
 from xgboost import XGBRegressor
 
-from XgBoostClass import MatchStatProcessor
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from api.core.xgboost_class import MatchStatProcessor
 
 booster = xgb.Booster()
 booster.load_model('tuned_xgboost_model.json')

@@ -11,6 +11,10 @@ import torch
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from api.models.schemas import MatchRequest
 from api.services.optimized_simulation_service import ultra_optimized_simulation_service
 # Import the simulation services
