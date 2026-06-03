@@ -204,10 +204,23 @@ jobs:
     needs: [ validate-release, build-artifacts, build-docker ]
 
     steps:
-      - name: 📥 Download Artifacts
+      - name: 📥 Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
+          name: footex-linux-x64
+          path: ./artifacts/footex-linux-x64
+
+      - name: 📥 Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: footex-win-x64
+          path: ./artifacts/footex-win-x64
+
+      - name: 📥 Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: footex-osx-x64
+          path: ./artifacts/footex-osx-x64
 
       - name: 📋 Prepare Release Assets
         run: |
