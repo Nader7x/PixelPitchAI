@@ -93,4 +93,4 @@ dotnet test ./backend/Footex.sln
 cd simulation-engine && uv run python scripts/performance_comparison.py
 ```
 
-Refer to individual service folders for domain-specific guides and APIs.
+Refer to individual service directories for domain-specific guides and APIs.
