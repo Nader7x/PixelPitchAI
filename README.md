@@ -9,6 +9,8 @@
 
 Footex is an enterprise-grade football management and live match simulation platform. It operates as a monorepo containing a high-performance C# backend, a real-time responsive frontend dashboard, and a dedicated AI simulation engine.
 
+<video src="https://github.com/user-attachments/assets/4f688e9f-40d2-44fd-942f-53787ecd2d31"></video>
+
 ---
 
 ## 🏗️ System Architecture
