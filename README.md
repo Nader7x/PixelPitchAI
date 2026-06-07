@@ -1,4 +1,4 @@
-# ⚽ Footex — Football Match Simulation & Management Monorepo
+# PixelPitchAI — Football Match Simulation & Management Monorepo
 
 [![CI Pipeline](https://github.com/Nader7x/Footex/actions/workflows/ci.yml/badge.svg)](https://github.com/Nader7x/Footex/actions/workflows/ci.yml)
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
