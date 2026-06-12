@@ -5,11 +5,12 @@ on:
     branches: [ main ]
     types: [ labeled ]
   schedule:
-    # Run performance tests weekly on Sunday at 2 AM UTC
-    - cron: "0 2 * * 0"
+    # Run performance tests weekly on Sunday at 3:28 AM UTC
+    - cron: "28 3 * * 0"
   workflow_dispatch: {}
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   DOTNET_VERSION: "10.0.x"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true

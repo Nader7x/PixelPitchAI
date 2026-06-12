@@ -7,6 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   DOTNET_VERSION: "10.0.x"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -251,15 +252,15 @@ jobs:
           dotnet list backend/Footex.sln package --vulnerable --include-transitive || echo "Security audit completed with warnings"
 
       - name: Run CodeQL Analysis
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: csharp
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
   # Job 6: Quality Gate
   quality-gate:

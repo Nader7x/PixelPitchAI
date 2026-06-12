@@ -3,7 +3,7 @@ name: 🔒 Security Monitoring
 on:
   schedule:
     # Run daily security scans
-    - cron: "0 2 * * *"
+    - cron: "37 4 * * *"
   push:
     branches: [main, develop]
     paths:
@@ -16,6 +16,7 @@ on:
   workflow_dispatch: {}
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   DOTNET_VERSION: "10.0.x"
 
 permissions:
@@ -44,7 +45,7 @@ jobs:
       - name: 🔍 Run .NET Security Audit
         run: |
           echo "🔍 Running .NET security audit..."
-          dotnet list package --vulnerable --include-transitive > vulnerability-report.txt 2>&1 || true
+          dotnet list backend/Footex.sln package --vulnerable --include-transitive > vulnerability-report.txt 2>&1 || true
 
           if grep -q "no vulnerable packages" vulnerability-report.txt; then
             echo "✅ No vulnerable packages found"
@@ -73,7 +74,7 @@ jobs:
           path: reports/
 
       - name: 📊 Publish Dependency Check Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: reports/dependency-check-report.sarif
@@ -95,7 +96,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 🔍 Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: csharp
           queries: security-and-quality
@@ -106,7 +107,7 @@ jobs:
           dotnet build backend/Footex.sln --configuration Release --no-restore
 
       - name: 🔍 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:csharp"
 
@@ -116,7 +117,7 @@ jobs:
           directory-to-scan: .
 
       - name: 📤 Upload DevSkim Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: devskim-results.sarif
@@ -170,7 +171,7 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: 📤 Upload Trivy Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
@@ -190,7 +191,7 @@ jobs:
           cat hadolint-results.sarif || echo "⚠️ No results file found (check for errors above)."
           echo "-----------------------------"
       - name: 📤 Upload Hadolint Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: hadolint-results.sarif
@@ -213,7 +214,7 @@ jobs:
           output_file_path: checkov-results.sarif
 
       - name: 📤 Upload Checkov Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: checkov-results.sarif
