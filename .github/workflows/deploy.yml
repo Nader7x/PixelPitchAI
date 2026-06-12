@@ -23,6 +23,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          command_timeout: 20m
           script: |
             cd ~/Footex || (git clone https://github.com/Nader7x/Footex.git ~/Footex && cd ~/Footex)
             git pull origin main
