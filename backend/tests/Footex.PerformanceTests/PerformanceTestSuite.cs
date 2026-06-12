@@ -80,7 +80,7 @@ public class PerformanceTestSuite
         process.StartInfo = new ProcessStartInfo
         {
             FileName = "pwsh",
-            Arguments = $"-NoProfile ./run-performance-tests.ps1 -TestType {testType} -LogFilePath ./PerformanceLogs/{testType}.log",
+            Arguments = $"-NoProfile ../scripts/run-performance-tests.ps1 -TestType {testType} -LogFilePath ./PerformanceLogs/{testType}.log",
             WorkingDirectory = DirectoryExtensions.GetSolutionDirectory(),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
