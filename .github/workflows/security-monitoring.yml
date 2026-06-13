@@ -269,33 +269,62 @@ jobs:
     steps:
       - name: 📊 Generate Security Summary
         run: |
-          echo "# 🔒 Security Scan Summary" > security-summary.md
-          echo "" >> security-summary.md
-          echo "**Scan Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> security-summary.md
-          echo "**Repository**: ${{ github.repository }}" >> security-summary.md
-          echo "**Commit**: ${{ github.sha }}" >> security-summary.md
-          echo "**Triggered by**: ${{ github.actor }}" >> security-summary.md
-          echo "" >> security-summary.md
+          # Map status strings to emojis
+          get_status_emoji() {
+            case "$1" in
+              success) echo "✅ Passed" ;;
+              failure) echo "❌ Failed" ;;
+              skipped) echo "⏭️ Skipped" ;;
+              cancelled) echo "🛑 Cancelled" ;;
+              *) echo "❓ Unknown ($1)" ;;
+            esac
+          }
 
-          echo "## 📋 Scan Results" >> security-summary.md
-          echo "" >> security-summary.md
-          echo "| Scan Type | Status | Notes |" >> security-summary.md
-          echo "|-----------|--------|-------|" >> security-summary.md
-          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} | NuGet packages & OWASP check |" >> security-summary.md
-          echo "| Code Analysis | ${{ needs.code-analysis.result }} | CodeQL & DevSkim analysis |" >> security-summary.md
-          echo "| Secrets Detection | ${{ needs.secrets-scan.result }} | TruffleHog & GitLeaks scan |" >> security-summary.md
-          echo "| Container Scan | ${{ needs.container-scan.result }} | Trivy & Hadolint analysis |" >> security-summary.md
-          echo "| Infrastructure Scan | ${{ needs.infrastructure-scan.result }} | Checkov IaC analysis |" >> security-summary.md
-          echo "" >> security-summary.md
+          DEP_STATUS=$(get_status_emoji "${{ needs.dependency-scan.result }}")
+          CODE_STATUS=$(get_status_emoji "${{ needs.code-analysis.result }}")
+          SECRETS_STATUS=$(get_status_emoji "${{ needs.secrets-scan.result }}")
+          CONTAINER_STATUS=$(get_status_emoji "${{ needs.container-scan.result }}")
+          INFRA_STATUS=$(get_status_emoji "${{ needs.infrastructure-scan.result }}")
 
-          echo "## 🔗 Recommendations" >> security-summary.md
-          echo "" >> security-summary.md
-          echo "- Review all security findings in the Security tab" >> security-summary.md
-          echo "- Update vulnerable dependencies identified" >> security-summary.md
-          echo "- Address any code quality issues found" >> security-summary.md
-          echo "- Ensure container images are rebuilt with latest base images" >> security-summary.md
+          {
+            echo "# 🔒 Security Scan Summary"
+            echo ""
+            echo "**Scan Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "**Repository**: [${{ github.repository }}](https://github.com/${{ github.repository }})"
+            echo "**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+            echo "**Triggered by**: ${{ github.actor }}"
+            echo ""
+            echo "## 📋 Scan Results"
+            echo ""
+            echo "| Scan Type | Status | Notes |"
+            echo "|-----------|--------|-------|"
+            echo "| 📦 Dependency Scan | $DEP_STATUS | NuGet packages & OWASP check |"
+            echo "| 🔍 Code Analysis | $CODE_STATUS | CodeQL & DevSkim analysis |"
+            echo "| 🔐 Secrets Detection | $SECRETS_STATUS | TruffleHog & GitLeaks scan |"
+            echo "| 🐳 Container Scan | $CONTAINER_STATUS | Trivy & Hadolint analysis |"
+            echo "| 🏗️ Infrastructure Scan | $INFRA_STATUS | Checkov IaC analysis |"
+            echo ""
+            echo "## 📦 Uploaded Artifacts & Reports"
+            echo ""
+            echo "You can download the generated scan artifacts at the bottom of the [Workflow Run Page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}):"
+            echo "- **[dependency-check-report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)**: Contains HTML, JSON, CSV, and JUnit reports detailing NuGet vulnerabilities."
+            echo "- **[security-summary](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)**: This summary report file."
+            echo ""
+            echo "## 🔗 Security Dashboards"
+            echo ""
+            echo "- 🔍 **[Code Scanning Alerts](https://github.com/${{ github.repository }}/security/code-scanning)**: Detailed alerts from CodeQL, DevSkim, Trivy, Hadolint, and Checkov."
+            echo "- 🔐 **[Secret Scanning Alerts](https://github.com/${{ github.repository }}/security/secret-scanning)**: Real-time leaked credential tracking from TruffleHog and GitLeaks."
+            echo "- 📦 **[Dependabot Alerts](https://github.com/${{ github.repository }}/security/dependabot)**: Automatic security updates and warnings for project dependencies."
+            echo ""
+            echo "## 💡 Recommendations"
+            echo "- Review all security findings in the **Security** tab of the repository."
+            echo "- Update vulnerable dependencies identified by the dependency scan."
+            echo "- Fix code quality and security smells flagged by CodeQL/DevSkim."
+            echo "- Ensure Dockerfiles are optimized based on Hadolint linting."
+          } > security-summary.md
 
-          cat security-summary.md
+          # Write to workflow step summary so it appears on the run page
+          cat security-summary.md >> $GITHUB_STEP_SUMMARY
 
       - name: 📤 Upload Security Summary
         uses: actions/upload-artifact@v4
