@@ -56,6 +56,17 @@ echo "🔄 Switching Caddy traffic to footex-api-$INACTIVE..."
 echo "reverse_proxy footex-api-$INACTIVE:8080" > "$UPSTREAM_CONF"
 
 # 5. Hot-reload Caddy
+echo "⏳ Waiting for Caddy container to be running..."
+for i in $(seq 1 10); do
+  STATUS=$(docker inspect -f '{{.State.Status}}' footex-caddy 2>/dev/null || echo "stopped")
+  if [ "$STATUS" = "running" ]; then
+    echo "✅ Caddy is running!"
+    break
+  fi
+  echo "⏳ Caddy status: $STATUS. Waiting 2 seconds..."
+  sleep 2
+done
+
 echo "⚡ Reloading Caddy configuration..."
 docker compose exec -w /etc/caddy caddy caddy reload
 
