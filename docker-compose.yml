@@ -65,6 +65,7 @@ services:
 
   # 4. Footex .NET 10 API Application
   footex-api:
+    image: ghcr.io/nader7x/pixelpitchai/footex-api:${IMAGE_TAG:-main}
     build:
       context: ./backend
       dockerfile: src/Footex/Dockerfile
@@ -176,8 +177,6 @@ services:
       - caddy_config:/config
     depends_on:
       - footex-api
-      - simulation-engine
-      - football-frontend
     networks:
       - footex-monorepo-network
     restart: unless-stopped

@@ -3,7 +3,18 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - "Caddyfile*"
+      - ".env"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -17,31 +28,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          command_timeout: 20m
+          command_timeout: 10m
+          envs: IMAGE_TAG
           script: |
             cd ~/Footex || (git clone https://github.com/Nader7x/Footex.git ~/Footex && cd ~/Footex)
             git pull origin main
-            sudo docker compose up -d --build footex-api
+
+            export IMAGE_TAG="${IMAGE_TAG}"
+            echo "🚀 Deploying with IMAGE_TAG=${IMAGE_TAG}"
+
+            sudo -E docker compose pull footex-api
+            sudo -E docker compose up -d footex-api caddy
             sudo docker compose ps
+        env:
+          IMAGE_TAG: sha-${{ steps.sha.outputs.short }}
 
       - name: Health check
-        env:
-          VM_HOST: ${{ secrets.VM_HOST }}
         run: |
-          sleep 30
+          sleep 15
           for i in $(seq 1 5); do
-            if curl -sf http://"$VM_HOST":8080/api/health; then
-              echo "Health check passed"
+            if curl -sf https://pixelpitchai.duckdns.org/api/health; then
+              echo "✅ Health check passed (through HTTPS Caddy)"
               exit 0
             fi
-            echo "Attempt $i/5 failed, waiting..."
-            sleep 15
+            echo "⏳ Attempt $i/5 failed, waiting..."
+            sleep 10
           done
-          echo "Health check failed"
+          echo "❌ Health check failed"
           exit 1

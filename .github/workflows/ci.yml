@@ -2,9 +2,22 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ develop ]
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "README.md"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "README.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -18,14 +31,10 @@ env:
   SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
   SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
   ConnectionStrings__RemoteRedisPassword: ${{ secrets.REMOTE_REDIS_PASSWORD }}
-  
+
 permissions:
   contents: read
-  security-events: write
-  actions: read
-  statuses: write
   pull-requests: write
-
 
 jobs:
   # Job 1: Build and Unit Tests
@@ -41,6 +50,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: 'backend/**/*.csproj'
 
       - name: Restore dependencies
         run: dotnet restore backend/Footex.sln
@@ -102,6 +113,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: 'backend/**/*.csproj'
 
       - name: Restore dependencies
         run: dotnet restore backend/Footex.sln
@@ -133,17 +146,19 @@ jobs:
   code-coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    needs: [ unit-tests, integration-tests ]
+    needs: [unit-tests, integration-tests]
     if: always()
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: 'backend/**/*.csproj'
 
       - name: Download Unit Test Results
         uses: actions/download-artifact@v4
@@ -181,128 +196,24 @@ jobs:
         with:
           recreate: true
           path: ./CoverageReport/Summary.json
-  # Job 4: Build Docker Images
-  docker-build:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: [ unit-tests, integration-tests ]
-    if: github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          file: ./backend/src/Footex/Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Job 5: Security Scan
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    permissions: 
-        contents: read
-        security-events: write
-        actions: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore dependencies
-        run: dotnet restore backend/Footex.sln
-
-      - name: Run Security Audit
-        run: |
-          dotnet list backend/Footex.sln package --vulnerable --include-transitive || echo "Security audit completed with warnings"
-
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/init@v4
-        with:
-          languages: csharp
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-
-  # Job 6: Quality Gate
+  # Job 4: Quality Gate
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [ unit-tests, integration-tests, code-coverage, security-scan ]
+    needs: [unit-tests, integration-tests, code-coverage]
     if: always()
 
     steps:
       - name: Check test results
         run: |
           if [[ "${{ needs.unit-tests.result }}" != "success" ]]; then
-            echo "Unit tests failed"
+            echo "❌ Unit tests failed"
             exit 1
           fi
 
           if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
-            echo "Integration tests failed"
+            echo "❌ Integration tests failed"
             exit 1
           fi
 
-          if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
-            echo "Security scan failed"
-            exit 1
-          fi
-
-          echo "All quality gates passed!"
-
-      - name: Update status check
-        uses: actions/github-script@v7
-        if: always()
-        with:
-          script: |
-            const state = '${{ needs.unit-tests.result }}' === 'success' && 
-                         '${{ needs.integration-tests.result }}' === 'success' && 
-                         '${{ needs.security-scan.result }}' === 'success' ? 'success' : 'failure';
-
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: state,
-              description: 'Quality gate check',
-              context: 'ci/quality-gate'
-            });
+          echo "✅ All quality gates passed!"

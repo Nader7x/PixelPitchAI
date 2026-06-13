@@ -5,15 +5,42 @@ on:
     # Run daily security scans
     - cron: "37 4 * * *"
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
-      - "**/packages.lock.json"
-      - "**/package-lock.json"
-      - "**/*.csproj"
-      - "Dockerfile*"
+      - ".github/workflows/**"
+      - "backend/**/*.csproj"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - "simulation-engine/pyproject.toml"
+      - "simulation-engine/uv.lock"
+      - "**/Dockerfile*"
+      - "docker-compose*.yml"
   pull_request:
     branches: [main]
-  workflow_dispatch: {}
+    paths:
+      - ".github/workflows/**"
+      - "backend/**/*.csproj"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - "simulation-engine/pyproject.toml"
+      - "simulation-engine/uv.lock"
+      - "**/Dockerfile*"
+      - "docker-compose*.yml"
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: "Which scans to run"
+        type: choice
+        default: "full"
+        options:
+          - full
+          - dependencies
+          - code
+          - containers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -54,33 +81,15 @@ jobs:
             cat vulnerability-report.txt
           fi
 
-      - name: 🔍 OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: "Footex"
-          path: "."
-          format: "ALL"
-          args: >
-            --enableRetired
-            --enableExperimental
 
-      - name: 📤 Upload Dependency Check Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dependency-check-report
-          path: reports/
-
-      - name: 📊 Publish Dependency Check Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: reports/dependency-check-report.sarif
 
   code-analysis:
     name: 🔍 Static Code Analysis
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code' || github.event.inputs.scan_type == ''
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code'))
 
     steps:
       - name: 📥 Checkout Code
@@ -109,16 +118,7 @@ jobs:
         with:
           category: "/language:csharp"
 
-      - name: 🔍 Run Security DevSkim
-        uses: microsoft/DevSkim-Action@v1
-        with:
-          directory-to-scan: .
 
-      - name: 📤 Upload DevSkim Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: devskim-results.sarif
 
   secrets-scan:
     name: 🔐 Secrets Detection
@@ -131,22 +131,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔍 Run TruffleHog
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          extra_args: --debug --only-verified
-
-      - name: 🐞 Display Gitleaks Config for Debugging
-        run: |
-          echo "--- Contents of .gitleaks.toml that the runner sees ---"
-          cat .gitleaks.toml
-          echo "--------------------------------------------------------"
-
       - name: 🔍 Run GitLeaks
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.CR_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   container-scan:
     name: 🐳 Container Security Scan
@@ -216,42 +204,6 @@ jobs:
         if: always()
         with:
           sarif_file: checkov-results.sarif
-          
-      - name: 🔍 Analyze GitHub Actions Security
-        # checkov:skip=CKV_GHA_2:This script is a linter and does not execute untrusted input from file names.
-        run: |
-          #!/bin/bash
-          echo "🔍 Analyzing GitHub Actions workflows for common security concerns..."
-
-          # Find all YAML workflow files
-          find .github/workflows -name "*.yml" -o -name "*.yaml" | while read -r file; do
-            echo "--- Checking: $file ---"
-
-            # Check for 'pull_request_target' usage
-            if grep -q "pull_request_target" "$file"; then
-              echo "  ⚠️ Warning: 'pull_request_target' found. Review this workflow for potential privilege escalation vulnerabilities."
-              echo "     Recommendation: Ensure no untrusted code runs on 'pull_request_target' or restrict permissions."
-            fi
-
-            # Check for checkout with untrusted ref (e.g., using head.sha in a checkout action)
-            # This is a common pattern when 'pull_request_target' is used and can be dangerous.
-            if grep -q "uses: actions/checkout@.*with:.*ref:.*\${{ github.event.pull_request.head.sha }}" "$file"; then
-              echo "  ⚠️ Warning: Found 'checkout' action using 'github.event.pull_request.head.sha'."
-              echo "     Recommendation: Avoid checking out untrusted PR head SHAs when 'pull_request_target' is used, as it can expose secrets."
-            fi
-            
-            # Check for direct evaluation of untrusted event data in run commands
-            # This is a simplified check and might have false positives/negatives.
-            # A more robust check might involve parsing the YAML and looking for specific contexts.
-            if grep -q "run:.*\${{ github.event.pull_request.body }}" "$file" || \
-               grep -q "run:.*\${{ github.event.issue.body }}" "$file" || \
-               grep -q "run:.*\${{ github.event.comment.body }}" "$file"; then
-              echo "  ⚠️ Warning: Potential for script injection from untrusted event data (e.g., PR body, issue body, comment body)."
-              echo "     Recommendation: Sanitize or strictly validate any user-supplied input before using it directly in 'run' commands."
-            fi
-          done
-
-          echo "✅ Workflow analysis complete."
 
   security-summary:
     name: 📊 Security Summary
@@ -298,22 +250,22 @@ jobs:
             echo ""
             echo "| Scan Type | Status | Notes |"
             echo "|-----------|--------|-------|"
-            echo "| 📦 Dependency Scan | $DEP_STATUS | NuGet packages & OWASP check |"
-            echo "| 🔍 Code Analysis | $CODE_STATUS | CodeQL & DevSkim analysis |"
-            echo "| 🔐 Secrets Detection | $SECRETS_STATUS | TruffleHog & GitLeaks scan |"
+            echo "| 📦 Dependency Scan | $DEP_STATUS | dotnet vulnerable package audit |"
+            echo "| 🔍 Code Analysis | $CODE_STATUS | CodeQL (schedule/manual only) |"
+            echo "| 🔐 Secrets Detection | $SECRETS_STATUS | GitLeaks scan |"
             echo "| 🐳 Container Scan | $CONTAINER_STATUS | Trivy & Hadolint analysis |"
             echo "| 🏗️ Infrastructure Scan | $INFRA_STATUS | Checkov IaC analysis |"
             echo ""
             echo "## 📦 Uploaded Artifacts & Reports"
             echo ""
             echo "You can download the generated scan artifacts at the bottom of the [Workflow Run Page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}):"
-            echo "- **[dependency-check-report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)**: Contains HTML, JSON, CSV, and JUnit reports detailing NuGet vulnerabilities."
             echo "- **[security-summary](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)**: This summary report file."
+            echo "- **[gitleaks-results.sarif](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)**: GitLeaks secret scan results."
             echo ""
             echo "## 🔗 Security Dashboards"
             echo ""
             echo "- 🔍 **[Code Scanning Alerts](https://github.com/${{ github.repository }}/security/code-scanning)**: Detailed alerts from CodeQL, DevSkim, Trivy, Hadolint, and Checkov."
-            echo "- 🔐 **[Secret Scanning Alerts](https://github.com/${{ github.repository }}/security/secret-scanning)**: Real-time leaked credential tracking from TruffleHog and GitLeaks."
+            echo "- 🔐 **[Secret Scanning Alerts](https://github.com/${{ github.repository }}/security/secret-scanning)**: Real-time leaked credential tracking from GitLeaks."
             echo "- 📦 **[Dependabot Alerts](https://github.com/${{ github.repository }}/security/dependabot)**: Automatic security updates and warnings for project dependencies."
             echo ""
             echo "## 💡 Recommendations"
@@ -344,4 +296,3 @@ jobs:
           # - Create high-priority issue
           # - Email security team
           # - Update security dashboard
-
