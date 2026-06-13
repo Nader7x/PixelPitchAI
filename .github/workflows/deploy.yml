@@ -1,14 +1,18 @@
 name: Deploy to Production
 
 on:
+  workflow_run:
+    workflows: ["Docker Images"]
+    types:
+      - completed
+    branches: [main]
   push:
     branches: [main]
     paths:
-      - "backend/**"
       - "docker-compose.yml"
       - "docker-compose.dev.yml"
       - "Caddyfile*"
-      - ".env"
+      - ".env.example"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -25,52 +29,48 @@ permissions:
 jobs:
   deploy:
     name: Deploy to GCP VM
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Compute short SHA
-        id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy Compose and Env to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GCP_VM_IP }}
+          username: ${{ secrets.GCP_VM_USERNAME }}
+          key: ${{ secrets.GCP_VM_SSH_KEY }}
+          source: "docker-compose.yml,Caddyfile.prod,.env.example"
+          target: "/home/${{ secrets.GCP_VM_USERNAME }}/Footex"
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          command_timeout: 10m
-          envs: IMAGE_TAG
+          host: ${{ secrets.GCP_VM_IP }}
+          username: ${{ secrets.GCP_VM_USERNAME }}
+          key: ${{ secrets.GCP_VM_SSH_KEY }}
+          envs: EVENT_NAME,WORKFLOW_SHA
           script: |
-            cd ~/Footex || (git clone https://github.com/Nader7x/Footex.git ~/Footex && cd ~/Footex)
-            git pull origin main
+            cd /home/${{ secrets.GCP_VM_USERNAME }}/Footex
 
-            export IMAGE_TAG="${IMAGE_TAG}"
-            echo "🚀 Deploying with IMAGE_TAG=${IMAGE_TAG}"
+            if [ "$EVENT_NAME" = "workflow_run" ]; then
+              # Triggered by Docker Images pipeline completing successfully
+              export IMAGE_TAG="sha-${WORKFLOW_SHA:0:7}"
+            else
+              # Triggered directly by a push to infrastructure files
+              export IMAGE_TAG="main"
+            fi
+            
+            echo "🚀 Event: $EVENT_NAME. Deploying with IMAGE_TAG=${IMAGE_TAG}"
 
-            echo "⏳ Waiting for image to be available on GHCR..."
-            for i in $(seq 1 15); do
-              if sudo -E docker compose pull footex-api; then
-                echo "✅ Image pulled successfully!"
-                break
-              fi
-              echo "⚠️ Image not found yet (attempt $i/15). Waiting 20 seconds..."
-              sleep 20
-              if [ $i -eq 15 ]; then
-                echo "❌ Timed out waiting for specific SHA. Falling back to 'main' image..."
-                export IMAGE_TAG="main"
-                if sudo -E docker compose pull footex-api; then
-                   echo "✅ Fallback image pulled successfully!"
-                else
-                   echo "❌ Fallback pull failed."
-                   exit 1
-                fi
-              fi
-            done
-
+            sudo -E docker compose pull footex-api
             sudo -E docker compose up -d footex-api caddy
             sudo docker compose ps
-        env:
-          IMAGE_TAG: sha-${{ steps.sha.outputs.short }}
 
       - name: Health check
         run: |
