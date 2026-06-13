@@ -33,17 +33,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Copy Compose and Env to VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USERNAME }}
-          key: ${{ secrets.GCP_VM_SSH_KEY }}
-          source: "docker-compose.yml,Caddyfile.prod,.env.example"
-          target: "/home/${{ secrets.GCP_VM_USERNAME }}/Footex"
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -56,21 +48,20 @@ jobs:
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           envs: EVENT_NAME,WORKFLOW_SHA
           script: |
-            cd /home/${{ secrets.GCP_VM_USERNAME }}/Footex
+            cd ~/Footex || (git clone https://github.com/Nader7x/PixelPitchAI.git ~/Footex && cd ~/Footex)
+            git pull origin main
 
             if [ "$EVENT_NAME" = "workflow_run" ]; then
-              # Triggered by Docker Images pipeline completing successfully
               export IMAGE_TAG="sha-${WORKFLOW_SHA:0:7}"
             else
-              # Triggered directly by a push to infrastructure files
               export IMAGE_TAG="main"
             fi
             
             echo "🚀 Event: $EVENT_NAME. Deploying with IMAGE_TAG=${IMAGE_TAG}"
 
-            sudo -E docker compose pull footex-api
-            sudo -E docker compose up -d footex-api caddy
-            sudo docker compose ps
+            docker compose pull footex-api
+            docker compose up -d footex-api caddy
+            docker compose ps
 
       - name: Health check
         run: |
