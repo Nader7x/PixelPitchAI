@@ -31,6 +31,9 @@ WORKDIR /app
 # Create non-root user
 RUN groupadd -r footex && useradd -r -g footex footex
 
+# Install curl for health check
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Create required directories and set permissions
 RUN mkdir -p /app/Logs /app/wwwroot /app/temp && \
     chown -R footex:footex /app
@@ -47,9 +50,9 @@ USER footex
 # Expose port
 EXPOSE 8080
 
-# Health check using wget (built into aspnet base image)
+# Health check using curl
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget -qO- http://localhost:8080/api/health || exit 1
+  CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Entry point
 ENTRYPOINT ["dotnet", "Footex.dll"]

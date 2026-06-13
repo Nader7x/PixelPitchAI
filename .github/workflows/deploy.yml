@@ -60,7 +60,7 @@ jobs:
             echo "🚀 Event: $EVENT_NAME. Deploying with IMAGE_TAG=${IMAGE_TAG}"
 
             docker compose pull footex-api
-            docker compose up -d footex-api caddy
+            docker compose up -d --force-recreate caddy footex-api
             docker compose ps
 
       - name: Health check
