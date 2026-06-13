@@ -59,9 +59,12 @@ jobs:
             
             echo "🚀 Event: $EVENT_NAME. Deploying with IMAGE_TAG=${IMAGE_TAG}"
 
-            docker compose pull footex-api
-            docker compose up -d --force-recreate caddy footex-api
-            docker compose ps
+            # Ensure infrastructure containers are running
+            docker compose up -d postgres redis rabbitmq caddy
+
+            # Run the Blue/Green deployment script
+            chmod +x scripts/deploy-blue-green.sh
+            ./scripts/deploy-blue-green.sh
 
       - name: Health check
         run: |

@@ -63,15 +63,14 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # 4. Footex .NET 10 API Application
-  footex-api:
+  # 4. Footex .NET 10 API Application Template
+  footex-api-template: &footex-api-template
     image: ghcr.io/nader7x/pixelpitchai/footex-api:${IMAGE_TAG:-main}
     build:
       context: ./backend
       dockerfile: src/Footex/Dockerfile
       args:
         BUILD_CONFIGURATION: Release
-    container_name: footex-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
@@ -112,9 +111,15 @@ services:
     volumes:
       - ./backend/src/Footex/Logs:/app/Logs
       - api_temp:/app/temp
-    ports:
-      - "8080:8080"
     restart: unless-stopped
+
+  footex-api-blue:
+    <<: *footex-api-template
+    container_name: footex-api-blue
+
+  footex-api-green:
+    <<: *footex-api-template
+    container_name: footex-api-green
 
   # 5. Python AI / Match Simulation API
   simulation-engine:
@@ -172,11 +177,9 @@ services:
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     volumes:
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on:
-      - footex-api
     networks:
       - footex-monorepo-network
     restart: unless-stopped
