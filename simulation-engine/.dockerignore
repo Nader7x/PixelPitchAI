@@ -1,13 +1,62 @@
-.venv/
-gpt2-football-finetuned/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Repository metadata
+.git/
+.gitignore
+.gitattributes
+
+# Editor / OS files
 .idea/
 .vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker files are not required inside the app image
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Python virtualenvs, bytecode, and tool caches
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Logs, generated runtime data, and temp files
 logs/
+*.log
+football_api.log
+HeaderLines/
+InputTokens/
 Matches/
 Matches_Parsed/
 SimulatedMatches/
+SimulationStatus/
 DataMigration/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Large model/checkpoint artifacts are mounted at runtime, not baked into images
+gpt2-football-finetuned*/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+performance_comparison_results.json
+
+# Development-only/reference material
+archive/
+docs/
+Docs/
+README.md
+*.md

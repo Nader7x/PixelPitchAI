@@ -1,16 +1,59 @@
-bin/
-obj/
+# Repository metadata
+.git
+.gitignore
+.gitattributes
+.github/
+
+# Editor / OS files
 .vs/
 .vscode/
 .idea/
-*.user
 *.suo
-*.log
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker / compose files are not copied by the app build
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Local environment and secrets
+.env.local
+.env.*.local
+*.pfx
+*.pem
+*.key
+*.crt
+
+# Build output and package caches
+**/bin/
+**/obj/
+**/TestResults/
+**/coverage/
+**/*.nupkg
+packages/
+.nuget/
+
+# Test projects are not required to build/publish the API image
 tests/
-TestResults/
-coverage/
-*.md
-docker-compose*
+
+# Logs and temp files
 Logs/
+**/Logs/
+*.log
 *.tmp
 *.temp
+tmp/
+temp/
+
+# Documentation / repo-only files
+README.md
+LICENSE
+docs/
+Docs/
+*.md

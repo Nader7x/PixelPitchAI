@@ -1,36 +1,121 @@
-﻿**/.dockerignore
+﻿# Repository metadata
+.git
+.gitignore
+.gitattributes
+.github/
+.gitleaks.toml
+
+# Editor / IDE state
+.vs/
+.vscode/
+.idea/
+**/.vs/
+**/.vscode/
+**/.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# Docker / compose files are not needed inside service images
+.dockerignore
+**/.dockerignore
+Dockerfile*
+**/Dockerfile*
+docker-compose*.yml
+**/docker-compose*.yml
+
+# Local environment and secrets
+.env
+.env.*
 **/.env
-**/.git
-**/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
-**/.vs
-**/.vscode
-**/.idea
-**/*.*proj.user
+**/.env.*
+*.pfx
+*.pem
+*.key
+*.crt
+certs/
+
+# Documentation / repo-only files
+README.md
+LICENSE
+docs/
+Docs/
+**/docs/
+**/Docs/
+documentation.md
+**/*.md
+
+# Logs, test output, coverage, temp files
+Logs/
+**/Logs/
+logs/
+**/logs/
+TestResults/
+**/TestResults/
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+**/tmp/
+**/temp/
+
+# .NET build artifacts
+**/bin/
+**/obj/
 **/*.dbmdl
 **/*.jfm
-**/azds.yaml
-**/bin
-**/charts
-**/docker-compose*
-**/Dockerfile*
-**/node_modules
-**/npm-debug.log
-**/obj
-**/secrets.dev.yaml
-**/values.dev.yaml
-LICENSE
-README.md
+**/*.nupkg
+**/packages/
+**/.nuget/
 
-# Additional exclusions for Footex
-**/Logs/
-**/TestResults/
-**/*.tmp
-**/*.temp
-**/*.log
-**/coverage/
-documentation.md
-# Exclude specific directories and files.
-Infrastructure/Migrations
+# Node / Next build artifacts
+**/node_modules/
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/.turbo/
+**/.swc/
+**/.cache/
+**/.parcel-cache/
+**/*.tsbuildinfo
+**/pnpm-debug.log*
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Python artifacts and local virtualenvs
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+
+# Simulation/model artifacts: mounted at runtime, never baked into images
+simulation-engine/gpt2-football-finetuned*/
+simulation-engine/HeaderLines/
+simulation-engine/InputTokens/
+simulation-engine/Matches/
+simulation-engine/Matches_Parsed/
+simulation-engine/SimulatedMatches/
+simulation-engine/SimulationStatus/
+simulation-engine/DataMigration/
+simulation-engine/archive/
+simulation-engine/*.pt
+simulation-engine/performance_comparison_results.json
+simulation-engine/football_api.log
+
+# Local worktrees can be huge and should never enter a build context
+worktrees/
