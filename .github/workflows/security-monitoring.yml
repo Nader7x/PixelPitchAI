@@ -26,6 +26,7 @@ on:
       - "simulation-engine/uv.lock"
       - "**/Dockerfile*"
       - "docker-compose*.yml"
+  # checkov:skip=CKV_GHA_7: Intentionally allowing workflow_dispatch inputs for scan selection
   workflow_dispatch:
     inputs:
       scan_type:

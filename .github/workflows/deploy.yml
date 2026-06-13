@@ -47,7 +47,20 @@ jobs:
             export IMAGE_TAG="${IMAGE_TAG}"
             echo "🚀 Deploying with IMAGE_TAG=${IMAGE_TAG}"
 
-            sudo -E docker compose pull footex-api
+            echo "⏳ Waiting for image to be available on GHCR..."
+            for i in $(seq 1 15); do
+              if sudo -E docker compose pull footex-api; then
+                echo "✅ Image pulled successfully!"
+                break
+              fi
+              echo "⚠️ Image not found yet (attempt $i/15). Waiting 20 seconds..."
+              sleep 20
+              if [ $i -eq 15 ]; then
+                echo "❌ Timed out waiting for image."
+                exit 1
+              fi
+            done
+
             sudo -E docker compose up -d footex-api caddy
             sudo docker compose ps
         env:
