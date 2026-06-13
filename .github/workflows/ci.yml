@@ -7,12 +7,22 @@ on:
       - "docs/**"
       - "**/*.md"
       - "README.md"
+      - "caddy/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".github/workflows/deploy.yml"
   pull_request:
     branches: [main]
     paths-ignore:
       - "docs/**"
       - "**/*.md"
       - "README.md"
+      - "caddy/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 concurrency:
