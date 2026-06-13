@@ -64,7 +64,6 @@ jobs:
             --enableRetired
             --enableExperimental
             --failOnCVSS 7
-            --suppression suppression.xml
 
       - name: 📤 Upload Dependency Check Results
         uses: actions/upload-artifact@v4

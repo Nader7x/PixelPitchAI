@@ -34,6 +34,7 @@
     <PackageReference Include="Serilog.Sinks.Postgresql.Alternative" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
+    <PackageReference Include="MessagePack" Version="2.5.301" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\.dockerignore">
