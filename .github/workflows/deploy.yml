@@ -11,7 +11,8 @@ on:
     paths:
       - "docker-compose.yml"
       - "docker-compose.dev.yml"
-      - "Caddyfile*"
+      - "caddy/**"
+      - "scripts/**"
       - ".env.example"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
