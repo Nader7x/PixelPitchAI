@@ -1,8 +1,8 @@
 {$DOMAIN} {
     # Automatic Let's Encrypt / ZeroSSL setup
     
-    # Reverse proxy backend API calls and strip /api prefix
-    handle_path /api/* {
+    # Reverse proxy backend API calls (preserve /api prefix for ASP.NET Core)
+    handle /api/* {
         reverse_proxy footex-api:8080
     }
 
