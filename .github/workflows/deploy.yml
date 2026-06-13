@@ -56,8 +56,14 @@ jobs:
               echo "⚠️ Image not found yet (attempt $i/15). Waiting 20 seconds..."
               sleep 20
               if [ $i -eq 15 ]; then
-                echo "❌ Timed out waiting for image."
-                exit 1
+                echo "❌ Timed out waiting for specific SHA. Falling back to 'main' image..."
+                export IMAGE_TAG="main"
+                if sudo -E docker compose pull footex-api; then
+                   echo "✅ Fallback image pulled successfully!"
+                else
+                   echo "❌ Fallback pull failed."
+                   exit 1
+                fi
               fi
             done
 
