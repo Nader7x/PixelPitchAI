@@ -1,4 +1,5 @@
 using Footex.IntegrationTests.Common;
+using Footex.PerformanceTests.Common;
 using NBomber.Contracts.Stats;
 using NBomber.CSharp;
 using NBomber.Http.CSharp;
@@ -7,6 +8,7 @@ using Xunit;
 namespace Footex.PerformanceTests.LoadTests;
 
 [Collection("Performance tests collection")]
+[Trait("Category", "StressTest")]
 public class StressTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {
@@ -72,14 +74,14 @@ public class StressTests(FootexWebApplicationFactory factory)
             )
             .WithLoadSimulations(
                 // Gradually increase the load
-                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.Inject(100, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2)),
-                Simulation.Inject(200, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.1)),
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.2)),
+                Simulation.Inject(100, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.2)),
+                Simulation.Inject(200, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.1)),
                 // Spike test
-                Simulation.Inject(500, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30)),
+                Simulation.Inject(500, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.05)),
                 // Cool down
-                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.1))
             );
 
         NBomberRunner
@@ -106,11 +108,11 @@ public class StressTests(FootexWebApplicationFactory factory)
             )
             .WithLoadSimulations(
                 // Normal load
-                Simulation.KeepConstant(10, TimeSpan.FromMinutes(2)),
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.2)),
                 // Sudden spike
-                Simulation.KeepConstant(100, TimeSpan.FromMinutes(1)),
+                Simulation.KeepConstant(100, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.1)),
                 // Back to normal
-                Simulation.KeepConstant(10, TimeSpan.FromMinutes(2))
+                Simulation.KeepConstant(10, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes * 0.2))
             );
 
         NBomberRunner.RegisterScenarios(scenario).WithReportFolder("spike-test-results").Run();
@@ -120,7 +122,7 @@ public class StressTests(FootexWebApplicationFactory factory)
     public async Task DatabaseIntensive_StressTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var loadSimulation = Simulation.KeepConstant(20, TimeSpan.FromMinutes(5));
+        var loadSimulation = Simulation.KeepConstant(20, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.LongTestMinutes));
         var playerScenario = Scenario
             .Create(
                 "player_queries",
@@ -234,7 +236,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(50, TimeSpan.FromMinutes(10)));
+            .WithLoadSimulations(Simulation.KeepConstant(50, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.StressTestMinutes)));
 
         NBomberRunner
             .RegisterScenarios(userScenario)
@@ -261,7 +263,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(20, TimeSpan.FromMinutes(3)));
+            .WithLoadSimulations(Simulation.KeepConstant(20, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes)));
 
         NBomberRunner.RegisterScenarios(scenario).WithReportFolder("endurance-test-results").Run();
     }
@@ -285,7 +287,7 @@ public class StressTests(FootexWebApplicationFactory factory)
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(15, TimeSpan.FromMinutes(1)));
+            .WithLoadSimulations(Simulation.KeepConstant(15, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)));
 
         NBomberRunner
             .RegisterScenarios(scenario)

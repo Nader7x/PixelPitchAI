@@ -43,22 +43,22 @@ public class DurationSettings
     /// <summary>
     ///     Short test duration in minutes
     /// </summary>
-    public int ShortTestMinutes { get; set; } = 1;
+    public double ShortTestMinutes { get; set; } = 1;
 
     /// <summary>
     ///     Medium test duration in minutes
     /// </summary>
-    public int MediumTestMinutes { get; set; } = 2;
+    public double MediumTestMinutes { get; set; } = 2;
 
     /// <summary>
     ///     Long test duration in minutes
     /// </summary>
-    public int LongTestMinutes { get; set; } = 5;
+    public double LongTestMinutes { get; set; } = 5;
 
     /// <summary>
     ///     Stress test duration in minutes
     /// </summary>
-    public int StressTestMinutes { get; set; } = 10;
+    public double StressTestMinutes { get; set; } = 10;
 }
 
 public class LoadSettings
@@ -104,7 +104,7 @@ public class CacheSettings
     /// <summary>
     ///     Cache hit test duration in minutes
     /// </summary>
-    public int CacheHitTestMinutes { get; set; } = 2;
+    public double CacheHitTestMinutes { get; set; } = 2;
 
     /// <summary>
     ///     Expected cache hit ratio (0.0 to 1.0)

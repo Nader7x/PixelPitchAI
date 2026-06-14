@@ -1,4 +1,5 @@
 using Footex.IntegrationTests.Common;
+using Footex.PerformanceTests.Common;
 using Microsoft.AspNetCore.Http;
 using NBomber.CSharp;
 using NBomber.Http.CSharp;
@@ -8,6 +9,7 @@ using Xunit.Abstractions;
 namespace Footex.PerformanceTests.LoadTests;
 
 [Collection("Performance tests collection")]
+[Trait("Category", "CacheTest")]
 public class CachePerformanceTests(
     FootexWebApplicationFactory factory,
     ITestOutputHelper testOutputHelper
@@ -45,7 +47,7 @@ public class CachePerformanceTests(
                     }
                 )
                 .WithLoadSimulations(
-                    Simulation.Inject(30, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                    Simulation.Inject(30, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Cache.CacheHitTestMinutes))
                 );
 
             NBomberRunner.RegisterScenarios(scenario).Run();
@@ -85,7 +87,7 @@ public class CachePerformanceTests(
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(25, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(25, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Cache.CacheHitTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -122,7 +124,7 @@ public class CachePerformanceTests(
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Cache.CacheHitTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -146,7 +148,7 @@ public class CachePerformanceTests(
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(10, TimeSpan.FromMinutes(2)));
+            .WithLoadSimulations(Simulation.KeepConstant(10, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Cache.CacheHitTestMinutes)));
 
         // Scenario that hits different endpoints (cache misses)
         var nonCachedScenario = Scenario
@@ -162,7 +164,7 @@ public class CachePerformanceTests(
                     return response;
                 }
             )
-            .WithLoadSimulations(Simulation.KeepConstant(10, TimeSpan.FromMinutes(2)));
+            .WithLoadSimulations(Simulation.KeepConstant(10, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Cache.CacheHitTestMinutes)));
 
         NBomberRunner.RegisterScenarios(cachedScenario, nonCachedScenario).Run();
     }

@@ -1,4 +1,5 @@
 using Footex.IntegrationTests.Common;
+using Footex.PerformanceTests.Common;
 using NBomber.CSharp;
 using NBomber.Http.CSharp;
 using Xunit;
@@ -6,6 +7,7 @@ using Xunit;
 namespace Footex.PerformanceTests.LoadTests;
 
 [Collection("Performance tests collection")]
+[Trait("Category", "LoadTest")]
 public class ApiLoadTests(FootexWebApplicationFactory factory)
     : IClassFixture<FootexWebApplicationFactory>
 {
@@ -26,8 +28,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -51,8 +53,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(15, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(15, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -75,8 +77,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(12, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(6, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(12, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(6, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -100,8 +102,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -124,8 +126,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(4, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(8, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(4, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -148,8 +150,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(3, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(2))
+                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(3, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -178,8 +180,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
+                Simulation.Inject(10, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -202,8 +204,8 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
                 }
             )
             .WithLoadSimulations(
-                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1)),
-                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(1))
+                Simulation.Inject(50, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes)),
+                Simulation.Inject(20, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.ShortTestMinutes))
             );
 
         NBomberRunner.RegisterScenarios(scenario).Run();
@@ -213,7 +215,7 @@ public class ApiLoadTests(FootexWebApplicationFactory factory)
     public async Task MixedWorkload_LoadTest()
     {
         var httpClient = await factory.CreateAuthenticatedClientAsync();
-        var loadSimulation = Simulation.KeepConstant(5, TimeSpan.FromMinutes(3));
+        var loadSimulation = Simulation.KeepConstant(5, TimeSpan.FromMinutes(TestConfigurationHelper.Settings.Duration.MediumTestMinutes));
         var matchesScenario = Scenario
             .Create(
                 "mixed_matches",

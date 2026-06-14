@@ -117,12 +117,17 @@ jobs:
           if [[ "${{ github.event.inputs.test_type }}" == "load" ]] || [[ "${{ github.event.inputs.test_type }}" == "all" ]] || [[ "${{ github.event.inputs.test_type }}" == "" ]]; then
             echo "Running Load Tests..."
             dotnet test --no-build --configuration Release \
-              --filter "Category=LoadTest" \
+              --filter "Category=LoadTest|Category=CacheTest|Category=SearchTest" \
               --logger "trx;LogFileName=load-tests.trx" \
               --results-directory ./TestResults
           fi
         env:
           PerformanceTests__BaseUrl: "http://localhost:5025"
+          PerformanceTests__Duration__ShortTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '1' }}
+          PerformanceTests__Duration__MediumTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '2' }}
+          PerformanceTests__Duration__LongTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '5' }}
+          PerformanceTests__Duration__StressTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '10' }}
+          PerformanceTests__Cache__CacheHitTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '2' }}
 
       - name: Stop API
         if: always()
@@ -228,6 +233,11 @@ jobs:
             --results-directory ./TestResults
         env:
           PerformanceTests__BaseUrl: "http://localhost:5025"
+          PerformanceTests__Duration__ShortTestMinutes: "1"
+          PerformanceTests__Duration__MediumTestMinutes: "2"
+          PerformanceTests__Duration__LongTestMinutes: "5"
+          PerformanceTests__Duration__StressTestMinutes: "10"
+          PerformanceTests__Cache__CacheHitTestMinutes: "2"
 
       - name: Stop API
         if: always()
