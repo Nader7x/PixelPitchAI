@@ -17,7 +17,11 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         _teamSeasonsRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamSeasonsRepository>();
-        FreeDbAsync(Context.Coaches,Context.Players,Context.Matches,Context.Teams,Context.Seasons,Context.TeamSeasons).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Coaches, Context.Players, Context.Matches, Context.Teams, Context.Seasons, Context.TeamSeasons);
     }
 
     [Fact]
@@ -186,11 +190,9 @@ public class TeamSeasonsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var teamSeason = await SeedTeamSeasonAsync();
+        teamSeason.UpdatedAt = DateTime.UtcNow.AddSeconds(-5);
         await Context.SaveChangesAsync();
         var originalUpdatedAt = teamSeason.UpdatedAt;
-
-        // Wait to ensure different timestamp
-        await Task.Delay(1000);
 
         // Act
         teamSeason.UpdatedAt = DateTime.UtcNow;

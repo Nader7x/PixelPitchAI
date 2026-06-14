@@ -227,11 +227,11 @@ public class MatchEventsRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var matchEventsEntity = await SeedMatchEventsAsync();
+        var matchEvents = matchEventsEntity.Entity;
+        matchEvents.LastUpdated = DateTime.UtcNow.AddSeconds(-5);
         await Context.SaveChangesAsync();
 
-        var matchEvents = matchEventsEntity.Entity;
         var originalLastUpdated = matchEvents.LastUpdated;
-        await Task.Delay(1000); // Ensure time difference
 
         var newEvents = new[]
         {

@@ -9,7 +9,6 @@ namespace Footex.PerformanceTests.LoadTests;
 [Collection("Performance tests collection")]
 [Trait("Category", "LoadTest")]
 public class ApiLoadTests(FootexWebApplicationFactory factory)
-    : IClassFixture<FootexWebApplicationFactory>
 {
     [Fact]
     public async Task GetAllMatches_LoadTest()

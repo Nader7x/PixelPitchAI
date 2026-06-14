@@ -15,28 +15,21 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class AuthControllerTests : IClassFixture<TestFixtureBase>
+public class AuthControllerTests
 {
     private readonly AuthController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly TestFixtureBase _testFixtureBase;
     private readonly Mock<IUserMapper> _userMapperMock;
 
-    public AuthControllerTests(TestFixtureBase testFixtureBase)
+    public AuthControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         _mediatorMock = new Mock<IMediator>();
         _userMapperMock = new Mock<IUserMapper>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         _controller = new AuthController(
             _mediatorMock.Object,

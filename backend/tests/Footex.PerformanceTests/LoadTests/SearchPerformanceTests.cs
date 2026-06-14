@@ -9,7 +9,6 @@ namespace Footex.PerformanceTests.LoadTests;
 [Collection("Performance tests collection")]
 [Trait("Category", "SearchTest")]
 public class SearchPerformanceTests(FootexWebApplicationFactory factory)
-    : IClassFixture<FootexWebApplicationFactory>
 {
     private static readonly string[] SPlayersQueries =
     [

@@ -95,21 +95,6 @@ jobs:
       - name: Build solution
         run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
-      - name: Start Footex API in background
-        run: |
-          cd backend/src/Footex
-          dotnet run --configuration Release --no-build &
-          echo $! > ../api.pid
-          sleep 30  # Give API time to start
-        env:
-          ASPNETCORE_ENVIRONMENT: Testing
-          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=footex_perf_test;Username=perf_user;Password=perf_password"
-          ConnectionStrings__Redis: "localhost:6379"
-
-      - name: Wait for API to be ready
-        run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5025/api/health; do sleep 2; done'
-
       - name: Run Load Tests
         run: |
           cd backend/tests/Footex.PerformanceTests
@@ -128,14 +113,6 @@ jobs:
           PerformanceTests__Duration__LongTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '5' }}
           PerformanceTests__Duration__StressTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '10' }}
           PerformanceTests__Cache__CacheHitTestMinutes: ${{ github.event_name == 'pull_request' && '0.05' || '2' }}
-
-      - name: Stop API
-        if: always()
-        run: |
-          if [ -f api.pid ]; then
-            kill $(cat api.pid) || true
-            rm api.pid
-          fi
 
       - name: Upload Load Test Results
         uses: actions/upload-artifact@v4
@@ -208,21 +185,6 @@ jobs:
       - name: Build solution
         run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
-      - name: Start Footex API in background
-        run: |
-          cd backend/src/Footex
-          dotnet run --configuration Release --no-build &
-          echo $! > ../api.pid
-          sleep 30
-        env:
-          ASPNETCORE_ENVIRONMENT: Testing
-          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=footex_stress_test;Username=stress_user;Password=stress_password"
-          ConnectionStrings__Redis: "localhost:6379"
-
-      - name: Wait for API to be ready
-        run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5025/api/health; do sleep 2; done'
-
       - name: Run Stress Tests
         run: |
           cd backend/tests/Footex.PerformanceTests
@@ -238,14 +200,6 @@ jobs:
           PerformanceTests__Duration__LongTestMinutes: "5"
           PerformanceTests__Duration__StressTestMinutes: "10"
           PerformanceTests__Cache__CacheHitTestMinutes: "2"
-
-      - name: Stop API
-        if: always()
-        run: |
-          if [ -f api.pid ]; then
-            kill $(cat api.pid) || true
-            rm api.pid
-          fi
 
       - name: Upload Stress Test Results
         uses: actions/upload-artifact@v4
@@ -263,6 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'schedule' ||
+      github.event_name == 'pull_request' ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
 
     services:
@@ -298,7 +253,11 @@ jobs:
       - name: Run Benchmarks
         run: |
           echo "Running Benchmarks..."
-          dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all dry
+          else
+            dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all
+          fi
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@v4

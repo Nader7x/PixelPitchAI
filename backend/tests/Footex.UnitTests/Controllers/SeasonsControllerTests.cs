@@ -15,28 +15,21 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class SeasonsControllerTests : IClassFixture<TestFixtureBase>
+public class SeasonsControllerTests
 {
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly SeasonsController _controller;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ISeasonMapper> _seasonMapperMock;
-    private readonly TestFixtureBase _testFixtureBase;
 
-    public SeasonsControllerTests(TestFixtureBase testFixtureBase)
+    public SeasonsControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         _mediatorMock = new Mock<IMediator>();
         _seasonMapperMock = new Mock<ISeasonMapper>();
         _cacheServiceMock = new Mock<ICacheService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         _controller = new SeasonsController(
             _mediatorMock.Object,

@@ -10,7 +10,11 @@ public class GetAllCoachesQueryHandlerIntegrationTests
 {
     public GetAllCoachesQueryHandlerIntegrationTests(FootexWebApplicationFactory factory) : base(factory)
     {
-        FreeDbAsync(Context.Matches,Context.Coaches,Context.Players, Context.Teams).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Matches, Context.Coaches, Context.Players, Context.Teams);
     }
 
     [Fact]

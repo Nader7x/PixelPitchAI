@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Identity;
 using Moq;
 using Xunit;
 
+using Footex.UnitTests.Common;
+
 namespace Footex.UnitTests.Infrastructure.Identity;
 
 public class IdentityServiceUnitTests
@@ -19,14 +21,7 @@ public class IdentityServiceUnitTests
 
     public IdentityServiceUnitTests()
     {
-        _fixture = new Fixture();
-
-        // Configure AutoFixture to handle circular references
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        _fixture = new NoRecursionFixture();
 
         // Customize entity creation to avoid problematic navigation properties
         _fixture.Customize<ApplicationUser>(composer =>

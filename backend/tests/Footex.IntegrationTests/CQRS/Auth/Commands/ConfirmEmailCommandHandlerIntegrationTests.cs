@@ -18,7 +18,11 @@ public class ConfirmEmailCommandHandlerIntegrationTests : BaseIntegrationTest
         _userManager = FactoryServiceScope.ServiceProvider.GetRequiredService<
             UserManager<ApplicationUser>
         >();
-        FreeDbAsync(Context.Users).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Users);
     }
 
     [Fact]

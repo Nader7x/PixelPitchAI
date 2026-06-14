@@ -3,11 +3,12 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using Footex.IntegrationTests.Common;
 
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
+
 namespace Footex.PerformanceTests.Benchmarks;
 
 [Config(typeof(SearchBenchmarkConfig))]
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
 public class SearchBenchmarks
 {
     private FootexWebApplicationFactory _factory = null!;
@@ -109,7 +110,8 @@ public class SearchBenchmarkConfig : ManualConfig
     public SearchBenchmarkConfig()
     {
         AddJob(
-            Job.Default.WithWarmupCount(2)
+            Job.Default.WithToolchain(InProcessEmitToolchain.Instance)
+                .WithWarmupCount(2)
                 .WithIterationCount(8)
                 .WithInvocationCount(1)
                 .WithUnrollFactor(1)

@@ -19,7 +19,11 @@ public class TeamRepositoryIntegrationTests : BaseIntegrationTest
     {
         _teamRepository = FactoryServiceScope.ServiceProvider.GetRequiredService<ITeamRepository>();
         _factory = factory;
-        FreeDbAsync(Context.Coaches,Context.Players,Context.Matches,Context.Teams).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Coaches, Context.Players, Context.Matches, Context.Teams);
     }
 
     [Fact]

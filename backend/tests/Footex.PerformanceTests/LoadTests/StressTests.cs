@@ -10,7 +10,6 @@ namespace Footex.PerformanceTests.LoadTests;
 [Collection("Performance tests collection")]
 [Trait("Category", "StressTest")]
 public class StressTests(FootexWebApplicationFactory factory)
-    : IClassFixture<FootexWebApplicationFactory>
 {
     private static readonly string[] EnduranceEndpointsArray =
     [
@@ -232,7 +231,6 @@ public class StressTests(FootexWebApplicationFactory factory)
                     var action = actions[Random.Shared.Next(actions.Length)];
                     var response = await action();
 
-                    await Task.Delay(Random.Shared.Next(100, 501));
                     return response;
                 }
             )

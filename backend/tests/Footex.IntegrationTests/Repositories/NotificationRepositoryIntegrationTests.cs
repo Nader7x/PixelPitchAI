@@ -102,8 +102,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
     {
         // Arrange
         var user = await SeedUserAsync();
-        var oldNotification = await SeedNotificationAsync(user.Id, "Old notification");
-        await Task.Delay(100); // Ensure different timestamps
+        var oldNotification = await SeedNotificationAsync(user.Id, "Old notification", time: DateTime.UtcNow.AddMinutes(-10));
         var newNotification = await SeedNotificationAsync(user.Id, "New notification");
 
         // Act
@@ -252,7 +251,8 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
         string? userId = null,
         string content = "Test notification",
         NotificationType type = NotificationType.Info,
-        bool isRead = false
+        bool isRead = false,
+        DateTime? time = null
     )
     {
         userId ??= (await SeedUserAsync()).Id;
@@ -263,7 +263,7 @@ public class NotificationRepositoryIntegrationTests : BaseIntegrationTest
             Content = content,
             Type = type,
             IsRead = isRead,
-            Time = DateTime.UtcNow,
+            Time = time ?? DateTime.UtcNow,
             Title = "Test Notification Title",
         };
 

@@ -11,25 +11,17 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class SearchControllerTests : IClassFixture<TestFixtureBase>
+public class SearchControllerTests
 {
     private readonly Mock<IAdvancedSearchService> _advancedSearchServiceMock;
     private readonly SearchController _controller;
     private readonly NoRecursionFixture _fixture;
-    private readonly TestFixtureBase _testFixtureBase;
 
-    public SearchControllerTests(TestFixtureBase testFixtureBase)
+    public SearchControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         _advancedSearchServiceMock = new Mock<IAdvancedSearchService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-
         _controller = new SearchController(_advancedSearchServiceMock.Object);
     }
 

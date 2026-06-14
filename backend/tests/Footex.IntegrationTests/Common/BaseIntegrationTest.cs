@@ -1,7 +1,9 @@
 using System.Collections;
 using Domain.Interfaces;
+using Domain.Models;
 using Infrastructure;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static System.GC;
@@ -9,7 +11,7 @@ using static System.GC;
 namespace Footex.IntegrationTests.Common;
 
 [Collection("Database collection")]
-public abstract class BaseIntegrationTest : IDisposable
+public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
 {
     protected readonly IServiceScope FactoryServiceScope;
     protected readonly IMediator Mediator;
@@ -24,6 +26,10 @@ public abstract class BaseIntegrationTest : IDisposable
         Context = FactoryServiceScope.ServiceProvider.GetRequiredService<FootballDbContext>();
     }
 
+    public virtual Task InitializeAsync() => Task.CompletedTask;
+
+    public virtual Task DisposeAsync() => Task.CompletedTask;
+
     protected async Task FreeDbAsync(params object[] dbSets) // Accepts any objects, we'll cast them inside
     {
         if (dbSets.Length == 0)
@@ -33,18 +39,52 @@ public abstract class BaseIntegrationTest : IDisposable
         {
             switch (dbSetObject)
             {
-                // Check if the passed object is an IEnumerable (which DbSet<T> is)
+                case DbSet<Match> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<MatchEvents> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Team> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Player> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Coach> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Competition> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Stadium> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Season> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<TeamSeason> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<RefreshToken> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<Notification> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<MatchStatistics> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
+                case DbSet<ApplicationUser> dbSet:
+                    await dbSet.ExecuteDeleteAsync();
+                    break;
                 case IEnumerable<object> enumerableSet:
-                    // If it's already IEnumerable<object>, use it directly
                     Context.RemoveRange(enumerableSet);
                     break;
                 case IEnumerable nonGenericEnumerable:
-                    // If it's a non-generic IEnumerable (like DbSet<T> cast to IEnumerable),
-                    // cast its elements to the object to use RemoveRange.
                     Context.RemoveRange(nonGenericEnumerable.Cast<object>());
                     break;
                 default:
-                    // Optional: Log a warning or throw an exception if an unexpected type is passed
                     Console.WriteLine($"Warning: Skipping unexpected type in FreeDbAsync: {dbSetObject?.GetType().Name ?? "null"}");
                     break;
             }

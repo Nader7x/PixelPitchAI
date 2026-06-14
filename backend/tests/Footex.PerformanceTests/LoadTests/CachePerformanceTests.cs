@@ -13,7 +13,7 @@ namespace Footex.PerformanceTests.LoadTests;
 public class CachePerformanceTests(
     FootexWebApplicationFactory factory,
     ITestOutputHelper testOutputHelper
-) : IClassFixture<FootexWebApplicationFactory>
+)
 {
     [Fact]
     public async Task PlayerCache_PerformanceTest()

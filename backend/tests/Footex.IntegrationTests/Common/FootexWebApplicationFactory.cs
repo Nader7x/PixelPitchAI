@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -97,6 +98,30 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             if (rabbitMqDescriptor != null)
                 services.Remove(rabbitMqDescriptor);
 
+            // Remove Redis connections and cache services to prevent connection timeouts
+            var redisConnDescriptor = services.SingleOrDefault(d =>
+                d.ServiceType.FullName != null && d.ServiceType.FullName.Contains("IConnectionMultiplexer")
+            );
+            if (redisConnDescriptor != null)
+                services.Remove(redisConnDescriptor);
+
+            var distCacheDescriptor = services.SingleOrDefault(d =>
+                d.ServiceType == typeof(Microsoft.Extensions.Caching.Distributed.IDistributedCache)
+            );
+            if (distCacheDescriptor != null)
+                services.Remove(distCacheDescriptor);
+
+            var cacheServiceDescriptor = services.SingleOrDefault(d =>
+                d.ServiceType == typeof(ICacheService)
+            );
+            if (cacheServiceDescriptor != null)
+                services.Remove(cacheServiceDescriptor);
+
+            // Register in-memory cache implementations
+            services.AddMemoryCache();
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ICacheService, InMemoryCacheService>();
+
             services.AddSingleton<IHostedService, DummyMatchEventRabbitMqClient>(sp =>
             {
                 var hubContext = sp.GetRequiredService<IHubContext<MatchHub, IMatchHub>>();
@@ -168,7 +193,7 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         // Get the directory of the currently executing assembly (the benchmark runner or test assembly)
         // This will typically be within your project's bin/Release/net8.0 or a BenchmarkDotNet temp folder.
         var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-        var currentDirectory = new DirectoryInfo(Path.GetDirectoryName(assemblyLocation) ?? @"D:\programming\GitHub\Footex\Footex");
+        var currentDirectory = new DirectoryInfo(Path.GetDirectoryName(assemblyLocation) ?? @"d:\programming\GitHub\PixelPitchAI\backend");
 
         Console.WriteLine(
             $"[DEBUG] Starting project directory search from assembly location: {currentDirectory.FullName}");
@@ -183,7 +208,7 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         if (currentDirectory == null)
         {
             throw new InvalidOperationException("Could not find the solution root directory (.sln file not found). " +
-                                                "Ensure the test is run from within the solution folder structure.");
+                                                 "Ensure the test is run from within the solution folder structure.");
         }
 
         // Now, currentDirectory.FullName is the solution root (e.g., D:\programming\GitHub\Footex\)
@@ -205,5 +230,60 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         }
 
         return footexProjectDirectory;
+    }
+
+    private class InMemoryCacheService(Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache) : ICacheService
+    {
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _keys = new();
+
+        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
+        {
+            return Task.FromResult(memoryCache.Get<T>(key));
+        }
+
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
+        {
+            _keys.TryAdd(key, 0);
+            var options = new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions();
+            if (expiration.HasValue)
+            {
+                options.AbsoluteExpirationRelativeToNow = expiration.Value;
+            }
+            memoryCache.Set(key, value, options);
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+        {
+            _keys.TryRemove(key, out _);
+            memoryCache.Remove(key);
+            return Task.CompletedTask;
+        }
+
+        public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null, CancellationToken cancellationToken = default) where T : class
+        {
+            if (memoryCache.TryGetValue(key, out object? cachedObj) && cachedObj is T cachedValue)
+            {
+                return cachedValue;
+            }
+
+            var value = await factory();
+            await SetAsync(key, value, expiration, cancellationToken);
+            return value;
+        }
+
+        public Task RemoveByPatternAsync(string pattern, CancellationToken cancellationToken = default)
+        {
+            var normalizedPattern = pattern.Replace("*", "");
+            foreach (var key in _keys.Keys)
+            {
+                if (key.Contains(normalizedPattern))
+                {
+                    _keys.TryRemove(key, out _);
+                    memoryCache.Remove(key);
+                }
+            }
+            return Task.CompletedTask;
+        }
     }
 }

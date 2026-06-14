@@ -16,7 +16,11 @@ public class SeasonRepositoryIntegrationTests : BaseIntegrationTest
     {
         _seasonRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<ISeasonRepository>();
-        FreeDbAsync(Context.Seasons).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Seasons);
     }
 
     [Fact]

@@ -33,20 +33,3 @@ public class NoRecursionFixture : Fixture
     }
 }
 
-/// <summary>
-///     AutoData attribute that uses the NoRecursionFixture
-/// </summary>
-public class NoRecursionAutoDataAttribute : AutoDataAttribute
-{
-    public NoRecursionAutoDataAttribute()
-        : base(() => new NoRecursionFixture()) { }
-}
-
-/// <summary>
-///     InlineAutoData attribute that uses the NoRecursionFixture
-/// </summary>
-public class NoRecursionInlineAutoDataAttribute : InlineAutoDataAttribute
-{
-    public NoRecursionInlineAutoDataAttribute(params object[] values)
-        : base(new NoRecursionAutoDataAttribute(), values) { }
-}

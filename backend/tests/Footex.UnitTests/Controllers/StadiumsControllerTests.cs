@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class StadiumsControllerTests : IClassFixture<TestFixtureBase>
+public class StadiumsControllerTests
 {
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly StadiumsController _controller;
@@ -23,23 +23,15 @@ public class StadiumsControllerTests : IClassFixture<TestFixtureBase>
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IStadiumMapper> _stadiumMapperMock;
-    private readonly TestFixtureBase _testFixtureBase;
 
-    public StadiumsControllerTests(TestFixtureBase testFixtureBase)
+    public StadiumsControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         _mediatorMock = new Mock<IMediator>();
         _stadiumMapperMock = new Mock<IStadiumMapper>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _cacheServiceMock = new Mock<ICacheService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture.Customizations.Add(new IFormFileSpecimenBuilder());
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         _controller = new StadiumsController(
             _mediatorMock.Object,

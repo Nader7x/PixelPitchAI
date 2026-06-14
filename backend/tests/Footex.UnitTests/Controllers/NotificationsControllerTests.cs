@@ -18,7 +18,7 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
+public class NotificationsControllerTests
 {
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly NotificationsController _controller;
@@ -26,12 +26,10 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
     private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<INotificationService> _notificationServiceMock;
-    private readonly TestFixtureBase _testFixtureBase;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
-    public NotificationsControllerTests(TestFixtureBase testFixtureBase)
+    public NotificationsControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         _mediatorMock = new Mock<IMediator>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
@@ -40,11 +38,6 @@ public class NotificationsControllerTests : IClassFixture<TestFixtureBase>
         _cacheServiceMock = new Mock<ICacheService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         _controller = new NotificationsController(
             _mediatorMock.Object,

@@ -7,16 +7,18 @@ namespace Footex.UnitTests.Common;
 
 public static class TestDataBuilder
 {
-    private static readonly Fixture _fixture = new();
-
-    static TestDataBuilder()
+    private static readonly System.Threading.ThreadLocal<Fixture> _fixtureHolder = new(() =>
     {
-        _fixture
+        var fixture = new Fixture();
+        fixture
             .Behaviors.OfType<ThrowingRecursionBehavior>()
             .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-    }
+            .ForEach(b => fixture.Behaviors.Remove(b));
+        fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        return fixture;
+    });
+
+    private static Fixture _fixture => _fixtureHolder.Value!;
 
     public static CreateMatchDto CreateValidCreateMatchDto()
     {

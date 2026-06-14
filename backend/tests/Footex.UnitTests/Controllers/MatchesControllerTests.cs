@@ -23,18 +23,16 @@ using Xunit;
 
 namespace Footex.UnitTests.Controllers;
 
-public class MatchesControllerTests : IClassFixture<TestFixtureBase>
+public class MatchesControllerTests
 {
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly MatchesController _controller;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly TestFixtureBase _testFixtureBase;
 
-    public MatchesControllerTests(TestFixtureBase testFixtureBase)
+    public MatchesControllerTests()
     {
-        _testFixtureBase = testFixtureBase;
         var liveMatchService = new Mock<ILiveMatchStatisticsService>();
         _mediatorMock = new Mock<IMediator>();
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
@@ -48,11 +46,6 @@ public class MatchesControllerTests : IClassFixture<TestFixtureBase>
         var performanceMonitoring = new Mock<IPerformanceMonitoringService>();
 
         _fixture = new NoRecursionFixture();
-        _fixture
-            .Behaviors.OfType<ThrowingRecursionBehavior>()
-            .ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         // Setup simulation options
         var simulationOptions = new SimulationServiceOptions

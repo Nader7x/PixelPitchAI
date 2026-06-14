@@ -16,7 +16,11 @@ public class PlayerRepositoryIntegrationTests : BaseIntegrationTest
     {
         _playerRepository =
             FactoryServiceScope.ServiceProvider.GetRequiredService<IPlayerRepository>();
-        FreeDbAsync(Context.Coaches,Context.Players,Context.Matches, Context.Teams).Wait();
+    }
+
+    public override async Task InitializeAsync()
+    {
+        await FreeDbAsync(Context.Coaches, Context.Players, Context.Matches, Context.Teams);
     }
 
     [Fact]

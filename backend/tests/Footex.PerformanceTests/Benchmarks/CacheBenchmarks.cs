@@ -3,11 +3,12 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using Footex.IntegrationTests.Common;
 
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
+
 namespace Footex.PerformanceTests.Benchmarks;
 
 [Config(typeof(CacheBenchmarkConfig))]
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net90)]
 public class CacheBenchmarks
 {
     private FootexWebApplicationFactory _factory = null!;
@@ -148,7 +149,8 @@ public class CacheBenchmarkConfig : ManualConfig
     public CacheBenchmarkConfig()
     {
         AddJob(
-            Job.Default.WithWarmupCount(3)
+            Job.Default.WithToolchain(InProcessEmitToolchain.Instance)
+                .WithWarmupCount(3)
                 .WithIterationCount(10)
                 .WithInvocationCount(1)
                 .WithUnrollFactor(1)
