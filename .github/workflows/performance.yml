@@ -1,12 +1,6 @@
 name: Performance Tests
 
 on:
-  pull_request:
-    branches: [main]
-    types: [labeled]
-  schedule:
-    # Run performance tests weekly on Sunday at 3:28 AM UTC
-    - cron: "28 3 * * 0"
   workflow_dispatch:
     inputs:
       run_mode:
@@ -55,10 +49,7 @@ jobs:
   load-tests:
     name: Load Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'performance'))
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -108,9 +99,7 @@ jobs:
   stress-tests:
     name: Stress Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'stress' || github.event.inputs.test_type == 'all'))
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'stress' || github.event.inputs.test_type == 'all')
 
     steps:
       - name: Checkout code
@@ -157,10 +146,7 @@ jobs:
   benchmarks:
     name: Micro-benchmarks
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'schedule' ||
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all')
 
     steps:
       - name: Checkout code
@@ -180,7 +166,7 @@ jobs:
       - name: Run Benchmarks
         run: |
           echo "Running Benchmarks..."
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event.inputs.run_mode }}" == "fast" ]]; then
             dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all dry
           else
             dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all
