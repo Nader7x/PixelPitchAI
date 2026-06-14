@@ -138,8 +138,8 @@ jobs:
         with:
           name: load-test-results
           path: |
-            ./Footex.PerformanceTests/TestResults/
-            ./Footex.PerformanceTests/nbomber-reports/
+            backend/tests/Footex.PerformanceTests/TestResults/
+            backend/tests/Footex.PerformanceTests/nbomber-reports/
           retention-days: 30
 
   # Job 2: Stress Tests
@@ -243,8 +243,8 @@ jobs:
         with:
           name: stress-test-results
           path: |
-            ./Footex.PerformanceTests/TestResults/
-            ./Footex.PerformanceTests/stress-test-results/
+            backend/tests/Footex.PerformanceTests/TestResults/
+            backend/tests/Footex.PerformanceTests/stress-test-results/
           retention-days: 30
 
   # Job 3: Benchmarks
