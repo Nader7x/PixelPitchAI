@@ -41,45 +41,6 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'performance'))
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: footex_perf_test
-          POSTGRES_USER: perf_user
-          POSTGRES_PASSWORD: perf_password
-
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-      rabbitmq:
-        image: rabbitmq:3-management
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmqctl status"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -132,44 +93,6 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'stress' || github.event.inputs.test_type == 'all'))
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: footex_stress_test
-          POSTGRES_USER: stress_user
-          POSTGRES_PASSWORD: stress_password
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-      rabbitmq:
-        image: rabbitmq:3-management
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmqctl status"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -219,21 +142,6 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'pull_request' ||
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.test_type == 'benchmark' || github.event.inputs.test_type == 'all'))
-
-    services:
-      rabbitmq:
-        image: rabbitmq:3-management
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmqctl status"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
 
     steps:
       - name: Checkout code

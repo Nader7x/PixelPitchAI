@@ -94,26 +94,6 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-      rabbitmq:
-        image: rabbitmq:3-management
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
