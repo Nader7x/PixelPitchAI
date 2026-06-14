@@ -98,16 +98,21 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             if (rabbitMqDescriptor != null)
                 services.Remove(rabbitMqDescriptor);
 
-            // Remove real RabbitMQ hosted service to prevent connection attempts in tests
-            var realRabbitMqHostedServices = services.Where(d =>
-                d.ServiceType == typeof(IHostedService) &&
-                d.ImplementationType != null &&
-                d.ImplementationType.Name.Contains("MatchEventRabbitMqClient")
+            // Remove all existing IHostedService registrations to clear the real RabbitMQ background client
+            var existingHostedServices = services.Where(d =>
+                d.ServiceType == typeof(IHostedService)
             ).ToList();
-            foreach (var service in realRabbitMqHostedServices)
+            foreach (var service in existingHostedServices)
             {
                 services.Remove(service);
             }
+
+            // Remove the concrete MatchEventRabbitMqClient singleton registration
+            var realRabbitMqServiceDescriptor = services.SingleOrDefault(d =>
+                d.ServiceType.FullName != null && d.ServiceType.FullName.Contains("MatchEventRabbitMqClient")
+            );
+            if (realRabbitMqServiceDescriptor != null)
+                services.Remove(realRabbitMqServiceDescriptor);
 
             // Remove Redis connections and cache services to prevent connection timeouts
             var redisConnDescriptor = services.SingleOrDefault(d =>
