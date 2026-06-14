@@ -11,7 +11,7 @@ using static System.GC;
 namespace Footex.IntegrationTests.Common;
 
 [Collection("Database collection")]
-public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
+public abstract class BaseIntegrationTest : IAsyncLifetime
 {
     protected readonly IServiceScope FactoryServiceScope;
     protected readonly IMediator Mediator;
@@ -28,7 +28,11 @@ public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
 
     public virtual Task InitializeAsync() => Task.CompletedTask;
 
-    public virtual Task DisposeAsync() => Task.CompletedTask;
+    public virtual Task DisposeAsync()
+    {
+        FactoryServiceScope.Dispose();
+        return Task.CompletedTask;
+    }
 
     protected async Task FreeDbAsync(params object[] dbSets) // Accepts any objects, we'll cast them inside
     {
@@ -91,13 +95,5 @@ public abstract class BaseIntegrationTest : IAsyncLifetime, IDisposable
         }
 
         await Context.SaveChangesAsync();
-    }
-
-
-    public void Dispose()
-    {
-        // Dispose of the scope to release resources
-        FactoryServiceScope.Dispose();
-        SuppressFinalize(this);
     }
 }
