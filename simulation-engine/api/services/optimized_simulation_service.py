@@ -482,6 +482,12 @@ class UltraOptimizedModelResources:
             logger.error(f"Failed to load ultra-optimized models: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to load models: {str(e)}")
 
+    def is_healthy(self) -> tuple[bool, bool]:
+        """Check if models are loaded and healthy"""
+        model_loaded = self.model is not None and self.tokenizer is not None
+        xgboost_loaded = self.xgboost_model is not None
+        return model_loaded, xgboost_loaded
+
     def _apply_ultra_optimizations(self):
         """Apply ultra-advanced model optimizations appropriately for CPU/GPU"""
         try:

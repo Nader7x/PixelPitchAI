@@ -11,8 +11,10 @@ from fastapi import APIRouter, Depends
 
 from ..auth.security import get_auth
 from ..models.schemas import HealthCheck, APIInfo
-from ..services.simulation_service import get_resources
-from ..services.simulation_service import get_simulation_service
+from ..services.optimized_simulation_service import get_optimized_simulation_service as get_simulation_service
+
+def get_resources():
+    return get_simulation_service().model_resources
 
 router = APIRouter(tags=["System"])
 

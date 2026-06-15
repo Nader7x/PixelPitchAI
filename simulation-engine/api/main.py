@@ -35,7 +35,7 @@ from api.config.settings import (
     API_KEY_NAME, LOG_FILE
 )
 from .routes import auth, simulation, system
-from .services.simulation_service import get_simulation_service
+from .services.optimized_simulation_service import get_optimized_simulation_service as get_simulation_service
 from .utils.directories import ensure_directories, cleanup_old_files
 from .utils.logging import setup_logging, get_logger
 

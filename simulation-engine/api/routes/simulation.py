@@ -26,7 +26,7 @@ from ..models.schemas import (
     MatchRequest, MatchResponse, SimulationStatus, WebhookRequest
 )
 from ..auth.security import get_auth
-from ..services.simulation_service import get_simulation_service
+from ..services.optimized_simulation_service import get_optimized_simulation_service as get_simulation_service
 from ..services.webhook_service import get_webhook_service
 
 router = APIRouter(tags=["Simulation"])
