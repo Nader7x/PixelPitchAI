@@ -1,6 +1,6 @@
 using Application.Dtos;
 using Domain.Interfaces;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Teams.Queries;
 
@@ -18,7 +18,7 @@ public class GetTeamSeasonsQueryResponse
     public string? Error { get; set; }
 }
 
-public class GetTeamSeasonsQueryResponseHandler(IUnitOfWork unitOfWork)
+public class GetTeamSeasonsQueryHandler(IUnitOfWork unitOfWork)
     : IRequestHandler<GetTeamSeasonsQuery, GetTeamSeasonsQueryResponse>
 {
     public async Task<GetTeamSeasonsQueryResponse> Handle(

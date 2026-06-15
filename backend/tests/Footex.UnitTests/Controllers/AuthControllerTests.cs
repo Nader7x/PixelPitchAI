@@ -7,7 +7,7 @@ using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -20,19 +20,16 @@ public class AuthControllerTests
     private readonly AuthController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IUserMapper> _userMapperMock;
 
     public AuthControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _userMapperMock = new Mock<IUserMapper>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
 
         _fixture = new NoRecursionFixture();
 
         _controller = new AuthController(
-            _mediatorMock.Object,
             _userMapperMock.Object,
             _fileStorageServiceMock.Object
         );
@@ -87,12 +84,13 @@ public class AuthControllerTests
             .Setup(x => x.ToRegisterCommandFromDto(It.IsAny<RegisterUserDto>()))
             .Returns(registerCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<RegisterUserCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<RegisterUserCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Register(registerDto);
+        var result = await _controller.Register(registerDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<RegisterUserCommandResponse>>();
@@ -100,7 +98,7 @@ public class AuthControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<RegisterUserCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<RegisterUserCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -137,12 +135,13 @@ public class AuthControllerTests
             .Setup(x => x.ToRegisterCommandFromDto(It.IsAny<RegisterUserDto>()))
             .Returns(registerCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<RegisterUserCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<RegisterUserCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Register(registerDto);
+        var result = await _controller.Register(registerDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<RegisterUserCommandResponse>>();
@@ -150,7 +149,7 @@ public class AuthControllerTests
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<RegisterUserCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<RegisterUserCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -168,12 +167,13 @@ public class AuthControllerTests
             RefreshToken = "refresh-token-here",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<LoginUserCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<LoginUserCommand, LoginUserCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Login(loginDto);
+        var result = await _controller.Login(loginDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<LoginUserCommandResponse>>();
@@ -181,13 +181,13 @@ public class AuthControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
+        handlerMock.Verify(
             x =>
-                x.Send(
+                x.Handle(
                     It.Is<LoginUserCommand>(c =>
                         c.Email == loginDto.Email && c.Password == loginDto.Password
                     ),
-                    default
+                    It.IsAny<CancellationToken>()
                 ),
             Times.Once
         );
@@ -205,12 +205,13 @@ public class AuthControllerTests
             Error = "Invalid credentials",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<LoginUserCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<LoginUserCommand, LoginUserCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Login(loginDto);
+        var result = await _controller.Login(loginDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<LoginUserCommandResponse>>();
@@ -218,7 +219,7 @@ public class AuthControllerTests
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<LoginUserCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -235,12 +236,13 @@ public class AuthControllerTests
             Age = 25,
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserProfileQuery>(), default))
+        var handlerMock = new Mock<IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetUserProfileQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetProfile();
+        var result = await _controller.GetProfile(handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetUserProfileQueryResponse>>();
@@ -248,7 +250,7 @@ public class AuthControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetUserProfileQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetUserProfileQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -277,16 +279,18 @@ public class AuthControllerTests
             .Setup(x => x.ToUpdateCommand(It.IsAny<UpdateUserDto>()))
             .Returns(updateCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateUserCommand>(), default))
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateUserCommand, UpdateUserCommandResponse>>();
+        updateHandlerMock
+            .Setup(x => x.Handle(It.IsAny<UpdateUserCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserProfileQuery>(), default))
+        var profileHandlerMock = new Mock<IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse>>();
+        profileHandlerMock
+            .Setup(x => x.Handle(It.IsAny<GetUserProfileQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetUserProfileQueryResponse { Succeeded = true });
 
         // Act
-        var result = await _controller.UpdateUser(updateDto);
+        var result = await _controller.UpdateUser(updateDto, profileHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateUserCommandResponse>>();
@@ -294,6 +298,6 @@ public class AuthControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateUserCommand>(), default), Times.Once);
+        updateHandlerMock.Verify(x => x.Handle(It.IsAny<UpdateUserCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

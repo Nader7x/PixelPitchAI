@@ -1,6 +1,6 @@
 using Domain.Interfaces;
 using Domain.Models;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Identity;
 
 namespace Application.CQRS.Auth.Commands;

@@ -9,7 +9,7 @@ using Domain.Models;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -24,13 +24,11 @@ public class NotificationsControllerTests
     private readonly NotificationsController _controller;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<INotificationService> _notificationServiceMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public NotificationsControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
         _notificationServiceMock = new Mock<INotificationService>();
@@ -40,7 +38,6 @@ public class NotificationsControllerTests
         _fixture = new NoRecursionFixture();
 
         _controller = new NotificationsController(
-            _mediatorMock.Object,
             _unitOfWorkMock.Object,
             _hubContextMock.Object,
             _cacheServiceMock.Object
@@ -92,12 +89,13 @@ public class NotificationsControllerTests
 
         _unitOfWorkMock.Setup(x => x.ApplicationUser.GetByIdAsync(userId)).ReturnsAsync(user);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetUserNotificationsQuery>(q => q.UserId == userId), default))
+        var handlerMock = new Mock<IRequestHandler<GetUserNotificationsQuery, GetUserNotificationsQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetUserNotificationsQuery>(q => q.UserId == userId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetAllUserNotifications(userId);
+        var result = await _controller.GetAllUserNotifications(userId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -105,8 +103,8 @@ public class NotificationsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetUserNotificationsQuery>(q => q.UserId == userId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetUserNotificationsQuery>(q => q.UserId == userId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -116,9 +114,10 @@ public class NotificationsControllerTests
     {
         // Arrange
         var emptyUserId = "";
+        var handlerMock = new Mock<IRequestHandler<GetUserNotificationsQuery, GetUserNotificationsQueryResponse>>();
 
         // Act
-        var result = await _controller.GetAllUserNotifications(emptyUserId);
+        var result = await _controller.GetAllUserNotifications(emptyUserId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -136,21 +135,22 @@ public class NotificationsControllerTests
     {
         // Arrange
         var userId = "non-existent-user";
+        var handlerMock = new Mock<IRequestHandler<GetUserNotificationsQuery, GetUserNotificationsQueryResponse>>();
 
         _unitOfWorkMock
             .Setup(x => x.ApplicationUser.GetByIdAsync(userId))
             .ReturnsAsync((ApplicationUser?)null);
 
         // Act
-        var result = await _controller.GetAllUserNotifications(userId);
+        var result = await _controller.GetAllUserNotifications(userId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result as NotFoundObjectResult;
         notFoundResult!.Value.Should().Be($"User with ID '{userId}' not found.");
 
-        _mediatorMock.Verify(
-            x => x.Send(It.IsAny<GetUserNotificationsQuery>(), default),
+        handlerMock.Verify(
+            x => x.Handle(It.IsAny<GetUserNotificationsQuery>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }

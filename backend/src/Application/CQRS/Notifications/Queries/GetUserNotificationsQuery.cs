@@ -1,6 +1,6 @@
 using Application.Dtos;
 using Domain.Repositories;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Notifications.Queries;
 

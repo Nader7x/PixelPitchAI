@@ -1,8 +1,8 @@
+using Application.CQRS;
 using Application.CQRS.Teams.Commands;
 using Application.CQRS.Teams.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class TeamsController(
-    IMediator mediator,
     ITeamMapper teamMapper,
     IFileStorageService azureBlobStorageService,
     ICacheService cacheService
@@ -28,7 +27,9 @@ public class TeamsController(
     /// <returns>List of teams</returns>
     [HttpGet]
     [ProducesResponseType(typeof(GetAllTeamsQueryResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll()
+    public async Task<ActionResult<GetAllTeamsQueryResponse>> GetAll(
+        [FromServices] IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse> handler
+    )
     {
         // Try to get from the cache first
         const string cacheKey = "teams_all";
@@ -42,7 +43,7 @@ public class TeamsController(
 
         // Cache miss, fetch from a database
         var query = new GetAllTeamsQuery();
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         // Store in a cache if successful
         if (result.Succeeded)
@@ -60,7 +61,10 @@ public class TeamsController(
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(GetTeamByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<GetTeamByIdQueryResponse>> GetById(int id)
+    public async Task<ActionResult<GetTeamByIdQueryResponse>> GetById(
+        int id,
+        [FromServices] IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse> handler
+    )
     {
         // Try to get from cache first
         var cacheKey = $"team_{id}";
@@ -74,7 +78,7 @@ public class TeamsController(
 
         // Cache miss, fetch from database
         var query = new GetTeamByIdQuery { Id = id };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         // Store in cache if successful
         if (result is { Succeeded: true, Team: not null })
@@ -98,7 +102,10 @@ public class TeamsController(
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CreateTeamCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateTeamCommandResponse>> Create([FromForm] CreateTeamDto dto)
+    public async Task<ActionResult<CreateTeamCommandResponse>> Create(
+        [FromForm] CreateTeamDto dto,
+        [FromServices] IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse> handler
+    )
     {
         if (dto.Image != null)
         {
@@ -110,7 +117,7 @@ public class TeamsController(
         }
 
         var command = _teamMapper.ToCreateCommand(dto);
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -134,13 +141,15 @@ public class TeamsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdateTeamCommandResponse>> Update(
         int id,
-        [FromForm] UpdateTeamDto dto
+        [FromForm] UpdateTeamDto dto,
+        [FromServices] IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse> getHandler,
+        [FromServices] IRequestHandler<UpdateTeamCommand, UpdateTeamCommandResponse> updateHandler
     )
     {
         dto.Id = id;
         if (dto.Image != null)
         {
-            var existingTeam = await mediator.Send(new GetTeamByIdQuery { Id = id });
+            var existingTeam = await getHandler.Handle(new GetTeamByIdQuery { Id = id }, HttpContext.RequestAborted);
             if (
                 existingTeam is { Succeeded: true, Team: not null }
                 && !string.IsNullOrEmpty(existingTeam.Team.Logo)
@@ -156,7 +165,7 @@ public class TeamsController(
         if (id != command.Id)
             return BadRequest("ID mismatch");
 
-        var result = await mediator.Send(command);
+        var result = await updateHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return result.NotFound ? NotFound() : BadRequest(result);
@@ -176,10 +185,13 @@ public class TeamsController(
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromServices] IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse> handler
+    )
     {
         var command = new DeleteTeamCommand { Id = id };
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return NotFound(result.Error);
@@ -193,10 +205,13 @@ public class TeamsController(
     [HttpGet("Seasons/{id:int}")]
     [ProducesResponseType(typeof(GetTeamSeasonsQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<GetTeamSeasonsQueryResponse>> GetTeamSeasons(int id)
+    public async Task<ActionResult<GetTeamSeasonsQueryResponse>> GetTeamSeasons(
+        int id,
+        [FromServices] IRequestHandler<GetTeamSeasonsQuery, GetTeamSeasonsQueryResponse> handler
+    )
     {
         var query = new GetTeamSeasonsQuery { TeamId = id };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
         if (!result.Succeeded)
             return NotFound(result);
         return Ok(result);

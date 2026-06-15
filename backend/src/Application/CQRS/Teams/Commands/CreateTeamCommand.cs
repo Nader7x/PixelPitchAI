@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Application.Interfaces;
 using Domain.Interfaces;
 using Domain.Models;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Teams.Commands;
 

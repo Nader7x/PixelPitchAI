@@ -1,8 +1,8 @@
+using Application.CQRS;
 using Application.CQRS.Seasons.Commands;
 using Application.CQRS.Seasons.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class SeasonsController(
-    IMediator mediator,
     ISeasonMapper seasonMapper,
     ICacheService cacheService
 ) : ControllerBase
@@ -25,7 +24,8 @@ public class SeasonsController(
     public async Task<ActionResult<GetAllSeasonsQueryResponse>> GetAllSeasons(
         [FromQuery] string? leagueName,
         [FromQuery] string? country,
-        [FromQuery] bool isActive
+        [FromQuery] bool isActive,
+        [FromServices] IRequestHandler<GetAllSeasonsQuery, GetAllSeasonsQueryResponse> handler
     )
     {
         // Generate a cache key based on the query parameters
@@ -47,7 +47,7 @@ public class SeasonsController(
             IsActive = isActive,
         };
 
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -63,7 +63,10 @@ public class SeasonsController(
     [ProducesResponseType(typeof(GetSeasonByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetSeasonByIdQueryResponse>> GetSeasonById(int id)
+    public async Task<ActionResult<GetSeasonByIdQueryResponse>> GetSeasonById(
+        int id,
+        [FromServices] IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse> handler
+    )
     {
         // Try to get from cache first
         var cacheKey = $"season_{id}";
@@ -76,7 +79,7 @@ public class SeasonsController(
         }
 
         var query = new GetSeasonByIdQuery { Id = id };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -97,7 +100,10 @@ public class SeasonsController(
     [ProducesResponseType(typeof(GetSeasonTeamsQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetSeasonTeamsQueryResponse>> GetSeasonTeams(int id)
+    public async Task<ActionResult<GetSeasonTeamsQueryResponse>> GetSeasonTeams(
+        int id,
+        [FromServices] IRequestHandler<GetSeasonTeamsQuery, GetSeasonTeamsQueryResponse> handler
+    )
     {
         // Try to get from cache first
         var cacheKey = $"season_teams_{id}";
@@ -110,7 +116,7 @@ public class SeasonsController(
         }
 
         var query = new GetSeasonTeamsQuery { SeasonId = id };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -127,12 +133,13 @@ public class SeasonsController(
     [ProducesResponseType(typeof(CreateSeasonCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateSeasonCommandResponse>> CreateSeason(
-        [FromBody] CreateSeasonDto seasonDto
+        [FromBody] CreateSeasonDto seasonDto,
+        [FromServices] IRequestHandler<CreateSeasonCommand, CreateSeasonCommandResponse> handler
     )
     {
         var command = _seasonMapper.ToCreateCommand(seasonDto);
 
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -151,13 +158,14 @@ public class SeasonsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateSeasonCommandResponse>> UpdateSeason(
         int id,
-        [FromBody] UpdateSeasonDto seasonDto
+        [FromBody] UpdateSeasonDto seasonDto,
+        [FromServices] IRequestHandler<UpdateSeasonCommand, UpdateSeasonCommandResponse> handler
     )
     {
         var command = _seasonMapper.ToUpdateCommand(seasonDto);
         command.Id = id;
 
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -178,10 +186,13 @@ public class SeasonsController(
     [ProducesResponseType(typeof(DeleteSeasonCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<DeleteSeasonCommandResponse>> DeleteSeason(int id)
+    public async Task<ActionResult<DeleteSeasonCommandResponse>> DeleteSeason(
+        int id,
+        [FromServices] IRequestHandler<DeleteSeasonCommand, DeleteSeasonCommandResponse> handler
+    )
     {
         var command = new DeleteSeasonCommand { Id = id };
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {

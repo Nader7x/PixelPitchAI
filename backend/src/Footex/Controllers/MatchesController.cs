@@ -13,7 +13,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using Footex.Configuration;
 using Infrastructure.Services;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -24,7 +24,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class MatchesController(
-    IMediator mediator,
     IHttpClientFactory httpClientFactory,
     IMatchMapper matchMapper,
     IOptions<SimulationServiceOptions> simulationOptions,
@@ -57,7 +56,8 @@ public class MatchesController(
         [FromQuery] string? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] int? matchWeek
+        [FromQuery] int? matchWeek,
+        [FromServices] IRequestHandler<GetAllMatchesQuery, GetAllMatchesQueryResponse> handler
     )
     {
         // Generate a cache key based on the query parameters
@@ -83,7 +83,7 @@ public class MatchesController(
             MatchWeek = matchWeek,
         };
 
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -99,7 +99,10 @@ public class MatchesController(
     [ProducesResponseType(typeof(GetMatchByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetMatchByIdQueryResponse>> GetMatchById(int id)
+    public async Task<ActionResult<GetMatchByIdQueryResponse>> GetMatchById(
+        int id,
+        [FromServices] IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse> handler
+    )
     {
         // Try to get from cache first
         var cacheKey = $"match_{id}";
@@ -112,7 +115,7 @@ public class MatchesController(
         }
 
         var query = new GetMatchByIdQuery { Id = id };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -135,7 +138,8 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetMatchByIdWithDetailsQueryResponse>> GetMatchByIdWithDetails(
-        int matchId
+        int matchId,
+        [FromServices] IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse> handler
     )
     {
         // Try to get from cache first
@@ -151,7 +155,7 @@ public class MatchesController(
         }
 
         var query = new GetMatchByIdWithDetailsQuery { MatchId = matchId };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -173,7 +177,8 @@ public class MatchesController(
     [ProducesResponseType(typeof(CreateMatchCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateMatchCommandResponse>> CreateMatch(
-        [FromBody] CreateMatchDto matchDto
+        [FromBody] CreateMatchDto matchDto,
+        [FromServices] IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse> handler
     )
     {
         if (string.IsNullOrEmpty(matchDto.CreatorId))
@@ -181,7 +186,7 @@ public class MatchesController(
 
         var command = _matchMapper.ToCreateCommand(matchDto);
 
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -198,13 +203,14 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateMatchCommandResponse>> UpdateMatch(
         int id,
-        [FromBody] UpdateMatchDto matchDto
+        [FromBody] UpdateMatchDto matchDto,
+        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> handler
     )
     {
         var command = _matchMapper.ToUpdateCommand(matchDto);
         command.Id = id;
 
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (result.Succeeded)
         {
@@ -222,10 +228,13 @@ public class MatchesController(
     [ProducesResponseType(typeof(DeleteMatchCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<DeleteMatchCommandResponse>> DeleteMatch(int id)
+    public async Task<ActionResult<DeleteMatchCommandResponse>> DeleteMatch(
+        int id,
+        [FromServices] IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse> handler
+    )
     {
         var command = new DeleteMatchCommand { Id = id };
-        var result = await mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -253,10 +262,13 @@ public class MatchesController(
     [ProducesResponseType(typeof(GetUserMatchesQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetUserMatchesQueryResponse>> GetUserMatches(string userId)
+    public async Task<ActionResult<GetUserMatchesQueryResponse>> GetUserMatches(
+        string userId,
+        [FromServices] IRequestHandler<GetUserMatchesQuery, GetUserMatchesQueryResponse> handler
+    )
     {
         var query = new GetUserMatchesQuery { UserId = userId };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -269,10 +281,13 @@ public class MatchesController(
     [ProducesResponseType(typeof(GetLiveMatchQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetLiveMatchQueryResponse>> GetLiveMatch(string userId)
+    public async Task<ActionResult<GetLiveMatchQueryResponse>> GetLiveMatch(
+        string userId,
+        [FromServices] IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse> handler
+    )
     {
         var query = new GetLiveMatchQuery { UserId = userId };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return NotFound(result);
@@ -288,10 +303,14 @@ public class MatchesController(
     public async Task<ActionResult<CreateMatchCommandResponse>> SimulateMatch(
         string userId,
         [FromBody] SimulateMatchDto simulationDto,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        [FromServices] IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse> createMatchHandler,
+        [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
+        [FromServices] IRequestHandler<CreateNotificationCommand, CreateNotificationCommandResponse> notificationHandler,
+        [FromServices] IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse> liveMatchHandler
     )
     {
-        if (HasLiveMatch(userId, cancellationToken).Result)
+        if (HasLiveMatch(userId, liveMatchHandler, cancellationToken).Result)
             return BadRequest(new { error = "You Can Not Simulate Two Matches At The Same Time" });
 
         var httpClient = httpClientFactory.CreateClient();
@@ -361,7 +380,7 @@ public class MatchesController(
                 ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
                 IsLive = true,
             };
-            var result = await mediator.Send(command, cancellationToken);
+            var result = await createMatchHandler.Handle(command, cancellationToken);
             if (!result.Succeeded)
                 return BadRequest(result);
 
@@ -400,7 +419,7 @@ public class MatchesController(
             if (response.IsSuccessStatusCode)
             {
                 var statusCommand = new UpdateMatchStatusCommand { MatchId = result.Id };
-                var statusResult = await mediator.Send(statusCommand, cancellationToken);
+                var statusResult = await updateStatusHandler.Handle(statusCommand, cancellationToken);
                 if (!statusResult.Succeeded)
                 {
                     result.Succeeded = false;
@@ -445,7 +464,7 @@ public class MatchesController(
                 {
                     Notification = notification,
                 };
-                var notificationResult = mediator.Send(notificationCommand, cancellationToken);
+                var notificationResult = notificationHandler.Handle(notificationCommand, cancellationToken);
                 if (!notificationResult.Result.Succeeded)
                     _logger.LogError(
                         "Failed to create notification for simulation start: {Error}",
@@ -701,7 +720,9 @@ public class MatchesController(
     public async Task<IActionResult> ReceiveWebhookNotification(
         string simulationId,
         [FromBody] WebhookNotificationPayload payload,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
+        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler
     )
     {
         try
@@ -737,11 +758,11 @@ public class MatchesController(
             switch (payload.Status?.ToLower())
             {
                 case "completed":
-                    await HandleSimulationCompleted(match, payload, cancellationToken);
+                    await HandleSimulationCompleted(match, payload, cancellationToken, updateStatusHandler, updateMatchHandler);
                     break;
 
                 case "failed":
-                    await HandleSimulationFailed(match, payload, cancellationToken);
+                    await HandleSimulationFailed(match, payload, cancellationToken, updateStatusHandler);
                     break;
 
                 default:
@@ -778,11 +799,12 @@ public class MatchesController(
     [NonAction]
     private async Task<bool> HasLiveMatch(
         string userId,
+        IRequestHandler<GetLiveMatchQuery, GetLiveMatchQueryResponse> handler,
         CancellationToken cancellationToken = default
     )
     {
         var query = new GetLiveMatchQuery { UserId = userId };
-        var result = await mediator.Send(query, cancellationToken);
+        var result = await handler.Handle(query, cancellationToken);
         return result.HasLiveMatch;
     }
 
@@ -808,7 +830,8 @@ public class MatchesController(
     private async Task UpdateLocalMatchStatus(
         int matchId,
         string status,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> handler
     )
     {
         try
@@ -819,7 +842,7 @@ public class MatchesController(
                 NewStatus = status,
             };
 
-            await mediator.Send(statusCommand, cancellationToken);
+            await handler.Handle(statusCommand, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -832,7 +855,8 @@ public class MatchesController(
     private async Task UpdateMatchWithSimulationResult(
         int matchId,
         SimulationResultResponse result,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> handler
     )
     {
         try
@@ -845,7 +869,7 @@ public class MatchesController(
                 MatchStatus = "Completed",
             };
 
-            await mediator.Send(updateCommand, cancellationToken);
+            await handler.Handle(updateCommand, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -858,7 +882,9 @@ public class MatchesController(
     private async Task HandleSimulationCompleted(
         Match match,
         WebhookNotificationPayload payload,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
+        IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler
     )
     {
         try
@@ -870,7 +896,7 @@ public class MatchesController(
             );
 
             // Update match status to completed
-            await UpdateLocalMatchStatus(match.Id, "Completed", cancellationToken);
+            await UpdateLocalMatchStatus(match.Id, "Completed", cancellationToken, updateStatusHandler);
 
             // Get the full simulation result if we have a result URL
             if (!string.IsNullOrEmpty(payload.ResultUrl))
@@ -897,7 +923,8 @@ public class MatchesController(
                             await UpdateMatchWithSimulationResult(
                                 match.Id,
                                 simulationResult,
-                                cancellationToken
+                                cancellationToken,
+                                updateMatchHandler
                             );
                     }
                 }
@@ -946,7 +973,8 @@ public class MatchesController(
     private async Task HandleSimulationFailed(
         Match match,
         WebhookNotificationPayload payload,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler
     )
     {
         try
@@ -958,7 +986,7 @@ public class MatchesController(
             );
 
             // Update match status to failed
-            await UpdateLocalMatchStatus(match.Id, "Failed", cancellationToken);
+            await UpdateLocalMatchStatus(match.Id, "Failed", cancellationToken, updateStatusHandler);
 
             // Create and send notification to the user who created the match
             var errorMessage = !string.IsNullOrEmpty(payload.ErrorMessage)
@@ -998,7 +1026,8 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SimulationStatusResponse>> GetSimulationStatus(
         string simulationId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler
     )
     {
         try
@@ -1040,7 +1069,8 @@ public class MatchesController(
                     await UpdateLocalMatchStatus(
                         match.Id,
                         statusResponse.Status,
-                        cancellationToken
+                        cancellationToken,
+                        updateStatusHandler
                     );
             }
 
@@ -1061,7 +1091,10 @@ public class MatchesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SimulationResultResponse>> GetSimulationResult(
         string simulationId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        [FromServices] IRequestHandler<CreateNotificationCommand, CreateNotificationCommandResponse> notificationHandler,
+        [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
+        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler
     )
     {
         try
@@ -1110,7 +1143,7 @@ public class MatchesController(
                 {
                     Notification = notification,
                 };
-                var notificationResult = await mediator.Send(
+                var notificationResult = await notificationHandler.Handle(
                     notificationCommand,
                     cancellationToken
                 );
@@ -1128,7 +1161,7 @@ public class MatchesController(
                                 notificationResult.Notification,
                                 match.SimulationId
                             );
-                await UpdateMatchWithSimulationResult(match.Id, resultResponse, cancellationToken);
+                await UpdateMatchWithSimulationResult(match.Id, resultResponse, cancellationToken, updateMatchHandler);
             }
 
             return Ok(resultResponse);

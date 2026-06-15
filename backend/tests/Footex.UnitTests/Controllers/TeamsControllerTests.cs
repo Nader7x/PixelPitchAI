@@ -7,7 +7,7 @@ using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -21,12 +21,10 @@ public class TeamsControllerTests
     private readonly TeamsController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ITeamMapper> _teamMapperMock;
 
     public TeamsControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _teamMapperMock = new Mock<ITeamMapper>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _cacheServiceMock = new Mock<ICacheService>();
@@ -34,7 +32,6 @@ public class TeamsControllerTests
         _fixture = new NoRecursionFixture();
 
         _controller = new TeamsController(
-            _mediatorMock.Object,
             _teamMapperMock.Object,
             _fileStorageServiceMock.Object,
             _cacheServiceMock.Object
@@ -75,14 +72,16 @@ public class TeamsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetAllTeamsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllTeamsQuery>(), default))
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllTeamsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -97,7 +96,7 @@ public class TeamsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetAll();
+        var result = await _controller.GetAll(handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllTeamsQueryResponse>>();
@@ -105,7 +104,7 @@ public class TeamsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllTeamsQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllTeamsQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -127,6 +126,8 @@ public class TeamsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllTeamsQuery, GetAllTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
@@ -134,7 +135,7 @@ public class TeamsControllerTests
             .ReturnsAsync(cachedResponse);
 
         // Act
-        var result = await _controller.GetAll();
+        var result = await _controller.GetAll(handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllTeamsQueryResponse>>();
@@ -142,7 +143,7 @@ public class TeamsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllTeamsQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllTeamsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -162,14 +163,16 @@ public class TeamsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetTeamByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetTeamByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetTeamByIdQuery>(q => q.Id == teamId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetTeamByIdQuery>(q => q.Id == teamId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -184,7 +187,7 @@ public class TeamsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetById(teamId);
+        var result = await _controller.GetById(teamId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetTeamByIdQueryResponse>>();
@@ -192,8 +195,8 @@ public class TeamsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetTeamByIdQuery>(q => q.Id == teamId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetTeamByIdQuery>(q => q.Id == teamId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -225,16 +228,18 @@ public class TeamsControllerTests
             Name = teamDto.Name,
         };
 
+        var handlerMock = new Mock<IRequestHandler<CreateTeamCommand, CreateTeamCommandResponse>>();
+
         _teamMapperMock
             .Setup(x => x.ToCreateCommand(It.IsAny<CreateTeamDto>()))
             .Returns(createCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<CreateTeamCommand>(), default))
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<CreateTeamCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Create(teamDto);
+        var result = await _controller.Create(teamDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateTeamCommandResponse>>();
@@ -242,7 +247,7 @@ public class TeamsControllerTests
         createdResult.Should().NotBeNull();
         createdResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<CreateTeamCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<CreateTeamCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -272,16 +277,19 @@ public class TeamsControllerTests
             Name = teamDto.Name,
         };
 
+        var getHandlerMock = new Mock<IRequestHandler<GetTeamByIdQuery, GetTeamByIdQueryResponse>>();
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateTeamCommand, UpdateTeamCommandResponse>>();
+
         _teamMapperMock
             .Setup(x => x.ToUpdateCommand(It.IsAny<UpdateTeamDto>()))
             .Returns(updateCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateTeamCommand>(), default))
+        updateHandlerMock
+            .Setup(x => x.Handle(It.IsAny<UpdateTeamCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Update(teamId, teamDto);
+        var result = await _controller.Update(teamId, teamDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateTeamCommandResponse>>();
@@ -289,7 +297,8 @@ public class TeamsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateTeamCommand>(), default), Times.Once);
+        getHandlerMock.Verify(x => x.Handle(It.IsAny<GetTeamByIdQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+        updateHandlerMock.Verify(x => x.Handle(It.IsAny<UpdateTeamCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -299,20 +308,22 @@ public class TeamsControllerTests
         var teamId = 1;
         var expectedResponse = new DeleteTeamCommandResponse { Succeeded = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeleteTeamCommand>(c => c.Id == teamId), default))
+        var handlerMock = new Mock<IRequestHandler<DeleteTeamCommand, DeleteTeamCommandResponse>>();
+
+        handlerMock
+            .Setup(x => x.Handle(It.Is<DeleteTeamCommand>(c => c.Id == teamId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.Delete(teamId);
+        var result = await _controller.Delete(teamId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
         var noContentResult = result as NoContentResult;
         noContentResult.Should().NotBeNull();
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<DeleteTeamCommand>(c => c.Id == teamId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<DeleteTeamCommand>(c => c.Id == teamId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

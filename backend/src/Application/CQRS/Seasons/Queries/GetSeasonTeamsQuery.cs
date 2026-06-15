@@ -1,6 +1,6 @@
 using Domain.Interfaces;
 using Domain.Models;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Seasons.Queries;
 

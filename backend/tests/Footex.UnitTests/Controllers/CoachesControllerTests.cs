@@ -7,7 +7,7 @@ using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -22,11 +22,9 @@ public class CoachesControllerTests
     private readonly CoachesController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
 
     public CoachesControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _coachMapperMock = new Mock<ICoachMapper>();
         _cacheServiceMock = new Mock<ICacheService>();
@@ -34,7 +32,6 @@ public class CoachesControllerTests
         _fixture = new NoRecursionFixture();
 
         _controller = new CoachesController(
-            _mediatorMock.Object,
             _fileStorageServiceMock.Object,
             _coachMapperMock.Object,
             _cacheServiceMock.Object
@@ -83,8 +80,9 @@ public class CoachesControllerTests
             )
             .ReturnsAsync((GetAllCoachesQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllCoachesQuery>(), default))
+        var handlerMock = new Mock<IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllCoachesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -99,7 +97,7 @@ public class CoachesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetAllCoaches("Spain", 1);
+        var result = await _controller.GetAllCoaches("Spain", 1, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllCoachesQueryResponse>>();
@@ -107,7 +105,7 @@ public class CoachesControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllCoachesQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllCoachesQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -137,8 +135,10 @@ public class CoachesControllerTests
             )
             .ReturnsAsync(cachedResponse);
 
+        var handlerMock = new Mock<IRequestHandler<GetAllCoachesQuery, GetAllCoachesQueryResponse>>();
+
         // Act
-        var result = await _controller.GetAllCoaches("Spain", 1);
+        var result = await _controller.GetAllCoaches("Spain", 1, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllCoachesQueryResponse>>();
@@ -146,7 +146,7 @@ public class CoachesControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllCoachesQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllCoachesQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -174,8 +174,9 @@ public class CoachesControllerTests
             )
             .ReturnsAsync((GetCoachByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var handlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -190,7 +191,7 @@ public class CoachesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetCoachById(coachId);
+        var result = await _controller.GetCoachById(coachId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetCoachByIdQueryResponse>>();
@@ -198,8 +199,8 @@ public class CoachesControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -222,12 +223,13 @@ public class CoachesControllerTests
             )
             .ReturnsAsync((GetCoachByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var handlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetCoachById(coachId);
+        var result = await _controller.GetCoachById(coachId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetCoachByIdQueryResponse>>();
@@ -250,13 +252,16 @@ public class CoachesControllerTests
         };
 
         _coachMapperMock.Setup(m => m.ToCreateCommand(createCoachDto)).Returns(command);
-        _mediatorMock.Setup(x => x.Send(command, default)).ReturnsAsync(expectedResponse);
+        
+        var handlerMock = new Mock<IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>>();
+        handlerMock.Setup(x => x.Handle(command, It.IsAny<CancellationToken>())).ReturnsAsync(expectedResponse);
+        
         _fileStorageServiceMock
             .Setup(s => s.UploadImageAsync(It.IsAny<IFormFile>(), It.IsAny<string>()))
             .ReturnsAsync("http://photo.url/new.jpg");
 
         // Act
-        var result = await _controller.CreateCoach(createCoachDto);
+        var result = await _controller.CreateCoach(createCoachDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateCoachCommandResponse>>();
@@ -278,10 +283,12 @@ public class CoachesControllerTests
         };
 
         _coachMapperMock.Setup(m => m.ToCreateCommand(createCoachDto)).Returns(command);
-        _mediatorMock.Setup(x => x.Send(command, default)).ReturnsAsync(expectedResponse);
+        
+        var handlerMock = new Mock<IRequestHandler<CreateCoachCommand, CreateCoachCommandResponse>>();
+        handlerMock.Setup(x => x.Handle(command, It.IsAny<CancellationToken>())).ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.CreateCoach(createCoachDto);
+        var result = await _controller.CreateCoach(createCoachDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateCoachCommandResponse>>();
@@ -314,14 +321,18 @@ public class CoachesControllerTests
             FullName = $"{updateCoachDto.FirstName} {updateCoachDto.LastName}",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getQueryResponse);
+            
         _coachMapperMock.Setup(m => m.ToUpdateCommand(updateCoachDto)).Returns(command);
-        _mediatorMock.Setup(x => x.Send(command, default)).ReturnsAsync(expectedResponse);
+        
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateCoachCommand, UpdateCoachCommandResponse>>();
+        updateHandlerMock.Setup(x => x.Handle(command, It.IsAny<CancellationToken>())).ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UpdateCoach(coachId, updateCoachDto);
+        var result = await _controller.UpdateCoach(coachId, updateCoachDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateCoachCommandResponse>>();
@@ -338,12 +349,15 @@ public class CoachesControllerTests
         var updateCoachDto = _fixture.Create<UpdateCoachDto>();
         var expectedResponse = new GetCoachByIdQueryResponse { Succeeded = false, NotFound = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
+            
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateCoachCommand, UpdateCoachCommandResponse>>();
 
         // Act
-        var result = await _controller.UpdateCoach(coachId, updateCoachDto);
+        var result = await _controller.UpdateCoach(coachId, updateCoachDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateCoachCommandResponse>>();
@@ -364,15 +378,18 @@ public class CoachesControllerTests
         };
         var expectedResponse = new DeleteCoachCommandResponse { Succeeded = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getQueryResponse);
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeleteCoachCommand>(c => c.Id == coachId), default))
+            
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteCoachCommand, DeleteCoachCommandResponse>>();
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeleteCoachCommand>(c => c.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeleteCoach(coachId);
+        var result = await _controller.DeleteCoach(coachId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteCoachCommandResponse>>();
@@ -388,12 +405,15 @@ public class CoachesControllerTests
         var coachId = 99;
         var expectedResponse = new GetCoachByIdQueryResponse { Succeeded = false, NotFound = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
+            
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteCoachCommand, DeleteCoachCommandResponse>>();
 
         // Act
-        var result = await _controller.DeleteCoach(coachId);
+        var result = await _controller.DeleteCoach(coachId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteCoachCommandResponse>>();
@@ -418,15 +438,18 @@ public class CoachesControllerTests
             Error = "Error deleting coach.",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetCoachByIdQuery, GetCoachByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetCoachByIdQuery>(q => q.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getQueryResponse);
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeleteCoachCommand>(c => c.Id == coachId), default))
+            
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteCoachCommand, DeleteCoachCommandResponse>>();
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeleteCoachCommand>(c => c.Id == coachId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeleteCoach(coachId);
+        var result = await _controller.DeleteCoach(coachId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteCoachCommandResponse>>();

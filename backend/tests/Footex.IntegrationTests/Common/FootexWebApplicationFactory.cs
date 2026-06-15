@@ -159,6 +159,8 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 );
             });
 
+            services.AddTransient<MediatR.IMediator, MediatR.TestMediator>();
+
             services.AddLogging(loggingBuilder => loggingBuilder.SetMinimumLevel(LogLevel.Warning));
         });
     }

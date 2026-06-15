@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Application.CQRS;
 using Application.CQRS.Matches.Commands;
 using Application.CQRS.Matches.Queries;
 using Application.Dtos;
@@ -11,7 +12,6 @@ using Footex.Configuration;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
 using Infrastructure.Services;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -29,12 +29,10 @@ public class MatchesControllerTests
     private readonly MatchesController _controller;
     private readonly NoRecursionFixture _fixture;
     private readonly Mock<IMatchMapper> _iMatchMapperMock;
-    private readonly Mock<IMediator> _mediatorMock;
 
     public MatchesControllerTests()
     {
         var liveMatchService = new Mock<ILiveMatchStatisticsService>();
-        _mediatorMock = new Mock<IMediator>();
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         _iMatchMapperMock = new Mock<IMatchMapper>();
         var simulationOptionsMock = new Mock<IOptions<SimulationServiceOptions>>();
@@ -56,7 +54,6 @@ public class MatchesControllerTests
         simulationOptionsMock.Setup(x => x.Value).Returns(simulationOptions);
 
         _controller = new MatchesController(
-            _mediatorMock.Object,
             httpClientFactoryMock.Object,
             _iMatchMapperMock.Object,
             simulationOptionsMock.Object,
@@ -109,8 +106,9 @@ public class MatchesControllerTests
             )
             .ReturnsAsync((GetAllMatchesQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllMatchesQuery>(), default))
+        var handlerMock = new Mock<IRequestHandler<GetAllMatchesQuery, GetAllMatchesQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllMatchesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -131,7 +129,8 @@ public class MatchesControllerTests
             "Scheduled",
             DateTime.UtcNow,
             DateTime.UtcNow.AddDays(7),
-            1
+            1,
+            handlerMock.Object
         );
 
         // Assert
@@ -140,13 +139,13 @@ public class MatchesControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
+        handlerMock.Verify(
             x =>
-                x.Send(
+                x.Handle(
                     It.Is<GetAllMatchesQuery>(q =>
                         q.HomeSeasonId == 1 && q.TeamId == 1 && q.Status == "Scheduled"
                     ),
-                    default
+                    It.IsAny<CancellationToken>()
                 ),
             Times.Once
         );
@@ -176,6 +175,8 @@ public class MatchesControllerTests
             )
             .ReturnsAsync(cachedResponse);
 
+        var handlerMock = new Mock<IRequestHandler<GetAllMatchesQuery, GetAllMatchesQueryResponse>>();
+
         // Act
         var result = await _controller.GetAllMatches(
             1,
@@ -183,7 +184,8 @@ public class MatchesControllerTests
             "Scheduled",
             DateTime.UtcNow,
             DateTime.UtcNow.AddDays(7),
-            1
+            1,
+            handlerMock.Object
         );
 
         // Assert
@@ -193,8 +195,8 @@ public class MatchesControllerTests
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
         // Verify mediator was not called since we used cache
-        _mediatorMock.Verify(
-            x => x.Send(It.IsAny<GetAllMatchesQuery>(), CancellationToken.None),
+        handlerMock.Verify(
+            x => x.Handle(It.IsAny<GetAllMatchesQuery>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
 
@@ -224,8 +226,9 @@ public class MatchesControllerTests
             )
             .ReturnsAsync((GetMatchByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetMatchByIdQuery>(), CancellationToken.None))
+        var handlerMock = new Mock<IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetMatchByIdQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -240,7 +243,7 @@ public class MatchesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetMatchById(matchId);
+        var result = await _controller.GetMatchById(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetMatchByIdQueryResponse>>();
@@ -248,8 +251,8 @@ public class MatchesControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetMatchByIdQuery>(q => q.Id == matchId), CancellationToken.None),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetMatchByIdQuery>(q => q.Id == matchId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -272,12 +275,13 @@ public class MatchesControllerTests
             )
             .ReturnsAsync((GetMatchByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetMatchByIdQuery>(), CancellationToken.None))
+        var handlerMock = new Mock<IRequestHandler<GetMatchByIdQuery, GetMatchByIdQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetMatchByIdQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetMatchById(matchId);
+        var result = await _controller.GetMatchById(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetMatchByIdQueryResponse>>();
@@ -300,8 +304,9 @@ public class MatchesControllerTests
 
         _iMatchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto)).Returns(createCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(createCommand, CancellationToken.None))
+        var handlerMock = new Mock<IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(createCommand, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -309,7 +314,7 @@ public class MatchesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.CreateMatch(createMatchDto);
+        var result = await _controller.CreateMatch(createMatchDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateMatchCommandResponse>>();
@@ -333,10 +338,11 @@ public class MatchesControllerTests
 
         _iMatchMapperMock.Setup(x => x.ToCreateCommand(createMatchDto)).Returns(createCommand);
 
-        _mediatorMock.Setup(x => x.Send(createCommand, default)).ReturnsAsync(expectedResponse);
+        var handlerMock = new Mock<IRequestHandler<CreateMatchCommand, CreateMatchCommandResponse>>();
+        handlerMock.Setup(x => x.Handle(createCommand, It.IsAny<CancellationToken>())).ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.CreateMatch(createMatchDto);
+        var result = await _controller.CreateMatch(createMatchDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateMatchCommandResponse>>();
@@ -371,8 +377,9 @@ public class MatchesControllerTests
                 }
             );
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateMatchCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<UpdateMatchCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -380,7 +387,7 @@ public class MatchesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.UpdateMatch(matchId, updateMatchDto);
+        var result = await _controller.UpdateMatch(matchId, updateMatchDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateMatchCommandResponse>>();
@@ -396,8 +403,9 @@ public class MatchesControllerTests
         const int matchId = 1;
         var expectedResponse = new DeleteMatchCommandResponse { Succeeded = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<DeleteMatchCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<DeleteMatchCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -405,7 +413,7 @@ public class MatchesControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.DeleteMatch(matchId);
+        var result = await _controller.DeleteMatch(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteMatchCommandResponse>>();
@@ -432,12 +440,13 @@ public class MatchesControllerTests
             Error = "Match not found",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<DeleteMatchCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<DeleteMatchCommand, DeleteMatchCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<DeleteMatchCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeleteMatch(matchId);
+        var result = await _controller.DeleteMatch(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteMatchCommandResponse>>();
@@ -471,14 +480,15 @@ public class MatchesControllerTests
             )
             .ReturnsAsync((GetMatchByIdWithDetailsQueryResponse?)null);
 
-        _mediatorMock
+        var handlerMock = new Mock<IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>>();
+        handlerMock
             .Setup(x =>
-                x.Send(It.Is<GetMatchByIdWithDetailsQuery>(q => q.MatchId == matchId), default)
+                x.Handle(It.Is<GetMatchByIdWithDetailsQuery>(q => q.MatchId == matchId), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetMatchByIdWithDetails(matchId);
+        var result = await _controller.GetMatchByIdWithDetails(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetMatchByIdWithDetailsQueryResponse>>();
@@ -512,16 +522,19 @@ public class MatchesControllerTests
             )
             .ReturnsAsync(cachedResponse);
 
+        var handlerMock = new Mock<IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>>();
+
         // Act
-        var result = await _controller.GetMatchByIdWithDetails(matchId);
+        var result = await _controller.GetMatchByIdWithDetails(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetMatchByIdWithDetailsQueryResponse>>();
         var okResult = result.Result as OkObjectResult;
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
-        _mediatorMock.Verify(
-            x => x.Send(It.IsAny<GetMatchByIdWithDetailsQuery>(), default),
+        
+        handlerMock.Verify(
+            x => x.Handle(It.IsAny<GetMatchByIdWithDetailsQuery>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
@@ -547,14 +560,15 @@ public class MatchesControllerTests
             )
             .ReturnsAsync((GetMatchByIdWithDetailsQueryResponse?)null);
 
-        _mediatorMock
+        var handlerMock = new Mock<IRequestHandler<GetMatchByIdWithDetailsQuery, GetMatchByIdWithDetailsQueryResponse>>();
+        handlerMock
             .Setup(x =>
-                x.Send(It.Is<GetMatchByIdWithDetailsQuery>(q => q.MatchId == matchId), default)
+                x.Handle(It.Is<GetMatchByIdWithDetailsQuery>(q => q.MatchId == matchId), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetMatchByIdWithDetails(matchId);
+        var result = await _controller.GetMatchByIdWithDetails(matchId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetMatchByIdWithDetailsQueryResponse>>();

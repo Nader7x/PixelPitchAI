@@ -7,7 +7,7 @@ using Domain.Models;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -20,19 +20,16 @@ public class SeasonsControllerTests
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly SeasonsController _controller;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ISeasonMapper> _seasonMapperMock;
 
     public SeasonsControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _seasonMapperMock = new Mock<ISeasonMapper>();
         _cacheServiceMock = new Mock<ICacheService>();
 
         _fixture = new NoRecursionFixture();
 
         _controller = new SeasonsController(
-            _mediatorMock.Object,
             _seasonMapperMock.Object,
             _cacheServiceMock.Object
         );
@@ -73,14 +70,16 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllSeasonsQuery, GetAllSeasonsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllSeasonsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetAllSeasonsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllSeasonsQuery>(), default))
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllSeasonsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -95,7 +94,7 @@ public class SeasonsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetAllSeasons("Premier League", "England", true);
+        var result = await _controller.GetAllSeasons("Premier League", "England", true, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllSeasonsQueryResponse>>();
@@ -103,7 +102,7 @@ public class SeasonsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllSeasonsQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllSeasonsQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -126,6 +125,8 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllSeasonsQuery, GetAllSeasonsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllSeasonsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
@@ -133,7 +134,7 @@ public class SeasonsControllerTests
             .ReturnsAsync(cachedResponse);
 
         // Act
-        var result = await _controller.GetAllSeasons("Premier League", "England", true);
+        var result = await _controller.GetAllSeasons("Premier League", "England", true, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllSeasonsQueryResponse>>();
@@ -141,7 +142,7 @@ public class SeasonsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllSeasonsQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllSeasonsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -162,14 +163,16 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -184,7 +187,7 @@ public class SeasonsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetSeasonById(seasonId);
+        var result = await _controller.GetSeasonById(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonByIdQueryResponse>>();
@@ -192,8 +195,8 @@ public class SeasonsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -216,6 +219,8 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
@@ -223,7 +228,7 @@ public class SeasonsControllerTests
             .ReturnsAsync(cachedResponse);
 
         // Act
-        var result = await _controller.GetSeasonById(seasonId);
+        var result = await _controller.GetSeasonById(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonByIdQueryResponse>>();
@@ -231,7 +236,7 @@ public class SeasonsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetSeasonByIdQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetSeasonByIdQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -245,24 +250,31 @@ public class SeasonsControllerTests
             NotFound = true,
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetSeasonById(seasonId);
+        var result = await _controller.GetSeasonById(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonByIdQueryResponse>>();
         var notFoundResult = result.Result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         notFoundResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -272,24 +284,31 @@ public class SeasonsControllerTests
         var seasonId = 1;
         var expectedResponse = new GetSeasonByIdQueryResponse { Succeeded = false };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonByIdQuery, GetSeasonByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetSeasonById(seasonId);
+        var result = await _controller.GetSeasonById(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonByIdQueryResponse>>();
         var badRequestResult = result.Result as BadRequestObjectResult;
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonByIdQuery>(q => q.Id == seasonId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -309,18 +328,20 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonTeamsQuery, GetSeasonTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonTeamsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetSeasonTeams(seasonId);
+        var result = await _controller.GetSeasonTeams(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonTeamsQueryResponse>>();
@@ -333,8 +354,8 @@ public class SeasonsControllerTests
         response.TeamSeasons.Should().NotBeEmpty();
         response.TeamSeasons.Should().HaveCount(1);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -356,6 +377,8 @@ public class SeasonsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonTeamsQuery, GetSeasonTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
@@ -363,7 +386,7 @@ public class SeasonsControllerTests
             .ReturnsAsync(cachedResponse);
 
         // Act
-        var result = await _controller.GetSeasonTeams(seasonId);
+        var result = await _controller.GetSeasonTeams(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonTeamsQueryResponse>>();
@@ -371,7 +394,7 @@ public class SeasonsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetSeasonTeamsQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetSeasonTeamsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -385,24 +408,31 @@ public class SeasonsControllerTests
             Error = "Not Found",
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonTeamsQuery, GetSeasonTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonTeamsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetSeasonTeams(seasonId);
+        var result = await _controller.GetSeasonTeams(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonTeamsQueryResponse>>();
         var notFoundResult = result.Result as BadRequestObjectResult;
         notFoundResult.Should().NotBeNull();
         notFoundResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -416,23 +446,30 @@ public class SeasonsControllerTests
             Error = "Mediator failure",
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetSeasonTeamsQuery, GetSeasonTeamsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetSeasonTeamsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetSeasonTeamsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetSeasonTeams(seasonId);
+        var result = await _controller.GetSeasonTeams(seasonId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetSeasonTeamsQueryResponse>>();
         var badRequestResult = result.Result as BadRequestObjectResult;
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetSeasonTeamsQuery>(q => q.SeasonId == seasonId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 }

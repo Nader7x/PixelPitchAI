@@ -2,8 +2,8 @@ using System.Web;
 using Application.CQRS.Auth.Commands;
 using Application.CQRS.Auth.Queries;
 using Application.Dtos;
+using Application.CQRS;
 using Application.Interfaces;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,19 +12,18 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController(
-    IMediator mediator,
     IUserMapper userMapper,
     IFileStorageService blobStorageService
 ) : ControllerBase
 {
     private readonly IFileStorageService _blobStorageService = blobStorageService;
-    private readonly IMediator _mediator = mediator;
     private readonly IUserMapper _userMapper = userMapper;
     private readonly string CONTAINER_NAME = "users";
 
     [HttpPost("register")]
     public async Task<ActionResult<RegisterUserCommandResponse>> Register(
-        [FromForm] RegisterUserDto dto
+        [FromForm] RegisterUserDto dto,
+        [FromServices] IRequestHandler<RegisterUserCommand, RegisterUserCommandResponse> handler
     )
     {
         var command = _userMapper.ToRegisterCommandFromDto(dto);
@@ -32,7 +31,7 @@ public class AuthController(
             dto.Image != null
                 ? await _blobStorageService.UploadImageAsync(dto.Image, CONTAINER_NAME)
                 : null;
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -41,7 +40,10 @@ public class AuthController(
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<LoginUserCommandResponse>> Login([FromBody] UserLoginDto dto)
+    public async Task<ActionResult<LoginUserCommandResponse>> Login(
+        [FromBody] UserLoginDto dto,
+        [FromServices] IRequestHandler<LoginUserCommand, LoginUserCommandResponse> handler
+    )
     {
         var command = new LoginUserCommand
         {
@@ -51,7 +53,7 @@ public class AuthController(
             IpAddress = GetIpAddress(),
         };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -65,7 +67,9 @@ public class AuthController(
 
     [HttpPost("refresh-token")]
     [Authorize]
-    public async Task<ActionResult<RefreshTokenCommandResponse>> RefreshToken()
+    public async Task<ActionResult<RefreshTokenCommandResponse>> RefreshToken(
+        [FromServices] IRequestHandler<RefreshTokenCommand, RefreshTokenCommandResponse> handler
+    )
     {
         var refreshToken = Request.Cookies["refreshToken"];
 
@@ -78,7 +82,7 @@ public class AuthController(
             IpAddress = GetIpAddress(),
         };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -93,12 +97,13 @@ public class AuthController(
     [ProducesResponseType(typeof(ForgotPasswordCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ForgotPasswordCommandResponse>> ForgotPassword(
-        [FromBody] ForgotPasswordDto dto
+        [FromBody] ForgotPasswordDto dto,
+        [FromServices] IRequestHandler<ForgotPasswordCommand, ForgotPasswordCommandResponse> handler
     )
     {
         var command = new ForgotPasswordCommand { Email = dto.Email };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -112,7 +117,8 @@ public class AuthController(
     public async Task<ActionResult<ResetPasswordCommandResponse>> ResetPassword(
         [FromBody] ResetPasswordDto dto,
         [FromQuery] string email,
-        [FromQuery] string token
+        [FromQuery] string token,
+        [FromServices] IRequestHandler<ResetPasswordCommand, ResetPasswordCommandResponse> handler
     )
     {
         var command = new ResetPasswordCommand
@@ -122,7 +128,7 @@ public class AuthController(
             NewPassword = dto.NewPassword,
         };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -135,12 +141,13 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ConfirmEmailCommandResponse>> ConfirmEmail(
         [FromQuery] string userId,
-        [FromQuery] string token
+        [FromQuery] string token,
+        [FromServices] IRequestHandler<ConfirmEmailCommand, ConfirmEmailCommandResponse> handler
     )
     {
         var command = new ConfirmEmailCommand { UserId = userId, Token = token };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -152,12 +159,13 @@ public class AuthController(
     [ProducesResponseType(typeof(ResendEmailConfirmationCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResendEmailConfirmationCommandResponse>> ResendEmailConfirmation(
-        [FromBody] ResendEmailConfirmationDto dto
+        [FromBody] ResendEmailConfirmationDto dto,
+        [FromServices] IRequestHandler<ResendEmailConfirmationCommand, ResendEmailConfirmationCommandResponse> handler
     )
     {
         var command = new ResendEmailConfirmationCommand { Email = dto.Email };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -167,7 +175,10 @@ public class AuthController(
 
     [HttpPost("revoke-token")]
     [Authorize]
-    public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenCommand command)
+    public async Task<IActionResult> RevokeToken(
+        [FromBody] RevokeTokenCommand command,
+        [FromServices] IRequestHandler<RevokeTokenCommand, RevokeTokenCommandResponse> handler
+    )
     {
         // Accept refresh token from request body or cookie
         var refreshToken = command.RefreshToken ?? Request.Cookies["refreshToken"];
@@ -178,7 +189,7 @@ public class AuthController(
         command.RefreshToken = refreshToken;
         command.IpAddress = GetIpAddress();
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -188,7 +199,9 @@ public class AuthController(
 
     [HttpGet("profile")]
     [Authorize]
-    public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfile()
+    public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfile(
+        [FromServices] IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse> handler
+    )
     {
         var userId = User.FindFirst(
             "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
@@ -199,7 +212,7 @@ public class AuthController(
             return BadRequest(new { message = "User ID not found in token" });
 
         var query = new GetUserProfileQuery { UserId = userId };
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -209,13 +222,16 @@ public class AuthController(
 
     [HttpGet("profile/{id}")]
     [Authorize]
-    public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfileById(string id)
+    public async Task<ActionResult<GetUserProfileQueryResponse>> GetProfileById(
+        string id,
+        [FromServices] IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse> handler
+    )
     {
         if (string.IsNullOrEmpty(id))
             return BadRequest(new { message = "User ID not found in token" });
 
         var query = new GetUserProfileQuery { UserId = id };
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -267,7 +283,8 @@ public class AuthController(
     [ProducesResponseType(typeof(RefreshTokenCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RefreshTokenCommandResponse>> ManualRefreshToken(
-        [FromBody] string token
+        [FromBody] string token,
+        [FromServices] IRequestHandler<RefreshTokenCommand, RefreshTokenCommandResponse> handler
     )
     {
         if (string.IsNullOrEmpty(token))
@@ -275,7 +292,7 @@ public class AuthController(
 
         var command = new RefreshTokenCommand { RefreshToken = token, IpAddress = GetIpAddress() };
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -291,14 +308,16 @@ public class AuthController(
     [ProducesResponseType(typeof(UpdateUserCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateUserCommandResponse>> UpdateUser(
-        [FromForm] UpdateUserDto dto
+        [FromForm] UpdateUserDto dto,
+        [FromServices] IRequestHandler<GetUserProfileQuery, GetUserProfileQueryResponse> profileHandler,
+        [FromServices] IRequestHandler<UpdateUserCommand, UpdateUserCommandResponse> updateHandler
     )
     {
         var command = _userMapper.ToUpdateCommand(dto);
         if (dto.Image != null)
         {
             // delete old image if it exists
-            var existingUser = await _mediator.Send(new GetUserProfileQuery { UserId = dto.Id });
+            var existingUser = await profileHandler.Handle(new GetUserProfileQuery { UserId = dto.Id }, HttpContext.RequestAborted);
             if (!existingUser.Succeeded == false && !string.IsNullOrEmpty(existingUser.ImageUrl))
                 await _blobStorageService.DeleteImageAsync(existingUser.ImageUrl, CONTAINER_NAME);
             // upload new image
@@ -308,7 +327,7 @@ public class AuthController(
             );
         }
 
-        var result = await _mediator.Send(command);
+        var result = await updateHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);

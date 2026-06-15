@@ -1,8 +1,8 @@
+using Application.CQRS;
 using Application.CQRS.Players.Commands;
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class PlayersController(
-    IMediator mediator,
     IFileStorageService fileStorageService,
     IPlayerMapper playerMapper,
     ICacheService cacheService
@@ -19,7 +18,6 @@ public class PlayersController(
 {
     private readonly ICacheService _cacheService = cacheService;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
-    private readonly IMediator _mediator = mediator;
     private readonly IPlayerMapper _playerMapper = playerMapper;
     private readonly string CONTAINER_NAME = "players";
 
@@ -31,7 +29,8 @@ public class PlayersController(
         [FromQuery] string? preferredFoot,
         [FromQuery] int? teamId,
         [FromQuery] int? pageNumber,
-        [FromQuery] int? pageSize
+        [FromQuery] int? pageSize,
+        [FromServices] IRequestHandler<GetAllPlayersQuery, GetAllPlayersQueryResponse> handler
     )
     {
         // Generate a cache key based on the query parameters
@@ -57,7 +56,7 @@ public class PlayersController(
             PageSize = pageSize,
         };
 
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -73,7 +72,10 @@ public class PlayersController(
     [ProducesResponseType(typeof(GetPlayerByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetPlayerByIdQueryResponse>> GetPlayerById(int id)
+    public async Task<ActionResult<GetPlayerByIdQueryResponse>> GetPlayerById(
+        int id,
+        [FromServices] IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse> handler
+    )
     {
         // Try to get from cache first
         var cacheKey = $"player_{id}";
@@ -87,7 +89,7 @@ public class PlayersController(
 
         // Cache miss, fetch from database
         var query = new GetPlayerByIdQuery { Id = id };
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -109,7 +111,8 @@ public class PlayersController(
     [ProducesResponseType(typeof(CreatePlayerCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreatePlayerCommandResponse>> CreatePlayer(
-        [FromForm] CreatePlayerDto playerDto
+        [FromForm] CreatePlayerDto playerDto,
+        [FromServices] IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse> handler
     )
     {
         var photoUrl = playerDto.PhotoUrl;
@@ -119,7 +122,7 @@ public class PlayersController(
 
         var command = _playerMapper.ToCreateCommand(playerDto);
 
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -136,12 +139,14 @@ public class PlayersController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdatePlayerCommandResponse>> UpdatePlayer(
         int id,
-        [FromForm] UpdatePlayerDto playerDto
+        [FromForm] UpdatePlayerDto playerDto,
+        [FromServices] IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse> getHandler,
+        [FromServices] IRequestHandler<UpdatePlayerCommand, UpdatePlayerCommandResponse> updateHandler
     )
     {
         // Get existing player
         var getQuery = new GetPlayerByIdQuery { Id = id };
-        var existingResult = await _mediator.Send(getQuery);
+        var existingResult = await getHandler.Handle(getQuery, HttpContext.RequestAborted);
 
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
@@ -166,7 +171,7 @@ public class PlayersController(
         var command = _playerMapper.ToUpdateCommand(playerDto);
         command.Id = id;
 
-        var result = await _mediator.Send(command);
+        var result = await updateHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -187,11 +192,15 @@ public class PlayersController(
     [ProducesResponseType(typeof(DeletePlayerCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<DeletePlayerCommandResponse>> DeletePlayer(int id)
+    public async Task<ActionResult<DeletePlayerCommandResponse>> DeletePlayer(
+        int id,
+        [FromServices] IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse> getHandler,
+        [FromServices] IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse> deleteHandler
+    )
     {
         // Get existing player to delete the image
         var getQuery = new GetPlayerByIdQuery { Id = id };
-        var existingResult = await _mediator.Send(getQuery);
+        var existingResult = await getHandler.Handle(getQuery, HttpContext.RequestAborted);
 
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
@@ -204,7 +213,7 @@ public class PlayersController(
             );
 
         var command = new DeletePlayerCommand { Id = id };
-        var result = await _mediator.Send(command);
+        var result = await deleteHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {

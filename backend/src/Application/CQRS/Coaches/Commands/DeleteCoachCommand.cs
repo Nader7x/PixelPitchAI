@@ -1,5 +1,5 @@
 using Domain.Interfaces;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Coaches.Commands;
 

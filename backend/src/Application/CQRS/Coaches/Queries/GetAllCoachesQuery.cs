@@ -1,7 +1,7 @@
 using Application.Dtos;
 using Application.Interfaces;
 using Domain.Interfaces;
-using MediatR;
+using Application.CQRS;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.Coaches.Queries;

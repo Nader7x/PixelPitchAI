@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Application.CQRS;
 using Application.CQRS.Players.Commands;
 using Application.CQRS.Players.Queries;
 using Application.Dtos;
@@ -7,7 +8,6 @@ using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -21,12 +21,10 @@ public class PlayersControllerTests
     private readonly PlayersController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IPlayerMapper> _playerMapperMock;
 
     public PlayersControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _playerMapperMock = new Mock<IPlayerMapper>();
         _cacheServiceMock = new Mock<ICacheService>();
@@ -34,7 +32,6 @@ public class PlayersControllerTests
         _fixture = new NoRecursionFixture();
 
         _controller = new PlayersController(
-            _mediatorMock.Object,
             _fileStorageServiceMock.Object,
             _playerMapperMock.Object,
             _cacheServiceMock.Object
@@ -82,8 +79,9 @@ public class PlayersControllerTests
             )
             .ReturnsAsync((GetAllPlayersQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllPlayersQuery>(), default))
+        var handlerMock = new Mock<IRequestHandler<GetAllPlayersQuery, GetAllPlayersQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllPlayersQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -98,7 +96,7 @@ public class PlayersControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetAllPlayers("England", "Right", 1, 1, 10);
+        var result = await _controller.GetAllPlayers("England", "Right", 1, 1, 10, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllPlayersQueryResponse>>();
@@ -106,7 +104,7 @@ public class PlayersControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllPlayersQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllPlayersQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -135,8 +133,10 @@ public class PlayersControllerTests
             )
             .ReturnsAsync(cachedResponse);
 
+        var handlerMock = new Mock<IRequestHandler<GetAllPlayersQuery, GetAllPlayersQueryResponse>>();
+
         // Act
-        var result = await _controller.GetAllPlayers("England", "Right", 1, 1, 10);
+        var result = await _controller.GetAllPlayers("England", "Right", 1, 1, 10, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllPlayersQueryResponse>>();
@@ -144,7 +144,7 @@ public class PlayersControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllPlayersQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllPlayersQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -171,8 +171,9 @@ public class PlayersControllerTests
             )
             .ReturnsAsync((GetPlayerByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default))
+        var handlerMock = new Mock<IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -187,7 +188,7 @@ public class PlayersControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetPlayerById(playerId);
+        var result = await _controller.GetPlayerById(playerId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetPlayerByIdQueryResponse>>();
@@ -195,8 +196,8 @@ public class PlayersControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -234,12 +235,13 @@ public class PlayersControllerTests
             .Setup(x => x.ToCreateCommand(It.IsAny<CreatePlayerDto>()))
             .Returns(createCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<CreatePlayerCommand>(), default))
+        var handlerMock = new Mock<IRequestHandler<CreatePlayerCommand, CreatePlayerCommandResponse>>();
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<CreatePlayerCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.CreatePlayer(playerDto);
+        var result = await _controller.CreatePlayer(playerDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreatePlayerCommandResponse>>();
@@ -247,7 +249,7 @@ public class PlayersControllerTests
         createdResult.Should().NotBeNull();
         createdResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<CreatePlayerCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<CreatePlayerCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -263,8 +265,9 @@ public class PlayersControllerTests
             Player = new PlayerDto { Id = playerId, PhotoUrl = "test.jpg" },
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getPlayerResponse);
 
         var updateCommand = new UpdatePlayerCommand
@@ -287,12 +290,13 @@ public class PlayersControllerTests
             .Setup(x => x.ToUpdateCommand(It.IsAny<UpdatePlayerDto>()))
             .Returns(updateCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdatePlayerCommand>(), default))
+        var updateHandlerMock = new Mock<IRequestHandler<UpdatePlayerCommand, UpdatePlayerCommandResponse>>();
+        updateHandlerMock
+            .Setup(x => x.Handle(It.IsAny<UpdatePlayerCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UpdatePlayer(playerId, playerDto);
+        var result = await _controller.UpdatePlayer(playerId, playerDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -300,7 +304,7 @@ public class PlayersControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdatePlayerCommand>(), default), Times.Once);
+        updateHandlerMock.Verify(x => x.Handle(It.IsAny<UpdatePlayerCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -316,16 +320,18 @@ public class PlayersControllerTests
             Player = new PlayerDto { Id = playerId, PhotoUrl = "test.jpg" },
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getPlayerResponse);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeletePlayerCommand>(c => c.Id == playerId), default))
+        var deleteHandlerMock = new Mock<IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>>();
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeletePlayerCommand>(c => c.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeletePlayer(playerId);
+        var result = await _controller.DeletePlayer(playerId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -333,8 +339,8 @@ public class PlayersControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<DeletePlayerCommand>(c => c.Id == playerId), default),
+        deleteHandlerMock.Verify(
+            x => x.Handle(It.Is<DeletePlayerCommand>(c => c.Id == playerId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -350,12 +356,15 @@ public class PlayersControllerTests
             NotFound = true,
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getPlayerResponse);
 
+        var deleteHandlerMock = new Mock<IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>>();
+
         // Act
-        var result = await _controller.DeletePlayer(playerId);
+        var result = await _controller.DeletePlayer(playerId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeletePlayerCommandResponse>>();
@@ -384,16 +393,18 @@ public class PlayersControllerTests
         };
         var expectedResponse = new DeletePlayerCommandResponse { Succeeded = false };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetPlayerByIdQuery, GetPlayerByIdQueryResponse>>();
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetPlayerByIdQuery>(q => q.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getPlayerResponse);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeletePlayerCommand>(c => c.Id == playerId), default))
+        var deleteHandlerMock = new Mock<IRequestHandler<DeletePlayerCommand, DeletePlayerCommandResponse>>();
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeletePlayerCommand>(c => c.Id == playerId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeletePlayer(playerId);
+        var result = await _controller.DeletePlayer(playerId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeletePlayerCommandResponse>>();

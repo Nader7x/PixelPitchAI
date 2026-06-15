@@ -1,8 +1,8 @@
+using Application.CQRS;
 using Application.CQRS.Stadiums.Commands;
 using Application.CQRS.Stadiums.Queries;
 using Application.Dtos;
 using Application.Interfaces;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class StadiumsController(
-    IMediator mediator,
     IStadiumMapper stadiumMapper,
     IFileStorageService fileStorageService,
     ICacheService cacheService
@@ -20,7 +19,6 @@ public class StadiumsController(
     private const string CONTAINER_NAME = "stadiums";
     private readonly ICacheService _cacheService = cacheService;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
-    private readonly IMediator _mediator = mediator;
     private readonly IStadiumMapper _stadiumMapper = stadiumMapper;
 
     [HttpGet]
@@ -28,7 +26,8 @@ public class StadiumsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetAllStadiumsQueryResponse>> GetAllStadiums(
         [FromQuery] string? country,
-        [FromQuery] string? city
+        [FromQuery] string? city,
+        [FromServices] IRequestHandler<GetAllStadiumsQuery, GetAllStadiumsQueryResponse> handler
     )
     {
         await _cacheService.RemoveAsync("stadiums_all_*");
@@ -44,7 +43,7 @@ public class StadiumsController(
 
         var query = new GetAllStadiumsQuery { Country = country, City = city };
 
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -60,7 +59,10 @@ public class StadiumsController(
     [ProducesResponseType(typeof(GetStadiumByIdQueryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<GetStadiumByIdQueryResponse>> GetStadiumById(int id)
+    public async Task<ActionResult<GetStadiumByIdQueryResponse>> GetStadiumById(
+        int id,
+        [FromServices] IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse> handler
+    )
     {
         // Try to get from the cache first
         var cacheKey = $"stadium_{id}";
@@ -73,7 +75,7 @@ public class StadiumsController(
         }
 
         var query = new GetStadiumByIdQuery { Id = id };
-        var result = await _mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -95,7 +97,8 @@ public class StadiumsController(
     [ProducesResponseType(typeof(CreateStadiumCommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateStadiumCommandResponse>> CreateStadium(
-        [FromForm] CreateStadiumDto stadiumDto
+        [FromForm] CreateStadiumDto stadiumDto,
+        [FromServices] IRequestHandler<CreateStadiumCommand, CreateStadiumCommandResponse> handler
     )
     {
         // Handle file upload if present
@@ -106,7 +109,7 @@ public class StadiumsController(
             );
 
         var command = _stadiumMapper.ToCreateCommand(stadiumDto);
-        var result = await _mediator.Send(command);
+        var result = await handler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(result);
@@ -124,12 +127,14 @@ public class StadiumsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateStadiumCommandResponse>> UpdateStadium(
         int id,
-        [FromForm] UpdateStadiumDto stadiumDto
+        [FromForm] UpdateStadiumDto stadiumDto,
+        [FromServices] IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse> getHandler,
+        [FromServices] IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse> updateHandler
     )
     {
         // Get the existing stadium to check if we need to replace the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
-        var existingResult = await _mediator.Send(getQuery);
+        var existingResult = await getHandler.Handle(getQuery, HttpContext.RequestAborted);
 
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
@@ -153,7 +158,7 @@ public class StadiumsController(
         var command = _stadiumMapper.ToUpdateCommand(stadiumDto);
         command.Id = id;
 
-        var result = await _mediator.Send(command);
+        var result = await updateHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {
@@ -175,11 +180,15 @@ public class StadiumsController(
     [ProducesResponseType(typeof(DeleteStadiumCommandResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<DeleteStadiumCommandResponse>> DeleteStadium(int id)
+    public async Task<ActionResult<DeleteStadiumCommandResponse>> DeleteStadium(
+        int id,
+        [FromServices] IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse> getHandler,
+        [FromServices] IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse> deleteHandler
+    )
     {
         // Get the existing stadium to delete the image
         var getQuery = new GetStadiumByIdQuery { Id = id };
-        var existingResult = await _mediator.Send(getQuery);
+        var existingResult = await getHandler.Handle(getQuery, HttpContext.RequestAborted);
 
         if (!existingResult.Succeeded || existingResult.NotFound)
             return NotFound(existingResult);
@@ -192,7 +201,7 @@ public class StadiumsController(
             );
 
         var command = new DeleteStadiumCommand { Id = id };
-        var result = await _mediator.Send(command);
+        var result = await deleteHandler.Handle(command, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
         {

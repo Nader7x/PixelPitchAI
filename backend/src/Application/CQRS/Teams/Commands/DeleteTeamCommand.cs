@@ -1,5 +1,5 @@
 using Domain.Interfaces;
-using MediatR;
+using Application.CQRS;
 using Microsoft.Extensions.Logging;
 
 namespace Application.CQRS.Teams.Commands;

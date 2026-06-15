@@ -7,7 +7,7 @@ using AutoFixture;
 using FluentAssertions;
 using Footex.Controllers;
 using Footex.UnitTests.Common;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -21,12 +21,10 @@ public class StadiumsControllerTests
     private readonly StadiumsController _controller;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IStadiumMapper> _stadiumMapperMock;
 
     public StadiumsControllerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
         _stadiumMapperMock = new Mock<IStadiumMapper>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _cacheServiceMock = new Mock<ICacheService>();
@@ -34,7 +32,6 @@ public class StadiumsControllerTests
         _fixture = new NoRecursionFixture();
 
         _controller = new StadiumsController(
-            _mediatorMock.Object,
             _stadiumMapperMock.Object,
             _fileStorageServiceMock.Object,
             _cacheServiceMock.Object
@@ -76,14 +73,16 @@ public class StadiumsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllStadiumsQuery, GetAllStadiumsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllStadiumsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetAllStadiumsQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetAllStadiumsQuery>(), default))
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<GetAllStadiumsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -98,7 +97,7 @@ public class StadiumsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetAllStadiums("England", "London");
+        var result = await _controller.GetAllStadiums("England", "London", handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllStadiumsQueryResponse>>();
@@ -106,7 +105,7 @@ public class StadiumsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllStadiumsQuery>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllStadiumsQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -129,6 +128,8 @@ public class StadiumsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetAllStadiumsQuery, GetAllStadiumsQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetAllStadiumsQueryResponse>(It.IsAny<string>(), CancellationToken.None)
@@ -136,7 +137,7 @@ public class StadiumsControllerTests
             .ReturnsAsync(cachedResponse);
 
         // Act
-        var result = await _controller.GetAllStadiums("England", "London");
+        var result = await _controller.GetAllStadiums("England", "London", handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetAllStadiumsQueryResponse>>();
@@ -144,7 +145,7 @@ public class StadiumsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(cachedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetAllStadiumsQuery>(), default), Times.Never);
+        handlerMock.Verify(x => x.Handle(It.IsAny<GetAllStadiumsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -165,14 +166,16 @@ public class StadiumsControllerTests
             },
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetStadiumByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetStadiumByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         _cacheServiceMock
@@ -187,7 +190,7 @@ public class StadiumsControllerTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _controller.GetStadiumById(stadiumId);
+        var result = await _controller.GetStadiumById(stadiumId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetStadiumByIdQueryResponse>>();
@@ -195,8 +198,8 @@ public class StadiumsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default),
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -228,16 +231,18 @@ public class StadiumsControllerTests
             Name = stadiumDto.Name,
         };
 
+        var handlerMock = new Mock<IRequestHandler<CreateStadiumCommand, CreateStadiumCommandResponse>>();
+
         _stadiumMapperMock
             .Setup(x => x.ToCreateCommand(It.IsAny<CreateStadiumDto>()))
             .Returns(createCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<CreateStadiumCommand>(), default))
+        handlerMock
+            .Setup(x => x.Handle(It.IsAny<CreateStadiumCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.CreateStadium(stadiumDto);
+        var result = await _controller.CreateStadium(stadiumDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateStadiumCommandResponse>>();
@@ -245,7 +250,7 @@ public class StadiumsControllerTests
         createdResult.Should().NotBeNull();
         createdResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<CreateStadiumCommand>(), default), Times.Once);
+        handlerMock.Verify(x => x.Handle(It.IsAny<CreateStadiumCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -269,8 +274,11 @@ public class StadiumsControllerTests
             },
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>>();
+
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getStadiumResponse);
 
         var updateCommand = new UpdateStadiumCommand
@@ -293,12 +301,12 @@ public class StadiumsControllerTests
             .Setup(x => x.ToUpdateCommand(It.IsAny<UpdateStadiumDto>()))
             .Returns(updateCommand);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateStadiumCommand>(), default))
+        updateHandlerMock
+            .Setup(x => x.Handle(It.IsAny<UpdateStadiumCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UpdateStadium(stadiumId, stadiumDto);
+        var result = await _controller.UpdateStadium(stadiumId, stadiumDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -306,7 +314,8 @@ public class StadiumsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateStadiumCommand>(), default), Times.Once);
+        getHandlerMock.Verify(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()), Times.Once);
+        updateHandlerMock.Verify(x => x.Handle(It.IsAny<UpdateStadiumCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -330,16 +339,19 @@ public class StadiumsControllerTests
             },
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>>();
+
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getStadiumResponse);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), default))
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.DeleteStadium(stadiumId);
+        var result = await _controller.DeleteStadium(stadiumId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -347,8 +359,12 @@ public class StadiumsControllerTests
         okResult.Should().NotBeNull();
         okResult!.Value.Should().BeEquivalentTo(expectedResponse);
 
-        _mediatorMock.Verify(
-            x => x.Send(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), default),
+        getHandlerMock.Verify(
+            x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        deleteHandlerMock.Verify(
+            x => x.Handle(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -365,24 +381,31 @@ public class StadiumsControllerTests
             Error = "Stadium not found",
         };
 
+        var handlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+
         _cacheServiceMock
             .Setup(x =>
                 x.GetAsync<GetStadiumByIdQueryResponse>(It.IsAny<string>(), CancellationToken.None)
             )
             .ReturnsAsync((GetStadiumByIdQueryResponse?)null);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        handlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetStadiumById(stadiumId);
+        var result = await _controller.GetStadiumById(stadiumId, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<GetStadiumByIdQueryResponse>>();
         var notFoundResult = result.Result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         notFoundResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(
+            x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -397,17 +420,21 @@ public class StadiumsControllerTests
             Error = "Invalid data",
         };
 
+        var handlerMock = new Mock<IRequestHandler<CreateStadiumCommand, CreateStadiumCommandResponse>>();
+
         _stadiumMapperMock.Setup(m => m.ToCreateCommand(stadiumDto)).Returns(command);
-        _mediatorMock.Setup(x => x.Send(command, default)).ReturnsAsync(expectedResponse);
+        handlerMock.Setup(x => x.Handle(command, It.IsAny<CancellationToken>())).ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.CreateStadium(stadiumDto);
+        var result = await _controller.CreateStadium(stadiumDto, handlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<CreateStadiumCommandResponse>>();
         var badRequestResult = result.Result as BadRequestObjectResult;
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(expectedResponse);
+
+        handlerMock.Verify(x => x.Handle(command, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -418,18 +445,24 @@ public class StadiumsControllerTests
         var stadiumDto = _fixture.Create<UpdateStadiumDto>();
         var getResponse = new GetStadiumByIdQueryResponse { Succeeded = false, NotFound = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+        var updateHandlerMock = new Mock<IRequestHandler<UpdateStadiumCommand, UpdateStadiumCommandResponse>>();
+
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getResponse);
 
         // Act
-        var result = await _controller.UpdateStadium(stadiumId, stadiumDto);
+        var result = await _controller.UpdateStadium(stadiumId, stadiumDto, getHandlerMock.Object, updateHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<UpdateStadiumCommandResponse>>();
         var notFoundResult = result.Result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         notFoundResult!.Value.Should().BeEquivalentTo(getResponse);
+
+        getHandlerMock.Verify(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()), Times.Once);
+        updateHandlerMock.Verify(x => x.Handle(It.IsAny<UpdateStadiumCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -439,18 +472,24 @@ public class StadiumsControllerTests
         var stadiumId = 99;
         var getResponse = new GetStadiumByIdQueryResponse { Succeeded = false, NotFound = true };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>>();
+
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getResponse);
 
         // Act
-        var result = await _controller.DeleteStadium(stadiumId);
+        var result = await _controller.DeleteStadium(stadiumId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteStadiumCommandResponse>>();
         var notFoundResult = result.Result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         notFoundResult!.Value.Should().BeEquivalentTo(getResponse);
+
+        getHandlerMock.Verify(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()), Times.Once);
+        deleteHandlerMock.Verify(x => x.Handle(It.IsAny<DeleteStadiumCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -469,21 +508,27 @@ public class StadiumsControllerTests
             Error = "Deletion failed",
         };
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), default))
+        var getHandlerMock = new Mock<IRequestHandler<GetStadiumByIdQuery, GetStadiumByIdQueryResponse>>();
+        var deleteHandlerMock = new Mock<IRequestHandler<DeleteStadiumCommand, DeleteStadiumCommandResponse>>();
+
+        getHandlerMock
+            .Setup(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(getResponse);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), default))
+        deleteHandlerMock
+            .Setup(x => x.Handle(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(deleteResponse);
 
         // Act
-        var result = await _controller.DeleteStadium(stadiumId);
+        var result = await _controller.DeleteStadium(stadiumId, getHandlerMock.Object, deleteHandlerMock.Object);
 
         // Assert
         result.Should().BeOfType<ActionResult<DeleteStadiumCommandResponse>>();
         var badRequestResult = result.Result as BadRequestObjectResult;
         badRequestResult.Should().NotBeNull();
         badRequestResult!.Value.Should().BeEquivalentTo(deleteResponse);
+
+        getHandlerMock.Verify(x => x.Handle(It.Is<GetStadiumByIdQuery>(q => q.Id == stadiumId), It.IsAny<CancellationToken>()), Times.Once);
+        deleteHandlerMock.Verify(x => x.Handle(It.Is<DeleteStadiumCommand>(c => c.Id == stadiumId), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

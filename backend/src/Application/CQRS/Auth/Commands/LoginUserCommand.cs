@@ -1,6 +1,6 @@
 using Application.Interfaces;
 using Domain.Interfaces;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Auth.Commands;
 

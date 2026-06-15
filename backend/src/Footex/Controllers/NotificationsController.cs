@@ -1,9 +1,9 @@
+using Application.CQRS;
 using Application.CQRS.Notifications.Queries;
 using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -13,7 +13,6 @@ namespace Footex.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class NotificationsController(
-    IMediator mediator,
     IUnitOfWork unitOfWork,
     IHubContext<NotificationService, INotificationService> hubContext,
     ICacheService cacheService
@@ -31,7 +30,10 @@ public class NotificationsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [Authorize(Roles = "User,Admin")]
-    public async Task<IActionResult> GetAllUserNotifications(string userId)
+    public async Task<IActionResult> GetAllUserNotifications(
+        string userId,
+        [FromServices] IRequestHandler<GetUserNotificationsQuery, GetUserNotificationsQueryResponse> handler
+    )
     {
         if (string.IsNullOrEmpty(userId))
             return BadRequest("User ID cannot be null or empty.");
@@ -40,7 +42,7 @@ public class NotificationsController(
         if (user == null)
             return NotFound($"User with ID '{userId}' not found.");
         var query = new GetUserNotificationsQuery { UserId = userId };
-        var result = await mediator.Send(query);
+        var result = await handler.Handle(query, HttpContext.RequestAborted);
 
         return Ok(result);
     }

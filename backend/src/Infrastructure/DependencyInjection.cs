@@ -30,6 +30,10 @@ public static class DependencyInjection
         {
             configuration.GetSection(RedisCacheOptions.SectionName).Bind(options);
 
+            var configLocalConnString = configuration.GetValue<string>("RedisCache:ConnectionString");
+            if (!string.IsNullOrEmpty(configLocalConnString))
+                options.LocalConnectionString = configLocalConnString;
+
             // Set the remote connection string from Connection Strings section if available
             if (
                 string.IsNullOrEmpty(options.RemoteConnectionString)
@@ -55,7 +59,10 @@ public static class DependencyInjection
                 configuration.GetConnectionString("RemoteRedisConnection") ?? "";
 
         var localConnectionString = redisOptions.LocalConnectionString;
-        if (string.IsNullOrEmpty(localConnectionString))
+        var directLocalConnString = configuration.GetValue<string>("RedisCache:ConnectionString");
+        if (!string.IsNullOrEmpty(directLocalConnString))
+            localConnectionString = directLocalConnString;
+        else if (string.IsNullOrEmpty(localConnectionString))
             localConnectionString = "localhost:6379";
 
         // Create the multiplexer directly
@@ -70,9 +77,9 @@ public static class DependencyInjection
                         EndPoints = { { remoteConnectionString, 17264 } },
                         User = "default",
                         Password = remoteRedisPassword,
-                        AbortOnConnectFail = false,
-                        ConnectRetry = 3,
-                        ConnectTimeout = 5000,
+                        AbortOnConnectFail = true,
+                        ConnectRetry = 1,
+                        ConnectTimeout = 2000,
                     }
                 );
             else
@@ -82,15 +89,11 @@ public static class DependencyInjection
         catch
         {
             // Fall back to local
-            redis = ConnectionMultiplexer.Connect(
-                new ConfigurationOptions
-                {
-                    EndPoints = { localConnectionString },
-                    AbortOnConnectFail = false,
-                    ConnectRetry = 2,
-                    ConnectTimeout = 3000,
-                }
-            );
+            var options = ConfigurationOptions.Parse(localConnectionString);
+            options.AbortOnConnectFail = false;
+            options.ConnectRetry = 2;
+            options.ConnectTimeout = 3000;
+            redis = ConnectionMultiplexer.Connect(options);
         }
 
         // Register Redis connection multiplexer as singleton

@@ -1,7 +1,7 @@
 using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
-using MediatR;
+using Application.CQRS;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 

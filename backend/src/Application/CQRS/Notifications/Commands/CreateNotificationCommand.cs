@@ -1,6 +1,6 @@
 using Domain.Models;
 using Domain.Repositories;
-using MediatR;
+using Application.CQRS;
 
 namespace Application.CQRS.Notifications.Commands;
 
