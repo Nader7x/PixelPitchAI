@@ -78,6 +78,10 @@ replacements.txt
 
 # Git Worktrees
 worktrees/
+feature-arch/
+feature-*/
 
 # AI Agent scratch & temporary directories
+.agents
 .agents/
+.agents*
