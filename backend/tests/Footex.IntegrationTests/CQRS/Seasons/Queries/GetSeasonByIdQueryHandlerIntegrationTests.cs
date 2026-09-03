@@ -135,8 +135,10 @@ public class GetSeasonByIdQueryHandlerIntegrationTests(FootexWebApplicationFacto
         // Arrange
         var season = TestData.CreateTestDbSeason();
         season.IsActive = false;
-        season.StartDate = new DateTime(2026, 8, 15);
-        season.EndDate = new DateTime(2027, 5, 30);
+        var futureStartDate = DateTime.UtcNow.AddMonths(1);
+        var futureEndDate = DateTime.UtcNow.AddYears(1);
+        season.StartDate = futureStartDate;
+        season.EndDate = futureEndDate;
 
         await UnitOfWork.Seasons.AddAsync(season);
         await UnitOfWork.SaveChangesAsync();
@@ -151,8 +153,8 @@ public class GetSeasonByIdQueryHandlerIntegrationTests(FootexWebApplicationFacto
         result.Season.Should().NotBeNull();
         result.Season!.IsActive.Should().BeFalse();
         result.Season.StartDate.Should().BeAfter(DateTime.UtcNow);
-        result.Season.StartDate.Should().Be(new DateTime(2026, 8, 15));
-        result.Season.EndDate.Should().Be(new DateTime(2027, 5, 30));
+        result.Season.StartDate.Should().Be(futureStartDate);
+        result.Season.EndDate.Should().Be(futureEndDate);
     }
 
     [Fact]

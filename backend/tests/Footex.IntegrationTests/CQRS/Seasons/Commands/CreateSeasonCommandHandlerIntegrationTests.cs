@@ -131,11 +131,13 @@ public class CreateSeasonCommandHandlerIntegrationTests(FootexWebApplicationFact
         var competition = TestData.CreateTestCompetition();
         await UnitOfWork.Competitions.AddAsync(competition);
         await UnitOfWork.SaveChangesAsync();
+        var futureStartDate = DateTime.UtcNow.AddMonths(1);
+        var futureEndDate = DateTime.UtcNow.AddYears(1);
         var command = new CreateSeasonCommand
         {
-            Name = "Future Season 2026-27",
-            StartDate = new DateTime(2026, 8, 1),
-            EndDate = new DateTime(2027, 7, 31),
+            Name = "Future Season",
+            StartDate = futureStartDate,
+            EndDate = futureEndDate,
             IsActive = false,
             CompetitionId = competition.Id,
         };
