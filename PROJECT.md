@@ -33,7 +33,7 @@
 | M1 | Obsolete Docs Purge & Consolidation | Purge 25 obsolete markdown files and transient logs across `docs/` and `DataMigration/` | none | DONE (commit d4ee2c1, 29 files purged, 18 living guides intact, Gate PASS) |
 | M2 | Subsystem Guides & READMEs Overhaul | Overhaul `README.md`, `frontend/README.md`, `simulation-engine/README.md`, and test guides | M1 | DONE (commit 8e738c2, 5 files overhauled, 0 test violations in touched files) |
 | M3 | Core Architecture & API Docs Overhaul | Overhaul `project-architecture-documentation.md`, `documentation.md`, `event-processing-system.md`, `sse-match-stream.md`, etc. | M2 | DONE (commit 8cc617f, 10 core docs overhauled, sse-match-stream.md created, Mermaid erDiagram added) |
-| M4 | Link, Schema & Route Verification | E2E verification of all markdown links, routes, ports, environment variables, and integrity audit | M3 | DONE (19/19 verification tests passed, 631 unit tests passed) |
+| M4 | Link, Schema & Route Verification | E2E verification of all markdown links, routes, ports, environment variables, and integrity audit | M3 | DONE (commit b3612a6, 19/19 verify-documentation.py tests passed, 631 unit tests passed, Forensic Audit CLEAN) |
 
 ## Interface Contracts
 ### Documentation Standards & Nomenclature
