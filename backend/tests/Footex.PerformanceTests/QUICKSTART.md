@@ -6,7 +6,7 @@ This guide helps you quickly get started with running performance tests for the 
 
 ## Prerequisites
 
-1. .NET 8.0 SDK installed
+1. .NET 10.0 SDK installed
 2. Footex API running (locally or on a test environment)
 3. PostgreSQL database running and accessible
 
@@ -33,29 +33,31 @@ Edit `appsettings.json` to match your environment:
 
 ### 3. Run Tests Using PowerShell Script
 
+From the repository root:
+
 #### Run All Performance Tests
 
 ```powershell
-./run-performance-tests.ps1 -TestType all
+./scripts/run-performance-tests.ps1 -TestType all
 ```
 
 #### Run Specific Test Types
 
 ```powershell
 # Load tests only
-./run-performance-tests.ps1 -TestType load
+./scripts/run-performance-tests.ps1 -TestType load
 
 # Stress tests only
-./run-performance-tests.ps1 -TestType stress
+./scripts/run-performance-tests.ps1 -TestType stress
 
 # Cache performance tests
-./run-performance-tests.ps1 -TestType cache
+./scripts/run-performance-tests.ps1 -TestType cache
 
 # Search performance tests
-./run-performance-tests.ps1 -TestType search
+./scripts/run-performance-tests.ps1 -TestType search
 
 # Benchmarks only
-./run-performance-tests.ps1 -TestType benchmark
+./scripts/run-performance-tests.ps1 -TestType benchmark
 ```
 
 ### 4. Run Tests Using dotnet CLI
