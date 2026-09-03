@@ -8,17 +8,28 @@ The Footex Event Processing System is a comprehensive real-time event handling a
 
 ### Component Overview
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Event Source  │────│   RabbitMQ      │────│  RabbitMQ       │
-│   (API/External)│    │   Exchange      │    │  Client         │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                                        │
-                                                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Clients   │◄───│   SignalR       │◄───│   Event         │
-│   (Live Updates)│    │   Hubs          │    │   Processing    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+```mermaid
+flowchart LR
+    classDef src fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:8px,ry:8px;
+    classDef mq fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:8px,ry:8px;
+    classDef consumer fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:8px,ry:8px;
+    classDef sse fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:8px,ry:8px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:8px,ry:8px;
+
+    Source["🧠 AI Simulation Engine<br/>• Raw Text Line Stream<br/>• gRPC / REST"]:::src
+    Exchange[["📨 RabbitMQ Exchange<br/>• Topic: match.events<br/>• Non-blocking buffers"]]:::mq
+    ClientService["⚡ MatchEventRabbitMqClient<br/>• Zero-Allocation Span Parser<br/>• ReadOnlySpan Slicing"]:::consumer
+    Broadcaster["📡 SSE Channel Broadcaster<br/>• System.Threading.Channels<br/>• text/event-stream"]:::sse
+    WebClients["🖥️ Next.js Web Clients<br/>• EventSource Listeners<br/>• Live Pitch Visualizer"]:::sse
+    HotState[("🚀 Redis Hot State<br/>• Atomic Counter Incs<br/>• Live Match Stats")]:::db
+    ColdStorage[("💾 PostgreSQL DB<br/>• Background Bulk Sync<br/>• Final Audit Log")]:::db
+
+    Source -->|"Publish Raw Line"| Exchange
+    Exchange -->|"Deliver Bytes"| ClientService
+    ClientService -->|"Atomic Update"| HotState
+    ClientService -->|"Channel Dispatch"| Broadcaster
+    Broadcaster -->|"SSE Push"| WebClients
+    ClientService -.->|"Batched Save"| ColdStorage
 ```
 
 ### Key Components

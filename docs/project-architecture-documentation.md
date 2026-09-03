@@ -26,225 +26,252 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 
 ### System Components
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Next.js       │    │    .NET 10 API   │    │   Python AI     │
-│   Frontend      │    │  (Gateway/Orch)  │    │ FastAPI + gRPC  │
-│                 │    │                  │    │                 │
-│ • React 19 UI   │◄───│ • Clean Arch     │◄──►│ • GPT-2 LLM     │
-│ • TypeScript    │ SSE│ • gRPC Client    │gRPC│ • gRPC Server   │
-│ • Real-time SSE │    │ • Span<char> Pkg │    │ • Raw Stream    │
-│ • 3D Pitch View │    │ • Zero-Alloc Hot │    │ • ML Predictions│
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                       │
-                                │                  Raw Stream
-                                │                       │
-                                ▼                       ▼
-                       ┌──────────────────┐    ┌──────────────────┐
-                       │      Redis       │    │    RabbitMQ      │
-                       │   (Hot State)    │    │  Message Broker  │
-                       │                  │    │                  │
-                       │ • Atomic Incs    │◄───┤ • Raw Text Lines │
-                       │ • Microsec State │    │ • Topic Exchange │
-                       │ • Fast Caching   │    │ • Broker Buffer  │
-                       └──────────────────┘    └──────────────────┘
-                                │
-                                ▼ (Batched Persistence)
-                       ┌──────────────────┐
-                       │    PostgreSQL    │
-                       │    Database      │
-                       │                  │
-                       │ • EF Core / AOT  │
-                       │ • Cold Storage   │
-                       │ • Bulk Sync Jobs │
-                       └──────────────────┘
+```mermaid
+flowchart TB
+    classDef client fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:8px,ry:8px;
+    classDef api fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:8px,ry:8px;
+    classDef ai fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:8px,ry:8px;
+    classDef broker fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:8px,ry:8px;
+    classDef cache fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#9f1239,rx:8px,ry:8px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:8px,ry:8px;
+
+    subgraph ClientTier ["Frontend Tier"]
+        UI["Next.js 15 Client<br/>• React 19 UI & Pitch View<br/>• Native EventSource Client<br/>• 3D Simulation Controls"]:::client
+    end
+
+    subgraph CoreBackend [".NET 10 Core Application Tier"]
+        API[".NET 10 Web API<br/>• Clean Architecture & CQRS<br/>• Zero-Allocation Span Parser<br/>• HTTP/2 SSE Broadcaster Channel"]:::api
+    end
+
+    subgraph SimulationEngine ["Python Simulation Engine"]
+        Engine["Python 3.12 Engine<br/>• Fine-Tuned GPT-2 Model<br/>• Fast Dual-Mode Servicer<br/>• gRPC Server (Port 50051) + FastAPI"]:::ai
+    end
+
+    subgraph FastState ["Ultra-Fast Hot State Tier"]
+        Redis[("Redis Hot Cache<br/>• Microsecond Counter State<br/>• Real-Time Statistics")]:::cache
+        RabbitMQ[["RabbitMQ Event Broker<br/>• Raw Event Byte Stream<br/>• Durable Outbox & Topics"]]:::broker
+    end
+
+    subgraph ColdStorage ["Persistent Storage Tier"]
+        Postgres[("PostgreSQL 16 DB<br/>• EF Core Cold Storage<br/>• Batched Match Histories")]:::db
+    end
+
+    %% Interactions
+    UI <-->|"HTTP REST (CRUD / Auth)"| API
+    API -->|"Server-Sent Events (SSE Streams)"| UI
+    API <-->|"gRPC Unary & Server Stream (Port 50051)"| Engine
+    Engine -->|"Pipeline A: Raw Text Stream"| RabbitMQ
+    Engine -.->|"Pipeline B: Direct Stream"| API
+    RabbitMQ -->|"Consume Raw Spans"| API
+    API -->|"Atomic Incs / Hot Stats"| Redis
+    API -->|"Batched Async Sync"| Postgres
 ```
 
 ### Additional Architecture Diagrams
 
 #### **Clean Architecture Layers Diagram**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    🌐 Presentation Layer                    │
-│                     (Web API / Controllers)                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              📋 Application Layer                   │    │
-│  │            (CQRS / MediatR / Services)              │    │
-│  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │            🏢 Domain Layer                  │    │    │
-│  │  │         (Entities / Interfaces)             │    │    │
-│  │  │                                             │    │    │
-│  │  │  • Team      • Player    • Match            │    │    │
-│  │  │  • Stadium   • Season    • Coach            │    │    │
-│  │  │  • IRepository Interfaces                   │    │    │
-│  │  └─────────────────────────────────────────────┘    │    │
-│  │                                                     │    │
-│  │  • Commands & Queries    • DTOs & Mappers           │    │
-│  │  • Application Services  • Validation Logic         │    │
-│  └──────────────────────────────────────────────��─────┘    │
-│                                                             │
-│  • REST Controllers      • Authentication & Authorization   │
-│  • SignalR Hubs         • API Documentation (Swagger)       │
-└─────────────────────────────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│                  🔧 Infrastructure Layer                    │
-│                 (External Concerns & Data)                  │
-│                                                             │
-│  📊 Data Access     🗄️ Caching        📨 Messaging         │
-│  • EF Core          • Redis Cache     • RabbitMQ Client     │
+```mermaid
+flowchart TB
+    classDef pres fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e40af,rx:6px,ry:6px;
+    classDef app fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#15803d,rx:6px,ry:6px;
+    classDef dom fill:#fefce8,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:6px,ry:6px;
+    classDef infra fill:#faf5ff,stroke:#a855f7,stroke-width:2px,color:#6b21a8,rx:6px,ry:6px;
 
-│  • PostgreSQL       • Session Store   • Event Handlers      │
-│  • Repositories     • Performance     • Background Tasks    │
-│                                                             │
-│  🔐 Identity        📧 External       📁 File Storage      |
-│  • JWT Auth         • Email Service   • Local/Cloud         │
-│  • User Management  • 3rd Party APIs  • File Operations     │
-└──���────────────────────────────────────────────────────────┘
+    subgraph PresentationLayer ["Presentation Layer (Footex Web API)"]
+        Controllers["Controllers (REST / SSE Endpoints)"]:::pres
+        Middleware["JWT Auth Middleware & Filters"]:::pres
+        OpenAPI["OpenAPI / Scalar API Docs"]:::pres
+    end
+
+    subgraph ApplicationLayer ["Application Layer (Business Orchestration)"]
+        CQRS["CQRS Commands & Queries (MediatR)"]:::app
+        AppInterfaces["Service & Repository Interfaces"]:::app
+        DTOs["DTOs, Validators & Mappers"]:::app
+        StatsLogic["Live Match Statistics Aggregators"]:::app
+    end
+
+    subgraph DomainLayer ["Domain Layer (Enterprise Core & Rules)"]
+        Entities["Domain Entities (Match, Team, Player, Stadium)"]:::dom
+        DomainEvents["Domain Events & Value Objects"]:::dom
+        Contracts["Core Business Rules & Enums"]:::dom
+    end
+
+    subgraph InfrastructureLayer ["Infrastructure Layer (External Adapters & I/O)"]
+        EF["EF Core & PostgreSQL Repositories"]:::infra
+        gRPCClient["gRPC Client (Simulation Engine Adapter)"]:::infra
+        MQClient["RabbitMQ Consumer & Channel Dispatcher"]:::infra
+        CacheSvc["Redis Hot Cache & Performance Monitor"]:::infra
+        FastParser["ZeroAllocationEventParser (ReadOnlySpan)"]:::infra
+    end
+
+    PresentationLayer --> ApplicationLayer
+    ApplicationLayer --> DomainLayer
+    InfrastructureLayer --> ApplicationLayer
+    InfrastructureLayer --> DomainLayer
 ```
 
 #### **CQRS Pattern Flow Diagram**
 
-```
-┌─────────────────┐                    ┌─────────────────┐
-│   📝 Commands   │                    │   📖 Queries   │
-│   (Write Side)  │                    │   (Read Side)   │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│ Command Handler │                    │  Query Handler  │
-│                 │                    │                 │
-│ • Validation    │                    │ • Data Fetch    │
-│ • Business Logic│                    │ • Projection    │
-│ • Side Effects  │                    │ • Caching       │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│   Write Model   │                    │   Read Model    │
-│                 │                    │                 │
-│ • Domain Entity │                    │ • DTO/ViewModels│
-│ • Aggregates    │                    │ • Optimized     │
-│ • Consistency   │                    │ • Performance   │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│   PostgreSQL    │◄──────────────────►│   Redis Cache   │
-│   Database      │   Data Sync        │   + Database    │
-│                 │                    │                 │
-│ • ACID          │                    │ • Fast Reads    │
-│ • Consistency   │                    │ • Scalability   │
-│ • Durability    │                    │ • Performance   │
-└─────────────────┘                    └─────────────────┘
+```mermaid
+flowchart LR
+    classDef write fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,rx:6px,ry:6px;
+    classDef read fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e40af,rx:6px,ry:6px;
+    classDef store fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46,rx:6px,ry:6px;
+
+    Client(["Client Request"]):::read
+
+    subgraph WritePipeline ["Write Side (Commands / State Mutation)"]
+        Command["Command (e.g. CreateMatchCommand)"]:::write
+        CommandHandler["Command Handler<br/>• Fluent Validation<br/>• Domain Business Rules<br/>• Side Effects"]:::write
+        DomainModel["Domain Aggregate / Entity"]:::write
+    end
+
+    subgraph ReadPipeline ["Read Side (Queries / Projections)"]
+        Query["Query (e.g. GetMatchByIdQuery)"]:::read
+        QueryHandler["Query Handler<br/>• AsNoTracking Projections<br/>• DTO Transformations"]:::read
+        ReadModel["Optimized Read DTO / Model"]:::read
+    end
+
+    subgraph Storage ["Storage Strategy"]
+        Postgres[("PostgreSQL Database<br/>• ACID Consistency<br/>• Source of Truth")]:::store
+        Redis[("Redis Cache<br/>• In-Memory Reads<br/>• Fast Key-Value TTL")]:::store
+    end
+
+    Client -->|"POST / PUT / DELETE"| Command
+    Command --> CommandHandler
+    CommandHandler --> DomainModel
+    DomainModel -->|"Save Changes"| Postgres
+    CommandHandler -.->|"Invalidate / Evict"| Redis
+
+    Client -->|"GET"| Query
+    Query --> QueryHandler
+    QueryHandler -->|"Cache Hit"| Redis
+    QueryHandler -.->|"Cache Miss"| Postgres
+    Postgres -.->|"Populate Cache"| Redis
+    QueryHandler --> ReadModel
+    ReadModel --> Client
 ```
 
 #### **Real-Time Match Simulation Sequence Diagram**
 
-```
-Frontend    .NET API    RabbitMQ    Python AI    SignalR    Database
-    │           │           │           │           │           │
-    │──Start───►│           │           │           │           │
-    │  Match    │           │           │           │           │
-    │           │──Publish─►│           │           │           │
-    │           │  Command  │           │           │           │
-    │           │           │──Route───►│           │           │
-    │           │           │  Message  │           │           │
-    │           │           │           │──Process─►│           │
-    │           │           │           │  AI Model │           │
-    │           │           │           │           │           │
-    │           │           │◄─Events───│           │           │
-    │           │           │  Stream   │           │           │
-    │           │◄─Events───│           │           │           │
-    │           │  Queue    │           │           │           │
-    │           │           │           │           │           │
-    │           │────────────────────────────���───────────────►│
-    │           │                    Save Events                │
-    │           │           │           │           │           │
-    │           │──────────────────────►│           │           │
-    │           │      Broadcast        │           │           │
-    │◄──────────│           │           │──Push────►│           │
-    │  Real-time│           │           │  Updates  │           │
-    │  Updates  │           │           │           │           │
-```
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Next.js Frontend
+    participant API as .NET 10 Web API
+    participant gRPC as Python gRPC (50051)
+    participant Engine as GPT-2 Simulation Engine
+    participant RabbitMQ as RabbitMQ Broker
+    participant Redis as Redis Hot State
+    participant DB as PostgreSQL Database
 
-#### **Data Flow Architecture Diagram**
+    Client->>API: POST /api/Matches/SimulateMatch/{userId}
+    API->>gRPC: StartMatchSimulation(match_id, teams, params)
+    gRPC-->>API: StartMatchResponse (simulation_id, status: started)
+    API-->>Client: 200 OK (MatchCreated & SimulationStarted)
 
-```
-┌─────────────────┐    HTTP/REST     ┌─────────────────┐
-│   Next.js UI    │◄────────────────►│  .NET API       │
-│                 │    WebSocket     │  Controllers    │
-│ • State Mgmt    │◄────────────────►│                 │
-│ • Real-time UI  │                  │ • CQRS Handler  │
-|_________________|                  │ • Validation    │
-                                     │ • Auth/Auth     │
-                                     └─────────────────┘
-                                              │
-                                              │
-                    ┌─────────────────────────┼─────────────────────────┐
-                    │                         │                         │
-                    ▼                         ▼                         ▼
-          ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-          │   PostgreSQL    │       │   Redis Cache   │       │    RabbitMQ     │
-          │                 │       │                 │       │                 │
-          │ • ACID Trans    │       │ • Session Data  │       │ • Event Queue   │
-          │ • Complex Query │       │ • Performance   │       │ • Async Comm    │
-          │ • Data Integrity│       │ • Temp Storage  │       │ • Message Route │
-          └─────────────────┘       └─────────────────┘       └─────────────────┘
-                    │                         │                         │
-                    │                         │                         ▼
-                    │                         │               ┌─────────────────┐
-                    │                         │               │   Python AI     │
-                    │                         │               │   FastAPI       │
-                    │                         │               │                 │
-                    │                         │               │ • GPT-2 Model   │
-                    │                         │               │ • Match Sim     │
-                    │                         │               │ • Analytics     │
-                    │                         │               └─────────────────┘
-                    │                         │
-                    ▼                         ▼
-          ┌─────────────────┐       ┌─────────────────┐
-          │   EF Core ORM   │       │  Cache Strategy │
-          │                 │       │                 │
-          │ • Code First    │       │ • Cache-Aside   │
-          │ • Migrations    │       │ • Write-Through │
-          │ • Change Track  │       │ • Invalidation  │
-          └─────────────────┘       └─────────────────┘
+    Note over Client,API: Client subscribes to SSE stream
+    Client->>API: GET /api/matches/{id}/events/stream?access_token=...
+    API-->>Client: HTTP/2 200 OK (text/event-stream)
+
+    par Dual Streaming Pipeline
+        Note over gRPC,Engine: Pipeline B: Direct Server-Streaming (Optional)
+        Engine-->>API: gRPC MatchEventRaw stream chunks
+    and Pipeline A: Raw Broker Stream
+        Engine->>RabbitMQ: publish_raw_event(raw_text_line)
+        RabbitMQ->>API: Deliver raw text bytes
+    end
+
+    loop High-Throughput Event Processing
+        Note over API: ZeroAllocationEventParser.TryParseEvent(span)
+        API->>Redis: Update Hot Counters (Goals, Shots, Passes)
+        API->>Client: SSE event: match_event (JSON payload)
+        API->>Client: SSE event: match_statistics (Hot Stats)
+    end
+
+    Note over API,DB: Batch Match End Persistence
+    API->>DB: Bulk insert match events & fina#### **Data Flow Architecture Diagram**
+
+```mermaid
+flowchart TD
+    classDef frontend fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:6px,ry:6px;
+    classDef gateway fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:6px,ry:6px;
+    classDef broker fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:6px,ry:6px;
+    classDef ai fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:6px,ry:6px;
+    classDef cache fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#9f1239,rx:6px,ry:6px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:6px,ry:6px;
+
+    UI["Next.js Web Application"]:::frontend
+
+    subgraph Gateway [".NET 10 Application Gateway"]
+        Controllers["REST & SSE Controllers"]:::gateway
+        CQRS["CQRS Dispatcher"]:::gateway
+        Parser["Zero-Allocation Span Parser"]:::gateway
+    end
+
+    subgraph Messaging ["Async Transport Layer"]
+        MQ["RabbitMQ Topic Exchange<br/>(match.events)"]:::broker
+    end
+
+    subgraph Intelligence ["Python AI Simulation Core"]
+        FastAPI["FastAPI REST"]:::ai
+        gRPCServer["gRPC Server (50051)"]:::ai
+        GPT2["Fine-Tuned GPT-2 Engine"]:::ai
+    end
+
+    subgraph FastStorage ["In-Memory Data Tier"]
+        Redis[("Redis 7<br/>• Live Match Counters<br/>• Query Cache<br/>• Session Storage")]:::cache
+    end
+
+    subgraph RelationalDB ["Relational Data Tier"]
+        EF["EF Core 10 ORM"]:::db
+        PG[("PostgreSQL 16 Database<br/>• Matches & Teams<br/>• Player Profiles & Stats")]:::db
+    end
+
+    UI <-->|"HTTP/REST (CRUD Operations)"| Controllers
+    Controllers -->|"Real-time SSE Push (text/event-stream)"| UI
+    Controllers --> CQRS
+    CQRS <-->|"gRPC RPCs"| gRPCServer
+    gRPCServer --> GPT2
+    GPT2 -->|"Publish Raw Line"| MQ
+    MQ -->|"Stream Raw Events"| Parser
+    Parser -->|"Atomic Stats Updates"| Redis
+    CQRS <-->|"Cache-Aside Pattern"| Redis
+    CQRS --> EF
+    EF --> PG
 ```
 
 #### **Security & Authentication Flow**
 
-```
-┌─────────────────┐                    ┌─────────────��──┐
-│    Frontend     │                    │   .NET API      │
-│                 │                    │                 │
-│ 1. Login Request│──────────────────►│ 2. Validate      │
-│    (Credentials)│                    │    Credentials  │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         │                                       ▼
-         │                              ┌─────────────────┐
-         │                              │  JWT Generator  │
-         │                              │                 │
-         │                              │ • Create Token  │
-         │                              │ • Set Claims    │
-         │                              │ • Sign Token    │
-         │                              └─────────────────┘
-         │                                       │
-         │             ┌─────────────────────────┘
-         │             │
-         ▼             ▼
-┌─────────────────┐                    ┌─────────────────┐
-│ 3. Store Token  │                    │ 4. Secure API   │
-│                 │                    │    Endpoints    │
-│ • Local Storage │                    │                 │
-│ • HTTP Headers  │◄──────────────────┤ • Authorize      │
-│ • Auto Refresh  │   5. Protected     │ • Role Check    │
-└─────────────────┘      Requests      │ • Token Valid   │
-                                       └─────────────────┘
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant Client as Next.js Frontend
+    participant AuthCtrl as Footex AuthController
+    participant Identity as Identity Service
+    participant Protected as Protected Endpoints (REST / SSE)
+
+    User->>Client: Enters Email & Password
+    Client->>AuthCtrl: POST /api/Auth/login { email, password }
+    AuthCtrl->>Identity: ValidateCredentialsAsync()
+    Identity->>Identity: Verify password hash & lockout status
+    Identity->>Identity: Generate JWT Access Token + Refresh Token
+    Identity-->>AuthCtrl: AuthResponse (AccessToken, RefreshToken, Expiration)
+    AuthCtrl-->>Client: 200 OK + Auth Cookies / JSON Payload
+    Client->>Client: Store Access Token in memory / secure cookie
+
+    Note over Client,Protected: Standard API Request
+    Client->>Protected: GET /api/Teams (Header: Bearer Token)
+    Protected->>Protected: Validate JWT Signature & Claims
+    Protected-->>Client: 200 OK (Teams Data)
+
+    Note over Client,Protected: Native SSE Live Stream Authorization
+    Client->>Protected: GET /api/matches/{id}/events/stream?access_token=Token
+    Protected->>Protected: Extract token from QueryString (OnMessageReceived)
+    Protected->>Protected: Validate JWT Signature & Claims
+    Protected-->>Client: 200 OK (text/event-stream opened)
 ```
 
 ### Architecture Flow
