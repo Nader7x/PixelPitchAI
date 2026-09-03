@@ -1,4 +1,4 @@
-# Footex Project Architecture Documentation
+# PixelPitchAI Project Architecture Documentation
 
 ## 📋 Table of Contents
 
@@ -10,19 +10,20 @@
 - [Design Patterns](#design-patterns)
 - [Technology Stack](#technology-stack)
 - [Infrastructure Components](#infrastructure-components)
-- [Development & Deployment](#development--deployment)
+- [Development & Deployment](#development-deployment)
 - [Benefits](#benefits)
 - [Best Practices](#best-practices)
 
 ## 🎯 Overview
 
-Footex is a comprehensive football management platform built using Clean Architecture principles with .NET 10. The project implements a layered architecture that promotes separation of concerns, testability, and maintainability while providing a robust foundation for scalable football management operations.
+PixelPitchAI is an enterprise football management and simulation platform built using Clean Architecture principles with .NET 10, C# 13, and Python 3.12. The project implements a layered architecture promoting separation of concerns, testability, and maintainability, paired with zero-allocation span parsing and reflection-free CQRS.
 
-The system manages football teams, players, matches, stadiums, seasons, and provides real-time match simulation capabilities with advanced analytics and caching mechanisms.
+The system manages football teams, players, matches, stadiums, seasons, and provides real-time match simulation capabilities with advanced analytics, Redis Hot State caching, and batched PostgreSQL persistence.
 
 ## 🌐 Overall System Architecture
 
-Footex is designed as a distributed microservices architecture where the .NET API serves as the central orchestration layer, bridging the Next.js frontend with a Python FastAPI-powered AI model for intelligent match simulation and analytics.
+PixelPitchAI is designed as a distributed microservices architecture where the .NET 10 Web API serves as the central orchestration layer, bridging the Next.js frontend with a Python 3.12 simulation engine running gRPC SimulationService on port 50051.
+Concurrently, the engine hosts a FastAPI REST API on port 8000 via asyncio inside Uvicorn lifespan.
 
 ### System Components
 
@@ -332,16 +333,20 @@ AI Model Events → RabbitMQ Queue → .NET Background Service
   - Business rule enforcement
   - Cross-cutting concerns (logging, validation, error handling)
 
-#### **Python FastAPI AI Model**
+#### **Python 3.12 Simulation Engine (FastAPI & gRPC Dual-Server Concurrency)**
 
-- **Primary Role**: Intelligent match simulation and analytics
+- **Primary Role**: Intelligent match simulation, machine learning inference, and low-latency streaming
+- **Dual-Server Concurrency via Asyncio**:
+  - Hosted inside a single Uvicorn process managing Python 3.12's `asyncio` event loop.
+  - **FastAPI REST API (Port 8000)**: Serves control-plane HTTP routes (`POST /startMatch`, `GET /simulationStatus/{id}`, `GET /simulationResult/{id}`, webhook registrations).
+  - **gRPC SimulationService (Port 50051)**: Serves high-throughput, low-latency binary RPCs (`StartMatchSimulation` unary RPC, `StartMatchSimulationStream` server-streaming RPC, `GetHealth` unary RPC).
+  - Both servers run concurrently on the same `asyncio` event loop initialized during Uvicorn's `@asynccontextmanager async def lifespan(app: FastAPI)` lifecycle.
+  - They share a single singleton `simulation_service` in memory, avoiding duplicate loading of heavy PyTorch GPT-2 / ONNX runtime weights and XGBoost regressors.
 - **Responsibilities**:
-  - GPT-2 fine-tuned model for match simulation
-  - Real-time match event generation
-  - Player performance predictions
-  - Team formation optimization
-  - Match outcome analytics
-  - Statistical analysis and insights
+  - GPT-2 fine-tuned neural model for realistic match event generation
+  - Real-time event coordinate and player action emission
+  - Dual streaming output: concurrent dispatch to RabbitMQ (Pipeline A) and direct gRPC streaming (Pipeline B)
+  - Player performance predictions and XGBoost feature evaluation
   - Machine learning model training and inference
 
 #### **Message Queue (RabbitMQ)**
@@ -380,42 +385,55 @@ AI Model Events → RabbitMQ Queue → .NET Background Service
 
 #### **Synchronous Communication**
 
-- **Frontend ↔ .NET API**: HTTP/HTTPS REST calls
-- **Frontend ↔ .NET API**: WebSocket (SignalR) for real-time updates
-- **.NET API ↔ Database**: Entity Framework Core queries
-- **.NET API ↔ Cache**: Redis operations
+- **Frontend ↔ .NET API**: HTTP/HTTPS REST calls (JSON API responses)
+- **Frontend ↔ .NET API (Live Match Stream)**: Server-Sent Events (SSE) via `GET /api/matches/{id}/events/stream` with `?access_token=` query authentication
+- **Frontend ↔ .NET API (User Alerts)**: SignalR (`/Notify`) for user alerts, system notifications, and badges (replaces SignalR for match streaming)
+- **.NET API ↔ Simulation Engine (Control Plane)**: HTTP REST calls (`http://localhost:8000`)
+- **.NET API ↔ Simulation Engine (High Performance)**: gRPC unary and server-streaming RPCs (`http://localhost:50051`)
+- **.NET API ↔ Database**: Entity Framework Core 10 queries
+- **.NET API ↔ Cache**: StackExchange.Redis Hot State operations
 
 #### **Asynchronous Communication**
 
-- **.NET API ↔ Python AI**: Message queue communication
-- **Event Broadcasting**: RabbitMQ publish/subscribe pattern
-- **Background Processing**: Hosted services for event handling
+- **Pipeline A (RabbitMQ Ingestion)**: Topic exchange `match_events`, routing key `match.events`, queue `match_events_queue`
+- **Pipeline B (Direct gRPC Stream)**: `StartMatchSimulationStream` yielding raw text lines directly to `MatchEventGrpcStreamConsumer`
+- **Zero-Allocation Processing**: Ingestion pipelines slice raw commentary lines using `ZeroAllocationEventParser` with `ReadOnlySpan<char>`
+- **SSE Channel Broadcaster**: `MatchEventBroadcaster` using `System.Threading.Channels` for lock-free client fanout
 
 ### Data Flow Architecture
 
 #### **Read Operations (CQRS Query Side)**
 
 ```
-Frontend Request → API Controller → Query Handler → Repository
-→ Cache Check → Database (if cache miss) → Response Mapping
-→ JSON Response → Frontend
+Frontend Request → API Controller → Query Handler (reflection-free DI)
+→ Redis Hot State Check → PostgreSQL (on cache miss via EF Core 10)
+→ Source-Generated Mapping (Riok.Mapperly) → JSON Response
 ```
 
 #### **Write Operations (CQRS Command Side)**
 
 ```
-Frontend Request → API Controller → Command Handler → Business Validation
-→ Database Transaction → Cache Update → Event Publishing
-→ SignalR Notification → Response → Frontend
+Frontend Request → API Controller → Command Handler (reflection-free DI)
+→ Business Validation → PostgreSQL Transaction (EF Core 10)
+→ Redis Cache Invalidation / Hot State Update → Response to Frontend
 ```
 
-#### **Match Simulation Data Flow**
+#### **Match Simulation Data Flow (Dual Ingestion & SSE)**
 
 ```
-Match Start Command → RabbitMQ Message → Python AI Model
-→ Event Stream → RabbitMQ Events → .NET Event Handlers
-→ Database Updates → Cache Updates → SignalR Broadcast
-→ Real-time Frontend Updates
+Match Start (REST /api/matches/simulateMatch or gRPC StartMatchSimulation)
+→ Python 3.12 Engine (concurrent FastAPI 8000 & gRPC 50051 via asyncio)
+→ Dual Ingestion Stream:
+    ├── Pipeline A: RabbitMQ exchange "match_events" (routing key "match.events")
+    │               → MatchEventRabbitMqClient
+    └── Pipeline B: Direct gRPC Server-Streaming (StartMatchSimulationStream)
+                    → MatchEventGrpcStreamConsumer
+→ ZeroAllocationEventParser (ReadOnlySpan<char> slicing)
+→ Redis Hot State (atomic counter increments & live statistics cache)
+→ In-Memory Accumulator (_matchEventsCache buffer)
+→ Server-Sent Events (SSE Broadcaster at GET /api/matches/{id}/events/stream)
+→ Next.js Browser Client (native EventSource with JWT ?access_token=)
+→ On [MATCH END]: Batched SaveChangesAsync() commits entire event log to PostgreSQL
 ```
 
 ### Scalability & Reliability Features
@@ -614,7 +632,7 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
   ```
 
 - **Interface Segregation**: Many client-specific interfaces are better than one general-purpose interface
-  - **Example**: The application uses fine-grained interfaces like `IAdvancedSearchService`, `ICacheService`, `IEmailService`, and `IMatchHub` rather than having a single large service interface. This allows clients to depend only on the specific functionality they need.
+  - **Example**: The application uses fine-grained interfaces like `IAdvancedSearchService`, `ICacheService`, `IEmailService`, and `IMatchEventBroadcaster` rather than having a single large service interface. This allows clients to depend only on the specific functionality they need.
   
   ```csharp
   // Interface Segregation Example
@@ -624,7 +642,7 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
   //     Task SendEmailAsync(string to, string subject, string body);
   //     Task<string> SaveFileAsync(Stream fileStream, string fileName);
   //     Task<SearchResultDto> SearchAsync(string query, int page);
-  //     Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+  //     Task BroadcastMatchEventAsync(string matchId, FootballMatchEvent matchEvent);
   // }
   
   // We use segregated interfaces:
@@ -643,9 +661,9 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
       Task<SearchResultDto> SearchAsync(string query, int page);
   }
   
-  public interface IMatchHub
+  public interface IMatchEventBroadcaster
   {
-      Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+      Task BroadcastEventAsync(string matchId, FootballMatchEvent matchEvent, CancellationToken cancellationToken = default);
   }
   
   // This way, a component that only needs search functionality doesn't
@@ -927,56 +945,60 @@ public class TeamsController : ControllerBase
 - Reduced database calls
 - Maintains data integrity
 
-### 4. Mediator Pattern (MediatR)
+### 4. Reflection-Free CQRS & Native AOT Readiness
 
-**Implementation**: Decouples request/response from handlers
+**Implementation**: Reflection-free, compile-time safe CQRS pattern (`IRequest<TResponse>` and `IRequestHandler<TRequest, TResponse>`) with 45 explicit DI registrations in `Application/DependencyInjection.cs`
 **Benefits**:
 
-- Loose coupling between components
-- Easy to add cross-cutting concerns
-- Simplified testing
+- **Zero Runtime Reflection**: Eliminates dynamic assembly scanning, slow reflection invocation, and runtime IL emission.
+- **Native AOT Compatible**: All command/query types and handlers are explicitly known at compile-time.
+- **Direct Action Injection**: Handlers are injected directly into controller actions via `[FromServices] IRequestHandler<TCommand, TResponse>`, eliminating mediator pipeline overhead.
+- **Compile-Time Mapping**: Replaces AutoMapper with `Riok.Mapperly` source-generated mapping (`MatchMapper`, `TeamMapper`, `PlayerMapper`, `CoachMapper`, `StadiumMapper`, `SeasonMapper`, `UserMapper`).
 
 ### 5. Dependency Injection
 
-**Implementation**: Constructor injection throughout the application
+**Implementation**: Explicit constructor and action injection throughout the application without dynamic scanning
 **Benefits**:
 
 - Testability and mockability
 - Loose coupling
 - Configuration flexibility
+- 100% trim-safe and Native AOT compliant
 
 ## 🛠️ Technology Stack
 
 ### Backend Technologies
 
-- **.NET 10**: Latest LTS version with performance improvements
-- **ASP.NET Core**: Web API framework
-- **Entity Framework Core**: ORM for database operations
-- **MediatR**: Mediator pattern implementation
-- **FluentValidation**: Input validation
+- **.NET 10 & C# 13**: High-performance runtime and language features
+- **ASP.NET Core Web API**: Native routing, controllers, and HTTP/2 transport
+- **ASP.NET Core OpenAPI & Scalar UI**: OpenAPI 3.0 document generation paired with interactive Scalar API Reference at `/scalar/v1` (replacing legacy Swagger)
+- **Entity Framework Core 10**: ORM for database operations with `Npgsql.EntityFrameworkCore.PostgreSQL`
+- **Riok.Mapperly (v4.3.1)**: Zero-allocation, source-generated object mappers
+- **ZeroAllocationEventParser**: Real-time simulation event parser using stack-allocated `ReadOnlySpan<char>`
+- **MatchEventJsonContext**: Source-generated `JsonSerializerContext` for reflection-free JSON serialization
 - **Serilog**: Structured logging
 
 ### Database & Caching
 
-- **PostgreSQL**: Primary relational database
-- **Redis**: In-memory caching and session storage
-- **Entity Framework Migrations**: Database versioning
+- **PostgreSQL 15**: Primary relational database for transactional consistency and batched match history
+- **Redis 7.0**: In-memory Hot State caching, atomic counters, and query result caching
+- **Entity Framework Core Migrations**: Automated code-first database versioning
 
-### Message Queuing
+### Message Queuing & Streaming Ingestion
 
-- **RabbitMQ**: Asynchronous message processing
-- **Event-driven architecture**: Real-time match updates
+- **RabbitMQ (AMQP 5672)**: Pipeline A asynchronous event ingestion (exchange `match_events`, routing key `match.events`, queue `match_events_queue`)
+- **gRPC (Port 50051)**: Pipeline B direct memory-to-memory server-streaming (`StartMatchSimulationStream`)
 
-### Real-time Communication
+### Real-Time Client Communication
 
-- **SignalR**: WebSocket-based real-time updates
-- **Live match statistics**: Real-time match data broadcasting
+- **Server-Sent Events (SSE)**: Dedicated unidirectional stream at `GET /api/matches/{id}/events/stream` for live match commentary, pitch coordinates, and aggregate statistics (replaces SignalR for match events)
+- **SignalR (`/Notify`)**: Hub dedicated strictly to general user alerts, notifications, and badges
 
 ### Authentication & Security
 
-- **JWT (JSON Web Tokens)**: Stateless authentication
-- **ASP.NET Core Identity**: User management
-- **Role-based authorization**: Fine-grained access control
+- **JWT (JSON Web Tokens)**: Stateless authentication via `Authorization: Bearer` header (and `?access_token=` query parameter for SSE)
+- **ASP.NET Core Identity**: User management and password hashing
+- **Role-based authorization**: Fine-grained access control (Admin, Manager, User)
 
 ## 🏗️ Infrastructure Components
 
@@ -1165,10 +1187,11 @@ The project uses a multi-container Docker setup with separate configurations for
 
 #### **Real-Time Capabilities**
 
-- **WebSocket Integration**: SignalR provides real-time updates
-- **Event-Driven Architecture**: Immediate propagation of match events
-- **Asynchronous Processing**: Non-blocking operations for better UX
-- **Live Match Simulation**: Real-time AI-generated match events
+- **Server-Sent Events Integration**: Unidirectional SSE at `GET /api/matches/{id}/events/stream` provides high-throughput real-time match streaming (replaces SignalR for match events)
+- **User Alerts via SignalR**: Dedicated `/Notify` hub delivers asynchronous user notifications and badges
+- **Event-Driven Architecture**: Immediate propagation of match simulation events across dual pipelines
+- **Asynchronous Processing**: Non-blocking operations for optimal UX and responsiveness
+- **Live Match Simulation**: Real-time AI-generated match events with sub-second browser latency
 
 #### **Data Flow Optimization**
 
@@ -1290,12 +1313,13 @@ cd Footex
 
 ## 📚 Documentation Links
 
-- [API Documentation](./search-api-documentation.md)
-- [SignalR Documentation](./signalr-notification-service.md)
+- [API Documentation](./documentation.md)
+- [Server-Sent Events Match Stream](./sse-match-stream.md)
+- [SignalR Notification Documentation](./signalr-notification-service.md)
 - [Event Processing System](./event-processing-system.md)
-- [Docker Update Summary](./DOCKER_UPDATE_SUMMARY.md)
 - [RabbitMQ Client Documentation](./rabbitmq-matchevent-client.md)
+- [Database Design Documentation](./database-design-documentation.md)
 
 ---
 
-_This documentation provides a comprehensive overview of the Footex project architecture. For specific implementation details, refer to the individual component documentation and code comments._
+_This documentation provides a comprehensive overview of the PixelPitchAI project architecture. For specific implementation details, refer to the individual component documentation and code comments._

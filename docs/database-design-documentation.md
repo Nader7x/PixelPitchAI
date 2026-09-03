@@ -8,34 +8,37 @@
 4. [Class Diagram](#class-diagram)
 5. [Core Entities](#core-entities)
 6. [Database Schema Design](#database-schema-design)
-7. [Indexing Strategy & Performance Impact](#indexing-strategy--performance-impact)
+7. [Indexing Strategy & Performance Impact](#indexing-strategy-performance-impact)
 8. [Data Types and Constraints](#data-types-and-constraints)
 9. [Relationships and Foreign Keys](#relationships-and-foreign-keys)
 10. [Performance Optimizations](#performance-optimizations)
 11. [Security Considerations](#security-considerations)
 12. [Audit and Tracking](#audit-and-tracking)
 13. [JSON Storage Strategy](#json-storage-strategy)
+14. [Dual Persistence Architecture (Redis + PostgreSQL)](#dual-persistence-architecture-redis-postgresql)
 
 ## Overview
 
-The Football Management System (Footex) uses a comprehensive relational database design optimized for PostgreSQL. The system manages football-related entities including teams, players, coaches, stadiums, matches, seasons, and user management with real-time match simulation capabilities.
+The Football Management System (PixelPitchAI) uses a comprehensive relational database design optimized for PostgreSQL 15 and Entity Framework Core 10. The system manages football-related entities including teams, players, coaches, stadiums, matches, seasons, and user management with real-time match simulation capabilities.
 
 ### Key Design Principles
 
 - **Normalization**: Database is designed in 3NF to eliminate redundancy while maintaining performance
-- **PostgreSQL Optimization**: Leverages PostgreSQL-specific features like JSONB, GIN indexes, and advanced data types
-- **Scalability**: Designed to handle large volumes of match data and real-time updates
+- **PostgreSQL 15 Optimization**: Leverages PostgreSQL-specific features like JSONB, GIN indexes, and advanced data types
+- **Dual Persistence Architecture**: Employs Redis Hot State for sub-millisecond atomic live match mutations during simulation, followed by single-transaction batched PostgreSQL persistence upon match completion (`[MATCH END]`)
+- **Scalability**: Designed to handle large volumes of match data and real-time updates without locking active transactional tables
 - **Flexibility**: Supports multiple competitions, seasons, and complex match relationships
 - **Performance**: Strategic indexing for common query patterns
 
 ## Database Technology Stack
 
-- **Primary Database**: PostgreSQL 14+
-- **ORM**: Entity Framework Core 8.0
-- **Identity Management**: ASP.NET Core Identity
-- **Migration Strategy**: Code-First with EF Core Migrations
-- **Connection Pooling**: Built-in EF Core connection pooling
-- **Data Types**: Leverages PostgreSQL-specific types (JSONB, timestamp with time zone, etc.)
+- **Primary Database**: PostgreSQL 15 (Alpine container / Managed PostgreSQL)
+- **ORM**: Entity Framework Core 10.0 (`Npgsql.EntityFrameworkCore.PostgreSQL`)
+- **Hot State & Cache Tier**: Redis 7.0 (`StackExchange.Redis`) with atomic counters
+- **Identity Management**: ASP.NET Core Identity with PostgreSQL storage
+- **Migration Strategy**: Code-First with EF Core 10 Migrations
+- **Connection Pooling**: Built-in Npgsql / EF Core connection pooling
+- **Data Types**: Leverages PostgreSQL-specific types (JSONB, timestamp with time zone, uuid)
 
 ## Entity Relationship Diagram
 
@@ -1144,8 +1147,53 @@ WHERE EventsJson->'statistics'->'possession'->>'home' > '50';
 
 - **Additive Changes**: New JSON properties without breaking existing data
 - **Version Management**: Include schema version in JSON documents
-- **Migration Scripts**: For major JSON structure changes
 - **Backward Compatibility**: Support multiple JSON formats during transitions
+
+## Dual Persistence Architecture (Redis + PostgreSQL)
+
+PixelPitchAI implements a decoupled dual persistence architecture designed to eliminate database transaction contention and row-level locking during live match simulations:
+
+```
+                  ┌─────────────────────────────────────────┐
+                  │    Match Simulation Ingestion Stream    │
+                  │   (RabbitMQ Pipeline A or gRPC Stream)  │
+                  └────────────────────┬────────────────────┘
+                                       │
+                         ZeroAllocationEventParser
+                                       │
+                   ┌───────────────────┴───────────────────┐
+                   │                                       │
+     [Every Live Event]                            [Every Live Event]
+                   │                                       │
+                   ▼                                       ▼
+        ┌─────────────────────┐                 ┌─────────────────────┐
+        │   Redis Hot State   │                 │ In-Memory Buffer    │
+        │  (Atomic Counters & │                 │ (_matchEventsCache) │
+        │  Live Match Cache)  │                 └──────────┬──────────┘
+        └─────────────────────┘                            │
+                                                           │ Upon [MATCH END]
+                                                           ▼
+                                                ┌─────────────────────┐
+                                                │ PostgreSQL Database │
+                                                │ (Single Batched     │
+                                                │ SaveChangesAsync()) │
+                                                └─────────────────────┘
+```
+
+### 1. In-Match Hot State (Redis)
+- **Zero Disk I/O During Simulation**: While a match is in progress (emitting tens of events per minute), the backend does **not** execute SQL `INSERT` or `UPDATE` statements against PostgreSQL for each event.
+- **Sub-Millisecond Atomic Mutations**: Live score changes, possession percentages, and running event counts mutate Redis in-memory hashes and atomic counters (`ILiveMatchStatisticsService`).
+- **Real-Time Client Streaming**: Live clients receive updates via Server-Sent Events (SSE) directly from `MatchEventBroadcaster`, while API queries for active match states hit the Redis cache (`GET /api/matches/LiveMatch/{userId}` and `GET /api/matches/{id}`).
+
+### 2. Post-Match Batched Persistence (PostgreSQL)
+- **In-Memory Accumulator**: All raw events emitted during the match are accumulated in a thread-safe memory structure (`ConcurrentDictionary<string, List<FootballMatchEvent>> _matchEventsCache`).
+- **Terminal Event Trigger**: When the match generator emits the terminal token `[MATCH END]`:
+  1. The complete event list is drained atomically from memory.
+  2. Aggregated match statistics (possession, pass accuracy, total shots, cards, fouls) are finalized via `EventAnalysisService`.
+  3. A new `MatchEvents` entity is created containing the complete serialized JSON event log (`SetEvents(events)`).
+  4. The `Match` entity status is updated from `Live` to `Completed` (`IsLive = false`).
+  5. A single atomic database transaction is executed via `await unitOfWork.SaveChangesAsync()`.
+- **Integrity Guarantee**: This guarantees 100% database ACID durability while preventing PostgreSQL database connection pool starvation and high write IOPS during simultaneous live matches.
 
 ## Conclusion
 
