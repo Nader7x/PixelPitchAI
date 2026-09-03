@@ -20,25 +20,25 @@ PixelPitchAI implements a dual streaming event-driven architecture designed for 
 
 ```mermaid
 graph TD
-    User[Web Client / Next.js Dashboard] <--> |HTTPS / REST| Backend[.NET 10 API Gateway]
-    Backend --> |SSE: /api/matches/{id}/events/stream| User
-    Backend <--> |Redis Hot State: Live Match Cache & Stats| Redis[(Redis Cache)]
-    Backend --> |Batched Bulk Persistence: SaveChangesAsync| DB[(PostgreSQL Database)]
+    User["Web Client / Next.js Dashboard"] <--> |"HTTPS / REST"| Backend[".NET 10 API Gateway"]
+    Backend --> |"SSE: /api/matches/{id}/events/stream"| User
+    Backend <--> |"Redis Hot State: Live Match Cache & Stats"| Redis[("Redis Cache")]
+    Backend --> |"Batched Bulk Persistence: SaveChangesAsync"| DB[("PostgreSQL Database")]
 
-    subgraph Simulation Engine [Python 3.12 Simulation Engine (asyncio)]
-        FastAPI[FastAPI REST :8000]
-        GrpcService[gRPC SimulationService :50051]
-        ModelORT[ONNX INT8 / PyTorch CUDA]
+    subgraph SimEngine ["Python 3.12 Simulation Engine (asyncio)"]
+        FastAPI["FastAPI REST :8000"]
+        GrpcService["gRPC SimulationService :50051"]
+        ModelORT["ONNX INT8 / PyTorch CUDA"]
         FastAPI --- GrpcService
         GrpcService <--> ModelORT
     end
 
-    Backend --> |Trigger Simulation: HTTP / gRPC| FastAPI
+    Backend --> |"Trigger Simulation: HTTP / gRPC"| FastAPI
     
     %% Dual Streaming Pipelines
-    GrpcService --> |Pipeline A: Raw Text Stream| Queue{RabbitMQ Exchange: match_events}
-    Queue --> |AMQP Routing: match.events| Backend
-    GrpcService --> |Pipeline B: StartMatchSimulationStream| Backend
+    GrpcService --> |"Pipeline A: Raw Text Stream"| Queue{"RabbitMQ Exchange: match_events"}
+    Queue --> |"AMQP Routing: match.events"| Backend
+    GrpcService --> |"Pipeline B: StartMatchSimulationStream"| Backend
 ```
 
 ### Event Streaming & Ingestion Pipelines
