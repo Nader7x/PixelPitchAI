@@ -42,82 +42,127 @@ The Football Management System (PixelPitchAI) uses a comprehensive relational da
 
 ## Entity Relationship Diagram
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  ApplicationUser│    │   Competition   │    │     Stadium     │
-│─────────────────│    │─────────────────│    │─────────────────│
-│ Id (PK)        │    │ Id (PK)        │    │ Id (PK)        │
-│ FirstName      │    │ Name           │    │ Name           │
-│ LastName       │    │ Description    │    │ City           │
-│ Email          │    │ Country        │    │ Country        │
-│ FavoriteTeamId │    │ Logo           │    │ Capacity       │
-│ Age            │    └─────────────────┘    │ Facilities     │
-│ Gender         │           │               │ Coordinates    │
-│ ImageUrl       │           │               └─────────────────┘
-│ IsActive       │           │                      │
-└─────────────────┘           │                      │
-        │                     ▼                      │
-        │            ┌─────────────────┐              │
-        │            │     Season      │              │
-        │            │─────────────────│              │
-        │            │ Id (PK)        │              │
-        │            │ Name           │              │
-        │            │ LeagueName     │              │
-        │            │ Country        │              │
-        │            │ IsActive       │              │
-        │            │ CurrentRound   │              │
-        │            │ CompetitionId  │              │
-        │            └─────────────────┘              │
-        │                     │                      │
-        │                     │                      │
-        ▼                     ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│      Team       │    │  TeamSeasons    │    │      Coach      │
-│─────────────────│    │─────────────────│    │─────────────────│
-│ Id (PK)        │◄──►│ Id (PK)        │    │ Id (PK)        │
-│ Name           │    │ TeamId (FK)    │    │ FirstName      │
-│ ShortName      │    │ SeasonId (FK)  │    │ LastName       │
-│ Logo           │    │ UpdatedAt      │    │ Nationality    │
-│ Country        │    └─────────────────┘    │ Role           │
-│ City           │                           │ TeamId (FK)    │
-│ StadiumId (FK) │                           │ Experience     │
-│ FoundationDate │                           └─────────────────┘
-│ PrimaryColor   │                                  │
-│ SecondaryColor │                                  │
-└─────────────────┘                                  │
-        │                                            │
-        │                                            │
-        ▼                                            ▼
-┌─────────────────┐                          ┌─────────────────┐
-│     Player      │                          │      Match      │
-│─────────────────│                          │─────────────────│
-│ Id (PK)        │                          │ Id (PK)        │
-│ FullName       │                          │ HomeTeamId (FK)│
-│ KnownName      │                          │ AwayTeamId (FK)│
-│ Nationality    │                          │ HomeTeamSeasonId│
-│ Position       │                          │ AwayTeamSeasonId│
-│ ShirtNumber    │                          │ ScheduledDateTime│
-│ TeamId (FK)    │                          │ StadiumId (FK) │
-│ PhotoUrl       │                          │ MatchStatus    │
-│ PreferredFoot  │                          │ HomeTeamScore  │
-└─────────────────┘                          │ AwayTeamScore  │
-                                            │ CreatorId (FK) │
-                                            │ SimulationId   │
-                                            └─────────────────┘
-                                                    │
-                                                    │
-                                                    ▼
-                                            ┌─────────────────┐
-                                            │  MatchEvents    │
-                                            │─────────────────│
-                                            │ Id (PK)        │
-                                            │ MatchId (FK)   │
-                                            │ EventsJson     │
-                                            │ GoalsHomeTeam  │
-                                            │ GoalsAwayTeam  │
-                                            │ TotalEvents    │
-                                            │ LastUpdated    │
-                                            └─────────────────┘
+```mermaid
+erDiagram
+    Competition ||--o{ Season : "contains"
+    Season ||--o{ TeamSeason : "has"
+    Team ||--o{ TeamSeason : "participates_in"
+    Stadium ||--o{ Team : "home_stadium_of"
+    Stadium ||--o{ Match : "hosts"
+    Team ||--o{ Player : "employs"
+    Team ||--o{ Coach : "manages"
+    Team ||--o{ Match : "home_matches"
+    Team ||--o{ Match : "away_matches"
+    ApplicationUser ||--o{ Match : "creates"
+    ApplicationUser }o--o| Team : "favorites"
+    Match ||--o| MatchEvents : "records"
+
+    Competition {
+        int Id PK
+        string Name
+        string Description
+        string Country
+        string Logo
+    }
+
+    Season {
+        int Id PK
+        string Name
+        string LeagueName
+        string Country
+        bool IsActive
+        int CurrentRound
+        int CompetitionId FK
+    }
+
+    Team {
+        int Id PK
+        string Name
+        string ShortName
+        string Logo
+        string Country
+        string City
+        int StadiumId FK
+        datetime FoundationDate
+        string PrimaryColor
+        string SecondaryColor
+    }
+
+    TeamSeason {
+        int Id PK
+        int TeamId FK
+        int SeasonId FK
+        datetime UpdatedAt
+    }
+
+    Stadium {
+        int Id PK
+        string Name
+        string City
+        string Country
+        int Capacity
+        string Facilities
+        string Coordinates
+    }
+
+    Coach {
+        int Id PK
+        string FirstName
+        string LastName
+        string Nationality
+        string Role
+        int TeamId FK
+        int Experience
+    }
+
+    Player {
+        int Id PK
+        string FullName
+        string KnownName
+        string Nationality
+        string Position
+        int ShirtNumber
+        int TeamId FK
+        string PhotoUrl
+        string PreferredFoot
+    }
+
+    Match {
+        int Id PK
+        int HomeTeamId FK
+        int AwayTeamId FK
+        int HomeTeamSeasonId FK
+        int AwayTeamSeasonId FK
+        datetime ScheduledDateTime
+        int StadiumId FK
+        string MatchStatus
+        int HomeTeamScore
+        int AwayTeamScore
+        string CreatorId FK
+        string SimulationId
+    }
+
+    MatchEvents {
+        int Id PK
+        int MatchId FK
+        string EventsJson
+        int GoalsHomeTeam
+        int GoalsAwayTeam
+        int TotalEvents
+        datetime LastUpdated
+    }
+
+    ApplicationUser {
+        string Id PK
+        string FirstName
+        string LastName
+        string Email
+        int FavoriteTeamId FK
+        int Age
+        string Gender
+        string ImageUrl
+        bool IsActive
+    }
 ```
 
 ## Class Diagram
