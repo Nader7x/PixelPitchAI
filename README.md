@@ -17,14 +17,14 @@ Footex is an enterprise-grade football management and live match simulation plat
 
 ```mermaid
 graph TD
-    User[Web Client / React Dashboard] <--> |SignalR / HTTPS| Backend[.NET 10 API Gateway]
-    Backend <--> |Redis Cache| Redis[(Redis Cache)]
-    Backend <--> |EF Core| DB[(PostgreSQL Database)]
-    Backend --> |RabbitMQ| Queue{RabbitMQ Event Broker}
-    Queue --> |Consume Match Events| User
+    User[Web Client / React Dashboard] <--> |HTTPS| Backend[.NET 10 API Gateway]
+    Backend --> |SSE / MessagePack| User
+    Backend <--> |Redis (Hot State)| Redis[(Redis Cache)]
+    Backend --> |Batched Bulk Save| DB[(PostgreSQL Database)]
+    Queue{RabbitMQ Event Broker} --> |Raw Text Bytes| Backend
     
     SimulationService[Simulation Engine / FastAPI] <--> |Async Logits Sampling| ModelORT[ONNX CausalLM INT8]
-    SimulationService --> |Fast Event Parsing| Queue
+    SimulationService --> |Raw Text Stream| Queue
     Backend <--> |HTTP Trigger| SimulationService
 ```
 
@@ -36,9 +36,9 @@ The monorepo consists of three core services:
 
 ### 1. ⚡ [Core API Backend](file:///d:/programming/GitHub/Footex/backend)
 An enterprise-grade, clean architecture backend built using **.NET 10 (C#)**.
-* **Core Technologies**: ASP.NET Core, EF Core, PostgreSQL, SignalR, Serilog.
-* **Key Features**: High-performance user management, team databases, statistics tracking, and JWT security.
-* **AOT Compliance**: Fully prepared for Native Ahead-of-Time compilation (zero reflection, static DI, compile-time logging/JSON serializers).
+* **Core Technologies**: ASP.NET Core, EF Core, PostgreSQL, Server-Sent Events (SSE), Serilog.
+* **Key Features**: High-performance user management, team databases, hot-state stats in Redis, and MessagePack binary serialization.
+* **AOT Compliance**: Fully prepared for Native Ahead-of-Time compilation (zero reflection, static DI, compile-time logging/MessagePack serializers, `ReadOnlySpan<char>` parsing).
 
 ### 2. 🏟️ [Simulation Engine](file:///d:/programming/GitHub/Footex/simulation-engine)
 A high-performance AI text generation service built with **FastAPI (Python 3.12)**.
@@ -50,7 +50,7 @@ A high-performance AI text generation service built with **FastAPI (Python 3.12)
 ### 3. 🌐 [Frontend Dashboard](file:///d:/programming/GitHub/Footex/frontend)
 A modern SPA built with **Next.js 16 (React 19, TypeScript)**.
 * **Core Technologies**: Tailwind CSS v4, DaisyUI, Three.js (React Three Fiber for 3D stadium visualizations).
-* **Key Features**: Real-time scoreboard with SignalR live-commentary, dark/light modes, role-based auth, and multi-language support (next-intl).
+* **Key Features**: Real-time scoreboard with SSE live-commentary (MessagePack payloads), dark/light modes, role-based auth, and multi-language support (next-intl).
 
 ---
 
