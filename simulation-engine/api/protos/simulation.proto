@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package footex.simulation;
+
+service SimulationService {
+  rpc StartMatchSimulation (SimulateMatchRequest) returns (StartMatchResponse);
+  rpc StartMatchSimulationStream (SimulateMatchRequest) returns (stream MatchEventRaw);
+  rpc GetHealth (HealthRequest) returns (HealthResponse);
+}
+
+message SimulateMatchRequest {
+  string match_id = 1;
+  int32 home_team_id = 2;
+  int32 away_team_id = 3;
+  string home_team_name = 4;
+  string away_team_name = 5;
+  string home_team_season = 6;
+  string away_team_season = 7;
+  int32 num_tokens_to_generate = 8;
+  float temperature = 9;
+  float top_p = 10;
+  int32 top_k = 11;
+  int32 max_new_tokens = 12;
+}
+
+message StartMatchResponse {
+  string simulation_id = 1;
+  string match_id = 2;
+  string status = 3;
+  string message = 4;
+}
+
+message MatchEventRaw {
+  string match_id = 1;
+  int32 event_index = 2;
+  string raw_event_text = 3;
+  int64 timestamp_utc = 4;
+  bool is_end_of_match = 5;
+}
+
+message HealthRequest {
+  string client_id = 1;
+}
+
+message HealthResponse {
+  bool status = 1;
+  bool model_loaded = 2;
+  bool xgboost_loaded = 3;
+  string message = 4;
+}

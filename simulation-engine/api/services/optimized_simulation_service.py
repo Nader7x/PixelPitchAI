@@ -1209,6 +1209,48 @@ class UltraOptimizedSimulationService:
             })
             raise
 
+    async def generate_match_text_direct(self, request) -> str:
+        """
+        Direct text generation for gRPC streaming without intermediate file writes or batch parsing.
+        """
+        loop = asyncio.get_event_loop()
+        home_team_name = request.home_team_name.replace(" ", "_")
+        away_team_name = request.away_team_name.replace(" ", "_")
+        home_team_season = str(request.home_team_season).split("/")[0]
+        away_team_season = str(request.away_team_season).split("/")[0]
+
+        def generate_features_sync():
+            match_stat = MatchStat(self.model_resources.xgboost_model, self.model_resources.tokenizer)
+            features = match_stat.predict_features(
+                request.home_team_id, request.away_team_id,
+                int(home_team_season), int(away_team_season)
+            )
+            header_lines = match_stat.convert_to_text(home_team_name, away_team_name, features)
+            os.makedirs(HEADERLINES_DIR, exist_ok=True)
+            os.makedirs(INPUTTOKENS_DIR, exist_ok=True)
+            header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_header_lines.txt")
+            match_stat.save_text_file(header_lines, header_path)
+            input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_input_tokens.pt")
+            match_stat.tokenize_and_save(header_path, input_tokens_path)
+            return input_tokens_path
+
+        input_tokens_path = await loop.run_in_executor(None, generate_features_sync)
+
+        num_tokens = getattr(request, "num_tokens_to_generate", 10000) or 10000
+        max_length = getattr(request, "max_new_tokens", 1024) or 1024
+        temperature = getattr(request, "temperature", 0.7) or 0.7
+        top_p = getattr(request, "top_p", 0.9) or 0.9
+        top_k = getattr(request, "top_k", 50) or 50
+
+        generated_text = await loop.run_in_executor(
+            self.generation_pool,
+            self.generate_text_ultra_optimized,
+            home_team_name, away_team_name, input_tokens_path,
+            num_tokens, max_length,
+            temperature, top_p, top_k
+        )
+        return generated_text
+
     async def cleanup(self):
         """Ultra-comprehensive cleanup with advanced resource management"""
         try:

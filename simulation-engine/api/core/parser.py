@@ -453,6 +453,24 @@ class MatchEventProducer:
             print(f"Error publishing event: {e}")
             return False
 
+    def publish_raw_event(self, raw_line: str, match_id: Optional[str] = None):
+        try:
+            channel = self.connect()
+            channel.basic_publish(
+                exchange=self.exchange,
+                routing_key=self.routing_key,
+                body=raw_line.encode('utf-8'),
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                    content_type='text/plain',
+                    headers={'match_id': str(match_id)} if match_id else None
+                )
+            )
+            return True
+        except Exception as e:
+            print(f"Error publishing raw event: {e}")
+            return False
+
     def publish_match_events(self, events, delay_ms=0):
         success_count = 0
         for event in events:

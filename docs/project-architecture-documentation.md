@@ -28,44 +28,35 @@ Footex is designed as a distributed microservices architecture where the .NET AP
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Next.js       │    │    .NET API      │    │   Python AI     │
-│   Frontend      │    │   (This Project) │    │   FastAPI       │
+│   Next.js       │    │    .NET 10 API   │    │   Python AI     │
+│   Frontend      │    │  (Gateway/Orch)  │    │ FastAPI + gRPC  │
 │                 │    │                  │    │                 │
-│ • React UI      │◄──►│ • Clean Arch     │◄──►│ • GPT-2 LLM     │
-│ • TypeScript    │    │ • CQRS/MediatR   │    │ • Match Engine  │
-│ • Real-time UI  │    │ • SignalR Hub    │    │ • AI Predictions│
-│ • State Mgmt    │    │ • Message Queue  │    │ • ML Analytics  │
+│ • React 19 UI   │◄───│ • Clean Arch     │◄──►│ • GPT-2 LLM     │
+│ • TypeScript    │ SSE│ • gRPC Client    │gRPC│ • gRPC Server   │
+│ • Real-time SSE │    │ • Span<char> Pkg │    │ • Raw Stream    │
+│ • 3D Pitch View │    │ • Zero-Alloc Hot │    │ • ML Predictions│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │
-         │                       │
-         ▼                       ▼
-┌─────────────────┐    ┌──────────────────┐
-│   WebSocket     │    │    PostgreSQL    │
-│   Connection    │    │    Database      │
-│                 │    │                  │
-│ • SignalR       │    │ • EF Core        │
-│ • Real-time     │    │ • Data Storage   │
-│ • Push Updates  │    │ • Migrations     │
-└─────────────────┘    └──────────────────┘
+                                │                       │
+                                │                  Raw Stream
+                                │                       │
+                                ▼                       ▼
+                       ┌──────────────────┐    ┌──────────────────┐
+                       │      Redis       │    │    RabbitMQ      │
+                       │   (Hot State)    │    │  Message Broker  │
+                       │                  │    │                  │
+                       │ • Atomic Incs    │◄───┤ • Raw Text Lines │
+                       │ • Microsec State │    │ • Topic Exchange │
+                       │ • Fast Caching   │    │ • Broker Buffer  │
+                       └──────────────────┘    └──────────────────┘
                                 │
-                                ▼
+                                ▼ (Batched Persistence)
                        ┌──────────────────┐
-                       │    RabbitMQ      │
-                       │  Message Queue   │
+                       │    PostgreSQL    │
+                       │    Database      │
                        │                  │
-                       │ • Event Routing  │
-                       │ • Message Broker │
-                       │ • Async Comm     │
-                       └──────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │      Redis       │
-                       │      Cache       │
-                       │                  │
-                       │ • Performance    │
-                       │ • Session Store  │
-                       │ • Temp Storage   │
+                       │ • EF Core / AOT  │
+                       │ • Cold Storage   │
+                       │ • Bulk Sync Jobs │
                        └──────────────────┘
 ```
 

@@ -147,6 +147,13 @@ public static class DependencyInjection
 
         // Configure RabbitMQ options
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
+
+        // Configure Simulation gRPC options & services
+        services.Configure<SimulationGrpcOptions>(configuration.GetSection(SimulationGrpcOptions.SectionName));
+        services.AddSingleton<ISimulationGrpcClient, SimulationGrpcClient>();
+        services.AddSingleton<IMatchEventBroadcaster, MatchEventBroadcaster>();
+        services.AddSingleton<IMatchEventGrpcStreamConsumer, MatchEventGrpcStreamConsumer>();
+
         // Register EventAnalysis service
         services.AddSingleton<IEventAnalysisService, EventAnalysisService>();
 

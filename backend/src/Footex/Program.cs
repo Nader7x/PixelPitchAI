@@ -210,6 +210,7 @@ try
                         && (
                             path.StartsWithSegments("/Notify")
                             || path.StartsWithSegments("/matchSimulationHub")
+                            || path.StartsWithSegments("/api/matches")
                         )
                     )
                         // Read the token out of the query string
