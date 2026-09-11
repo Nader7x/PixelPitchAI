@@ -21,13 +21,6 @@ env:
   DOTNET_VERSION: "10.0.x"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  ConnectionStrings__BlobConnection: ${{ secrets.BLOB_CONNECTION }}
-  ConnectionStrings__RemoteRedisConnection: ${{ secrets.REMOTE_REDIS_CONNECTION }}
-  JWT__Secret: ${{ secrets.JWT_SECRET }}
-  AdminUser__Password: ${{ secrets.ADMIN_PASSWORD }}
-  SmtpSettings__Password: ${{ secrets.SMTP_PASSWORD }}
-  SimulationService__ApiKey: ${{ secrets.SIMULATION_SERVICE_APIKEY }}
-  ConnectionStrings__RemoteRedisPassword: ${{ secrets.REMOTE_REDIS_PASSWORD }}
 
 permissions:
   contents: write
@@ -52,9 +45,12 @@ jobs:
 
       - name: 🏷️ Get Version
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
           else
             VERSION=${GITHUB_REF#refs/tags/}
           fi
@@ -64,8 +60,9 @@ jobs:
           echo "Release version: $CLEAN_VERSION"
 
       - name: ✅ Validate Version Format
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)*$ ]]; then
             echo "❌ Invalid version format: $VERSION"
             echo "Expected format: 1.2.3 or 1.2.3-alpha"
@@ -134,23 +131,29 @@ jobs:
         run: dotnet restore backend/Footex.sln
 
       - name: 🏗️ Build Application
+        env:
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+          RUNTIME: ${{ matrix.runtime }}
         run: |
           dotnet publish backend/src/Footex/Footex.csproj \
             --configuration Release \
-            --runtime ${{ matrix.runtime }} \
+            --runtime "$RUNTIME" \
             --self-contained true \
-            --output ./publish/${{ matrix.runtime }} \
-            -p:Version=${{ needs.validate-release.outputs.version }} \
+            --output "./publish/$RUNTIME" \
+            -p:Version="$RELEASE_VERSION" \
             -p:PublishSingleFile=true \
             -p:PublishTrimmed=true
 
       - name: 📦 Create Archive
+        env:
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+          RUNTIME: ${{ matrix.runtime }}
         run: |
-          cd ./publish/${{ matrix.runtime }}
-          if [[ "${{ matrix.runtime }}" == "win-x64" ]]; then
-            zip -r ../../footex-${{ needs.validate-release.outputs.version }}-${{ matrix.runtime }}.zip .
+          cd "./publish/$RUNTIME"
+          if [[ "$RUNTIME" == "win-x64" ]]; then
+            zip -r "../../footex-${RELEASE_VERSION}-${RUNTIME}.zip" .
           else
-            tar -czf ../../footex-${{ needs.validate-release.outputs.version }}-${{ matrix.runtime }}.tar.gz .
+            tar -czf "../../footex-${RELEASE_VERSION}-${RUNTIME}.tar.gz" .
           fi
 
       - name: 📤 Upload Artifacts
@@ -250,17 +253,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-release, create-release]
     if: always() && needs.create-release.result == 'success'
+    permissions: {}
 
     steps:
       - name: 📧 Notify Teams (Placeholder)
+        env:
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+          CHANGELOG: ${{ needs.validate-release.outputs.changelog }}
+          REPO: ${{ github.repository }}
         run: |
-          echo "🎉 Release ${{ needs.validate-release.outputs.version }} has been created!"
+          echo "🎉 Release $RELEASE_VERSION has been created!"
           echo "📋 Changelog:"
-          echo "${{ needs.validate-release.outputs.changelog }}"
+          printf '%s\n' "$CHANGELOG"
           echo ""
-          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-release.outputs.version }}"
+          echo "🔗 Release URL: https://github.com/${REPO}/releases/tag/v${RELEASE_VERSION}"
           echo ""
-          echo "🐳 Docker Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}"
+          echo "🐳 Docker Image: ${REGISTRY}/${IMAGE_NAME}:${RELEASE_VERSION}"
 
           # Add your notification logic here:
           # - Slack webhook
@@ -270,12 +278,16 @@ jobs:
           # - Custom API calls
 
       - name: 📊 Update Release Metrics (Placeholder)
+        env:
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
         run: |
           echo "📊 Recording release metrics..."
-          echo "Version: ${{ needs.validate-release.outputs.version }}"
+          echo "Version: $RELEASE_VERSION"
           echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          echo "Repository: ${{ github.repository }}"
-          echo "Actor: ${{ github.actor }}"
+          echo "Repository: $REPO"
+          echo "Actor: $ACTOR"
 
           # Add your metrics collection logic here:
           # - Update deployment dashboard

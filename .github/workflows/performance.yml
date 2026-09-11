@@ -67,22 +67,23 @@ jobs:
         run: dotnet build backend/Footex.sln --no-restore --configuration Release
 
       - name: Run Load Tests
+        env:
+          TEST_TYPE: ${{ github.event.inputs.test_type }}
+          PerformanceTests__BaseUrl: "http://localhost:5025"
+          PerformanceTests__Duration__ShortTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '1' }}
+          PerformanceTests__Duration__MediumTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '2' }}
+          PerformanceTests__Duration__LongTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '5' }}
+          PerformanceTests__Duration__StressTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '10' }}
         run: |
           cd backend/tests/Footex.PerformanceTests
 
-          if [[ "${{ github.event.inputs.test_type }}" == "load" ]] || [[ "${{ github.event.inputs.test_type }}" == "all" ]] || [[ "${{ github.event.inputs.test_type }}" == "" ]]; then
+          if [[ "$TEST_TYPE" == "load" ]] || [[ "$TEST_TYPE" == "all" ]] || [[ "$TEST_TYPE" == "" ]]; then
             echo "Running Load Tests..."
             dotnet test --no-build --configuration Release --verbosity normal \
               --filter "Category=LoadTest|Category=CacheTest|Category=SearchTest" \
               --logger "trx;LogFileName=load-tests.trx" \
               --results-directory ./TestResults
           fi
-        env:
-          PerformanceTests__BaseUrl: "http://localhost:5025"
-          PerformanceTests__Duration__ShortTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '1' }}
-          PerformanceTests__Duration__MediumTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '2' }}
-          PerformanceTests__Duration__LongTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '5' }}
-          PerformanceTests__Duration__StressTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '10' }}
           PerformanceTests__Cache__CacheHitTestMinutes: ${{ (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_mode == 'fast')) && '0.05' || '2' }}
 
       - name: Upload Load Test Results
@@ -164,9 +165,11 @@ jobs:
         run: dotnet build backend/tests/Footex.PerformanceTests --configuration Release
 
       - name: Run Benchmarks
+        env:
+          RUN_MODE: ${{ github.event.inputs.run_mode }}
         run: |
           echo "Running Benchmarks..."
-          if [[ "${{ github.event.inputs.run_mode }}" == "fast" ]]; then
+          if [[ "$RUN_MODE" == "fast" ]]; then
             dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all dry
           else
             dotnet run --project backend/tests/Footex.PerformanceTests --configuration Release all
