@@ -40,6 +40,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly RabbitMqOptions _rabbitMqSettings;
     private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IMatchEventBroadcaster? _broadcaster;
 
     private IChannel? _channel;
 
@@ -54,7 +55,8 @@ public class MatchEventRabbitMqClient : BackgroundService
         IPerformanceMonitoringService performanceMonitoringService,
         IOptions<RabbitMqOptions> rabbitMqOptions,
         ILiveMatchStatisticsService liveMatchStatisticsService,
-        IConnectionFactory? injectedConnectionFactory = null
+        IConnectionFactory? injectedConnectionFactory = null,
+        IMatchEventBroadcaster? broadcaster = null
     )
     {
         _logger = logger;
@@ -62,6 +64,7 @@ public class MatchEventRabbitMqClient : BackgroundService
         _serviceScopeFactory = serviceScopeFactory;
         _performanceMonitoringService = performanceMonitoringService;
         _liveMatchStatisticsService = liveMatchStatisticsService;
+        _broadcaster = broadcaster;
         _rabbitMqSettings = rabbitMqOptions.Value;
         _injectedConnectionFactory = injectedConnectionFactory;
 
@@ -226,14 +229,39 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            var body = ea.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
-            _logger.LogInformation("Received match event: {Message}", message);
+            var bodySpan = ea.Body.Span;
+            FootballMatchEvent? matchEvent = null;
 
-            var matchEvent = JsonSerializer.Deserialize(
-                message,
-                MatchEventJsonContext.Default.FootballMatchEvent
-            );
+            // Check if message is a raw simulation text line (Pipeline A raw stream)
+            if (bodySpan.Length > 0 && bodySpan[0] != '{')
+            {
+                var charCount = Encoding.UTF8.GetCharCount(bodySpan);
+                Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
+                Encoding.UTF8.GetChars(bodySpan, chars);
+
+                var homeScore = 0;
+                var awayScore = 0;
+                ZeroAllocationEventParser.TryParseEvent(
+                    chars,
+                    matchId: "0",
+                    eventIndex: ++_eventSequence,
+                    ref homeScore,
+                    ref awayScore,
+                    null,
+                    null,
+                    out matchEvent
+                );
+            }
+
+            if (matchEvent == null)
+            {
+                var message = Encoding.UTF8.GetString(bodySpan);
+                _logger.LogInformation("Received match event: {Message}", message);
+                matchEvent = JsonSerializer.Deserialize(
+                    message,
+                    MatchEventJsonContext.Default.FootballMatchEvent
+                );
+            }
             if (matchEvent?.match_id != null)
             {
                 var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
@@ -601,6 +629,9 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             if (matchEvent.match_id != null)
             {
+                if (_broadcaster != null)
+                    await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
+
                 await _hubContext
                     .Clients.Group(matchEvent.match_id)
                     .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id), matchEvent);
@@ -739,6 +770,9 @@ public class MatchEventRabbitMqClient : BackgroundService
                     },
                     lastUpdated = DateTime.UtcNow,
                 };
+                if (_broadcaster != null)
+                    await _broadcaster.BroadcastStatisticsAsync(matchEntity.Id.ToString(), matchStatistics);
+
                 await _hubContext
                     .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
                     .SendMatchStatisticsAsync(

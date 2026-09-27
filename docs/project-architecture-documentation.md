@@ -1,4 +1,4 @@
-# Footex Project Architecture Documentation
+# PixelPitchAI Project Architecture Documentation
 
 ## 📋 Table of Contents
 
@@ -10,250 +10,269 @@
 - [Design Patterns](#design-patterns)
 - [Technology Stack](#technology-stack)
 - [Infrastructure Components](#infrastructure-components)
-- [Development & Deployment](#development--deployment)
+- [Development & Deployment](#development-deployment)
 - [Benefits](#benefits)
 - [Best Practices](#best-practices)
 
 ## 🎯 Overview
 
-Footex is a comprehensive football management platform built using Clean Architecture principles with .NET 10. The project implements a layered architecture that promotes separation of concerns, testability, and maintainability while providing a robust foundation for scalable football management operations.
+PixelPitchAI is an enterprise football management and simulation platform built using Clean Architecture principles with .NET 10, C# 13, and Python 3.12. The project implements a layered architecture promoting separation of concerns, testability, and maintainability, paired with zero-allocation span parsing and reflection-free CQRS.
 
-The system manages football teams, players, matches, stadiums, seasons, and provides real-time match simulation capabilities with advanced analytics and caching mechanisms.
+The system manages football teams, players, matches, stadiums, seasons, and provides real-time match simulation capabilities with advanced analytics, Redis Hot State caching, and batched PostgreSQL persistence.
 
 ## 🌐 Overall System Architecture
 
-Footex is designed as a distributed microservices architecture where the .NET API serves as the central orchestration layer, bridging the Next.js frontend with a Python FastAPI-powered AI model for intelligent match simulation and analytics.
+PixelPitchAI is designed as a distributed microservices architecture where the .NET 10 Web API serves as the central orchestration layer, bridging the Next.js frontend with a Python 3.12 simulation engine running gRPC SimulationService on port 50051.
+Concurrently, the engine hosts a FastAPI REST API on port 8000 via asyncio inside Uvicorn lifespan.
 
 ### System Components
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Next.js       │    │    .NET API      │    │   Python AI     │
-│   Frontend      │    │   (This Project) │    │   FastAPI       │
-│                 │    │                  │    │                 │
-│ • React UI      │◄──►│ • Clean Arch     │◄──►│ • GPT-2 LLM     │
-│ • TypeScript    │    │ • CQRS/MediatR   │    │ • Match Engine  │
-│ • Real-time UI  │    │ • SignalR Hub    │    │ • AI Predictions│
-│ • State Mgmt    │    │ • Message Queue  │    │ • ML Analytics  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │
-         │                       │
-         ▼                       ▼
-┌─────────────────┐    ┌──────────────────┐
-│   WebSocket     │    │    PostgreSQL    │
-│   Connection    │    │    Database      │
-│                 │    │                  │
-│ • SignalR       │    │ • EF Core        │
-│ • Real-time     │    │ • Data Storage   │
-│ • Push Updates  │    │ • Migrations     │
-└─────────────────┘    └──────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │    RabbitMQ      │
-                       │  Message Queue   │
-                       │                  │
-                       │ • Event Routing  │
-                       │ • Message Broker │
-                       │ • Async Comm     │
-                       └──────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │      Redis       │
-                       │      Cache       │
-                       │                  │
-                       │ • Performance    │
-                       │ • Session Store  │
-                       │ • Temp Storage   │
-                       └──────────────────┘
+```mermaid
+flowchart TB
+    classDef client fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:8px,ry:8px;
+    classDef api fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:8px,ry:8px;
+    classDef ai fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:8px,ry:8px;
+    classDef broker fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:8px,ry:8px;
+    classDef cache fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#9f1239,rx:8px,ry:8px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:8px,ry:8px;
+
+    subgraph ClientTier ["Frontend Tier"]
+        UI["Next.js 15 Client<br/>• React 19 UI & Pitch View<br/>• Native EventSource Client<br/>• 3D Simulation Controls"]:::client
+    end
+
+    subgraph CoreBackend [".NET 10 Core Application Tier"]
+        API[".NET 10 Web API<br/>• Clean Architecture & CQRS<br/>• Zero-Allocation Span Parser<br/>• HTTP/2 SSE Broadcaster Channel"]:::api
+    end
+
+    subgraph SimulationEngine ["Python Simulation Engine"]
+        Engine["Python 3.12 Engine<br/>• Fine-Tuned GPT-2 Model<br/>• Fast Dual-Mode Servicer<br/>• gRPC Server (Port 50051) + FastAPI"]:::ai
+    end
+
+    subgraph FastState ["Ultra-Fast Hot State Tier"]
+        Redis[("Redis Hot Cache<br/>• Microsecond Counter State<br/>• Real-Time Statistics")]:::cache
+        RabbitMQ[["RabbitMQ Event Broker<br/>• Raw Event Byte Stream<br/>• Durable Outbox & Topics"]]:::broker
+    end
+
+    subgraph ColdStorage ["Persistent Storage Tier"]
+        Postgres[("PostgreSQL 16 DB<br/>• EF Core Cold Storage<br/>• Batched Match Histories")]:::db
+    end
+
+    %% Interactions
+    UI <-->|"HTTP REST (CRUD / Auth)"| API
+    API -->|"Server-Sent Events (SSE Streams)"| UI
+    API <-->|"gRPC Unary & Server Stream (Port 50051)"| Engine
+    Engine -->|"Pipeline A: Raw Text Stream"| RabbitMQ
+    Engine -.->|"Pipeline B: Direct Stream"| API
+    RabbitMQ -->|"Consume Raw Spans"| API
+    API -->|"Atomic Incs / Hot Stats"| Redis
+    API -->|"Batched Async Sync"| Postgres
 ```
 
 ### Additional Architecture Diagrams
 
 #### **Clean Architecture Layers Diagram**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    🌐 Presentation Layer                    │
-│                     (Web API / Controllers)                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              📋 Application Layer                   │    │
-│  │            (CQRS / MediatR / Services)              │    │
-│  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │            🏢 Domain Layer                  │    │    │
-│  │  │         (Entities / Interfaces)             │    │    │
-│  │  │                                             │    │    │
-│  │  │  • Team      • Player    • Match            │    │    │
-│  │  │  • Stadium   • Season    • Coach            │    │    │
-│  │  │  • IRepository Interfaces                   │    │    │
-│  │  └─────────────────────────────────────────────┘    │    │
-│  │                                                     │    │
-│  │  • Commands & Queries    • DTOs & Mappers           │    │
-│  │  • Application Services  • Validation Logic         │    │
-│  └──────────────────────────────────────────────��─────┘    │
-│                                                             │
-│  • REST Controllers      • Authentication & Authorization   │
-│  • SignalR Hubs         • API Documentation (Swagger)       │
-└─────────────────────────────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│                  🔧 Infrastructure Layer                    │
-│                 (External Concerns & Data)                  │
-│                                                             │
-│  📊 Data Access     🗄️ Caching        📨 Messaging         │
-│  • EF Core          • Redis Cache     • RabbitMQ Client     │
+```mermaid
+flowchart TB
+    classDef pres fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e40af,rx:6px,ry:6px;
+    classDef app fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#15803d,rx:6px,ry:6px;
+    classDef dom fill:#fefce8,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:6px,ry:6px;
+    classDef infra fill:#faf5ff,stroke:#a855f7,stroke-width:2px,color:#6b21a8,rx:6px,ry:6px;
 
-│  • PostgreSQL       • Session Store   • Event Handlers      │
-│  • Repositories     • Performance     • Background Tasks    │
-│                                                             │
-│  🔐 Identity        📧 External       📁 File Storage      |
-│  • JWT Auth         • Email Service   • Local/Cloud         │
-│  • User Management  • 3rd Party APIs  • File Operations     │
-└──���────────────────────────────────────────────────────────┘
+    subgraph PresentationLayer ["Presentation Layer (Footex Web API)"]
+        Controllers["Controllers (REST / SSE Endpoints)"]:::pres
+        Middleware["JWT Auth Middleware & Filters"]:::pres
+        OpenAPI["OpenAPI / Scalar API Docs"]:::pres
+    end
+
+    subgraph ApplicationLayer ["Application Layer (Business Orchestration)"]
+        CQRS["CQRS Commands & Queries (MediatR)"]:::app
+        AppInterfaces["Service & Repository Interfaces"]:::app
+        DTOs["DTOs, Validators & Mappers"]:::app
+        StatsLogic["Live Match Statistics Aggregators"]:::app
+    end
+
+    subgraph DomainLayer ["Domain Layer (Enterprise Core & Rules)"]
+        Entities["Domain Entities (Match, Team, Player, Stadium)"]:::dom
+        DomainEvents["Domain Events & Value Objects"]:::dom
+        Contracts["Core Business Rules & Enums"]:::dom
+    end
+
+    subgraph InfrastructureLayer ["Infrastructure Layer (External Adapters & I/O)"]
+        EF["EF Core & PostgreSQL Repositories"]:::infra
+        gRPCClient["gRPC Client (Simulation Engine Adapter)"]:::infra
+        MQClient["RabbitMQ Consumer & Channel Dispatcher"]:::infra
+        CacheSvc["Redis Hot Cache & Performance Monitor"]:::infra
+        FastParser["ZeroAllocationEventParser (ReadOnlySpan)"]:::infra
+    end
+
+    PresentationLayer --> ApplicationLayer
+    ApplicationLayer --> DomainLayer
+    InfrastructureLayer --> ApplicationLayer
+    InfrastructureLayer --> DomainLayer
 ```
 
 #### **CQRS Pattern Flow Diagram**
 
-```
-┌─────────────────┐                    ┌─────────────────┐
-│   📝 Commands   │                    │   📖 Queries   │
-│   (Write Side)  │                    │   (Read Side)   │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│ Command Handler │                    │  Query Handler  │
-│                 │                    │                 │
-│ • Validation    │                    │ • Data Fetch    │
-│ • Business Logic│                    │ • Projection    │
-│ • Side Effects  │                    │ • Caching       │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│   Write Model   │                    │   Read Model    │
-│                 │                    │                 │
-│ • Domain Entity │                    │ • DTO/ViewModels│
-│ • Aggregates    │                    │ • Optimized     │
-│ • Consistency   │                    │ • Performance   │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         ▼                                       ▼
-┌─────────────────┐                    ┌─────────────────┐
-│   PostgreSQL    │◄──────────────────►│   Redis Cache   │
-│   Database      │   Data Sync        │   + Database    │
-│                 │                    │                 │
-│ • ACID          │                    │ • Fast Reads    │
-│ • Consistency   │                    │ • Scalability   │
-│ • Durability    │                    │ • Performance   │
-└─────────────────┘                    └─────────────────┘
+```mermaid
+flowchart LR
+    classDef write fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,rx:6px,ry:6px;
+    classDef read fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e40af,rx:6px,ry:6px;
+    classDef store fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46,rx:6px,ry:6px;
+
+    Client(["Client Request"]):::read
+
+    subgraph WritePipeline ["Write Side (Commands / State Mutation)"]
+        Command["Command (e.g. CreateMatchCommand)"]:::write
+        CommandHandler["Command Handler<br/>• Fluent Validation<br/>• Domain Business Rules<br/>• Side Effects"]:::write
+        DomainModel["Domain Aggregate / Entity"]:::write
+    end
+
+    subgraph ReadPipeline ["Read Side (Queries / Projections)"]
+        Query["Query (e.g. GetMatchByIdQuery)"]:::read
+        QueryHandler["Query Handler<br/>• AsNoTracking Projections<br/>• DTO Transformations"]:::read
+        ReadModel["Optimized Read DTO / Model"]:::read
+    end
+
+    subgraph Storage ["Storage Strategy"]
+        Postgres[("PostgreSQL Database<br/>• ACID Consistency<br/>• Source of Truth")]:::store
+        Redis[("Redis Cache<br/>• In-Memory Reads<br/>• Fast Key-Value TTL")]:::store
+    end
+
+    Client -->|"POST / PUT / DELETE"| Command
+    Command --> CommandHandler
+    CommandHandler --> DomainModel
+    DomainModel -->|"Save Changes"| Postgres
+    CommandHandler -.->|"Invalidate / Evict"| Redis
+
+    Client -->|"GET"| Query
+    Query --> QueryHandler
+    QueryHandler -->|"Cache Hit"| Redis
+    QueryHandler -.->|"Cache Miss"| Postgres
+    Postgres -.->|"Populate Cache"| Redis
+    QueryHandler --> ReadModel
+    ReadModel --> Client
 ```
 
 #### **Real-Time Match Simulation Sequence Diagram**
 
-```
-Frontend    .NET API    RabbitMQ    Python AI    SignalR    Database
-    │           │           │           │           │           │
-    │──Start───►│           │           │           │           │
-    │  Match    │           │           │           │           │
-    │           │──Publish─►│           │           │           │
-    │           │  Command  │           │           │           │
-    │           │           │──Route───►│           │           │
-    │           │           │  Message  │           │           │
-    │           │           │           │──Process─►│           │
-    │           │           │           │  AI Model │           │
-    │           │           │           │           │           │
-    │           │           │◄─Events───│           │           │
-    │           │           │  Stream   │           │           │
-    │           │◄─Events───│           │           │           │
-    │           │  Queue    │           │           │           │
-    │           │           │           │           │           │
-    │           │────────────────────────────���───────────────►│
-    │           │                    Save Events                │
-    │           │           │           │           │           │
-    │           │──────────────────────►│           │           │
-    │           │      Broadcast        │           │           │
-    │◄──────────│           │           │──Push────►│           │
-    │  Real-time│           │           │  Updates  │           │
-    │  Updates  │           │           │           │           │
-```
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Next.js Frontend
+    participant API as .NET 10 Web API
+    participant gRPC as Python gRPC (50051)
+    participant Engine as GPT-2 Simulation Engine
+    participant RabbitMQ as RabbitMQ Broker
+    participant Redis as Redis Hot State
+    participant DB as PostgreSQL Database
 
-#### **Data Flow Architecture Diagram**
+    Client->>API: POST /api/Matches/SimulateMatch/{userId}
+    API->>gRPC: StartMatchSimulation(match_id, teams, params)
+    gRPC-->>API: StartMatchResponse (simulation_id, status: started)
+    API-->>Client: 200 OK (MatchCreated & SimulationStarted)
 
-```
-┌─────────────────┐    HTTP/REST     ┌─────────────────┐
-│   Next.js UI    │◄────────────────►│  .NET API       │
-│                 │    WebSocket     │  Controllers    │
-│ • State Mgmt    │◄────────────────►│                 │
-│ • Real-time UI  │                  │ • CQRS Handler  │
-|_________________|                  │ • Validation    │
-                                     │ • Auth/Auth     │
-                                     └─────────────────┘
-                                              │
-                                              │
-                    ┌─────────────────────────┼─────────────────────────┐
-                    │                         │                         │
-                    ▼                         ▼                         ▼
-          ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-          │   PostgreSQL    │       │   Redis Cache   │       │    RabbitMQ     │
-          │                 │       │                 │       │                 │
-          │ • ACID Trans    │       │ • Session Data  │       │ • Event Queue   │
-          │ • Complex Query │       │ • Performance   │       │ • Async Comm    │
-          │ • Data Integrity│       │ • Temp Storage  │       │ • Message Route │
-          └─────────────────┘       └─────────────────┘       └─────────────────┘
-                    │                         │                         │
-                    │                         │                         ▼
-                    │                         │               ┌─────────────────┐
-                    │                         │               │   Python AI     │
-                    │                         │               │   FastAPI       │
-                    │                         │               │                 │
-                    │                         │               │ • GPT-2 Model   │
-                    │                         │               │ • Match Sim     │
-                    │                         │               │ • Analytics     │
-                    │                         │               └─────────────────┘
-                    │                         │
-                    ▼                         ▼
-          ┌─────────────────┐       ┌─────────────────┐
-          │   EF Core ORM   │       │  Cache Strategy │
-          │                 │       │                 │
-          │ • Code First    │       │ • Cache-Aside   │
-          │ • Migrations    │       │ • Write-Through │
-          │ • Change Track  │       │ • Invalidation  │
-          └─────────────────┘       └─────────────────┘
+    Note over Client,API: Client subscribes to SSE stream
+    Client->>API: GET /api/matches/{id}/events/stream?access_token=...
+    API-->>Client: HTTP/2 200 OK (text/event-stream)
+
+    par Dual Streaming Pipeline
+        Note over gRPC,Engine: Pipeline B: Direct Server-Streaming (Optional)
+        Engine-->>API: gRPC MatchEventRaw stream chunks
+    and Pipeline A: Raw Broker Stream
+        Engine->>RabbitMQ: publish_raw_event(raw_text_line)
+        RabbitMQ->>API: Deliver raw text bytes
+    end
+
+    loop High-Throughput Event Processing
+        Note over API: ZeroAllocationEventParser.TryParseEvent(span)
+        API->>Redis: Update Hot Counters (Goals, Shots, Passes)
+        API->>Client: SSE event: match_event (JSON payload)
+        API->>Client: SSE event: match_statistics (Hot Stats)
+    end
+
+    Note over API,DB: Batch Match End Persistence
+    API->>DB: Bulk insert match events & fina#### **Data Flow Architecture Diagram**
+
+```mermaid
+flowchart TD
+    classDef frontend fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:6px,ry:6px;
+    classDef gateway fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:6px,ry:6px;
+    classDef broker fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:6px,ry:6px;
+    classDef ai fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:6px,ry:6px;
+    classDef cache fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#9f1239,rx:6px,ry:6px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:6px,ry:6px;
+
+    UI["Next.js Web Application"]:::frontend
+
+    subgraph Gateway [".NET 10 Application Gateway"]
+        Controllers["REST & SSE Controllers"]:::gateway
+        CQRS["CQRS Dispatcher"]:::gateway
+        Parser["Zero-Allocation Span Parser"]:::gateway
+    end
+
+    subgraph Messaging ["Async Transport Layer"]
+        MQ["RabbitMQ Topic Exchange<br/>(match.events)"]:::broker
+    end
+
+    subgraph Intelligence ["Python AI Simulation Core"]
+        FastAPI["FastAPI REST"]:::ai
+        gRPCServer["gRPC Server (50051)"]:::ai
+        GPT2["Fine-Tuned GPT-2 Engine"]:::ai
+    end
+
+    subgraph FastStorage ["In-Memory Data Tier"]
+        Redis[("Redis 7<br/>• Live Match Counters<br/>• Query Cache<br/>• Session Storage")]:::cache
+    end
+
+    subgraph RelationalDB ["Relational Data Tier"]
+        EF["EF Core 10 ORM"]:::db
+        PG[("PostgreSQL 16 Database<br/>• Matches & Teams<br/>• Player Profiles & Stats")]:::db
+    end
+
+    UI <-->|"HTTP/REST (CRUD Operations)"| Controllers
+    Controllers -->|"Real-time SSE Push (text/event-stream)"| UI
+    Controllers --> CQRS
+    CQRS <-->|"gRPC RPCs"| gRPCServer
+    gRPCServer --> GPT2
+    GPT2 -->|"Publish Raw Line"| MQ
+    MQ -->|"Stream Raw Events"| Parser
+    Parser -->|"Atomic Stats Updates"| Redis
+    CQRS <-->|"Cache-Aside Pattern"| Redis
+    CQRS --> EF
+    EF --> PG
 ```
 
 #### **Security & Authentication Flow**
 
-```
-┌─────────────────┐                    ┌─────────────��──┐
-│    Frontend     │                    │   .NET API      │
-│                 │                    │                 │
-│ 1. Login Request│──────────────────►│ 2. Validate      │
-│    (Credentials)│                    │    Credentials  │
-└─────────────────┘                    └─────────────────┘
-         │                                       │
-         │                                       ▼
-         │                              ┌─────────────────┐
-         │                              │  JWT Generator  │
-         │                              │                 │
-         │                              │ • Create Token  │
-         │                              │ • Set Claims    │
-         │                              │ • Sign Token    │
-         │                              └─────────────────┘
-         │                                       │
-         │             ┌─────────────────────────┘
-         │             │
-         ▼             ▼
-┌─────────────────┐                    ┌─────────────────┐
-│ 3. Store Token  │                    │ 4. Secure API   │
-│                 │                    │    Endpoints    │
-│ • Local Storage │                    │                 │
-│ • HTTP Headers  │◄──────────────────┤ • Authorize      │
-│ • Auto Refresh  │   5. Protected     │ • Role Check    │
-└─────────────────┘      Requests      │ • Token Valid   │
-                                       └─────────────────┘
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant Client as Next.js Frontend
+    participant AuthCtrl as Footex AuthController
+    participant Identity as Identity Service
+    participant Protected as Protected Endpoints (REST / SSE)
+
+    User->>Client: Enters Email & Password
+    Client->>AuthCtrl: POST /api/Auth/login { email, password }
+    AuthCtrl->>Identity: ValidateCredentialsAsync()
+    Identity->>Identity: Verify password hash & lockout status
+    Identity->>Identity: Generate JWT Access Token + Refresh Token
+    Identity-->>AuthCtrl: AuthResponse (AccessToken, RefreshToken, Expiration)
+    AuthCtrl-->>Client: 200 OK + Auth Cookies / JSON Payload
+    Client->>Client: Store Access Token in memory / secure cookie
+
+    Note over Client,Protected: Standard API Request
+    Client->>Protected: GET /api/Teams (Header: Bearer Token)
+    Protected->>Protected: Validate JWT Signature & Claims
+    Protected-->>Client: 200 OK (Teams Data)
+
+    Note over Client,Protected: Native SSE Live Stream Authorization
+    Client->>Protected: GET /api/matches/{id}/events/stream?access_token=Token
+    Protected->>Protected: Extract token from QueryString (OnMessageReceived)
+    Protected->>Protected: Validate JWT Signature & Claims
+    Protected-->>Client: 200 OK (text/event-stream opened)
 ```
 
 ### Architecture Flow
@@ -314,16 +333,20 @@ AI Model Events → RabbitMQ Queue → .NET Background Service
   - Business rule enforcement
   - Cross-cutting concerns (logging, validation, error handling)
 
-#### **Python FastAPI AI Model**
+#### **Python 3.12 Simulation Engine (FastAPI & gRPC Dual-Server Concurrency)**
 
-- **Primary Role**: Intelligent match simulation and analytics
+- **Primary Role**: Intelligent match simulation, machine learning inference, and low-latency streaming
+- **Dual-Server Concurrency via Asyncio**:
+  - Hosted inside a single Uvicorn process managing Python 3.12's `asyncio` event loop.
+  - **FastAPI REST API (Port 8000)**: Serves control-plane HTTP routes (`POST /startMatch`, `GET /simulationStatus/{id}`, `GET /simulationResult/{id}`, webhook registrations).
+  - **gRPC SimulationService (Port 50051)**: Serves high-throughput, low-latency binary RPCs (`StartMatchSimulation` unary RPC, `StartMatchSimulationStream` server-streaming RPC, `GetHealth` unary RPC).
+  - Both servers run concurrently on the same `asyncio` event loop initialized during Uvicorn's `@asynccontextmanager async def lifespan(app: FastAPI)` lifecycle.
+  - They share a single singleton `simulation_service` in memory, avoiding duplicate loading of heavy PyTorch GPT-2 / ONNX runtime weights and XGBoost regressors.
 - **Responsibilities**:
-  - GPT-2 fine-tuned model for match simulation
-  - Real-time match event generation
-  - Player performance predictions
-  - Team formation optimization
-  - Match outcome analytics
-  - Statistical analysis and insights
+  - GPT-2 fine-tuned neural model for realistic match event generation
+  - Real-time event coordinate and player action emission
+  - Dual streaming output: concurrent dispatch to RabbitMQ (Pipeline A) and direct gRPC streaming (Pipeline B)
+  - Player performance predictions and XGBoost feature evaluation
   - Machine learning model training and inference
 
 #### **Message Queue (RabbitMQ)**
@@ -362,42 +385,55 @@ AI Model Events → RabbitMQ Queue → .NET Background Service
 
 #### **Synchronous Communication**
 
-- **Frontend ↔ .NET API**: HTTP/HTTPS REST calls
-- **Frontend ↔ .NET API**: WebSocket (SignalR) for real-time updates
-- **.NET API ↔ Database**: Entity Framework Core queries
-- **.NET API ↔ Cache**: Redis operations
+- **Frontend ↔ .NET API**: HTTP/HTTPS REST calls (JSON API responses)
+- **Frontend ↔ .NET API (Live Match Stream)**: Server-Sent Events (SSE) via `GET /api/matches/{id}/events/stream` with `?access_token=` query authentication
+- **Frontend ↔ .NET API (User Alerts)**: SignalR (`/Notify`) for user alerts, system notifications, and badges (replaces SignalR for match streaming)
+- **.NET API ↔ Simulation Engine (Control Plane)**: HTTP REST calls (`http://localhost:8000`)
+- **.NET API ↔ Simulation Engine (High Performance)**: gRPC unary and server-streaming RPCs (`http://localhost:50051`)
+- **.NET API ↔ Database**: Entity Framework Core 10 queries
+- **.NET API ↔ Cache**: StackExchange.Redis Hot State operations
 
 #### **Asynchronous Communication**
 
-- **.NET API ↔ Python AI**: Message queue communication
-- **Event Broadcasting**: RabbitMQ publish/subscribe pattern
-- **Background Processing**: Hosted services for event handling
+- **Pipeline A (RabbitMQ Ingestion)**: Topic exchange `match_events`, routing key `match.events`, queue `match_events_queue`
+- **Pipeline B (Direct gRPC Stream)**: `StartMatchSimulationStream` yielding raw text lines directly to `MatchEventGrpcStreamConsumer`
+- **Zero-Allocation Processing**: Ingestion pipelines slice raw commentary lines using `ZeroAllocationEventParser` with `ReadOnlySpan<char>`
+- **SSE Channel Broadcaster**: `MatchEventBroadcaster` using `System.Threading.Channels` for lock-free client fanout
 
 ### Data Flow Architecture
 
 #### **Read Operations (CQRS Query Side)**
 
 ```
-Frontend Request → API Controller → Query Handler → Repository
-→ Cache Check → Database (if cache miss) → Response Mapping
-→ JSON Response → Frontend
+Frontend Request → API Controller → Query Handler (reflection-free DI)
+→ Redis Hot State Check → PostgreSQL (on cache miss via EF Core 10)
+→ Source-Generated Mapping (Riok.Mapperly) → JSON Response
 ```
 
 #### **Write Operations (CQRS Command Side)**
 
 ```
-Frontend Request → API Controller → Command Handler → Business Validation
-→ Database Transaction → Cache Update → Event Publishing
-→ SignalR Notification → Response → Frontend
+Frontend Request → API Controller → Command Handler (reflection-free DI)
+→ Business Validation → PostgreSQL Transaction (EF Core 10)
+→ Redis Cache Invalidation / Hot State Update → Response to Frontend
 ```
 
-#### **Match Simulation Data Flow**
+#### **Match Simulation Data Flow (Dual Ingestion & SSE)**
 
 ```
-Match Start Command → RabbitMQ Message → Python AI Model
-→ Event Stream → RabbitMQ Events → .NET Event Handlers
-→ Database Updates → Cache Updates → SignalR Broadcast
-→ Real-time Frontend Updates
+Match Start (REST /api/matches/simulateMatch or gRPC StartMatchSimulation)
+→ Python 3.12 Engine (concurrent FastAPI 8000 & gRPC 50051 via asyncio)
+→ Dual Ingestion Stream:
+    ├── Pipeline A: RabbitMQ exchange "match_events" (routing key "match.events")
+    │               → MatchEventRabbitMqClient
+    └── Pipeline B: Direct gRPC Server-Streaming (StartMatchSimulationStream)
+                    → MatchEventGrpcStreamConsumer
+→ ZeroAllocationEventParser (ReadOnlySpan<char> slicing)
+→ Redis Hot State (atomic counter increments & live statistics cache)
+→ In-Memory Accumulator (_matchEventsCache buffer)
+→ Server-Sent Events (SSE Broadcaster at GET /api/matches/{id}/events/stream)
+→ Next.js Browser Client (native EventSource with JWT ?access_token=)
+→ On [MATCH END]: Batched SaveChangesAsync() commits entire event log to PostgreSQL
 ```
 
 ### Scalability & Reliability Features
@@ -596,7 +632,7 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
   ```
 
 - **Interface Segregation**: Many client-specific interfaces are better than one general-purpose interface
-  - **Example**: The application uses fine-grained interfaces like `IAdvancedSearchService`, `ICacheService`, `IEmailService`, and `IMatchHub` rather than having a single large service interface. This allows clients to depend only on the specific functionality they need.
+  - **Example**: The application uses fine-grained interfaces like `IAdvancedSearchService`, `ICacheService`, `IEmailService`, and `IMatchEventBroadcaster` rather than having a single large service interface. This allows clients to depend only on the specific functionality they need.
   
   ```csharp
   // Interface Segregation Example
@@ -606,7 +642,7 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
   //     Task SendEmailAsync(string to, string subject, string body);
   //     Task<string> SaveFileAsync(Stream fileStream, string fileName);
   //     Task<SearchResultDto> SearchAsync(string query, int page);
-  //     Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+  //     Task BroadcastMatchEventAsync(string matchId, FootballMatchEvent matchEvent);
   // }
   
   // We use segregated interfaces:
@@ -625,9 +661,9 @@ The project follows Uncle Bob's Clean Architecture pattern, ensuring:
       Task<SearchResultDto> SearchAsync(string query, int page);
   }
   
-  public interface IMatchHub
+  public interface IMatchEventBroadcaster
   {
-      Task UpdateMatchScoreAsync(int matchId, int homeScore, int awayScore);
+      Task BroadcastEventAsync(string matchId, FootballMatchEvent matchEvent, CancellationToken cancellationToken = default);
   }
   
   // This way, a component that only needs search functionality doesn't
@@ -909,56 +945,60 @@ public class TeamsController : ControllerBase
 - Reduced database calls
 - Maintains data integrity
 
-### 4. Mediator Pattern (MediatR)
+### 4. Reflection-Free CQRS & Native AOT Readiness
 
-**Implementation**: Decouples request/response from handlers
+**Implementation**: Reflection-free, compile-time safe CQRS pattern (`IRequest<TResponse>` and `IRequestHandler<TRequest, TResponse>`) with 45 explicit DI registrations in `Application/DependencyInjection.cs`
 **Benefits**:
 
-- Loose coupling between components
-- Easy to add cross-cutting concerns
-- Simplified testing
+- **Zero Runtime Reflection**: Eliminates dynamic assembly scanning, slow reflection invocation, and runtime IL emission.
+- **Native AOT Compatible**: All command/query types and handlers are explicitly known at compile-time.
+- **Direct Action Injection**: Handlers are injected directly into controller actions via `[FromServices] IRequestHandler<TCommand, TResponse>`, eliminating mediator pipeline overhead.
+- **Compile-Time Mapping**: Replaces AutoMapper with `Riok.Mapperly` source-generated mapping (`MatchMapper`, `TeamMapper`, `PlayerMapper`, `CoachMapper`, `StadiumMapper`, `SeasonMapper`, `UserMapper`).
 
 ### 5. Dependency Injection
 
-**Implementation**: Constructor injection throughout the application
+**Implementation**: Explicit constructor and action injection throughout the application without dynamic scanning
 **Benefits**:
 
 - Testability and mockability
 - Loose coupling
 - Configuration flexibility
+- 100% trim-safe and Native AOT compliant
 
 ## 🛠️ Technology Stack
 
 ### Backend Technologies
 
-- **.NET 10**: Latest LTS version with performance improvements
-- **ASP.NET Core**: Web API framework
-- **Entity Framework Core**: ORM for database operations
-- **MediatR**: Mediator pattern implementation
-- **FluentValidation**: Input validation
+- **.NET 10 & C# 13**: High-performance runtime and language features
+- **ASP.NET Core Web API**: Native routing, controllers, and HTTP/2 transport
+- **ASP.NET Core OpenAPI & Scalar UI**: OpenAPI 3.0 document generation paired with interactive Scalar API Reference at `/scalar/v1` (replacing legacy Swagger)
+- **Entity Framework Core 10**: ORM for database operations with `Npgsql.EntityFrameworkCore.PostgreSQL`
+- **Riok.Mapperly (v4.3.1)**: Zero-allocation, source-generated object mappers
+- **ZeroAllocationEventParser**: Real-time simulation event parser using stack-allocated `ReadOnlySpan<char>`
+- **MatchEventJsonContext**: Source-generated `JsonSerializerContext` for reflection-free JSON serialization
 - **Serilog**: Structured logging
 
 ### Database & Caching
 
-- **PostgreSQL**: Primary relational database
-- **Redis**: In-memory caching and session storage
-- **Entity Framework Migrations**: Database versioning
+- **PostgreSQL 15**: Primary relational database for transactional consistency and batched match history
+- **Redis 7.0**: In-memory Hot State caching, atomic counters, and query result caching
+- **Entity Framework Core Migrations**: Automated code-first database versioning
 
-### Message Queuing
+### Message Queuing & Streaming Ingestion
 
-- **RabbitMQ**: Asynchronous message processing
-- **Event-driven architecture**: Real-time match updates
+- **RabbitMQ (AMQP 5672)**: Pipeline A asynchronous event ingestion (exchange `match_events`, routing key `match.events`, queue `match_events_queue`)
+- **gRPC (Port 50051)**: Pipeline B direct memory-to-memory server-streaming (`StartMatchSimulationStream`)
 
-### Real-time Communication
+### Real-Time Client Communication
 
-- **SignalR**: WebSocket-based real-time updates
-- **Live match statistics**: Real-time match data broadcasting
+- **Server-Sent Events (SSE)**: Dedicated unidirectional stream at `GET /api/matches/{id}/events/stream` for live match commentary, pitch coordinates, and aggregate statistics (replaces SignalR for match events)
+- **SignalR (`/Notify`)**: Hub dedicated strictly to general user alerts, notifications, and badges
 
 ### Authentication & Security
 
-- **JWT (JSON Web Tokens)**: Stateless authentication
-- **ASP.NET Core Identity**: User management
-- **Role-based authorization**: Fine-grained access control
+- **JWT (JSON Web Tokens)**: Stateless authentication via `Authorization: Bearer` header (and `?access_token=` query parameter for SSE)
+- **ASP.NET Core Identity**: User management and password hashing
+- **Role-based authorization**: Fine-grained access control (Admin, Manager, User)
 
 ## 🏗️ Infrastructure Components
 
@@ -1147,10 +1187,11 @@ The project uses a multi-container Docker setup with separate configurations for
 
 #### **Real-Time Capabilities**
 
-- **WebSocket Integration**: SignalR provides real-time updates
-- **Event-Driven Architecture**: Immediate propagation of match events
-- **Asynchronous Processing**: Non-blocking operations for better UX
-- **Live Match Simulation**: Real-time AI-generated match events
+- **Server-Sent Events Integration**: Unidirectional SSE at `GET /api/matches/{id}/events/stream` provides high-throughput real-time match streaming (replaces SignalR for match events)
+- **User Alerts via SignalR**: Dedicated `/Notify` hub delivers asynchronous user notifications and badges
+- **Event-Driven Architecture**: Immediate propagation of match simulation events across dual pipelines
+- **Asynchronous Processing**: Non-blocking operations for optimal UX and responsiveness
+- **Live Match Simulation**: Real-time AI-generated match events with sub-second browser latency
 
 #### **Data Flow Optimization**
 
@@ -1272,12 +1313,13 @@ cd Footex
 
 ## 📚 Documentation Links
 
-- [API Documentation](./search-api-documentation.md)
-- [SignalR Documentation](./signalr-notification-service.md)
+- [API Documentation](./documentation.md)
+- [Server-Sent Events Match Stream](./sse-match-stream.md)
+- [SignalR Notification Documentation](./signalr-notification-service.md)
 - [Event Processing System](./event-processing-system.md)
-- [Docker Update Summary](./DOCKER_UPDATE_SUMMARY.md)
 - [RabbitMQ Client Documentation](./rabbitmq-matchevent-client.md)
+- [Database Design Documentation](./database-design-documentation.md)
 
 ---
 
-_This documentation provides a comprehensive overview of the Footex project architecture. For specific implementation details, refer to the individual component documentation and code comments._
+_This documentation provides a comprehensive overview of the PixelPitchAI project architecture. For specific implementation details, refer to the individual component documentation and code comments._

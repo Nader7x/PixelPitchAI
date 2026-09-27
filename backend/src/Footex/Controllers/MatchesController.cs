@@ -396,7 +396,7 @@ public class MatchesController(
                         away_team_name = simulationDto.AwayTeamName,
                         home_team_season = simulationDto.HomeTeamSeason,
                         away_team_season = simulationDto.AwayTeamSeason,
-                        num_tokens_to_generate = 10000,
+                        num_tokens_to_generate = simulationDto.NumTokensToGenerate ?? 2000,
                         temperature = 0.7,
                         top_p = 0.9,
                         top_k = 50,
@@ -443,7 +443,7 @@ public class MatchesController(
                     {
                         SimulationId = result.ApiResponse.SimulationId,
                         WebhookUrl =
-                            $"https://localhost:7082/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
+                            $"{Request.Scheme}://{Request.Host}/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
                         WebhookSecret = _simulationOptions.ApiKey,
                     }
                 );

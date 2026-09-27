@@ -210,6 +210,7 @@ try
                         && (
                             path.StartsWithSegments("/Notify")
                             || path.StartsWithSegments("/matchSimulationHub")
+                            || path.StartsWithSegments("/api/matches")
                         )
                     )
                         // Read the token out of the query string
@@ -326,7 +327,8 @@ try
                 }
             }
 
-            if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+            var dbContext = services.GetRequiredService<FootballDbContext>();
+            if (!await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(dbContext.Teams) && !app.Environment.IsEnvironment("Testing"))
             {
                 using var dataScope = app.Services.CreateScope();
                 var dataSeeder = dataScope.ServiceProvider.GetRequiredService<DataSeeder>();

@@ -37,6 +37,15 @@
     <PackageReference Include="Serilog.Sinks.Postgresql.Alternative" Version="4.2.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.13.17" />
     <PackageReference Include="MessagePack" Version="2.5.301" />
+    <PackageReference Include="Google.Protobuf" Version="3.30.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.71.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="Protos\simulation.proto" GrpcServices="Client" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="obj\**" />

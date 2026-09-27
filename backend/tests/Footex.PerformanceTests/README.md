@@ -61,8 +61,9 @@ The Footex.PerformanceTests project includes comprehensive performance testing u
 
 ### Prerequisites
 
-1. Ensure Docker is running (for PostgreSQL test containers)
-2. Build the solution: `dotnet build`
+1. .NET 10.0 SDK installed
+2. Ensure Docker is running (for PostgreSQL test containers)
+3. Build the solution: `dotnet build`
 
 ### Running Load Tests (NBomber)
 

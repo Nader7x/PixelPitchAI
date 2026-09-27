@@ -2,68 +2,82 @@
 
 ## Overview
 
-The Footex Event Processing System is a comprehensive real-time event handling architecture that combines RabbitMQ message queuing, SignalR real-time communications, and robust database persistence. This system ensures reliable, scalable, and real-time processing of football match events.
+The PixelPitchAI Event Processing System is a high-performance, low-latency event ingestion, processing, and streaming architecture. It implements **Dual Streaming Ingestion**:
+- **Pipeline A (Decoupled Queue Ingestion)**: RabbitMQ topic exchange `match_events`, routing key `match.events`, queue `match_events_queue`.
+- **Pipeline B (Direct Low-Latency Ingestion)**: Direct memory-to-memory gRPC server-streaming via `StartMatchSimulationStream` on port 50051.
+
+Both pipelines converge on `ZeroAllocationEventParser` with `ReadOnlySpan<char>` slicing before broadcasting live simulation events to clients exclusively via **Server-Sent Events (SSE)** at `GET /api/matches/{id}/events/stream`.
 
 ## System Architecture
 
 ### Component Overview
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Event Source  │────│   RabbitMQ      │────│  RabbitMQ       │
-│   (API/External)│    │   Exchange      │    │  Client         │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                                        │
-                                                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Clients   │◄───│   SignalR       │◄───│   Event         │
-│   (Live Updates)│    │   Hubs          │    │   Processing    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+```mermaid
+flowchart LR
+    classDef src fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8,rx:8px,ry:8px;
+    classDef mq fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#9a3412,rx:8px,ry:8px;
+    classDef consumer fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e,rx:8px,ry:8px;
+    classDef sse fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1,rx:8px,ry:8px;
+    classDef db fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46,rx:8px,ry:8px;
+
+    Source["🧠 AI Simulation Engine<br/>• Raw Text Line Stream<br/>• gRPC 50051 & FastAPI 8000"]:::src
+    Exchange[["📨 RabbitMQ Exchange<br/>• Topic: match_events / match.events<br/>• Pipeline A"]]:::mq
+    GrpcStream["⚡ gRPC Server Stream<br/>• StartMatchSimulationStream<br/>• Pipeline B"]:::src
+    ClientService["⚡ Event Ingestion Services<br/>• Zero-Allocation Span Parser<br/>• ReadOnlySpan<char>"]:::consumer
+    Broadcaster["📡 SSE Broadcaster<br/>• System.Threading.Channels<br/>• text/event-stream"]:::sse
+    WebClients["🖥️ Next.js Web Clients<br/>• EventSource Listeners<br/>• GET /api/matches/{id}/events/stream"]:::sse
+    HotState[("🚀 Redis Hot State<br/>• Atomic Counter Incs<br/>• Live Match Cache")]:::db
+    ColdStorage[("💾 PostgreSQL 15 DB<br/>• Batched SaveChangesAsync<br/>• On [MATCH END]")]:::db
+
+    Source -->|"Pipeline A: Publish Raw Line"| Exchange
+    Source -->|"Pipeline B: Direct gRPC Stream"| GrpcStream
+    Exchange -->|"Deliver Bytes"| ClientService
+    GrpcStream -->|"Stream MatchEventRaw"| ClientService
+    ClientService -->|"Atomic Incs"| HotState
+    ClientService -->|"Channel Dispatch"| Broadcaster
+    Broadcaster -->|"SSE Push"| WebClients
+    ClientService -.->|"Batched Save on End"| ColdStorage
 ```
 
 ### Key Components
 
-1. **Event Sources**: External systems, APIs, and manual inputs that generate match events
-2. **RabbitMQ Exchange**: Message routing and distribution hub
-3. **MatchEventRabbitMqClient**: Background service for message consumption and processing
-4. **Database Layer**: Persistent storage for events and match data
-5. **SignalR Hubs**: Real-time communication with web clients
-6. **Caching Layer**: Performance optimization and data access acceleration
+1. **AI Simulation Engine**: Python 3.12 service exposing gRPC `SimulationService` on port 50051.
+   Concurrently, it hosts a FastAPI REST API on port 8000 via `asyncio` inside Uvicorn lifespan.
+2. **Pipeline A (RabbitMQ Ingestion)**: Topic exchange `match_events`, routing key `match.events`, queue `match_events_queue`.
+3. **Pipeline B (Direct gRPC Server-Streaming)**: Unidirectional streaming RPC `StartMatchSimulationStream` yielding raw commentary text lines directly into backend memory.
+4. **Zero-Allocation Parser (`ZeroAllocationEventParser`)**: High-performance parser utilizing `ReadOnlySpan<char>` and stack-allocated spans without heap substrings.
+5. **Server-Sent Events Broadcaster (`MatchEventBroadcaster`)**: Multi-subscriber fanout built on `System.Threading.Channels.Channel<SseMessage>` serving `GET /api/matches/{id}/events/stream`.
+6. **Redis Hot State**: Atomic in-memory counters for real-time scores, possession, and pass statistics.
+7. **PostgreSQL Batched Persistence**: EF Core 10 background persistence that commits all accumulated events in a single atomic transaction upon `[MATCH END]`.
 
 ## Event Flow Architecture
 
-### 1. Event Ingestion
+### 1. Dual Ingestion Pipelines
 
 ```
-Event Source → REST API → Validation → RabbitMQ Exchange
+Pipeline A: Simulation Engine → RabbitMQ (match_events) → MatchEventRabbitMqClient
+Pipeline B: Simulation Engine → gRPC Stream (port 50051) → MatchEventGrpcStreamConsumer
 ```
 
-**Process**:
-
-- Events enter through REST API endpoints
-- Input validation and sanitization
-- Authentication and authorization checks
-- Message formatting and routing to appropriate queues
-
-### 2. Message Processing
+### 2. Zero-Allocation Processing Pipeline
 
 ```
-RabbitMQ Queue → MatchEventRabbitMqClient → Processing Pipeline
+Raw Text Stream → ZeroAllocationEventParser (ReadOnlySpan<char>) → Hot State & Broadcaster
 ```
 
 **Pipeline Steps**:
 
-1. **Message Deserialization**: Convert message bytes to domain objects
-2. **Validation**: Business rule validation and data integrity checks
-3. **Event Processing**: Core business logic execution
-4. **Database Persistence**: Store events for audit and replay
-5. **Cache Updates**: Update in-memory cache for performance
-6. **Real-time Broadcasting**: Notify connected clients via SignalR
+1. **Zero-Allocation Parsing**: Slices tokens and coordinates directly in-place from `ReadOnlySpan<char>`.
+2. **Validation**: Validates event action types, team ownership, and field coordinates.
+3. **Hot State Updates**: Updates Redis and in-memory live statistics (`LiveMatchStatisticsService`).
+4. **SSE Broadcasting**: Dispatches `match_event` and `match_statistics` payloads to active client channels.
+5. **In-Memory Accumulation**: Buffers events in memory for post-match persistence.
+6. **Batched Persistence**: Executes single `SaveChangesAsync()` to PostgreSQL when `[MATCH END]` is reached.
 
-### 3. Real-time Distribution
+### 3. Client Match Event Distribution
 
 ```
-SignalR Broadcasting → Client Groups → UI Updates
+MatchStreamController → GET /api/matches/{id}/events/stream (SSE) → Browser EventSource
 ```
 
 **Distribution Strategy**:
@@ -219,7 +233,7 @@ public class EventValidationService
 public class MatchEventProcessingService
 {
     private readonly IEventAnalysisService _eventAnalysisService;
-    private readonly IHubContext<MatchHub, IMatchHub> _matchHubContext;
+    private readonly IMatchEventBroadcaster _broadcaster;
 
     public async Task ProcessMatchEvent(FootballMatchEvent matchEvent, Match match, MatchEvents matchEvents)
     {
@@ -235,8 +249,8 @@ public class MatchEventProcessingService
             // 3. Persist changes to database
             await _unitOfWork.SaveChangesAsync();
 
-            // 4. Broadcast real-time updates via SignalR
-            await BroadcastEventUpdate(matchEvent, match);
+            // 4. Broadcast real-time updates via Server-Sent Events (SSE)
+            await _broadcaster.BroadcastEventAsync(match.Id.ToString(), matchEvent);
 
             // 5. Update cache
             await InvalidateMatchCache(match.Id);
@@ -505,8 +519,8 @@ public async Task ProcessMatchEvent(FootballMatchEvent matchEvent, Match match, 
     // 3. Persist changes
     await _unitOfWork.SaveChangesAsync();
 
-    // 4. Broadcast updates
-    await BroadcastEventToSignalR(matchEvent, match);
+    // 4. Broadcast updates via Server-Sent Events (SSE)
+    await _broadcaster.BroadcastEventAsync(match.Id.ToString(), matchEvent);
 }
 ```
 
@@ -671,57 +685,60 @@ private static void CalculatePassAccuracy(Match match)
 }
 ```
 
-### SignalR Hub Architecture
+### Real-Time Distribution Architecture: Server-Sent Events (SSE)
 
-#### NotificationService Hub
+Match simulation events are distributed to client browsers exclusively via **Server-Sent Events (SSE)** at `GET /api/matches/{id}/events/stream`. This replaces legacy WebSocket and SignalR protocols for live match commentary.
 
-- **Purpose**: General-purpose notifications and system messages
-- **Authentication**: JWT-based security
-- **Features**: User-specific messaging, system announcements
-- **Groups**: User-based, role-based
+> [!NOTE]
+> SignalR is retained strictly for the `NotificationService` (`/Notify`) delivering general user alerts and notifications. Do not use SignalR for match simulation streaming, which is replaced by SSE.
 
-#### MatchHub
+#### Broadcaster & Channel Fanout
 
-- **Purpose**: Match-specific real-time updates
-- **Authentication**: Optional (public match data)
-- **Features**: Live match events, group messaging
-- **Groups**: Match-based, team-based, stadium-based
+- **Broadcaster**: `MatchEventBroadcaster` (`IMatchEventBroadcaster`)
+- **Concurrency Model**: Bounded `System.Threading.Channels.Channel<SseMessage>` per subscriber (`BoundedChannelFullMode.DropOldest`, capacity 500)
+- **Endpoint**: `GET /api/matches/{id}/events/stream`
+- **Wire Headers**:
+  - `Content-Type: text/event-stream`
+  - `Cache-Control: no-cache`
+  - `Connection: keep-alive`
+  - `X-Accel-Buffering: no`
+- **Authentication**: JWT token passed via query parameter (`?access_token=`)
 
-### Client Communication Patterns
-
-#### Connection Management
+### Client Communication Patterns: Native EventSource
 
 ```javascript
-class EventProcessingClient {
+class MatchEventStreamingClient {
   constructor() {
-    this.connections = new Map();
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
+    this.eventSource = null;
   }
 
-  async connectToMatch(matchId) {
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("/matchHub")
-      .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .build();
+  connectToMatch(matchId, token, onEvent, onStatistics, onError) {
+    const url = `/api/matches/${matchId}/events/stream?access_token=${encodeURIComponent(token)}`;
+    this.eventSource = new EventSource(url);
 
-    this.setupEventHandlers(connection, matchId);
-    await connection.start();
-    await connection.invoke("JoinMatchGroup", matchId);
+    // Play-by-play simulation events (passes, shots, goals, tackles)
+    this.eventSource.addEventListener("match_event", (event) => {
+      const payload = JSON.parse(event.data);
+      onEvent(payload);
+    });
 
-    this.connections.set(matchId, connection);
+    // Real-time statistical summaries
+    this.eventSource.addEventListener("match_statistics", (event) => {
+      const stats = JSON.parse(event.data);
+      onStatistics(stats);
+    });
+
+    this.eventSource.onerror = (err) => {
+      console.error("SSE stream error", err);
+      onError?.(err);
+    };
   }
 
-  setupEventHandlers(connection, matchId) {
-    connection.on("SendMatchUpdateAsync", (update) => {
-      this.handleMatchUpdate(matchId, update);
-    });
-
-    connection.on("SendGoalNotificationAsync", (goal) => {
-      this.handleGoalEvent(matchId, goal);
-    });
-
-    // Additional event handlers...
+  disconnect() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
   }
 }
 ```
@@ -1015,18 +1032,18 @@ public class ParallelEventProcessor
 public class EventProcessingMetrics
 {
     public static readonly Counter MessagesProcessed = Metrics
-        .CreateCounter("footex_events_processed_total", "Total number of events processed");
+        .CreateCounter("pixelpitchai_events_processed_total", "Total number of events processed");
 
     public static readonly Histogram ProcessingDuration = Metrics
-        .CreateHistogram("footex_event_processing_duration_seconds",
+        .CreateHistogram("pixelpitchai_event_processing_duration_seconds",
             "Time taken to process events");
 
     public static readonly Gauge ActiveConnections = Metrics
-        .CreateGauge("footex_signalr_connections_active",
-            "Number of active SignalR connections");
+        .CreateGauge("pixelpitchai_sse_connections_active",
+            "Number of active SSE match stream connections");
 
     public static readonly Counter ProcessingErrors = Metrics
-        .CreateCounter("footex_event_processing_errors_total",
+        .CreateCounter("pixelpitchai_event_processing_errors_total",
             "Total number of processing errors");
 }
 ```
@@ -1045,13 +1062,13 @@ public class EventProcessingHealthCheck : IHealthCheck
             // Check RabbitMQ connection
             var rabbitMqHealthy = await CheckRabbitMqHealth();
 
-            // Check SignalR hubs
-            var signalRHealthy = await CheckSignalRHealth();
+            // Check SSE broadcaster health
+            var sseHealthy = await CheckSseBroadcasterHealth();
 
             // Check database connectivity
             var databaseHealthy = await CheckDatabaseHealth();
 
-            if (rabbitMqHealthy && signalRHealthy && databaseHealthy)
+            if (rabbitMqHealthy && sseHealthy && databaseHealthy)
             {
                 return HealthCheckResult.Healthy("Event processing system is healthy");
             }

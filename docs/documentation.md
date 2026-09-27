@@ -1,6 +1,6 @@
 # API Documentation
 
-This document describes all available API endpoints in the Footex project. Use this as a reference for integrating with the backend from the frontend application.
+This document describes all available API endpoints in the PixelPitchAI platform. Use this as a reference for integrating with the backend from the frontend application.
 
 ## Key Features
 
@@ -12,29 +12,31 @@ Most endpoints require JWT authentication. Include the token in the Authorizatio
 Authorization: Bearer <your-jwt-token>
 ```
 
+For Server-Sent Events (SSE) streaming (`GET /api/matches/{id}/events/stream`), the JWT token is passed as a query string parameter: `?access_token=<your-jwt-token>`.
+
 ### Performance and Caching
 
-- Many endpoints implement intelligent caching for improved performance
+- Many endpoints implement intelligent caching for improved performance via Redis Hot State and in-memory caches
 - Cache status is indicated via `X-Cache-Hit` header in responses
 - Performance monitoring is active across match-related operations
-- Real-time updates are provided via SignalR for live match events
+- Real-time match event commentary, coordinates, and live statistics are streamed exclusively via Server-Sent Events (SSE) at `GET /api/matches/{id}/events/stream`
 
 ### Match Simulation System
 
 The API includes advanced match simulation capabilities:
 
-- AI-powered match prediction and simulation
+- AI-powered match prediction and simulation powered by a dual-server Python engine (FastAPI 8000 & gRPC 50051)
 - Asynchronous processing with webhook callbacks
-- Real-time notifications during simulation
-- Health checks for external AI services
+- Real-time user notifications via SignalR (`/Notify`) and live play-by-play commentary via SSE
+- Health checks for external AI services (`/api/health`)
 - Integration with live match statistics
 
 ### Live Match Statistics
 
-- Real-time statistics tracking during matches
-- Performance-optimized caching for live data
-- SignalR integration for real-time updates
-- Comprehensive match event monitoring
+- Real-time statistics tracking during matches via Redis Hot State atomic counters
+- Performance-optimized caching for live data with sub-millisecond retrieval
+- Server-Sent Events (SSE) integration for real-time play-by-play events and live aggregate statistics
+- Comprehensive match event monitoring and batched PostgreSQL persistence upon match completion
 
 ---
 
@@ -327,7 +329,8 @@ The API includes advanced match simulation capabilities:
   - Checks for existing live matches before simulation
   - Health check validation of AI service
   - Webhook registration for async result handling
-  - Real-time notifications via SignalR
+  - Real-time notifications via SignalR (`/Notify`)
+  - Live play-by-play commentary delivered via Server-Sent Events (SSE)
   - Performance monitoring integration
 
 ### POST `/webhookNotification/{simulationId}`
@@ -345,6 +348,64 @@ The API includes advanced match simulation capabilities:
   - Updates local match status
   - Processes simulation results
   - Error handling and logging
+
+### GET `/LiveMatch/{userId}`
+
+- **Description:** Get the active live match currently in progress for the specified user
+- **Route:** `GET /api/matches/LiveMatch/{userId}`
+- **Auth:** Required (`[Authorize]`)
+- **Returns:** `ActionResult<GetLiveMatchQueryResponse>`
+- **Features:** Reads from in-memory / Redis live match cache for sub-millisecond status check.
+
+### GET `/simulation/{simulationId}/status`
+
+- **Description:** Poll the current execution status and progress of an asynchronous AI match simulation
+- **Route:** `GET /api/matches/simulation/{simulationId}/status`
+- **Auth:** Required (`[Authorize]`)
+- **Returns:** `ActionResult<SimulationStatusResponse>`
+- **Features:** Relays status from Python simulation engine `/simulationStatus/{id}`.
+
+### GET `/simulation/{simulationId}/result`
+
+- **Description:** Fetch the final completed result, commentary, and metadata of a finished AI simulation
+- **Route:** `GET /api/matches/simulation/{simulationId}/result`
+- **Auth:** Required (`[Authorize]`)
+- **Returns:** `ActionResult<SimulationResultResponse>`
+- **Features:** Fetches completed match payload from Python simulation engine `/simulationResult/{id}`.
+
+### GET `/live/performance-stats`
+
+- **Description:** Retrieve real-time operational statistics, active match count, and cache hit/miss metrics for live matches
+- **Route:** `GET /api/matches/live/performance-stats`
+- **Auth:** Admin, Manager (`[Authorize(Roles = "Admin,Manager")]`)
+- **Returns:** Operational cache and throughput metrics object
+
+### GET `/performance/dashboard`
+
+- **Description:** Retrieve system-wide database offloading, throughput, and latency metrics comparing Redis Hot State to PostgreSQL
+- **Route:** `GET /api/matches/performance/dashboard`
+- **Auth:** Admin, Manager (`[Authorize(Roles = "Admin,Manager")]`)
+- **Returns:** Performance dashboard metrics object
+
+---
+
+## MatchStreamController (`/api/matches`)
+
+### GET `/{id}/events/stream`
+
+- **Description:** Real-time Server-Sent Events (SSE) stream delivering live play-by-play match commentary, player coordinates, and match statistics.
+- **Route:** `GET /api/matches/{id:int}/events/stream`
+- **Auth:** Required (`[Authorize]`). Token passed via query string parameter `?access_token=<jwt-token>` to support native browser `EventSource`.
+- **Response Format:** `text/event-stream` with headers:
+  - `Content-Type: text/event-stream`
+  - `Cache-Control: no-cache`
+  - `Connection: keep-alive`
+  - `X-Accel-Buffering: no`
+- **Wire Event Types:**
+  - `match_event`: Emits JSON-serialized `FootballMatchEvent` containing minute, second, action type (Pass, Shot, Goal, Tackle, Foul), team, player, pitch coordinates (x, y), and text description.
+  - `match_statistics`: Emits JSON-serialized `MatchStatistics` containing possession percentages, shots on target, pass accuracy, and cards.
+- **Handshake:** Sends initial comment `: connected to match stream {id}\n\n` upon connection.
+- **Frontend Consumption:** Consumed using native browser `EventSource` in `MatchStreamService.ts`.
 
 ---
 

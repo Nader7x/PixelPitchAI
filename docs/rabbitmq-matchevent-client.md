@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `MatchEventRabbitMqClient` is a sophisticated background service that manages RabbitMQ message consumption for match events in the Footex application. It provides robust event processing with automatic recovery, performance monitoring, and real-time event broadcasting capabilities.
+The `MatchEventRabbitMqClient` is a high-performance background service that manages RabbitMQ message consumption for match simulation events in the PixelPitchAI application (Pipeline A). It provides robust event ingestion with zero-allocation `ReadOnlySpan<char>` parsing, automatic recovery, performance monitoring, and real-time Server-Sent Events (SSE) broadcasting.
 
 ## Architecture
 
@@ -23,19 +23,21 @@ public class MatchEventRabbitMqClient : BackgroundService
 
 ### Dependencies
 
-- **IServiceProvider**: Dependency injection container
-- **ILogger**: Logging service
+- **IServiceProvider**: Dependency injection container for scoped services (EF Core, repositories)
+- **ILogger<MatchEventRabbitMqClient>**: Logging service
 - **IConnection**: RabbitMQ connection management
 - **IModel**: RabbitMQ channel management
-- **IHubContext**: SignalR hub context for real-time broadcasting
+- **IMatchEventBroadcaster**: Server-Sent Events (SSE) broadcaster for live client streaming
+- **ZeroAllocationEventParser**: Reflection-free, zero-allocation `ReadOnlySpan<char>` parser
+- **ILiveMatchStatisticsService**: In-memory atomic cache for live match statistics
 
 ### Key Features
 
-1. **Automatic Recovery**: Handles connection failures and reconnection
-2. **Performance Monitoring**: Tracks processing metrics and health
-3. **Caching Layer**: Implements caching for frequently accessed data
-4. **Real-time Broadcasting**: Integrates with SignalR for live updates
-5. **Database Persistence**: Stores events for audit and replay
+1. **Automatic Recovery**: Handles connection failures and automatic network reconnection
+2. **Zero-Allocation Parsing**: Parses incoming raw text simulation lines using `ReadOnlySpan<char>` without heap allocations
+3. **Hot State Caching**: Synchronizes with Redis and in-memory live statistics cache
+4. **Server-Sent Events (SSE) Broadcasting**: Forwards parsed events to `IMatchEventBroadcaster` for browser delivery (`/api/matches/{id}/events/stream`)
+5. **Batched Database Persistence**: Accumulates match events in-memory and executes a single batched `SaveChangesAsync()` commit to PostgreSQL upon `[MATCH END]`
 
 ## Configuration
 
@@ -44,10 +46,11 @@ public class MatchEventRabbitMqClient : BackgroundService
 ```json
 {
   "RabbitMQ": {
-    "ConnectionString": "amqp://localhost:5672",
-    "QueueName": "match-events",
-    "ExchangeName": "footex-events",
-    "RoutingKey": "match.*",
+    "Host": "localhost",
+    "Port": 5672,
+    "QueueName": "match_events_queue",
+    "ExchangeName": "match_events",
+    "RoutingKey": "match.events",
     "AutomaticRecoveryEnabled": true,
     "NetworkRecoveryInterval": 5000,
     "PrefetchCount": 10
@@ -97,23 +100,21 @@ private async Task ProcessMessage(byte[] messageBody, ulong deliveryTag)
 {
     try
     {
-        var message = JsonSerializer.Deserialize<MatchEventMessage>(messageBody);
+        // 1. Decode raw simulation text line
+        var rawText = Encoding.UTF8.GetString(messageBody);
 
-        // 1. Validate message
-        if (!ValidateMessage(message))
+        // 2. Zero-allocation parsing via ReadOnlySpan<char>
+        if (!ZeroAllocationEventParser.TryParseEvent(rawText.AsSpan(), out var matchEvent))
         {
-            _channel.BasicNack(deliveryTag, false, false);
+            _channel.BasicAck(deliveryTag, false);
             return;
         }
 
-        // 2. Process event
-        await ProcessMatchEvent(message);
+        // 3. Process event & update hot state statistics
+        await ProcessMatchEvent(matchEvent);
 
-        // 3. Update cache
-        await UpdateCache(message);
-
-        // 4. Broadcast to SignalR
-        await BroadcastEvent(message);
+        // 4. Broadcast to clients via Server-Sent Events (SSE)
+        await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
 
         // 5. Acknowledge message
         _channel.BasicAck(deliveryTag, false);
@@ -125,35 +126,18 @@ private async Task ProcessMessage(byte[] messageBody, ulong deliveryTag)
 }
 ```
 
-### 3. Event Broadcasting
+### 3. Event Broadcasting via Server-Sent Events (SSE)
 
 ```csharp
-private async Task BroadcastEvent(MatchEventMessage message)
+private async Task BroadcastEvent(FootballMatchEvent matchEvent)
 {
-    using var scope = _serviceProvider.CreateScope();
-    var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<MatchHub, IMatchHub>>();
+    // Push event to SSE broadcaster channel (consumed at GET /api/matches/{id}/events/stream)
+    await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
 
-    switch (message.EventType)
+    // If statistics are updated, broadcast statistics event
+    if (_statisticsService.TryGetLatestStats(matchEvent.match_id, out var stats))
     {
-        case "Goal":
-            await hubContext.Clients.Group($"Match_{message.MatchId}")
-                .SendGoalNotificationAsync(message.ToGoalDto());
-            break;
-
-        case "Card":
-            await hubContext.Clients.Group($"Match_{message.MatchId}")
-                .SendCardNotificationAsync(message.ToCardDto());
-            break;
-
-        case "Substitution":
-            await hubContext.Clients.Group($"Match_{message.MatchId}")
-                .SendSubstitutionAsync(message.ToSubstitutionDto());
-            break;
-
-        default:
-            await hubContext.Clients.Group($"Match_{message.MatchId}")
-                .SendMatchUpdateAsync(message.ToMatchUpdateDto());
-            break;
+        await _broadcaster.BroadcastStatisticsAsync(matchEvent.match_id, stats);
     }
 }
 ```
@@ -507,9 +491,9 @@ private void UpdatePerformanceCounters(string counterName, long value)
 {
   "MatchEventRabbitMqClient": {
     "ConnectionString": "amqp://localhost:5672",
-    "QueueName": "match-events",
-    "ExchangeName": "footex-events",
-    "RoutingKey": "match.*",
+    "QueueName": "match_events_queue",
+    "ExchangeName": "match_events",
+    "RoutingKey": "match.events",
     "PrefetchCount": 10,
     "AutomaticRecoveryEnabled": true,
     "NetworkRecoveryInterval": 5000,
@@ -519,7 +503,7 @@ private void UpdatePerformanceCounters(string counterName, long value)
     "HealthCheckInterval": 60000,
     "EnableDetailedLogging": true,
     "EnablePerformanceCounters": true,
-    "DeadLetterExchange": "footex-dlx",
+    "DeadLetterExchange": "match_events_dlx",
     "BatchSize": 100,
     "MaxConcurrentProcessing": 5
   }
@@ -532,9 +516,9 @@ private void UpdatePerformanceCounters(string counterName, long value)
 public class MatchEventRabbitMqClientOptions
 {
     public string ConnectionString { get; set; }
-    public string QueueName { get; set; }
-    public string ExchangeName { get; set; }
-    public string RoutingKey { get; set; }
+    public string QueueName { get; set; } = "match_events_queue";
+    public string ExchangeName { get; set; } = "match_events";
+    public string RoutingKey { get; set; } = "match.events";
     public int PrefetchCount { get; set; } = 10;
     public bool AutomaticRecoveryEnabled { get; set; } = true;
     public int NetworkRecoveryInterval { get; set; } = 5000;
@@ -551,23 +535,19 @@ public class MatchEventRabbitMqClientOptions
 
 ```csharp
 [Test]
-public async Task ProcessMessage_ValidMessage_ShouldProcessSuccessfully()
+public async Task ProcessMessage_ValidRawEvent_ShouldParseAndBroadcastViaSse()
 {
     // Arrange
-    var message = new MatchEventMessage
-    {
-        EventId = Guid.NewGuid().ToString(),
-        MatchId = Guid.NewGuid().ToString(),
-        EventType = "Goal",
-        Timestamp = DateTime.UtcNow
-    };
+    var rawText = "12, 14, 25, Pass, (34.5, 52.1), (45.0, 60.2), Successful pass";
+    var body = Encoding.UTF8.GetBytes(rawText);
 
     // Act
-    await _client.ProcessMessage(JsonSerializer.SerializeToUtf8Bytes(message), 1);
+    await _client.ProcessMessage(body, 1);
 
     // Assert
-    _mockHubContext.Verify(x => x.Clients.Group(It.IsAny<string>())
-        .SendGoalNotificationAsync(It.IsAny<object>()), Times.Once);
+    _mockBroadcaster.Verify(x => x.BroadcastEventAsync(
+        It.IsAny<string>(),
+        It.Is<FootballMatchEvent>(e => e.type == "Pass")), Times.Once);
 }
 ```
 
@@ -578,18 +558,15 @@ public async Task ProcessMessage_ValidMessage_ShouldProcessSuccessfully()
 public async Task IntegrationTest_EndToEndEventProcessing()
 {
     // Arrange
-    var testMessage = CreateTestMessage();
+    var rawText = "12, 14, 25, Goal, (88.5, 50.1), (100.0, 50.0), Goal scored!";
 
     // Act
-    await PublishMessageToQueue(testMessage);
+    await PublishMessageToQueue(rawText);
     await WaitForProcessing(TimeSpan.FromSeconds(5));
 
     // Assert
-    var processedEvent = await GetEventFromDatabase(testMessage.EventId);
-    Assert.IsNotNull(processedEvent);
-
-    var signalRMessages = GetSignalRMessages();
-    Assert.IsTrue(signalRMessages.Any(m => m.EventId == testMessage.EventId));
+    var sseMessages = GetBroadcastedSseMessages();
+    Assert.IsTrue(sseMessages.Any(m => m.EventType == "match_event"));
 }
 ```
 

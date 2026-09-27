@@ -36,6 +36,7 @@ from api.config.settings import (
 )
 from .routes import auth, simulation, system
 from .services.optimized_simulation_service import get_optimized_simulation_service as get_simulation_service
+from .grpc_server import start_grpc_server, stop_grpc_server
 from .utils.directories import ensure_directories, cleanup_old_files
 from .utils.logging import setup_logging, get_logger
 
@@ -66,6 +67,14 @@ async def lifespan(app: FastAPI):
         await simulation_service.initialize()
         app_logger.info("✓ Models and services initialized")
 
+        # Start gRPC Server concurrently
+        grpc_server = None
+        try:
+            grpc_server = await start_grpc_server(host="0.0.0.0", port=50051, simulation_service=simulation_service)
+            app_logger.info("✓ gRPC Server running on port 50051")
+        except Exception as grpc_ex:
+            app_logger.warning(f"Could not start gRPC server: {grpc_ex}")
+
         # Cleanup old files (optional)
         try:
             cleanup_old_files("./simulated_matches", max_age_hours=48)
@@ -85,13 +94,14 @@ async def lifespan(app: FastAPI):
     app_logger.info("Shutting down Football Match Simulation API")
 
     try:
+        if grpc_server:
+            await stop_grpc_server(grpc_server)
+            app_logger.info("✓ gRPC Server stopped")
+
         # Cleanup resources
         simulation_service = get_simulation_service()
         await simulation_service.cleanup()
         app_logger.info("✓ Services cleanup completed")
-
-        # Add any additional shutdown handling here if needed
-        # (Previously in the on_event("shutdown") handler)
 
     except Exception as e:
         app_logger.error(f"Shutdown error: {str(e)}")

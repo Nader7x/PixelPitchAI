@@ -20,7 +20,7 @@ This project now includes GitLeaks configuration to prevent future secret leaks:
 
 ## Required GitHub Repository Secrets
 
-To deploy the Footex CI/CD pipeline, configure these secrets in your GitHub repository:
+To deploy the PixelPitchAI CI/CD pipeline, configure these secrets in your GitHub repository:
 
 **Settings → Secrets and variables → Actions → New repository secret**
 
@@ -59,7 +59,7 @@ az login
 
 # Create service principal for CI/CD
 az ad sp create-for-rbac \
-  --name "footex-cicd" \
+  --name "pixelpitchai-cicd" \
   --role contributor \
   --scopes /subscriptions/{your-subscription-id}
 ```
@@ -68,17 +68,17 @@ az ad sp create-for-rbac \
 
 ```bash
 # Create resource group
-az group create --name footex-rg --location eastus
+az group create --name pixelpitchai-rg --location eastus
 
 # Create ACR with admin user enabled
 az acr create \
-  --resource-group footex-rg \
-  --name footexacr \
+  --resource-group pixelpitchai-rg \
+  --name pixelpitchaiacr \
   --sku Basic \
   --admin-enabled true
 
 # Get ACR credentials
-az acr credential show --name footexacr
+az acr credential show --name pixelpitchaiacr
 ```
 
 ### Create Container Apps Environment
@@ -86,8 +86,8 @@ az acr credential show --name footexacr
 ```bash
 # Create Container Apps environment
 az containerapp env create \
-  --name footex-env \
-  --resource-group footex-rg \
+  --name pixelpitchai-env \
+  --resource-group pixelpitchai-rg \
   --location eastus
 ```
 
