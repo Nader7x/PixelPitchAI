@@ -418,25 +418,30 @@ class UltraOptimizedModelResources:
     def _load_and_optimize_models(self):
         """Load and apply ultra-advanced optimizations to models"""
         try:
-            # Determine path to use based on device
+            # Check if ONNX model actually exists in ONNX paths
             is_cpu = self.device.type == "cpu"
-            model_load_path = ONNX_MODEL_PATH if is_cpu else MODEL_PATH
-            
-            if is_cpu and not os.path.exists(model_load_path):
-                # Fallback to standard ONNX path if INT8 folder is not found
-                fallback_path = ONNX_MODEL_PATH.replace("-int8", "")
-                if os.path.exists(fallback_path):
-                    model_load_path = fallback_path
-            
-            # Load GPT-2 tokenizer
-            self.tokenizer = GPT2Tokenizer.from_pretrained(model_load_path)
+            use_onnx = False
+            model_load_path = MODEL_PATH
+
+            if is_cpu:
+                for candidate in [ONNX_MODEL_PATH, ONNX_MODEL_PATH.replace("-int8", "")]:
+                    if os.path.isdir(candidate):
+                        onnx_file = "model_quantized.onnx" if os.path.exists(os.path.join(candidate, "model_quantized.onnx")) else "model.onnx"
+                        if os.path.exists(os.path.join(candidate, onnx_file)):
+                            model_load_path = candidate
+                            use_onnx = True
+                            break
+
+            # Always load tokenizer from MODEL_PATH which contains vocab.json & merges.txt
+            tokenizer_path = MODEL_PATH if os.path.exists(os.path.join(MODEL_PATH, "vocab.json")) else model_load_path
+            self.tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_path)
             self.tokenizer.add_special_tokens(SPECIAL_TOKENS)
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
             # Wrap tokenizer with advanced caching
             self.advanced_tokenizer = AdvancedTokenizer(self.tokenizer)
 
-            if is_cpu:
+            if use_onnx:
                 logger.info(f"Loading ONNX model from {model_load_path} for CPU inference...")
                 from optimum.onnxruntime import ORTModelForCausalLM
                 import onnxruntime as ort
@@ -450,12 +455,7 @@ class UltraOptimizedModelResources:
                 session_options.inter_op_num_threads = 1
                 session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-                # Check if quantized model is available in the directory
-                file_name = "model.onnx"
-                if os.path.exists(os.path.join(model_load_path, "model_quantized.onnx")):
-                    file_name = "model_quantized.onnx"
-                    logger.info("Quantized INT8 ONNX model detected, loading it...")
-
+                file_name = "model_quantized.onnx" if os.path.exists(os.path.join(model_load_path, "model_quantized.onnx")) else "model.onnx"
                 self.model = ORTModelForCausalLM.from_pretrained(
                     model_load_path,
                     file_name=file_name,
@@ -463,11 +463,11 @@ class UltraOptimizedModelResources:
                 )
                 logger.info(f"ONNX model ({file_name}) loaded successfully for CPU execution")
             else:
-                logger.info(f"Loading PyTorch model from {MODEL_PATH} for GPU inference...")
+                logger.info(f"Loading PyTorch model from {MODEL_PATH}...")
                 self.model = GPT2LMHeadModel.from_pretrained(MODEL_PATH)
                 self.model.eval()
-                # Apply advanced model optimizations
-                self._apply_ultra_optimizations()
+                if torch.cuda.is_available():
+                    self._apply_ultra_optimizations()
                 self.model.to(self.device)
 
             # Load XGBoost model
@@ -961,7 +961,7 @@ class UltraOptimizedSimulationService:
 
                 final_text = text_buffer.getvalue()
                 if "[MATCH END]" not in final_text and num_generated >= num_tokens_to_generate:
-                    final_text += '\\n[MATCH END]'
+                    final_text += '\n[MATCH END]\n'
                 text_buffer.close()
 
                 generation_time = time.perf_counter() - generation_start
@@ -1067,6 +1067,46 @@ class UltraOptimizedSimulationService:
         """Get simulation status by ID with caching"""
         return self.simulation_status.get(sim_id)
 
+    def add_webhook(self, simulation_id: str, webhook_url: str, webhook_secret: Optional[str] = None):
+        """Add a webhook to a simulation"""
+        try:
+            sim_status = self.get_simulation_status(simulation_id)
+            if not sim_status:
+                logger.error(f"Cannot add webhook: Simulation {simulation_id} not found")
+                return
+
+            webhooks = list(sim_status.webhooks) if hasattr(sim_status, 'webhooks') and sim_status.webhooks else []
+            webhooks.append({
+                "url": webhook_url,
+                "secret": webhook_secret
+            })
+            if simulation_id in self.simulation_status:
+                status_dict = self.simulation_status[simulation_id].model_dump()
+                status_dict["webhooks"] = webhooks
+                self.simulation_status[simulation_id] = SimulationStatus(**status_dict)
+
+            logger.info(f"Added webhook for simulation {simulation_id}: {webhook_url}")
+        except Exception as e:
+            logger.error(f"Error adding webhook: {str(e)}")
+
+    def get_simulation_webhooks(self, simulation_id: str) -> list:
+        """Get webhooks registered for a simulation"""
+        try:
+            sim_status = self.get_simulation_status(simulation_id)
+            if not sim_status:
+                return []
+            return list(sim_status.webhooks) if hasattr(sim_status, 'webhooks') and sim_status.webhooks else []
+        except Exception as e:
+            logger.error(f"Error getting webhooks: {str(e)}")
+            return []
+
+    def update_simulation_status(self, simulation_id: str, update_dict: dict):
+        """Synchronous status update for compatibility"""
+        if simulation_id in self.simulation_status:
+            status_dict = self.simulation_status[simulation_id].model_dump()
+            status_dict.update(update_dict)
+            self.simulation_status[simulation_id] = SimulationStatus(**status_dict)
+
     def get_all_simulation_statuses(self) -> dict:
         """Get all simulation statuses with optimized serialization"""
         return {sim_id: status.dict() for sim_id, status in self.simulation_status.items()}
@@ -1089,6 +1129,10 @@ class UltraOptimizedSimulationService:
             "memory_stats": memory_stats,
             "optimization_level": "ultra-maximum"
         }
+
+    async def process_match_simulation(self, simulation_id: str, request: MatchRequest):
+        """Compatibility alias for standard simulation interface"""
+        return await self.process_match_simulation_ultra_optimized(simulation_id, request)
 
     async def process_match_simulation_ultra_optimized(self, simulation_id: str, request: MatchRequest):
         """Ultra-optimized match simulation with maximum performance"""
@@ -1194,6 +1238,20 @@ class UltraOptimizedSimulationService:
             logger.info(f"Ultra-optimized simulation {simulation_id} completed in {total_time:.2f}s "
                         f"(generation: {generation_time:.2f}s)")
 
+            # Trigger webhooks for completed simulations
+            try:
+                from ..services.webhook_service import get_webhook_service
+                webhook_service = get_webhook_service()
+                webhooks = self.get_simulation_webhooks(simulation_id)
+                if webhooks:
+                    await webhook_service.trigger_webhooks(
+                        simulation_id=simulation_id,
+                        status="completed",
+                        webhooks=webhooks
+                    )
+            except Exception as e:
+                logger.error(f"Error triggering webhooks: {str(e)}")
+
         except Exception as e:
             error_msg = f"Error in ultra-optimized simulation: {str(e)}"
             logger.error(error_msg)
@@ -1207,6 +1265,21 @@ class UltraOptimizedSimulationService:
                 "error_message": error_msg,
                 "optimization_level": "ultra"
             })
+
+            # Trigger webhooks for failed simulations
+            try:
+                from ..services.webhook_service import get_webhook_service
+                webhook_service = get_webhook_service()
+                webhooks = self.get_simulation_webhooks(simulation_id)
+                if webhooks:
+                    await webhook_service.trigger_webhooks(
+                        simulation_id=simulation_id,
+                        status="failed",
+                        webhooks=webhooks,
+                        error_message=error_msg
+                    )
+            except Exception as e:
+                logger.error(f"Error triggering webhooks for failed simulation: {str(e)}")
             raise
 
     async def generate_match_text_direct(self, request) -> str:

@@ -31,7 +31,8 @@ class MatchStreamService {
     this.disconnect();
     this.currentMatchId = matchId;
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5025';
+    const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5025';
+    const baseUrl = rawBaseUrl.replace(/\/api\/?$/, '');
     const streamUrl = `${baseUrl}/api/matches/${matchId}/events/stream?access_token=${encodeURIComponent(token)}`;
 
     console.log(`[SSE] Connecting to match stream: /api/matches/${matchId}/events/stream`);

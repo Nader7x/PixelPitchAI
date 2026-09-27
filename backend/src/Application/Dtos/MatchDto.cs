@@ -172,6 +172,7 @@ public class SimulateMatchDto
     public required string AwayTeamSeason { get; set; }
     public required int HomeSeasonId { get; set; }
     public required int AwaySeasonId { get; set; }
+    public int? NumTokensToGenerate { get; set; }
 }
 
 public class UserMatchDto

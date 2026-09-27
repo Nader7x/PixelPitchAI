@@ -71,15 +71,21 @@ SPECIAL_TOKENS = {
     "additional_special_tokens": SPECIAL_LIST
 }
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # --- Authentication Configuration ---
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-for-development")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 920
 API_KEY_NAME = "X-API-Key"
 
 # --- Default API Keys Configuration ---
-DEFAULT_API_KEY = os.getenv("API_KEY")
-PIXEL_PITCH_API_KEY = os.getenv("PIXEL_PITCH_API_KEY")
+DEFAULT_API_KEY = os.getenv("API_KEY", "football_simulation_test_key")
+PIXEL_PITCH_API_KEY = os.getenv("PIXEL_PITCH_API_KEY", "pixel_pitch_dev_api_key")
 
 # --- Logging Configuration ---
 LOGGING_CONFIG = {

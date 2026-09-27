@@ -724,10 +724,26 @@ class AuthenticationService {
    * Get token from storage
    */
   private getToken(): string | null {
-    return (
+    const directToken =
       localStorage.getItem(this.TOKEN_KEY) ||
-      sessionStorage.getItem(this.TOKEN_KEY)
-    );
+      sessionStorage.getItem(this.TOKEN_KEY);
+    if (directToken) return directToken;
+
+    try {
+      const userStr =
+        localStorage.getItem(this.USER_KEY) ||
+        sessionStorage.getItem(this.USER_KEY);
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        if (parsed?.accessToken) {
+          localStorage.setItem(this.TOKEN_KEY, parsed.accessToken);
+          return parsed.accessToken;
+        }
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    return null;
   }
 
   /**

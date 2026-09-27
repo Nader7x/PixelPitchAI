@@ -58,7 +58,7 @@ class MatchParser:
                 self._add_system_event(event_index, "second_half_start", "45:00", 2700, 45, 0, score)
                 event_index += 1
                 continue
-            if line == "[MATCH END]":
+            if "[MATCH END]" in line:
                 self._add_system_event(event_index, "match_end", last_timestamp, last_seconds)
                 event_index += 1
                 continue
@@ -402,14 +402,14 @@ class MatchParser:
 
 
 class MatchEventProducer:
-    def __init__(self, host='localhost', port=5672, username='guest', password='guest',
-                 exchange='match_events', routing_key='match.events'):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.exchange = exchange
-        self.routing_key = routing_key
+    def __init__(self, host=None, port=None, username=None, password=None,
+                 exchange=None, routing_key=None):
+        self.host = host or os.getenv('RABBITMQ_HOST', 'localhost')
+        self.port = port or int(os.getenv('RABBITMQ_PORT', 5672))
+        self.username = username or os.getenv('RABBITMQ_USER', os.getenv('RABBITMQ_USERNAME', 'footex'))
+        self.password = password or os.getenv('RABBITMQ_PASSWORD', 'footex_password')
+        self.exchange = exchange or os.getenv('RABBITMQ_EXCHANGE', 'match_events')
+        self.routing_key = routing_key or os.getenv('RABBITMQ_ROUTING_KEY', 'match.events')
         self.connection = None
         self.channel = None
 
@@ -512,19 +512,10 @@ def analyze_match(file_path: str):
 
 
 def parse_and_publish(file_path, rabbitmq_config=None):
-    if rabbitmq_config is None:
-        rabbitmq_config = {
-            'host': 'localhost',
-            'port': 5672,
-            'username': 'guest',
-            'password': 'guest',
-            'exchange': 'match_events',
-            'routing_key': 'match.events'
-        }
     parser = MatchParser()
     events = parser.parse_match_file(file_path)
     print(f"Parsed {len(events)} events from {file_path}")
-    producer = MatchEventProducer(**rabbitmq_config)
+    producer = MatchEventProducer(**(rabbitmq_config or {}))
     print("Publishing events to RabbitMQ...")
     producer.connect()
     producer.publish_match_events(events, delay_ms=50)
