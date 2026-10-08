@@ -15,17 +15,17 @@ public class DataSeeder(FootballDbContext context, ILogger<DataSeeder> logger)
 
     private static string ResolveDataFolderPath()
     {
+        var localPath = Path.Combine(AppContext.BaseDirectory, "Data");
+        if (Directory.Exists(localPath))
+            return localPath;
+
         var devPath = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Infrastructure", "Data")
         );
         if (Directory.Exists(devPath))
             return devPath;
 
-        var localPath = Path.Combine(AppContext.BaseDirectory, "Data");
-        if (Directory.Exists(localPath))
-            return localPath;
-
-        return devPath;
+        return localPath;
     }
 
     public async Task SeedAllAsync()

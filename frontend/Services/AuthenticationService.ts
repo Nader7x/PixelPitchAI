@@ -730,13 +730,20 @@ class AuthenticationService {
     if (directToken) return directToken;
 
     try {
-      const userStr =
-        localStorage.getItem(this.USER_KEY) ||
-        sessionStorage.getItem(this.USER_KEY);
-      if (userStr) {
-        const parsed = JSON.parse(userStr);
+      // Check localStorage first
+      const localUserStr = localStorage.getItem(this.USER_KEY);
+      if (localUserStr) {
+        const parsed = JSON.parse(localUserStr);
         if (parsed?.accessToken) {
-          localStorage.setItem(this.TOKEN_KEY, parsed.accessToken);
+          return parsed.accessToken;
+        }
+      }
+
+      // Check sessionStorage without persisting to localStorage
+      const sessionUserStr = sessionStorage.getItem(this.USER_KEY);
+      if (sessionUserStr) {
+        const parsed = JSON.parse(sessionUserStr);
+        if (parsed?.accessToken) {
           return parsed.accessToken;
         }
       }

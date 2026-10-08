@@ -25,38 +25,42 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
         _logger = logger;
     }
 
-    public async ValueTask BroadcastEventAsync(string matchId, FootballMatchEvent matchEvent, CancellationToken cancellationToken = default)
+    public ValueTask BroadcastEventAsync(string matchId, FootballMatchEvent matchEvent, CancellationToken cancellationToken = default)
     {
         if (!_subscribers.TryGetValue(matchId, out var channels) || channels.IsEmpty)
-            return;
+            return ValueTask.CompletedTask;
 
         var json = JsonSerializer.Serialize(matchEvent, MatchEventJsonContext.Default.FootballMatchEvent);
         var msg = new SseMessage("match_event", json);
 
-        foreach (var (_, channel) in channels)
+        foreach (var (subId, channel) in channels)
         {
             if (!channel.Writer.TryWrite(msg))
             {
-                await channel.Writer.WriteAsync(msg, cancellationToken);
+                channels.TryRemove(subId, out _);
             }
         }
+
+        return ValueTask.CompletedTask;
     }
 
-    public async ValueTask BroadcastStatisticsAsync(string matchId, object statistics, CancellationToken cancellationToken = default)
+    public ValueTask BroadcastStatisticsAsync(string matchId, object statistics, CancellationToken cancellationToken = default)
     {
         if (!_subscribers.TryGetValue(matchId, out var channels) || channels.IsEmpty)
-            return;
+            return ValueTask.CompletedTask;
 
         var json = statistics is string str ? str : JsonSerializer.Serialize(statistics);
         var msg = new SseMessage("match_statistics", json);
 
-        foreach (var (_, channel) in channels)
+        foreach (var (subId, channel) in channels)
         {
             if (!channel.Writer.TryWrite(msg))
             {
-                await channel.Writer.WriteAsync(msg, cancellationToken);
+                channels.TryRemove(subId, out _);
             }
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public async IAsyncEnumerable<SseMessage> SubscribeAsync(
@@ -77,11 +81,29 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
 
         try
         {
-            while (await channel.Reader.WaitToReadAsync(cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (channel.Reader.TryRead(out var item))
+                var waitTask = channel.Reader.WaitToReadAsync(cancellationToken).AsTask();
+                var delayTask = Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+
+                var completedTask = await Task.WhenAny(waitTask, delayTask);
+                if (completedTask == delayTask)
                 {
-                    yield return item;
+                    // Yield keep-alive heartbeat comment
+                    yield return new SseMessage("ping", string.Empty);
+                    continue;
+                }
+
+                if (await waitTask)
+                {
+                    while (channel.Reader.TryRead(out var item))
+                    {
+                        yield return item;
+                    }
+                }
+                else
+                {
+                    break;
                 }
             }
         }
@@ -92,7 +114,7 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
                 subs.TryRemove(subId, out _);
                 if (subs.IsEmpty)
                 {
-                    _subscribers.TryRemove(new KeyValuePair<string, ConcurrentDictionary<Guid, Channel<SseMessage>>>(matchId, subs));
+                    _subscribers.TryRemove(KeyValuePair.Create(matchId, subs));
                 }
                 _logger.LogInformation("Client {SubId} unsubscribed from match stream {MatchId}", subId, matchId);
             }

@@ -209,25 +209,33 @@ public static class ZeroAllocationEventParser
         }
 
         // Update score if legitimate goal (shot resulting in Goal or own goal; exclude goalkeeper saves)
-        var isGoal = (string.Equals(outcome, "Goal", StringComparison.OrdinalIgnoreCase) &&
-                      (string.Equals(eventType, "shot", StringComparison.OrdinalIgnoreCase) ||
-                       action.Contains("shot", StringComparison.OrdinalIgnoreCase)))
-                     || action.Contains("own goal", StringComparison.OrdinalIgnoreCase);
+        var isOwnGoal = action.Contains("own goal", StringComparison.OrdinalIgnoreCase);
+        var isStandardGoal = string.Equals(outcome, "Goal", StringComparison.OrdinalIgnoreCase) &&
+                             (string.Equals(eventType, "shot", StringComparison.OrdinalIgnoreCase) ||
+                              action.Contains("shot", StringComparison.OrdinalIgnoreCase));
 
         if (action.Contains("goal keeper", StringComparison.OrdinalIgnoreCase) ||
             action.Contains("keeper", StringComparison.OrdinalIgnoreCase) ||
             action.Contains("save", StringComparison.OrdinalIgnoreCase))
         {
-            isGoal = false;
+            isStandardGoal = false;
         }
 
-        if (isGoal)
+        if (isStandardGoal)
         {
             if (homeTeamName != null && teamName.Contains(homeTeamName, StringComparison.OrdinalIgnoreCase))
                 homeScore++;
             else if (awayTeamName != null && teamName.Contains(awayTeamName, StringComparison.OrdinalIgnoreCase))
                 awayScore++;
             // If team matching is ambiguous, do not increment either score
+        }
+        else if (isOwnGoal)
+        {
+            // In football, an own goal by team A credits a goal to team B
+            if (homeTeamName != null && teamName.Contains(homeTeamName, StringComparison.OrdinalIgnoreCase))
+                awayScore++;
+            else if (awayTeamName != null && teamName.Contains(awayTeamName, StringComparison.OrdinalIgnoreCase))
+                homeScore++;
         }
 
         matchEvent = new FootballMatchEvent

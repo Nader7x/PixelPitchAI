@@ -403,7 +403,7 @@ public class MatchesController(
                 top_p = 0.9,
                 top_k = 50,
                 max_new_tokens = 1024,
-                webhook_url = $"{callbackBase}/api/matches/webhookNotification/",
+                webhook_url = $"{callbackBase}/api/matches/webhookNotification",
                 webhook_secret = _simulationOptions.ApiKey,
             };
 
@@ -446,15 +446,6 @@ public class MatchesController(
             );
             if (result.ApiResponse != null)
             {
-                var fullWebhookUrl = $"{callbackBase}/api/matches/webhookNotification/{result.ApiResponse.SimulationId}";
-                await RegisterApiWebhook(
-                    new ApiRegisterWebhookRequest
-                    {
-                        SimulationId = result.ApiResponse.SimulationId,
-                        WebhookUrl = fullWebhookUrl,
-                        WebhookSecret = _simulationOptions.ApiKey,
-                    }
-                );
                 await _unitOfWork.Matches.UpdateSimulationIdAsync(
                     result.Id,
                     result.ApiResponse.SimulationId,
@@ -727,43 +718,46 @@ public class MatchesController(
         return (int)exponentialDelay + jitter;
     }
 
+    [HttpPost("webhookNotification")]
     [HttpPost("webhookNotification/{simulationId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ReceiveWebhookNotification(
-        string simulationId,
         [FromBody] WebhookNotificationPayload payload,
         CancellationToken cancellationToken,
         [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
-        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler
+        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler,
+        string? simulationId = null
     )
     {
         try
         {
+            var effectiveSimId = !string.IsNullOrEmpty(simulationId) ? simulationId : payload.SimulationId;
+
             _logger.LogInformation(
                 "Received webhook notification for simulation {SimulationId} with status {Status}",
-                simulationId,
+                effectiveSimId,
                 payload.Status
             );
 
             // Validate payload
-            if (string.IsNullOrEmpty(payload.SimulationId) || payload.SimulationId != simulationId)
+            if (string.IsNullOrEmpty(payload.SimulationId) || (!string.IsNullOrEmpty(simulationId) && payload.SimulationId != simulationId))
             {
                 _logger.LogWarning(
                     "Simulation ID mismatch in webhook payload: expected {Expected}, got {Actual}",
-                    simulationId,
+                    effectiveSimId,
                     payload.SimulationId
                 );
                 return BadRequest(new { error = "Simulation ID mismatch" });
             }
 
             // Find the match associated with this simulation
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
+            var match = await GetMatchBySimulationId(effectiveSimId, cancellationToken);
             if (match == null)
             {
-                _logger.LogWarning("No match found for simulation ID {SimulationId}", simulationId);
+                _logger.LogWarning("No match found for simulation ID {SimulationId}", effectiveSimId);
                 return NotFound(
-                    new { error = "Match not found for simulation", simulation_id = simulationId }
+                    new { error = "Match not found for simulation", simulation_id = effectiveSimId }
                 );
             }
 

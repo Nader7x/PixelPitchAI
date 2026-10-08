@@ -1038,7 +1038,7 @@ class UltraOptimizedSimulationService:
         try:
             # Update in-memory status with minimal overhead
             if sim_id in self.simulation_status:
-                current_status = self.simulation_status[sim_id].dict()
+                current_status = self.simulation_status[sim_id].model_dump()
                 current_status.update(status_update)
                 self.simulation_status[sim_id] = SimulationStatus(**current_status)
             else:
@@ -1055,10 +1055,10 @@ class UltraOptimizedSimulationService:
 
             # Queue for ultra-fast async disk write
             try:
-                self.status_update_queue.put_nowait((sim_id, self.simulation_status[sim_id].dict()))
+                self.status_update_queue.put_nowait((sim_id, self.simulation_status[sim_id].model_dump()))
             except asyncio.QueueFull:
                 # If queue is full, process immediately to avoid blocking
-                await self._write_status_batch_optimized([(sim_id, self.simulation_status[sim_id].dict())])
+                await self._write_status_batch_optimized([(sim_id, self.simulation_status[sim_id].model_dump())])
 
         except Exception as e:
             logger.error(f"Error in ultra-optimized status update: {str(e)}")
@@ -1075,9 +1075,14 @@ class UltraOptimizedSimulationService:
                 logger.error(f"Cannot add webhook: Simulation {simulation_id} not found")
                 return
 
+            resolved_url = webhook_url.replace("{simulation_id}", simulation_id).replace("{simulationId}", simulation_id)
             webhooks = list(sim_status.webhooks) if hasattr(sim_status, 'webhooks') and sim_status.webhooks else []
+            if any(w.get("url") == resolved_url for w in webhooks):
+                logger.info(f"Webhook already registered for simulation {simulation_id}: {resolved_url}")
+                return
+
             webhooks.append({
-                "url": webhook_url,
+                "url": resolved_url,
                 "secret": webhook_secret
             })
             if simulation_id in self.simulation_status:
@@ -1085,7 +1090,7 @@ class UltraOptimizedSimulationService:
                 status_dict["webhooks"] = webhooks
                 self.simulation_status[simulation_id] = SimulationStatus(**status_dict)
 
-            logger.info(f"Added webhook for simulation {simulation_id}: {webhook_url}")
+            logger.info(f"Added webhook for simulation {simulation_id}: {resolved_url}")
         except Exception as e:
             logger.error(f"Error adding webhook: {str(e)}")
 
@@ -1109,7 +1114,7 @@ class UltraOptimizedSimulationService:
 
     def get_all_simulation_statuses(self) -> dict:
         """Get all simulation statuses with optimized serialization"""
-        return {sim_id: status.dict() for sim_id, status in self.simulation_status.items()}
+        return {sim_id: status.model_dump() for sim_id, status in self.simulation_status.items()}
 
     def get_performance_metrics(self) -> dict:
         """Get comprehensive performance metrics"""

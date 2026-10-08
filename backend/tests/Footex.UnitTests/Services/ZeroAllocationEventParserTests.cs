@@ -78,6 +78,36 @@ public class ZeroAllocationEventParserTests
         matchEvent.Score.Home.Should().Be(0);
     }
 
+    [Fact]
+    public void TryParseEvent_OwnGoal_CreditsOpposingTeamScore()
+    {
+        // Arrange: Home team scores an own goal -> away team score must increment
+        var line = "28:15 -  Atlético_Madrid_2019  - own goal by Stefan Savic at (15.0, 38.0), outcome: Goal";
+        var homeScore = 0;
+        var awayScore = 0;
+
+        // Act
+        var success = ZeroAllocationEventParser.TryParseEvent(
+            line.AsSpan(),
+            matchId: "42",
+            eventIndex: 6,
+            ref homeScore,
+            ref awayScore,
+            homeTeamName: "Atlético_Madrid_2019",
+            awayTeamName: "Barcelona_2017",
+            out var matchEvent
+        );
+
+        // Assert
+        success.Should().BeTrue();
+        matchEvent.Should().NotBeNull();
+        homeScore.Should().Be(0);
+        awayScore.Should().Be(1);
+        matchEvent!.Score.Should().NotBeNull();
+        matchEvent.Score!.Home.Should().Be(0);
+        matchEvent.Score.Away.Should().Be(1);
+    }
+
     [Theory]
     [InlineData("[MATCH START]", "match_start", 0)]
     [InlineData("[END OF FIRST HALF]", "first_half_end", 2700)]

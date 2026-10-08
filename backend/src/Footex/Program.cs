@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -324,8 +325,6 @@ try
                     var adminPassword = builder.Configuration["AdminUser:Password"];
                     if (string.IsNullOrWhiteSpace(adminPassword))
                         adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
-                    if (string.IsNullOrWhiteSpace(adminPassword) && app.Environment.IsDevelopment())
-                        adminPassword = "DevOnlyAdminPass123!";
 
                     if (!string.IsNullOrWhiteSpace(adminPassword))
                     {
@@ -337,7 +336,7 @@ try
             }
 
             var dbContext = services.GetRequiredService<FootballDbContext>();
-            if (!await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(dbContext.Teams) && !app.Environment.IsEnvironment("Testing"))
+            if (!await dbContext.Teams.AnyAsync() && !app.Environment.IsEnvironment("Testing"))
             {
                 using var dataScope = app.Services.CreateScope();
                 var dataSeeder = dataScope.ServiceProvider.GetRequiredService<DataSeeder>();

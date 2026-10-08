@@ -44,7 +44,14 @@ public class MatchStreamController : ControllerBase
 
             await foreach (var msg in _broadcaster.SubscribeAsync(matchIdStr, cancellationToken))
             {
-                await Response.WriteAsync($"event: {msg.EventType}\ndata: {msg.Data}\n\n", cancellationToken);
+                if (msg.EventType == "ping")
+                {
+                    await Response.WriteAsync(":\n\n", cancellationToken);
+                }
+                else
+                {
+                    await Response.WriteAsync($"event: {msg.EventType}\ndata: {msg.Data}\n\n", cancellationToken);
+                }
                 await Response.Body.FlushAsync(cancellationToken);
             }
         }

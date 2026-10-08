@@ -78,9 +78,10 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
                     event_index += 1
                     is_end = "[MATCH END]" in line
 
-                    # Also publish to RabbitMQ (Pipeline A raw stream) concurrently
+                    # Also publish to RabbitMQ (Pipeline A raw stream) without blocking the asyncio loop
                     try:
-                        self.producer.publish_raw_event(line, match_id=request.match_id)
+                        loop = asyncio.get_running_loop()
+                        await loop.run_in_executor(None, self.producer.publish_raw_event, line, request.match_id)
                     except Exception as mq_ex:
                         logger.warning(f"RabbitMQ publish warning: {mq_ex}")
 
@@ -137,10 +138,11 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
             logger.info(f"[gRPC Background] Running simulation for match {request.match_id} (sim {sim_id})")
             generated_text = await self.simulation_service.generate_match_text_direct(request)
             lines = generated_text.strip().split('\n')
+            loop = asyncio.get_running_loop()
             for line in lines:
                 line = line.strip()
                 if line:
-                    self.producer.publish_raw_event(line, match_id=request.match_id)
+                    await loop.run_in_executor(None, self.producer.publish_raw_event, line, request.match_id)
             logger.info(f"[gRPC Background] Completed simulation for match {request.match_id}")
         except Exception as ex:
             logger.error(f"[gRPC Background] Simulation failed: {ex}")

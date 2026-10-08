@@ -230,7 +230,6 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            var bodySpan = ea.Body.Span;
             FootballMatchEvent? matchEvent = null;
 
             // Extract match_id from RabbitMQ message headers if available
@@ -243,18 +242,29 @@ public class MatchEventRabbitMqClient : BackgroundService
                     rawMatchId = matchIdObj.ToString() ?? "0";
             }
 
-            // Check if message is a raw simulation text line (Pipeline A raw stream)
-            if (bodySpan.Length > 0 && bodySpan[0] != '{')
+            // Pre-load match entity so team names and current scores are available for parsing and scoring
+            Match? matchEntity = null;
+            if (rawMatchId != "0" && int.TryParse(rawMatchId, out var matchIdVal) && matchIdVal > 0)
             {
+                matchEntity = await GetOrLoadMatchEntity(rawMatchId);
+            }
+
+            var bodyMemory = ea.Body;
+
+            // Check if message is a raw simulation text line (Pipeline A raw stream)
+            if (!bodyMemory.IsEmpty && bodyMemory.Span[0] != '{')
+            {
+                var bodySpan = bodyMemory.Span;
                 var charCount = Encoding.UTF8.GetCharCount(bodySpan);
                 Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
                 Encoding.UTF8.GetChars(bodySpan, chars);
 
-                var (currentHome, currentAway) = _matchScores.GetOrAdd(rawMatchId, _ => (0, 0));
+                var (currentHome, currentAway) = _matchScores.GetOrAdd(
+                    rawMatchId,
+                    _ => (matchEntity?.HomeTeamScore ?? 0, matchEntity?.AwayTeamScore ?? 0)
+                );
                 var homeScore = currentHome;
                 var awayScore = currentAway;
-
-                var existingMatch = _loadedMatches.TryGetValue(rawMatchId, out var cachedMatch) ? cachedMatch : null;
 
                 ZeroAllocationEventParser.TryParseEvent(
                     chars,
@@ -262,8 +272,8 @@ public class MatchEventRabbitMqClient : BackgroundService
                     eventIndex: ++_eventSequence,
                     ref homeScore,
                     ref awayScore,
-                    existingMatch?.HomeTeam?.Name ?? existingMatch?.HomeTeamInMatchName,
-                    existingMatch?.AwayTeam?.Name ?? existingMatch?.AwayTeamInMatchName,
+                    matchEntity?.HomeTeam?.Name ?? matchEntity?.HomeTeamInMatchName,
+                    matchEntity?.AwayTeam?.Name ?? matchEntity?.AwayTeamInMatchName,
                     out matchEvent
                 );
 
@@ -275,7 +285,7 @@ public class MatchEventRabbitMqClient : BackgroundService
 
             if (matchEvent == null)
             {
-                var message = Encoding.UTF8.GetString(bodySpan);
+                var message = Encoding.UTF8.GetString(bodyMemory.Span);
                 _logger.LogInformation("Received match event: {Message}", message);
                 matchEvent = JsonSerializer.Deserialize(
                     message,
@@ -284,7 +294,7 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
             if (matchEvent?.match_id != null)
             {
-                var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
+                matchEntity ??= await GetOrLoadMatchEntity(matchEvent.match_id);
                 if (matchEntity != null)
                 {
                     if (matchEvent.Score != null)
