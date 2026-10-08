@@ -24,7 +24,7 @@ Opens an indefinite, streaming HTTP response delivering real-time simulation eve
 - **Route**: /api/matches/{id:int}/events/stream
 - **Controller**: Footex.Controllers.MatchStreamController
 - **Authorization**: [Authorize] (Requires valid JWT)
-- **Transport Protocol**: Server-Sent Events (	ext/event-stream)
+- **Transport Protocol**: Server-Sent Events (`text/event-stream`)
 
 ### Authentication via Query Parameter
 
@@ -178,16 +178,16 @@ GET /api/matches/{id}/events/stream  GET /api/matches/{id}/events/stream
 - Channel configuration:
   - Bounded capacity: 500 messages per client.
   - Full mode: BoundedChannelFullMode.DropOldest (prevents memory spikes if a client network slows down).
-  - Single reader: 	rue (each client channel is read only by its respective HTTP response loop).
-  - Single writer: alse (RabbitMQ background service and gRPC consumer can write concurrently).
+  - Single reader: `true` (each client channel is read only by its respective HTTP response loop).
+  - Single writer: `false` (RabbitMQ background service and gRPC consumer can write concurrently).
 
 ---
 
 ## 5. Frontend Client Consumption
 
-The frontend connects directly using the native browser EventSource in rontend/Services/MatchStreamService.ts:
+The frontend connects directly using the native browser EventSource in `frontend/Services/MatchStreamService.ts`:
 
-`	ypescript
+```typescript
 export class MatchStreamService {
   private eventSource: EventSource | null = null;
 
@@ -201,7 +201,7 @@ export class MatchStreamService {
     }
   ): void {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5025";
-    const url = ${baseUrl}/api/matches//events/stream?access_token=;
+    const url = `${baseUrl}/api/matches/${matchId}/events/stream?access_token=${token}`;
 
     this.eventSource = new EventSource(url);
 
@@ -238,7 +238,7 @@ export class MatchStreamService {
     }
   }
 }
-`
+```
 
 ---
 

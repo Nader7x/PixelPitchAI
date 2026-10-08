@@ -77,15 +77,26 @@ try:
 except ImportError:
     pass
 
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+
 # --- Authentication Configuration ---
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-for-development")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if ENVIRONMENT == "development":
+        SECRET_KEY = "dev-insecure-secret-key-change-in-production"
+    else:
+        raise ValueError("CRITICAL: SECRET_KEY environment variable must be set in non-development environments.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 920
 API_KEY_NAME = "X-API-Key"
 
 # --- Default API Keys Configuration ---
-DEFAULT_API_KEY = os.getenv("API_KEY", "football_simulation_test_key")
-PIXEL_PITCH_API_KEY = os.getenv("PIXEL_PITCH_API_KEY", "pixel_pitch_dev_api_key")
+DEFAULT_API_KEY = os.getenv("API_KEY")
+if not DEFAULT_API_KEY and ENVIRONMENT == "development":
+    DEFAULT_API_KEY = "football_simulation_test_key"
+
+PIXEL_PITCH_API_KEY = os.getenv("PIXEL_PITCH_API_KEY")
 
 # --- Logging Configuration ---
 LOGGING_CONFIG = {

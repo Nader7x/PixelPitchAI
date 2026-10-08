@@ -1168,10 +1168,10 @@ class UltraOptimizedSimulationService:
                 os.makedirs(HEADERLINES_DIR, exist_ok=True)
                 os.makedirs(INPUTTOKENS_DIR, exist_ok=True)
                 
-                header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_header_lines.txt")
+                header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_{request.match_id}_header_lines.txt")
                 match_stat.save_text_file(header_lines, header_path)
                 
-                input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_input_tokens.pt")
+                input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_{request.match_id}_input_tokens.pt")
                 match_stat.tokenize_and_save(header_path, input_tokens_path)
                 return input_tokens_path
 
@@ -1287,23 +1287,24 @@ class UltraOptimizedSimulationService:
         Direct text generation for gRPC streaming without intermediate file writes or batch parsing.
         """
         loop = asyncio.get_event_loop()
-        home_team_name = request.home_team_name.replace(" ", "_")
-        away_team_name = request.away_team_name.replace(" ", "_")
-        home_team_season = str(request.home_team_season).split("/")[0]
-        away_team_season = str(request.away_team_season).split("/")[0]
+        home_team_season = str(request.home_team_season).split("/")[-1]
+        away_team_season = str(request.away_team_season).split("/")[-1]
+        home_team_name = f"{request.home_team_name.replace(' ', '_')}_{home_team_season}"
+        away_team_name = f"{request.away_team_name.replace(' ', '_')}_{away_team_season}"
+        match_id = getattr(request, "match_id", None) or int(time.time() * 1000)
 
         def generate_features_sync():
-            match_stat = MatchStat(self.model_resources.xgboost_model, self.model_resources.tokenizer)
-            features = match_stat.predict_features(
+            match_stat = self.model_resources.match_stat
+            features = match_stat.generate_features(
                 request.home_team_id, request.away_team_id,
                 int(home_team_season), int(away_team_season)
             )
             header_lines = match_stat.convert_to_text(home_team_name, away_team_name, features)
             os.makedirs(HEADERLINES_DIR, exist_ok=True)
             os.makedirs(INPUTTOKENS_DIR, exist_ok=True)
-            header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_header_lines.txt")
+            header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_{match_id}_header_lines.txt")
             match_stat.save_text_file(header_lines, header_path)
-            input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_input_tokens.pt")
+            input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_{match_id}_input_tokens.pt")
             match_stat.tokenize_and_save(header_path, input_tokens_path)
             return input_tokens_path
 

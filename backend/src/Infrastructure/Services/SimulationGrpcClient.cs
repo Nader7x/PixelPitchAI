@@ -74,9 +74,12 @@ public sealed class SimulationGrpcClient : ISimulationGrpcClient, IDisposable
             yield break;
         }
 
-        while (await call.ResponseStream.MoveNext(cancellationToken))
+        using (call)
         {
-            yield return call.ResponseStream.Current;
+            while (await call.ResponseStream.MoveNext(cancellationToken))
+            {
+                yield return call.ResponseStream.Current;
+            }
         }
     }
 

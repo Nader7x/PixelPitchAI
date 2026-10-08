@@ -384,38 +384,46 @@ public class MatchesController(
             if (!result.Succeeded)
                 return BadRequest(result);
 
-            // Prepare request for simulation service
-            var content = new StringContent(
-                JsonSerializer.Serialize(
-                    new
-                    {
-                        match_id = result.Id,
-                        home_team_id = simulationDto.HomeTeamId,
-                        away_team_id = simulationDto.AwayTeamId,
-                        home_team_name = simulationDto.HomeTeamName,
-                        away_team_name = simulationDto.AwayTeamName,
-                        home_team_season = simulationDto.HomeTeamSeason,
-                        away_team_season = simulationDto.AwayTeamSeason,
-                        num_tokens_to_generate = simulationDto.NumTokensToGenerate ?? 2000,
-                        temperature = 0.7,
-                        top_p = 0.9,
-                        top_k = 50,
-                        max_new_tokens = 1024,
-                    }
+            var callbackBase = !string.IsNullOrWhiteSpace(_simulationOptions.PublicBaseUrl)
+                ? _simulationOptions.PublicBaseUrl.TrimEnd('/')
+                : $"{Request.Scheme}://{Request.Host}";
+
+            // Prepare request for simulation service with atomic webhook payload
+            var simulationPayload = new
+            {
+                match_id = result.Id,
+                home_team_id = simulationDto.HomeTeamId,
+                away_team_id = simulationDto.AwayTeamId,
+                home_team_name = simulationDto.HomeTeamName,
+                away_team_name = simulationDto.AwayTeamName,
+                home_team_season = simulationDto.HomeTeamSeason,
+                away_team_season = simulationDto.AwayTeamSeason,
+                num_tokens_to_generate = simulationDto.NumTokensToGenerate ?? 2000,
+                temperature = 0.7,
+                top_p = 0.9,
+                top_k = 50,
+                max_new_tokens = 1024,
+                webhook_url = $"{callbackBase}/api/matches/webhookNotification/",
+                webhook_secret = _simulationOptions.ApiKey,
+            };
+
+            using var requestMessage = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_simulationOptions.BaseUrl}/startMatch"
+            )
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(simulationPayload),
+                    Encoding.UTF8,
+                    "application/json"
                 ),
-                Encoding.UTF8,
-                "application/json"
-            );
+            };
 
             if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+                requestMessage.Headers.Add("X-API-Key", _simulationOptions.ApiKey);
 
             // Start the simulation
-            var response = await httpClient.PostAsync(
-                $"{_simulationOptions.BaseUrl}/startMatch",
-                content,
-                cancellationToken
-            );
+            var response = await httpClient.SendAsync(requestMessage, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 var statusCommand = new UpdateMatchStatusCommand { MatchId = result.Id };
@@ -438,12 +446,12 @@ public class MatchesController(
             );
             if (result.ApiResponse != null)
             {
+                var fullWebhookUrl = $"{callbackBase}/api/matches/webhookNotification/{result.ApiResponse.SimulationId}";
                 await RegisterApiWebhook(
                     new ApiRegisterWebhookRequest
                     {
                         SimulationId = result.ApiResponse.SimulationId,
-                        WebhookUrl =
-                            $"{Request.Scheme}://{Request.Host}/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
+                        WebhookUrl = fullWebhookUrl,
                         WebhookSecret = _simulationOptions.ApiKey,
                     }
                 );
@@ -536,10 +544,6 @@ public class MatchesController(
                 var httpClient = httpClientFactory.CreateClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
 
-                // Add API key if available
-                if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-                    httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-
                 // Prepare the request content
                 var content = new StringContent(
                     JsonSerializer.Serialize(
@@ -553,6 +557,18 @@ public class MatchesController(
                     "application/json"
                 );
 
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"{_simulationOptions.BaseUrl}/simulations/{webhookRequest.SimulationId}/webhook"
+                )
+                {
+                    Content = content,
+                };
+
+                // Add API key if available
+                if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+                    request.Headers.Add("X-API-Key", _simulationOptions.ApiKey);
+
                 _logger.LogInformation(
                     "Attempting to register webhook for simulation {SimulationId} (Attempt {Attempt}/{MaxAttempts})",
                     webhookRequest.SimulationId,
@@ -561,10 +577,7 @@ public class MatchesController(
                 );
 
                 // Make the API call to register webhook
-                var response = await httpClient.PostAsync(
-                    $"{_simulationOptions.BaseUrl}/simulations/{webhookRequest.SimulationId}/webhook",
-                    content
-                );
+                var response = await httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {

@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Threading.Channels;
 using Domain.Models;
-using MessagePack;
 using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
@@ -31,10 +30,10 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
         if (!_subscribers.TryGetValue(matchId, out var channels) || channels.IsEmpty)
             return;
 
-        var json = JsonSerializer.Serialize(matchEvent);
+        var json = JsonSerializer.Serialize(matchEvent, MatchEventJsonContext.Default.FootballMatchEvent);
         var msg = new SseMessage("match_event", json);
 
-        foreach (var (id, channel) in channels)
+        foreach (var (_, channel) in channels)
         {
             if (!channel.Writer.TryWrite(msg))
             {
@@ -48,10 +47,10 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
         if (!_subscribers.TryGetValue(matchId, out var channels) || channels.IsEmpty)
             return;
 
-        var json = JsonSerializer.Serialize(statistics);
+        var json = statistics is string str ? str : JsonSerializer.Serialize(statistics);
         var msg = new SseMessage("match_statistics", json);
 
-        foreach (var (id, channel) in channels)
+        foreach (var (_, channel) in channels)
         {
             if (!channel.Writer.TryWrite(msg))
             {
@@ -91,6 +90,10 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
             if (_subscribers.TryGetValue(matchId, out var subs))
             {
                 subs.TryRemove(subId, out _);
+                if (subs.IsEmpty)
+                {
+                    _subscribers.TryRemove(new KeyValuePair<string, ConcurrentDictionary<Guid, Channel<SseMessage>>>(matchId, subs));
+                }
                 _logger.LogInformation("Client {SubId} unsubscribed from match stream {MatchId}", subId, matchId);
             }
         }

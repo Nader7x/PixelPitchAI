@@ -208,16 +208,26 @@ public static class ZeroAllocationEventParser
                 longPass = true;
         }
 
-        // Update score if goal
-        if (string.Equals(outcome, "Goal", StringComparison.OrdinalIgnoreCase) ||
-            action.Contains("goal", StringComparison.OrdinalIgnoreCase))
+        // Update score if legitimate goal (shot resulting in Goal or own goal; exclude goalkeeper saves)
+        var isGoal = (string.Equals(outcome, "Goal", StringComparison.OrdinalIgnoreCase) &&
+                      (string.Equals(eventType, "shot", StringComparison.OrdinalIgnoreCase) ||
+                       action.Contains("shot", StringComparison.OrdinalIgnoreCase)))
+                     || action.Contains("own goal", StringComparison.OrdinalIgnoreCase);
+
+        if (action.Contains("goal keeper", StringComparison.OrdinalIgnoreCase) ||
+            action.Contains("keeper", StringComparison.OrdinalIgnoreCase) ||
+            action.Contains("save", StringComparison.OrdinalIgnoreCase))
+        {
+            isGoal = false;
+        }
+
+        if (isGoal)
         {
             if (homeTeamName != null && teamName.Contains(homeTeamName, StringComparison.OrdinalIgnoreCase))
                 homeScore++;
             else if (awayTeamName != null && teamName.Contains(awayTeamName, StringComparison.OrdinalIgnoreCase))
                 awayScore++;
-            else
-                homeScore++; // default increment if ambiguous
+            // If team matching is ambiguous, do not increment either score
         }
 
         matchEvent = new FootballMatchEvent
@@ -286,21 +296,22 @@ public static class ZeroAllocationEventParser
 
     private static string DetermineEventType(string action)
     {
-        var lower = action.ToLowerInvariant();
-        if (lower.Contains("pass")) return "pass";
-        if (lower.Contains("shot")) return "shot";
-        if (lower.Contains("duel")) return "duel";
-        if (lower.Contains("foul")) return lower.Contains("won") ? "foul won" : "foul committed";
-        if (lower.Contains("carry")) return "carry";
-        if (lower.Contains("receipt")) return "ball receipt*";
-        if (lower.Contains("recovery")) return "ball recovery";
-        if (lower.Contains("interception")) return "interception";
-        if (lower.Contains("clearance")) return "clearance";
-        if (lower.Contains("block")) return "block";
-        if (lower.Contains("dribble")) return "dribble";
-        if (lower.Contains("save")) return "goal keeper";
-        if (lower.Contains("card")) return "card";
-        if (lower.Contains("sub")) return "substitution";
+        var actionSpan = action.AsSpan();
+        if (actionSpan.Contains("pass", StringComparison.OrdinalIgnoreCase)) return "pass";
+        if (actionSpan.Contains("shot", StringComparison.OrdinalIgnoreCase)) return "shot";
+        if (actionSpan.Contains("duel", StringComparison.OrdinalIgnoreCase)) return "duel";
+        if (actionSpan.Contains("foul", StringComparison.OrdinalIgnoreCase))
+            return actionSpan.Contains("won", StringComparison.OrdinalIgnoreCase) ? "foul won" : "foul committed";
+        if (actionSpan.Contains("carry", StringComparison.OrdinalIgnoreCase)) return "carry";
+        if (actionSpan.Contains("receipt", StringComparison.OrdinalIgnoreCase)) return "ball receipt*";
+        if (actionSpan.Contains("recovery", StringComparison.OrdinalIgnoreCase)) return "ball recovery";
+        if (actionSpan.Contains("interception", StringComparison.OrdinalIgnoreCase)) return "interception";
+        if (actionSpan.Contains("clearance", StringComparison.OrdinalIgnoreCase)) return "clearance";
+        if (actionSpan.Contains("block", StringComparison.OrdinalIgnoreCase)) return "block";
+        if (actionSpan.Contains("dribble", StringComparison.OrdinalIgnoreCase)) return "dribble";
+        if (actionSpan.Contains("save", StringComparison.OrdinalIgnoreCase)) return "goal keeper";
+        if (actionSpan.Contains("card", StringComparison.OrdinalIgnoreCase)) return "card";
+        if (actionSpan.Contains("sub", StringComparison.OrdinalIgnoreCase)) return "substitution";
         return action;
     }
 

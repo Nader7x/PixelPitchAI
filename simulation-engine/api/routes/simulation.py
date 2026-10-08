@@ -73,6 +73,14 @@ async def start_match(
             }
         )
 
+        # Register webhook atomically if provided in request
+        if request.webhook_url:
+            simulation_service.add_webhook(
+                simulation_id,
+                request.webhook_url,
+                request.webhook_secret
+            )
+
         # Start the background task for simulation
         background_tasks.add_task(
             simulation_service.process_match_simulation,

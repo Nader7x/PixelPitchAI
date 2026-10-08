@@ -76,6 +76,9 @@ try
             Environment.GetEnvironmentVariable("SIMULATION_API_KEY")
             ?? builder.Configuration["SimulationService:ApiKey"]
             ?? "";
+        options.PublicBaseUrl =
+            builder.Configuration["SimulationService:PublicBaseUrl"]
+            ?? Environment.GetEnvironmentVariable("PUBLIC_BASE_URL");
     });
 
     // Add services to the container.
@@ -318,12 +321,18 @@ try
                         EmailConfirmed = true,
                     };
 
-                    var result = await userManager.CreateAsync(
-                        admin,
-                        builder.Configuration["AdminUser:Password"] ?? string.Empty
-                    );
-                    if (result.Succeeded)
-                        await userManager.AddToRoleAsync(admin, "Admin");
+                    var adminPassword = builder.Configuration["AdminUser:Password"];
+                    if (string.IsNullOrWhiteSpace(adminPassword))
+                        adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    if (string.IsNullOrWhiteSpace(adminPassword) && app.Environment.IsDevelopment())
+                        adminPassword = "DevOnlyAdminPass123!";
+
+                    if (!string.IsNullOrWhiteSpace(adminPassword))
+                    {
+                        var result = await userManager.CreateAsync(admin, adminPassword);
+                        if (result.Succeeded)
+                            await userManager.AddToRoleAsync(admin, "Admin");
+                    }
                 }
             }
 

@@ -29,6 +29,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly IConnectionFactory? _injectedConnectionFactory;
     private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
     private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
+    private readonly ConcurrentDictionary<string, (int Home, int Away)> _matchScores = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
 
     private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache =
@@ -232,6 +233,16 @@ public class MatchEventRabbitMqClient : BackgroundService
             var bodySpan = ea.Body.Span;
             FootballMatchEvent? matchEvent = null;
 
+            // Extract match_id from RabbitMQ message headers if available
+            string rawMatchId = "0";
+            if (ea.BasicProperties?.Headers != null && ea.BasicProperties.Headers.TryGetValue("match_id", out var matchIdObj))
+            {
+                if (matchIdObj is byte[] matchIdBytes)
+                    rawMatchId = Encoding.UTF8.GetString(matchIdBytes);
+                else if (matchIdObj != null)
+                    rawMatchId = matchIdObj.ToString() ?? "0";
+            }
+
             // Check if message is a raw simulation text line (Pipeline A raw stream)
             if (bodySpan.Length > 0 && bodySpan[0] != '{')
             {
@@ -239,18 +250,27 @@ public class MatchEventRabbitMqClient : BackgroundService
                 Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
                 Encoding.UTF8.GetChars(bodySpan, chars);
 
-                var homeScore = 0;
-                var awayScore = 0;
+                var (currentHome, currentAway) = _matchScores.GetOrAdd(rawMatchId, _ => (0, 0));
+                var homeScore = currentHome;
+                var awayScore = currentAway;
+
+                var existingMatch = _loadedMatches.TryGetValue(rawMatchId, out var cachedMatch) ? cachedMatch : null;
+
                 ZeroAllocationEventParser.TryParseEvent(
                     chars,
-                    matchId: "0",
+                    matchId: rawMatchId,
                     eventIndex: ++_eventSequence,
                     ref homeScore,
                     ref awayScore,
-                    null,
-                    null,
+                    existingMatch?.HomeTeam?.Name ?? existingMatch?.HomeTeamInMatchName,
+                    existingMatch?.AwayTeam?.Name ?? existingMatch?.AwayTeamInMatchName,
                     out matchEvent
                 );
+
+                if (homeScore != currentHome || awayScore != currentAway)
+                {
+                    _matchScores[rawMatchId] = (homeScore, awayScore);
+                }
             }
 
             if (matchEvent == null)
@@ -266,14 +286,29 @@ public class MatchEventRabbitMqClient : BackgroundService
             {
                 var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
                 if (matchEntity != null)
+                {
+                    if (matchEvent.Score != null)
+                    {
+                        matchEntity.HomeTeamScore = matchEvent.Score.Home;
+                        matchEntity.AwayTeamScore = matchEvent.Score.Away;
+                    }
                     await ProcessMatchEventWithEntity(matchEvent, matchEntity);
+                }
                 await CacheMatchEvent(matchEvent);
                 if (matchEvent is { event_type: "match_end", action: "match_end" })
                 {
                     if (matchEntity != null)
+                    {
                         matchEntity.IsLive = false;
+                        if (matchEvent.Score != null)
+                        {
+                            matchEntity.HomeTeamScore = matchEvent.Score.Home;
+                            matchEntity.AwayTeamScore = matchEvent.Score.Away;
+                        }
+                    }
                     await SaveMatchEventsToDatabase(matchEvent.match_id);
                     _loadedMatches.TryRemove(matchEvent.match_id, out _);
+                    _matchScores.TryRemove(matchEvent.match_id, out _);
                     _logger.LogInformation(
                         "Removed match {MatchId} from cache after match end",
                         matchEvent.match_id
@@ -406,7 +441,8 @@ public class MatchEventRabbitMqClient : BackgroundService
             or "clearance"
             or "block"
             or "carry"
-            or "ball_recovery" => true,
+            or "ball_recovery"
+            or "ball recovery" => true,
             _ => false,
         };
     }
@@ -629,9 +665,11 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             if (matchEvent.match_id != null)
             {
+                // Primary high-performance SSE stream delivery (Pipeline A)
                 if (_broadcaster != null)
                     await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
 
+                // Legacy SignalR delivery (intentional compatibility path for existing UI clients)
                 await _hubContext
                     .Clients.Group(matchEvent.match_id)
                     .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id), matchEvent);

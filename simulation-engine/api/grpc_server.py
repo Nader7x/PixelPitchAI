@@ -28,6 +28,7 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
     def __init__(self, simulation_service=None):
         self.simulation_service = simulation_service
         self.producer = MatchEventProducer()
+        self._background_tasks = set()
 
     async def StartMatchSimulation(self, request, context):
         logger.info(f"[gRPC] StartMatchSimulation received for match {request.match_id}")
@@ -35,9 +36,11 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
 
         # If simulation_service is available, trigger simulation in background
         if self.simulation_service:
-            asyncio.create_task(
+            task = asyncio.create_task(
                 self._run_simulation_background(request, sim_id)
             )
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
 
         return simulation_pb2.StartMatchResponse(
             simulation_id=sim_id,
@@ -73,7 +76,7 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
                         continue
 
                     event_index += 1
-                    is_end = (line == "[MATCH END]")
+                    is_end = "[MATCH END]" in line
 
                     # Also publish to RabbitMQ (Pipeline A raw stream) concurrently
                     try:
@@ -112,20 +115,21 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
             context.set_details(str(ex))
 
     async def GetHealth(self, request, context):
-        is_ready = True
-        model_loaded = True
-        xgboost_loaded = True
+        model_loaded = False
+        xgboost_loaded = False
 
         if self.simulation_service and hasattr(self.simulation_service, "model_resources"):
             res = self.simulation_service.model_resources
             model_loaded = getattr(res, "model", None) is not None
             xgboost_loaded = getattr(res, "xgboost_model", None) is not None
 
+        is_ready = model_loaded and xgboost_loaded
+
         return simulation_pb2.HealthResponse(
             status=is_ready,
             model_loaded=model_loaded,
             xgboost_loaded=xgboost_loaded,
-            message="Simulation engine gRPC service is ready"
+            message="Simulation engine gRPC service is ready" if is_ready else "Models not loaded"
         )
 
     async def _run_simulation_background(self, request, sim_id: str):
@@ -152,7 +156,9 @@ async def start_grpc_server(host: str = "0.0.0.0", port: int = 50051, simulation
     servicer = SimulationServiceServicer(simulation_service=simulation_service)
     simulation_pb2_grpc.add_SimulationServiceServicer_to_server(servicer, server)
     listen_addr = f"{host}:{port}"
-    server.add_insecure_port(listen_addr)
+    bound_port = server.add_insecure_port(listen_addr)
+    if bound_port == 0:
+        raise RuntimeError(f"Failed to bind gRPC server to {listen_addr}")
     await server.start()
     logger.info(f"🚀 gRPC Server listening at {listen_addr}")
     return server
