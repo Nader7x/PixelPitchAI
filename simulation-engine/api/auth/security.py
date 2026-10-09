@@ -64,8 +64,11 @@ fake_users_db = {
 }
 
 # Enhanced API Keys storage with metadata
-API_KEYS: Dict[str, dict] = {
-    DEFAULT_API_KEY: {
+API_KEYS: Dict[str, dict] = {}
+admin_keys: List[str] = []
+
+if DEFAULT_API_KEY:
+    API_KEYS[DEFAULT_API_KEY] = {
         "username": "admin",
         "key_id": "default_key",
         "description": "Default test API key",
@@ -73,21 +76,24 @@ API_KEYS: Dict[str, dict] = {
         "expires_at": None,
         "last_used": None,
         "is_active": True
-    },
-    PIXEL_PITCH_API_KEY: {
+    }
+    admin_keys.append(DEFAULT_API_KEY)
+
+if PIXEL_PITCH_API_KEY:
+    API_KEYS[PIXEL_PITCH_API_KEY] = {
         "username": "admin",
-        "key_id": "280a422a-9504-4981-a78a-1a0bd507dd16",
+        "key_id": "pixel_pitch_key",
         "description": "Admin key for Pixel Pitch API",
-        "created_at": "2025-06-06T14:33:47.644111",
-        "expires_at": "2026-06-01T14:33:47.644111",
+        "created_at": datetime.utcnow().isoformat(),
+        "expires_at": None,
         "last_used": None,
         "is_active": True
     }
-}
+    admin_keys.append(PIXEL_PITCH_API_KEY)
 
 # In-memory storage for user API keys
 user_api_keys: Dict[str, List[str]] = {
-    "admin": [DEFAULT_API_KEY, PIXEL_PITCH_API_KEY]
+    "admin": admin_keys
 }
 
 # --- User Functions ---

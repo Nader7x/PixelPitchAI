@@ -29,6 +29,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly IConnectionFactory? _injectedConnectionFactory;
     private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
     private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
+    private readonly ConcurrentDictionary<string, (int Home, int Away)> _matchScores = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
 
     private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache =
@@ -40,6 +41,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly RabbitMqOptions _rabbitMqSettings;
     private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IMatchEventBroadcaster? _broadcaster;
 
     private IChannel? _channel;
 
@@ -54,7 +56,8 @@ public class MatchEventRabbitMqClient : BackgroundService
         IPerformanceMonitoringService performanceMonitoringService,
         IOptions<RabbitMqOptions> rabbitMqOptions,
         ILiveMatchStatisticsService liveMatchStatisticsService,
-        IConnectionFactory? injectedConnectionFactory = null
+        IConnectionFactory? injectedConnectionFactory = null,
+        IMatchEventBroadcaster? broadcaster = null
     )
     {
         _logger = logger;
@@ -62,6 +65,7 @@ public class MatchEventRabbitMqClient : BackgroundService
         _serviceScopeFactory = serviceScopeFactory;
         _performanceMonitoringService = performanceMonitoringService;
         _liveMatchStatisticsService = liveMatchStatisticsService;
+        _broadcaster = broadcaster;
         _rabbitMqSettings = rabbitMqOptions.Value;
         _injectedConnectionFactory = injectedConnectionFactory;
 
@@ -226,26 +230,95 @@ public class MatchEventRabbitMqClient : BackgroundService
     {
         try
         {
-            var body = ea.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
-            _logger.LogInformation("Received match event: {Message}", message);
+            FootballMatchEvent? matchEvent = null;
 
-            var matchEvent = JsonSerializer.Deserialize(
-                message,
-                MatchEventJsonContext.Default.FootballMatchEvent
-            );
+            // Extract match_id from RabbitMQ message headers if available
+            string rawMatchId = "0";
+            if (ea.BasicProperties?.Headers != null && ea.BasicProperties.Headers.TryGetValue("match_id", out var matchIdObj))
+            {
+                if (matchIdObj is byte[] matchIdBytes)
+                    rawMatchId = Encoding.UTF8.GetString(matchIdBytes);
+                else if (matchIdObj != null)
+                    rawMatchId = matchIdObj.ToString() ?? "0";
+            }
+
+            // Pre-load match entity so team names and current scores are available for parsing and scoring
+            Match? matchEntity = null;
+            if (rawMatchId != "0" && int.TryParse(rawMatchId, out var matchIdVal) && matchIdVal > 0)
+            {
+                matchEntity = await GetOrLoadMatchEntity(rawMatchId);
+            }
+
+            var bodyMemory = ea.Body;
+
+            // Check if message is a raw simulation text line (Pipeline A raw stream)
+            if (!bodyMemory.IsEmpty && bodyMemory.Span[0] != '{')
+            {
+                var bodySpan = bodyMemory.Span;
+                var charCount = Encoding.UTF8.GetCharCount(bodySpan);
+                Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
+                Encoding.UTF8.GetChars(bodySpan, chars);
+
+                var (currentHome, currentAway) = _matchScores.GetOrAdd(
+                    rawMatchId,
+                    _ => (matchEntity?.HomeTeamScore ?? 0, matchEntity?.AwayTeamScore ?? 0)
+                );
+                var homeScore = currentHome;
+                var awayScore = currentAway;
+
+                ZeroAllocationEventParser.TryParseEvent(
+                    chars,
+                    matchId: rawMatchId,
+                    eventIndex: ++_eventSequence,
+                    ref homeScore,
+                    ref awayScore,
+                    matchEntity?.HomeTeam?.Name ?? matchEntity?.HomeTeamInMatchName,
+                    matchEntity?.AwayTeam?.Name ?? matchEntity?.AwayTeamInMatchName,
+                    out matchEvent
+                );
+
+                if (homeScore != currentHome || awayScore != currentAway)
+                {
+                    _matchScores[rawMatchId] = (homeScore, awayScore);
+                }
+            }
+
+            if (matchEvent == null)
+            {
+                var message = Encoding.UTF8.GetString(bodyMemory.Span);
+                _logger.LogInformation("Received match event: {Message}", message);
+                matchEvent = JsonSerializer.Deserialize(
+                    message,
+                    MatchEventJsonContext.Default.FootballMatchEvent
+                );
+            }
             if (matchEvent?.match_id != null)
             {
-                var matchEntity = await GetOrLoadMatchEntity(matchEvent.match_id);
+                matchEntity ??= await GetOrLoadMatchEntity(matchEvent.match_id);
                 if (matchEntity != null)
+                {
+                    if (matchEvent.Score != null)
+                    {
+                        matchEntity.HomeTeamScore = matchEvent.Score.Home;
+                        matchEntity.AwayTeamScore = matchEvent.Score.Away;
+                    }
                     await ProcessMatchEventWithEntity(matchEvent, matchEntity);
+                }
                 await CacheMatchEvent(matchEvent);
                 if (matchEvent is { event_type: "match_end", action: "match_end" })
                 {
                     if (matchEntity != null)
+                    {
                         matchEntity.IsLive = false;
+                        if (matchEvent.Score != null)
+                        {
+                            matchEntity.HomeTeamScore = matchEvent.Score.Home;
+                            matchEntity.AwayTeamScore = matchEvent.Score.Away;
+                        }
+                    }
                     await SaveMatchEventsToDatabase(matchEvent.match_id);
                     _loadedMatches.TryRemove(matchEvent.match_id, out _);
+                    _matchScores.TryRemove(matchEvent.match_id, out _);
                     _logger.LogInformation(
                         "Removed match {MatchId} from cache after match end",
                         matchEvent.match_id
@@ -378,7 +451,8 @@ public class MatchEventRabbitMqClient : BackgroundService
             or "clearance"
             or "block"
             or "carry"
-            or "ball_recovery" => true,
+            or "ball_recovery"
+            or "ball recovery" => true,
             _ => false,
         };
     }
@@ -601,6 +675,11 @@ public class MatchEventRabbitMqClient : BackgroundService
         {
             if (matchEvent.match_id != null)
             {
+                // Primary high-performance SSE stream delivery (Pipeline A)
+                if (_broadcaster != null)
+                    await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
+
+                // Legacy SignalR delivery (intentional compatibility path for existing UI clients)
                 await _hubContext
                     .Clients.Group(matchEvent.match_id)
                     .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id), matchEvent);
@@ -739,6 +818,9 @@ public class MatchEventRabbitMqClient : BackgroundService
                     },
                     lastUpdated = DateTime.UtcNow,
                 };
+                if (_broadcaster != null)
+                    await _broadcaster.BroadcastStatisticsAsync(matchEntity.Id.ToString(), matchStatistics);
+
                 await _hubContext
                     .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
                     .SendMatchStatisticsAsync(

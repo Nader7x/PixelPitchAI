@@ -80,6 +80,8 @@ class MatchRequest(BaseModel):
     top_p: float = Field(0.9, ge=0.0, le=1.0, description="Top-p sampling parameter")
     top_k: int = Field(50, ge=1, le=1000, description="Top-k sampling parameter")
     max_length: int = Field(1024, ge=128, le=2048, description="Maximum sequence length")
+    webhook_url: Optional[str] = Field(None, description="Optional webhook URL for match event streaming/completion")
+    webhook_secret: Optional[str] = Field(None, description="Optional secret token for webhook verification")
 
     class Config:
         json_schema_extra = {

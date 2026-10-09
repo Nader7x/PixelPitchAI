@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Application.Dtos;
@@ -172,6 +173,8 @@ public class SimulateMatchDto
     public required string AwayTeamSeason { get; set; }
     public required int HomeSeasonId { get; set; }
     public required int AwaySeasonId { get; set; }
+    [Range(100, 10000, ErrorMessage = "Token generation must be between 100 and 10,000")]
+    public int? NumTokensToGenerate { get; set; }
 }
 
 public class UserMatchDto

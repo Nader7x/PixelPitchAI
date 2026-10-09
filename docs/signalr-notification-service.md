@@ -2,7 +2,10 @@
 
 ## Overview
 
-The `NotificationService` is a JWT-secured SignalR Hub that provides real-time notification capabilities for authenticated users in the Footex application. It enables instant messaging and notification delivery to connected clients.
+The `NotificationService` is a JWT-secured SignalR Hub that provides real-time user alert and notification capabilities for authenticated users in the PixelPitchAI application. It enables instant messaging, system alerts, and notification delivery to connected clients.
+
+> [!IMPORTANT]
+> **Strict Separation from Match Streaming**: The `NotificationService` hub (endpoint `/Notify`) is strictly for general user notifications, system alerts, and match lifecycle notifications (e.g. `SendMatchStartNotificationAsync`). Do not use SignalR for match simulation streaming, which is replaced by SSE. Live match commentary, player coordinates, and live statistics are delivered exclusively via Server-Sent Events (SSE) at `GET /api/matches/{id}/events/stream`.
 
 ## Architecture
 
@@ -80,7 +83,7 @@ Based on the implementation pattern, the interface likely includes:
 ```javascript
 // JavaScript client example
 const connection = new signalR.HubConnectionBuilder()
-  .withUrl("/notificationHub", {
+  .withUrl("/Notify", {
     accessTokenFactory: () => {
       return localStorage.getItem("jwt-token");
     },
@@ -135,7 +138,7 @@ connection.start().then(function () {
 
 ### Related Services
 
-- **MatchHub**: For match-specific real-time updates
+- **Match Event Broadcaster (SSE)**: Completely separate unidirectional stream (`GET /api/matches/{id}/events/stream`) dedicated exclusively to live match simulation commentary, coordinates, and statistics.
 - **RabbitMQ Client**: For event-driven notification triggers
 - **Notification Controllers**: For REST API notification management
 
@@ -172,10 +175,10 @@ connection.start().then(function () {
 ### Startup Configuration
 
 ```csharp
-// In Program.cs or Startup.cs
-services.AddSignalR();
+// In Program.cs
+builder.Services.AddSignalR();
 
-app.MapHub<NotificationService>("/notificationHub");
+app.MapHub<NotificationService>("/Notify");
 ```
 
 ### Authentication Setup
@@ -191,7 +194,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) &&
-                    path.StartsWithSegments("/notificationHub"))
+                    (path.StartsWithSegments("/Notify") || path.StartsWithSegments("/api/matches")))
                 {
                     context.Token = accessToken;
                 }

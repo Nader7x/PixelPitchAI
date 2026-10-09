@@ -36,7 +36,7 @@ docker context inspect wsl-tcp-context
 ```
 
 ### 2. Configure Testcontainers Properties
-Testcontainers reads global configuration from a `.testcontainers.properties` file located in your user profile folder (`C:\Users\<YourUsername>\.testcontainers.properties`).
+Testcontainers reads global configuration from a `.testcontainers.properties` file located in your user profile folder (`~/.testcontainers.properties` or `%USERPROFILE%\.testcontainers.properties`).
 
 Create or update this file to define the Docker host:
 ```properties

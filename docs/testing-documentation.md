@@ -1,14 +1,14 @@
-# Footex API Testing Documentation
+# PixelPitchAI API Testing Documentation
 
-This document outlines the testing strategy implemented for the Footex API, including unit tests, integration tests, and performance tests. It also provides guidance on running tests and interpreting results.
+This document outlines the testing strategy implemented for the PixelPitchAI API (.NET 10 Web API), including unit tests, integration tests, and performance benchmarks. It also provides guidance on running tests and interpreting results.
 
 ## Testing Strategy Overview
 
-The testing approach for the Footex API follows a comprehensive three-layer testing strategy:
+The testing approach for the PixelPitchAI API follows a comprehensive three-layer testing strategy:
 
-1. **Unit Tests**: Testing isolated components without external dependencies
-2. **Integration Tests**: Testing interactions between components
-3. **Performance Tests**: Testing system behavior under load
+1. **Unit Tests**: Testing isolated components without external dependencies, focusing on reflection-free CQRS handlers, domain models, Riok.Mapperly mappers, and `ZeroAllocationEventParser`.
+2. **Integration Tests**: Testing interactions between controllers, EF Core 10 PostgreSQL database operations (via Testcontainers), and ASP.NET Core middleware.
+3. **Performance Tests**: NBomber and BenchmarkDotNet benchmarks testing throughput, zero-allocation span parsing, and Redis hot state latency.
 
 ## Unit Tests
 
@@ -18,30 +18,39 @@ Unit tests focus on testing individual components in isolation from their depend
 
 The following areas are covered by unit tests:
 
-#### CQRS Handlers
+#### Reflection-Free CQRS Handlers
 
-- **Commands**: Tests for all command handlers in the `Application/CQRS` folders
-  - Auth commands (Register, Login, RefreshToken)
-  - Team commands (CreateTeam, UpdateTeam, DeleteTeam)
-  - Match commands (CreateMatch, UpdateMatch, EndMatch)
-  - Player commands (CreatePlayer, UpdatePlayer, TransferPlayer)
-  - Coach commands (HireCoach, FireCoach)
-  - etc.
+PixelPitchAI implements a custom, reflection-free CQRS architecture (`IRequest<TResponse>` and `IRequestHandler<TRequest, TResponse>`) with 45 explicit DI registrations in `Application/DependencyInjection.cs`:
 
-- **Queries**: Tests for all query handlers in the `Application/CQRS` folders
-  - GetMatchById, GetMatches, GetLiveMatchStatistics
-  - GetTeamById, GetTeams, GetTeamPlayers
-  - GetPlayerById, GetPlayers, GetPlayerStatistics
-  - etc.
+- **Commands (26 total)**:
+  - **Auth Commands**: `RegisterUserCommand`, `LoginUserCommand`, `RefreshTokenCommand`, `ForgotPasswordCommand`, `ResetPasswordCommand`, `ConfirmEmailCommand`, `ResendEmailConfirmationCommand`, `RevokeTokenCommand`, `UpdateUserCommand`
+  - **Coach Commands**: `CreateCoachCommand`, `UpdateCoachCommand`, `DeleteCoachCommand`
+  - **Match Commands**: `CreateMatchCommand`, `UpdateMatchCommand`, `DeleteMatchCommand`, `UpdateMatchStatusCommand`
+  - **Player Commands**: `CreatePlayerCommand`, `UpdatePlayerCommand`, `DeletePlayerCommand`
+  - **Season Commands**: `CreateSeasonCommand`, `UpdateSeasonCommand`, `DeleteSeasonCommand`
+  - **Stadium Commands**: `CreateStadiumCommand`, `UpdateStadiumCommand`, `DeleteStadiumCommand`
+  - **Team Commands**: `CreateTeamCommand`, `UpdateTeamCommand`, `DeleteTeamCommand`
+  - **Notification Commands**: `CreateNotificationCommand`
 
-#### Application Services
+- **Queries (19 total)**:
+  - **Match Queries**: `GetAllMatchesQuery`, `GetMatchByIdQuery`, `GetMatchByIdWithDetailsQuery`, `GetLiveMatchQuery`, `GetUserMatchesQuery`
+  - **Coach Queries**: `GetAllCoachesQuery`, `GetCoachByIdQuery`
+  - **Player Queries**: `GetAllPlayersQuery`, `GetPlayerByIdQuery`
+  - **Team Queries**: `GetAllTeamsQuery`, `GetTeamByIdQuery`, `GetTeamSeasonsQuery`
+  - **Season Queries**: `GetAllSeasonsQuery`, `GetSeasonByIdQuery`, `GetSeasonTeamsQuery`
+  - **Stadium Queries**: `GetAllStadiumsQuery`, `GetStadiumByIdQuery`
+  - **User & Notification Queries**: `GetUserProfileQuery`, `GetUserNotificationsQuery`
 
-- NotificationService
-- AdvancedSearchService
-- EmailService
-- FileStorageService
-- CacheService
-- etc.
+#### Application & Infrastructure Services
+
+- `ZeroAllocationEventParser` (`ReadOnlySpan<char>` parsing for match simulation coordinates and event types)
+- `MatchEventBroadcaster` (Channel-based Server-Sent Events fanout)
+- `MatchEventRabbitMqClient` (Pipeline A background consumer)
+- `MatchEventGrpcStreamConsumer` (Pipeline B gRPC server-streaming consumer)
+- `LiveMatchStatisticsService` (In-memory atomic counters and cache)
+- `RedisCacheService` (StackExchange.Redis circuit-broken cache)
+- `NotificationService` (SignalR hub at `/Notify` for user alerts)
+- `SearchService` (Multi-strategy fuzzy, full-text, and exact search)
 
 #### Domain Model Logic
 
@@ -190,7 +199,7 @@ Based on the test results, the following improvements are recommended:
 
 ## Conclusion
 
-The Footex API has been thoroughly tested across multiple dimensions, showing excellent stability and good performance characteristics. The test results indicate that the system is ready for production use with the recommended optimizations implemented.
+The PixelPitchAI API has been thoroughly tested across multiple dimensions, showing excellent stability and good performance characteristics. The test results indicate that the system is ready for production use with the recommended optimizations implemented.
 
 ## Next Steps
 

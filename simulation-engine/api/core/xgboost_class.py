@@ -127,19 +127,19 @@ class MatchStatProcessor:
     def save_text_file(self, header_lines, path):
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(header_lines))
-        print(f"✅ Header text saved to {path}")
+        print(f"[OK] Header text saved to {path}")
 
     def tokenize_and_save(self, file_path, save_path):
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read()
         input_ids = self.tokenizer.encode(text, return_tensors="pt")
         torch.save(input_ids, save_path)
-        print(f"✅ Tokenization complete. Shape: {input_ids.shape}")
-        print(f"💾 Saved tokenized tensor to: {save_path}")
+        print(f"[OK] Tokenization complete. Shape: {input_ids.shape}")
+        print(f"[SAVED] Saved tokenized tensor to: {save_path}")
 
     def tokenize_text_and_save(self, text, save_path):
         input_ids = self.tokenizer.encode(text, return_tensors="pt")
         print(input_ids)
         torch.save(input_ids, save_path)
-        print(f"✅ Tokenization complete. Shape: {input_ids.shape}")
-        print(f"💾 Saved tokenized tensor to: {save_path}")
+        print(f"[OK] Tokenization complete. Shape: {input_ids.shape}")
+        print(f"[SAVED] Saved tokenized tensor to: {save_path}")

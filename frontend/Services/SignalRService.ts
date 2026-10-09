@@ -126,7 +126,9 @@ class SignalRService {
   private matchSimulationConnection: signalR.HubConnection | null = null;
   private notificationConnection: signalR.HubConnection | null = null;
   private readonly baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:7082';
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
+    'http://localhost:5025';
   private isMatchSimulationConnected = false;
   private isNotificationConnected = false;
   private reconnectAttempts = 0;

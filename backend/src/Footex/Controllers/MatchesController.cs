@@ -384,38 +384,46 @@ public class MatchesController(
             if (!result.Succeeded)
                 return BadRequest(result);
 
-            // Prepare request for simulation service
-            var content = new StringContent(
-                JsonSerializer.Serialize(
-                    new
-                    {
-                        match_id = result.Id,
-                        home_team_id = simulationDto.HomeTeamId,
-                        away_team_id = simulationDto.AwayTeamId,
-                        home_team_name = simulationDto.HomeTeamName,
-                        away_team_name = simulationDto.AwayTeamName,
-                        home_team_season = simulationDto.HomeTeamSeason,
-                        away_team_season = simulationDto.AwayTeamSeason,
-                        num_tokens_to_generate = 10000,
-                        temperature = 0.7,
-                        top_p = 0.9,
-                        top_k = 50,
-                        max_new_tokens = 1024,
-                    }
+            var callbackBase = !string.IsNullOrWhiteSpace(_simulationOptions.PublicBaseUrl)
+                ? _simulationOptions.PublicBaseUrl.TrimEnd('/')
+                : $"{Request.Scheme}://{Request.Host}";
+
+            // Prepare request for simulation service with atomic webhook payload
+            var simulationPayload = new
+            {
+                match_id = result.Id,
+                home_team_id = simulationDto.HomeTeamId,
+                away_team_id = simulationDto.AwayTeamId,
+                home_team_name = simulationDto.HomeTeamName,
+                away_team_name = simulationDto.AwayTeamName,
+                home_team_season = simulationDto.HomeTeamSeason,
+                away_team_season = simulationDto.AwayTeamSeason,
+                num_tokens_to_generate = simulationDto.NumTokensToGenerate ?? 2000,
+                temperature = 0.7,
+                top_p = 0.9,
+                top_k = 50,
+                max_new_tokens = 1024,
+                webhook_url = $"{callbackBase}/api/matches/webhookNotification",
+                webhook_secret = _simulationOptions.ApiKey,
+            };
+
+            using var requestMessage = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_simulationOptions.BaseUrl}/startMatch"
+            )
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(simulationPayload),
+                    Encoding.UTF8,
+                    "application/json"
                 ),
-                Encoding.UTF8,
-                "application/json"
-            );
+            };
 
             if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-                httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
+                requestMessage.Headers.Add("X-API-Key", _simulationOptions.ApiKey);
 
             // Start the simulation
-            var response = await httpClient.PostAsync(
-                $"{_simulationOptions.BaseUrl}/startMatch",
-                content,
-                cancellationToken
-            );
+            var response = await httpClient.SendAsync(requestMessage, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 var statusCommand = new UpdateMatchStatusCommand { MatchId = result.Id };
@@ -438,15 +446,6 @@ public class MatchesController(
             );
             if (result.ApiResponse != null)
             {
-                await RegisterApiWebhook(
-                    new ApiRegisterWebhookRequest
-                    {
-                        SimulationId = result.ApiResponse.SimulationId,
-                        WebhookUrl =
-                            $"https://localhost:7082/api/matches/webhookNotification/{result.ApiResponse.SimulationId}",
-                        WebhookSecret = _simulationOptions.ApiKey,
-                    }
-                );
                 await _unitOfWork.Matches.UpdateSimulationIdAsync(
                     result.Id,
                     result.ApiResponse.SimulationId,
@@ -536,10 +535,6 @@ public class MatchesController(
                 var httpClient = httpClientFactory.CreateClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
 
-                // Add API key if available
-                if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
-                    httpClient.DefaultRequestHeaders.Add("X-API-Key", _simulationOptions.ApiKey);
-
                 // Prepare the request content
                 var content = new StringContent(
                     JsonSerializer.Serialize(
@@ -553,6 +548,18 @@ public class MatchesController(
                     "application/json"
                 );
 
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"{_simulationOptions.BaseUrl}/simulations/{webhookRequest.SimulationId}/webhook"
+                )
+                {
+                    Content = content,
+                };
+
+                // Add API key if available
+                if (!string.IsNullOrEmpty(_simulationOptions.ApiKey))
+                    request.Headers.Add("X-API-Key", _simulationOptions.ApiKey);
+
                 _logger.LogInformation(
                     "Attempting to register webhook for simulation {SimulationId} (Attempt {Attempt}/{MaxAttempts})",
                     webhookRequest.SimulationId,
@@ -561,10 +568,7 @@ public class MatchesController(
                 );
 
                 // Make the API call to register webhook
-                var response = await httpClient.PostAsync(
-                    $"{_simulationOptions.BaseUrl}/simulations/{webhookRequest.SimulationId}/webhook",
-                    content
-                );
+                var response = await httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -714,43 +718,46 @@ public class MatchesController(
         return (int)exponentialDelay + jitter;
     }
 
+    [HttpPost("webhookNotification")]
     [HttpPost("webhookNotification/{simulationId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ReceiveWebhookNotification(
-        string simulationId,
         [FromBody] WebhookNotificationPayload payload,
         CancellationToken cancellationToken,
         [FromServices] IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse> updateStatusHandler,
-        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler
+        [FromServices] IRequestHandler<UpdateMatchCommand, UpdateMatchCommandResponse> updateMatchHandler,
+        string? simulationId = null
     )
     {
         try
         {
+            var effectiveSimId = !string.IsNullOrEmpty(simulationId) ? simulationId : payload.SimulationId;
+
             _logger.LogInformation(
                 "Received webhook notification for simulation {SimulationId} with status {Status}",
-                simulationId,
+                effectiveSimId,
                 payload.Status
             );
 
             // Validate payload
-            if (string.IsNullOrEmpty(payload.SimulationId) || payload.SimulationId != simulationId)
+            if (string.IsNullOrEmpty(payload.SimulationId) || (!string.IsNullOrEmpty(simulationId) && payload.SimulationId != simulationId))
             {
                 _logger.LogWarning(
                     "Simulation ID mismatch in webhook payload: expected {Expected}, got {Actual}",
-                    simulationId,
+                    effectiveSimId,
                     payload.SimulationId
                 );
                 return BadRequest(new { error = "Simulation ID mismatch" });
             }
 
             // Find the match associated with this simulation
-            var match = await GetMatchBySimulationId(simulationId, cancellationToken);
+            var match = await GetMatchBySimulationId(effectiveSimId, cancellationToken);
             if (match == null)
             {
-                _logger.LogWarning("No match found for simulation ID {SimulationId}", simulationId);
+                _logger.LogWarning("No match found for simulation ID {SimulationId}", effectiveSimId);
                 return NotFound(
-                    new { error = "Match not found for simulation", simulation_id = simulationId }
+                    new { error = "Match not found for simulation", simulation_id = effectiveSimId }
                 );
             }
 

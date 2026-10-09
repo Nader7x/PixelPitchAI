@@ -25,6 +25,9 @@ dependencies = [
     "onnxruntime>=1.26.0",
     "optimum[onnxruntime]>=2.1.0",
     "scikit-learn",
+    "protobuf>=5.29.0",
+    "grpcio>=1.70.0",
+    "grpcio-tools>=1.70.0",
 ]
 
 [build-system]

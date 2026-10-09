@@ -72,102 +72,96 @@ liveService.UpdateCachedMatch(matchId, match);
 
 ## API Endpoints
 
-### Administrative Endpoints
+### Administrative Monitoring Endpoints
 
-#### Get All Live Matches
-
-```http
-GET /api/matches/live/all
-Authorization: Admin/Manager required
-```
-
-Returns all currently live matches being tracked in the cache.
-
-#### Get Cached Live Match
-
-```http
-GET /api/matches/live/cached/{matchId}
-Authorization: Required
-```
-
-Retrieves match data from cache without database calls.
-
-#### Preload Single Match
-
-```http
-POST /api/matches/live/preload/{matchId}
-Authorization: Admin/Manager required
-```
-
-Preloads a specific match into the live statistics cache.
-
-#### Bulk Preload Matches
-
-```http
-POST /api/matches/live/preload
-Authorization: Admin/Manager required
-Content-Type: application/json
-
-{
-  "matchIds": ["1", "2", "3"]
-}
-```
-
-Preloads multiple matches for optimization.
-
-#### Performance Statistics
+#### 1. Live Match Performance Statistics
 
 ```http
 GET /api/matches/live/performance-stats
-Authorization: Admin/Manager required
+Authorization: Bearer <token> (Roles: Admin, Manager)
 ```
 
-Returns comprehensive performance metrics and cache status.
+Returns operational statistics for active matches, including in-memory cache status, performance indicators, and list of tracked matches.
+
+**Response (200 OK)**:
+```json
+{
+  "totalLiveMatches": 2,
+  "cacheStatus": {
+    "totalCachedMatches": 2,
+    "memoryEfficient": true,
+    "lastRefresh": "2026-09-03T12:00:00Z"
+  },
+  "performance": {
+    "avgResponseTimeMs": "< 5ms (cached)",
+    "databaseCallsReduced": "~90% reduction vs non-cached approach",
+    "concurrentMatchSupport": "Unlimited with O(1) lookup"
+  },
+  "matches": [
+    {
+      "matchId": "101",
+      "homeTeam": "Arsenal",
+      "awayTeam": "Chelsea",
+      "status": "In Progress",
+      "isPreloaded": true
+    }
+  ]
+}
+```
+
+#### 2. Performance Dashboard
+
+```http
+GET /api/matches/performance/dashboard
+Authorization: Bearer <token> (Roles: Admin, Manager)
+```
+
+Returns comprehensive metrics comparing Redis Hot State cache throughput against PostgreSQL database transactions, including read latency reduction and database load offloading percentages.
+
+**Response (200 OK)**:
+```json
+{
+  "timestamp": "2026-09-03T12:00:00Z",
+  "databaseLoadReductionPercent": 87.5,
+  "cacheThroughputOpsPerSec": 4500,
+  "avgCacheLatencyMs": 1.2,
+  "avgDbQueryLatencyMs": 28.6,
+  "activeMatches": 2,
+  "totalProcessedEvents": 4820
+}
+```
 
 ## Usage Examples
 
-### 1. Preloading Matches Before Events Start
+### Monitoring Live Performance
 
 ```javascript
-// Preload matches that are about to start
-const response = await fetch("/api/matches/live/preload", {
-  method: "POST",
+// Query real-time cache and match performance
+const response = await fetch("/api/matches/live/performance-stats", {
   headers: {
-    "Content-Type": "application/json",
     Authorization: "Bearer " + token,
   },
-  body: JSON.stringify({
-    matchIds: ["123", "124", "125"],
-  }),
 });
-
-const result = await response.json();
-console.log(
-  `Preloaded ${result.preloadedCount} matches in ${result.preloadTimeMs}ms`
-);
-```
-
-### 2. Accessing Live Match Data
-
-```javascript
-// Get live match data from cache (sub-5ms response)
-const response = await fetch("/api/matches/live/cached/123");
-const matchData = await response.json();
-
-console.log("Current score:", matchData.homeScore, "-", matchData.awayScore);
-console.log("Possession:", matchData.possession.home + "%");
-```
-
-### 3. Monitoring Performance
-
-```javascript
-// Check system performance
-const response = await fetch("/api/matches/live/performance-stats");
 const stats = await response.json();
 
-console.log("Cache hit ratio:", stats.performance.cacheHitRatio);
-console.log("Avg response time:", stats.performance.avgResponseTimeMs);
-console.log("Total live matches:", stats.totalLiveMatches);
+console.log("Cache hit ratio:", stats.cache.hitRatio);
+console.log("Avg response time:", stats.cache.avgResponseTimeMs + "ms");
+console.log("Active live matches:", stats.activeLiveMatches);
+```
+
+### Accessing the Performance Dashboard
+
+```javascript
+// Query comprehensive performance dashboard
+const response = await fetch("/api/matches/performance/dashboard", {
+  headers: {
+    Authorization: "Bearer " + token,
+  },
+});
+const dashboard = await response.json();
+
+console.log("DB Load Reduction:", dashboard.databaseLoadReductionPercent + "%");
+console.log("Cache Latency:", dashboard.avgCacheLatencyMs + "ms");
 ```
 
 ## Implementation Details

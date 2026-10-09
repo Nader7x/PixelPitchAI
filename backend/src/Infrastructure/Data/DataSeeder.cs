@@ -11,9 +11,22 @@ namespace Infrastructure.Data;
 
 public class DataSeeder(FootballDbContext context, ILogger<DataSeeder> logger)
 {
-    private readonly string _dataFolderPath = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Infrastructure", "Data")
-    );
+    private readonly string _dataFolderPath = ResolveDataFolderPath();
+
+    private static string ResolveDataFolderPath()
+    {
+        var localPath = Path.Combine(AppContext.BaseDirectory, "Data");
+        if (Directory.Exists(localPath))
+            return localPath;
+
+        var devPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Infrastructure", "Data")
+        );
+        if (Directory.Exists(devPath))
+            return devPath;
+
+        return localPath;
+    }
 
     public async Task SeedAllAsync()
     {
