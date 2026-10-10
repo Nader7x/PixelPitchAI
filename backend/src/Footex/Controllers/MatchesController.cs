@@ -12,6 +12,7 @@ using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
 using Footex.Configuration;
+using Infrastructure.Configuration;
 using Infrastructure.Services;
 using Application.CQRS;
 using Microsoft.AspNetCore.Authorization;
@@ -33,7 +34,10 @@ public class MatchesController(
     ILiveMatchStatisticsService liveMatchService,
     ILogger<MatchesController> logger,
     IHubContext<NotificationService, INotificationService> hubContext,
-    ICacheService cacheService
+    ICacheService cacheService,
+    IOptions<EventIngestionOptions>? eventIngestionOptions = null,
+    IMatchStreamingQueue? streamingQueue = null,
+    ISimulationGrpcClient? grpcClient = null
 ) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
@@ -45,6 +49,9 @@ public class MatchesController(
     private readonly IMatchMapper _matchMapper = matchMapper;
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private readonly SimulationServiceOptions _simulationOptions = simulationOptions.Value;
+    private readonly EventIngestionOptions _eventIngestionOptions = eventIngestionOptions?.Value ?? new EventIngestionOptions();
+    private readonly IMatchStreamingQueue? _streamingQueue = streamingQueue;
+    private readonly ISimulationGrpcClient? _grpcClient = grpcClient;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     [HttpGet]
@@ -313,6 +320,114 @@ public class MatchesController(
         if (HasLiveMatch(userId, liveMatchHandler, cancellationToken).Result)
             return BadRequest(new { error = "You Can Not Simulate Two Matches At The Same Time" });
 
+        var homeSeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
+        var awaySeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
+        var homeInMatchName =
+            $"{simulationDto.HomeTeamName.Replace(" ", "_")}_{homeSeasonYear}";
+        var awayInMatchName =
+            $"{simulationDto.AwayTeamName.Replace(" ", "_")}_{awaySeasonYear}";
+
+        // PIPELINE B: Direct memory-to-memory gRPC stream mode
+        if (string.Equals(_eventIngestionOptions.Mode, "GrpcStream", StringComparison.OrdinalIgnoreCase) && _streamingQueue != null && _grpcClient != null)
+        {
+            try
+            {
+                var health = await _grpcClient.GetHealthAsync(cancellationToken);
+                if (!health.Status || !health.ModelLoaded || !health.XgboostLoaded)
+                {
+                    return StatusCode(
+                        StatusCodes.Status503ServiceUnavailable,
+                        new
+                        {
+                            error = "gRPC simulation service is not ready. " + health.Message,
+                            healthDetails = health
+                        }
+                    );
+                }
+
+                var command = new CreateMatchCommand
+                {
+                    HomeTeamId = simulationDto.HomeTeamId,
+                    AwayTeamId = simulationDto.AwayTeamId,
+                    HomeSeasonId = simulationDto.HomeSeasonId,
+                    AwaySeasonId = simulationDto.AwaySeasonId,
+                    HomeTeamInMatchName = homeInMatchName,
+                    AwayTeamInMatchName = awayInMatchName,
+                    ScheduledDateTimeUtc = DateTime.UtcNow,
+                    MatchStatus = "SimulationInProgress",
+                    CreatorId = userId,
+                    ModelSimulationStartTimeUtc = DateTime.UtcNow + TimeSpan.FromSeconds(30),
+                    IsLive = true,
+                };
+                var result = await createMatchHandler.Handle(command, cancellationToken);
+                if (!result.Succeeded)
+                    return BadRequest(result);
+
+                var statusCommand = new UpdateMatchStatusCommand { MatchId = result.Id };
+                var statusResult = await updateStatusHandler.Handle(statusCommand, cancellationToken);
+                if (!statusResult.Succeeded)
+                {
+                    result.Succeeded = false;
+                    result.Error = statusResult.Error;
+                    return BadRequest(result);
+                }
+
+                var grpcSimId = $"grpc_{result.Id}";
+                await _unitOfWork.Matches.UpdateSimulationIdAsync(result.Id, grpcSimId, cancellationToken);
+
+                var grpcRequest = new Infrastructure.Protos.SimulateMatchRequest
+                {
+                    MatchId = result.Id.ToString(),
+                    HomeTeamId = simulationDto.HomeTeamId,
+                    AwayTeamId = simulationDto.AwayTeamId,
+                    HomeTeamName = simulationDto.HomeTeamName,
+                    AwayTeamName = simulationDto.AwayTeamName,
+                    HomeTeamSeason = simulationDto.HomeTeamSeason,
+                    AwayTeamSeason = simulationDto.AwayTeamSeason,
+                    NumTokensToGenerate = simulationDto.NumTokensToGenerate ?? 2000,
+                    Temperature = 0.7f,
+                    TopP = 0.9f,
+                    TopK = 50,
+                    MaxNewTokens = 1024,
+                    PublishToRabbitmq = false
+                };
+
+                await _streamingQueue.EnqueueAsync(grpcRequest, cancellationToken);
+
+                var notification = new Notification
+                {
+                    UserId = userId,
+                    Content =
+                        $"Your match simulation for {simulationDto.HomeTeamName} vs {simulationDto.AwayTeamName} has started.We will keep you updated with the results.",
+                    Type = NotificationType.SimulationStart,
+                    Title = "Match Simulation Started",
+                };
+                var notificationCommand = new CreateNotificationCommand { Notification = notification };
+                var notificationResult = await notificationHandler.Handle(notificationCommand, cancellationToken);
+                if (!notificationResult.Succeeded)
+                {
+                    _logger.LogError("Failed to create notification for simulation start: {Error}", notificationResult.Error);
+                }
+
+                result.ApiResponse = new StartMatchResponse
+                {
+                    SimulationId = grpcSimId,
+                    MatchId = result.Id,
+                    HomeTeamName = simulationDto.HomeTeamName,
+                    AwayTeamName = simulationDto.AwayTeamName,
+                    HomeTeamSeason = simulationDto.HomeTeamSeason,
+                    AwayTeamSeason = simulationDto.AwayTeamSeason,
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start gRPC match simulation for user {UserId}", userId);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Failed to communicate with gRPC simulation service");
+            }
+        }
+
         var httpClient = httpClientFactory.CreateClient();
 
         try
@@ -360,12 +475,6 @@ public class MatchesController(
             }
 
             // Create match in database
-            var homeSeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
-            var awaySeasonYear = simulationDto.AwayTeamSeason.Split("/")[1];
-            var homeInMatchName =
-                $"{simulationDto.HomeTeamName.Replace(" ", "_")}_{homeSeasonYear}";
-            var awayInMatchName =
-                $"{simulationDto.AwayTeamName.Replace(" ", "_")}_{awaySeasonYear}";
             var command = new CreateMatchCommand
             {
                 HomeTeamId = simulationDto.HomeTeamId,

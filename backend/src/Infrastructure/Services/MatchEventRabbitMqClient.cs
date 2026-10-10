@@ -42,6 +42,7 @@ public class MatchEventRabbitMqClient : BackgroundService
     private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IMatchEventBroadcaster? _broadcaster;
+    private readonly IMatchEventProcessor? _matchEventProcessor;
 
     private IChannel? _channel;
 
@@ -57,7 +58,8 @@ public class MatchEventRabbitMqClient : BackgroundService
         IOptions<RabbitMqOptions> rabbitMqOptions,
         ILiveMatchStatisticsService liveMatchStatisticsService,
         IConnectionFactory? injectedConnectionFactory = null,
-        IMatchEventBroadcaster? broadcaster = null
+        IMatchEventBroadcaster? broadcaster = null,
+        IMatchEventProcessor? matchEventProcessor = null
     )
     {
         _logger = logger;
@@ -66,6 +68,7 @@ public class MatchEventRabbitMqClient : BackgroundService
         _performanceMonitoringService = performanceMonitoringService;
         _liveMatchStatisticsService = liveMatchStatisticsService;
         _broadcaster = broadcaster;
+        _matchEventProcessor = matchEventProcessor;
         _rabbitMqSettings = rabbitMqOptions.Value;
         _injectedConnectionFactory = injectedConnectionFactory;
 
@@ -246,7 +249,9 @@ public class MatchEventRabbitMqClient : BackgroundService
             Match? matchEntity = null;
             if (rawMatchId != "0" && int.TryParse(rawMatchId, out var matchIdVal) && matchIdVal > 0)
             {
-                matchEntity = await GetOrLoadMatchEntity(rawMatchId);
+                matchEntity = _matchEventProcessor != null
+                    ? await _matchEventProcessor.GetOrLoadMatchEntityAsync(rawMatchId)
+                    : await GetOrLoadMatchEntity(rawMatchId);
             }
 
             var bodyMemory = ea.Body;
@@ -259,10 +264,12 @@ public class MatchEventRabbitMqClient : BackgroundService
                 Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
                 Encoding.UTF8.GetChars(bodySpan, chars);
 
-                var (currentHome, currentAway) = _matchScores.GetOrAdd(
-                    rawMatchId,
-                    _ => (matchEntity?.HomeTeamScore ?? 0, matchEntity?.AwayTeamScore ?? 0)
-                );
+                var (currentHome, currentAway) = _matchEventProcessor != null
+                    ? _matchEventProcessor.GetOrInitMatchScore(rawMatchId, matchEntity)
+                    : _matchScores.GetOrAdd(
+                        rawMatchId,
+                        _ => (matchEntity?.HomeTeamScore ?? 0, matchEntity?.AwayTeamScore ?? 0)
+                    );
                 var homeScore = currentHome;
                 var awayScore = currentAway;
 
@@ -279,7 +286,10 @@ public class MatchEventRabbitMqClient : BackgroundService
 
                 if (homeScore != currentHome || awayScore != currentAway)
                 {
-                    _matchScores[rawMatchId] = (homeScore, awayScore);
+                    if (_matchEventProcessor != null)
+                        _matchEventProcessor.UpdateMatchScore(rawMatchId, homeScore, awayScore);
+                    else
+                        _matchScores[rawMatchId] = (homeScore, awayScore);
                 }
             }
 
@@ -294,45 +304,64 @@ public class MatchEventRabbitMqClient : BackgroundService
             }
             if (matchEvent?.match_id != null)
             {
-                matchEntity ??= await GetOrLoadMatchEntity(matchEvent.match_id);
-                if (matchEntity != null)
+                if (_matchEventProcessor != null)
                 {
-                    if (matchEvent.Score != null)
-                    {
-                        matchEntity.HomeTeamScore = matchEvent.Score.Home;
-                        matchEntity.AwayTeamScore = matchEvent.Score.Away;
-                    }
-                    await ProcessMatchEventWithEntity(matchEvent, matchEntity);
-                }
-                await CacheMatchEvent(matchEvent);
-                if (matchEvent is { event_type: "match_end", action: "match_end" })
-                {
+                    matchEntity ??= await _matchEventProcessor.GetOrLoadMatchEntityAsync(matchEvent.match_id);
                     if (matchEntity != null)
                     {
-                        matchEntity.IsLive = false;
+                        await _matchEventProcessor.ProcessEventAsync(matchEvent, matchEntity, stoppingToken);
+                    }
+                    if (matchEvent is { event_type: "match_end", action: "match_end" })
+                    {
+                        await _matchEventProcessor.FlushAndPersistMatchAsync(matchEvent.match_id, isNormalEnd: true, cancellationToken: stoppingToken);
+                        _logger.LogInformation(
+                            "Removed match {MatchId} from cache after match end",
+                            matchEvent.match_id
+                        );
+                    }
+                }
+                else
+                {
+                    matchEntity ??= await GetOrLoadMatchEntity(matchEvent.match_id);
+                    if (matchEntity != null)
+                    {
                         if (matchEvent.Score != null)
                         {
                             matchEntity.HomeTeamScore = matchEvent.Score.Home;
                             matchEntity.AwayTeamScore = matchEvent.Score.Away;
                         }
+                        await ProcessMatchEventWithEntity(matchEvent, matchEntity);
                     }
-                    await SaveMatchEventsToDatabase(matchEvent.match_id);
-                    _loadedMatches.TryRemove(matchEvent.match_id, out _);
-                    _matchScores.TryRemove(matchEvent.match_id, out _);
-                    _logger.LogInformation(
-                        "Removed match {MatchId} from cache after match end",
-                        matchEvent.match_id
-                    );
-                }
-
-                await BroadcastEventToClients(matchEvent);
-
-                if (IsSignificantEvent(matchEvent))
-                    if (matchEntity != null)
+                    await CacheMatchEvent(matchEvent);
+                    if (matchEvent is { event_type: "match_end", action: "match_end" })
                     {
-                        await BroadcastMatchStatistics(matchEvent, matchEntity);
-                        await _liveMatchStatisticsService.AddMatchToLiveStatistics(matchEntity);
+                        if (matchEntity != null)
+                        {
+                            matchEntity.IsLive = false;
+                            if (matchEvent.Score != null)
+                            {
+                                matchEntity.HomeTeamScore = matchEvent.Score.Home;
+                                matchEntity.AwayTeamScore = matchEvent.Score.Away;
+                            }
+                        }
+                        await SaveMatchEventsToDatabase(matchEvent.match_id);
+                        _loadedMatches.TryRemove(matchEvent.match_id, out _);
+                        _matchScores.TryRemove(matchEvent.match_id, out _);
+                        _logger.LogInformation(
+                            "Removed match {MatchId} from cache after match end",
+                            matchEvent.match_id
+                        );
                     }
+
+                    await BroadcastEventToClients(matchEvent);
+
+                    if (IsSignificantEvent(matchEvent))
+                        if (matchEntity != null)
+                        {
+                            await BroadcastMatchStatistics(matchEvent, matchEntity);
+                            await _liveMatchStatisticsService.AddMatchToLiveStatistics(matchEntity);
+                        }
+                }
             }
 
             if (_channel is { IsOpen: true })

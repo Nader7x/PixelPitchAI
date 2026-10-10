@@ -148,11 +148,17 @@ public static class DependencyInjection
         // Configure RabbitMQ options
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
 
+        // Configure Event Ingestion options (Pipeline A: RabbitMQ vs Pipeline B: GrpcStream)
+        services.Configure<EventIngestionOptions>(configuration.GetSection(EventIngestionOptions.SectionName));
+
         // Configure Simulation gRPC options & services
         services.Configure<SimulationGrpcOptions>(configuration.GetSection(SimulationGrpcOptions.SectionName));
         services.AddSingleton<ISimulationGrpcClient, SimulationGrpcClient>();
         services.AddSingleton<IMatchEventBroadcaster, MatchEventBroadcaster>();
+        services.AddSingleton<IMatchEventProcessor, MatchEventProcessor>();
         services.AddSingleton<IMatchEventGrpcStreamConsumer, MatchEventGrpcStreamConsumer>();
+        services.AddSingleton<IMatchStreamingQueue, MatchStreamingQueue>();
+        services.AddHostedService<MatchStreamWorker>();
 
         // Register EventAnalysis service
         services.AddSingleton<IEventAnalysisService, EventAnalysisService>();
