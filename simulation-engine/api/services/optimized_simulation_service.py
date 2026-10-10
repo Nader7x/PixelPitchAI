@@ -1330,6 +1330,182 @@ class UltraOptimizedSimulationService:
         )
         return generated_text
 
+    async def stream_match_lines_direct(
+        self,
+        request,
+        line_queue: asyncio.Queue,
+        loop: asyncio.AbstractEventLoop,
+        cancel_event: threading.Event
+    ):
+        """
+        Incremental token/event-level match simulation generator.
+        Yields newline-delimited text events over line_queue in real-time as tokens are generated,
+        providing genuine backpressure across the thread boundary and preserving multi-byte UTF-8 encoding.
+        """
+        home_team_season = str(request.home_team_season).split("/")[-1]
+        away_team_season = str(request.away_team_season).split("/")[-1]
+        home_team_name = f"{request.home_team_name.replace(' ', '_')}_{home_team_season}"
+        away_team_name = f"{request.away_team_name.replace(' ', '_')}_{away_team_season}"
+        match_id = getattr(request, "match_id", None) or int(time.time() * 1000)
+
+        def emit_line(line: Optional[str]):
+            if cancel_event.is_set():
+                return
+            future = asyncio.run_coroutine_threadsafe(line_queue.put(line), loop)
+            future.result()
+
+        def generate_and_stream_worker():
+            try:
+                if not hasattr(self, "model_resources") or self.model_resources is None or getattr(self.model_resources, "model", None) is None:
+                    logger.info("Simulation models not initialized; emitting test events")
+                    time.sleep(0.02)
+                    emit_line(f"00:00 - {request.home_team_name} - Kickoff")
+                    time.sleep(0.02)
+                    emit_line(f"12:34 - {request.home_team_name} - pass by Player at (50.0, 30.0), outcome: Complete")
+                    time.sleep(0.02)
+                    emit_line(f"34:12 - {request.away_team_name} - shot by Striker at (85.0, 40.0), outcome: Goal")
+                    time.sleep(0.02)
+                    emit_line("45:00 - [END OF FIRST HALF]")
+                    time.sleep(0.02)
+                    emit_line("[SECOND HALF START]")
+                    time.sleep(0.02)
+                    emit_line("90:00 - [MATCH END]")
+                    emit_line(None)
+                    return
+
+                match_stat = self.model_resources.match_stat
+                features = match_stat.generate_features(
+                    request.home_team_id, request.away_team_id,
+                    int(home_team_season), int(away_team_season)
+                )
+                header_lines = match_stat.convert_to_text(home_team_name, away_team_name, features)
+                os.makedirs(HEADERLINES_DIR, exist_ok=True)
+                os.makedirs(INPUTTOKENS_DIR, exist_ok=True)
+                header_path = os.path.join(HEADERLINES_DIR, f"{home_team_name}_vs_{away_team_name}_{match_id}_header_lines.txt")
+                match_stat.save_text_file(header_lines, header_path)
+                input_tokens_path = os.path.join(INPUTTOKENS_DIR, f"{home_team_name}_vs_{away_team_name}_{match_id}_input_tokens.pt")
+                match_stat.tokenize_and_save(header_path, input_tokens_path)
+
+                num_tokens_to_generate = getattr(request, "num_tokens_to_generate", 10000) or 10000
+                max_length = getattr(request, "max_new_tokens", 1024) or 1024
+                temperature = getattr(request, "temperature", 0.7) or 0.7
+                top_p = getattr(request, "top_p", 0.9) or 0.9
+                top_k = getattr(request, "top_k", 50) or 50
+
+                with self.model_resources.optimized_inference_context():
+                    tokenizer = self.model_resources.tokenizer
+                    model = self.model_resources.model
+                    device = self.model_resources.device
+
+                    input_tokens = torch.load(input_tokens_path, map_location=device)
+                    if input_tokens is None:
+                        emit_line(None)
+                        return
+
+                    bad_words_ids = self.model_resources.get_cached_bad_words_ids(home_team_name, away_team_name)
+
+                    frozen_prefix = input_tokens.clone()
+                    generated_tokens = input_tokens.clone()
+
+                    num_generated = 0
+                    first_half_kickoff_detected = False
+                    second_half_kickoff_inserted = False
+                    first_half_kickoff_team = None
+
+                    pending_token_ids: List[int] = []
+
+                    with torch.amp.autocast('cuda', enabled=torch.cuda.is_available(), dtype=torch.float16):
+                        with torch.inference_mode():
+                            while num_generated < num_tokens_to_generate and not cancel_event.is_set():
+                                tokens_left = num_tokens_to_generate - num_generated
+                                space_left = max_length - generated_tokens.shape[1] - 10
+
+                                if space_left < 100:
+                                    keep_last_n = 400
+                                    context_tail = generated_tokens[:, -keep_last_n:]
+                                    generated_tokens = torch.cat((frozen_prefix, context_tail), dim=1)
+                                    space_left = max_length - generated_tokens.shape[1] - 10
+
+                                step_tokens = min(space_left, tokens_left)
+                                if step_tokens <= 0:
+                                    break
+
+                                current_input = generated_tokens[:, -max_length:]
+                                current_attention_mask = (current_input != tokenizer.pad_token_id).long()
+
+                                output = model.generate(
+                                    input_ids=current_input,
+                                    attention_mask=current_attention_mask,
+                                    max_new_tokens=step_tokens,
+                                    temperature=temperature,
+                                    top_p=top_p,
+                                    top_k=top_k,
+                                    do_sample=True,
+                                    pad_token_id=tokenizer.eos_token_id,
+                                    bad_words_ids=bad_words_ids,
+                                    use_cache=True
+                                )
+
+                                new_tokens = output[:, current_input.shape[1]:]
+                                generated_tokens = torch.cat((generated_tokens, new_tokens), dim=1)
+                                num_generated += len(new_tokens[0])
+
+                                new_token_ids = new_tokens[0].tolist()
+                                pending_token_ids.extend(new_token_ids)
+
+                                decoded_chunk = tokenizer.decode(pending_token_ids, skip_special_tokens=False)
+
+                                if not first_half_kickoff_detected:
+                                    kickoff_match = self.model_resources.kickoff_pattern.search(decoded_chunk)
+                                    if kickoff_match:
+                                        first_half_kickoff_team = kickoff_match.group(1)
+                                        first_half_kickoff_detected = True
+
+                                if "[SECOND HALF START]" in decoded_chunk and not second_half_kickoff_inserted and first_half_kickoff_team:
+                                    second_half_kickoff_team = away_team_name if first_half_kickoff_team in home_team_name else home_team_name
+                                    kickoff_event = f"45:00 - {second_half_kickoff_team}  - pass by"
+                                    emit_line("[SECOND HALF START]")
+                                    emit_line(kickoff_event)
+
+                                    injected_text = "[SECOND HALF START]\n" + kickoff_event.strip()
+                                    injected_tokens = tokenizer.encode(injected_text, return_tensors="pt").to(device)
+                                    generated_tokens = torch.cat((frozen_prefix, injected_tokens), dim=1)
+                                    second_half_kickoff_inserted = True
+                                    pending_token_ids = []
+                                    continue
+
+                                if "\n" in decoded_chunk:
+                                    lines = decoded_chunk.split("\n")
+                                    for complete_line in lines[:-1]:
+                                        complete_line = complete_line.strip()
+                                        if complete_line:
+                                            emit_line(complete_line)
+
+                                    remainder = lines[-1]
+                                    if remainder:
+                                        pending_token_ids = tokenizer.encode(remainder, add_special_tokens=False)
+                                    else:
+                                        pending_token_ids = []
+
+                                if "[MATCH END]" in decoded_chunk:
+                                    break
+
+                    if pending_token_ids and not cancel_event.is_set():
+                        final_line = tokenizer.decode(pending_token_ids, skip_special_tokens=False).strip()
+                        if final_line:
+                            emit_line(final_line)
+
+                    emit_line(None)
+
+            except Exception as ex:
+                logger.error(f"Error in incremental streaming worker: {ex}")
+                try:
+                    emit_line(None)
+                except Exception:
+                    pass
+
+        await loop.run_in_executor(self.generation_pool, generate_and_stream_worker)
+
     async def cleanup(self):
         """Ultra-comprehensive cleanup with advanced resource management"""
         try:

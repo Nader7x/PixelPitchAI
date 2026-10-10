@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sys
+import threading
 import time
 from typing import AsyncIterator
 
@@ -50,9 +51,13 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
         )
 
     async def StartMatchSimulationStream(self, request, context) -> AsyncIterator[simulation_pb2.MatchEventRaw]:
-        logger.info(f"[gRPC] StartMatchSimulationStream initiated for match {request.match_id}")
-        sim_id = f"sim_{request.match_id}_{int(time.time())}"
+        publish_rmq = getattr(request, "publish_to_rabbitmq", False)
+        logger.info(f"[gRPC] StartMatchSimulationStream initiated for match {request.match_id} (publish_to_rabbitmq={publish_rmq})")
         event_index = 0
+
+        queue = asyncio.Queue(maxsize=50)
+        cancel_event = threading.Event()
+        loop = asyncio.get_running_loop()
 
         # Yield MATCH START event immediately
         event_index += 1
@@ -64,56 +69,71 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
             is_end_of_match=False
         )
 
-        # Run text generation and stream events as they are produced
+        gen_task = None
+        if self.simulation_service and hasattr(self.simulation_service, "stream_match_lines_direct"):
+            gen_task = asyncio.create_task(
+                self.simulation_service.stream_match_lines_direct(
+                    request, queue, loop, cancel_event
+                )
+            )
+        else:
+            async def mock_stream():
+                await asyncio.sleep(0.02)
+                await queue.put(f"00:00 - {request.home_team_name} - pass by Player at (50.0, 30.0), outcome: Complete")
+                await asyncio.sleep(0.02)
+                await queue.put("[MATCH END]")
+                await queue.put(None)
+
+            gen_task = asyncio.create_task(mock_stream())
+
         try:
-            if self.simulation_service:
-                # Generate simulation text
-                generated_text = await self.simulation_service.generate_match_text_direct(request)
-                lines = generated_text.strip().split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        continue
+            while True:
+                if context.is_active() is False:
+                    cancel_event.set()
+                    break
 
-                    event_index += 1
-                    is_end = "[MATCH END]" in line
+                line = await queue.get()
+                if line is None:
+                    break
 
-                    # Also publish to RabbitMQ (Pipeline A raw stream) without blocking the asyncio loop
+                line = line.strip()
+                if not line or line == "[MATCH START]":
+                    continue
+
+                event_index += 1
+                is_end = "[MATCH END]" in line
+
+                # Only publish to RabbitMQ if request explicitly asked for it
+                if publish_rmq:
                     try:
-                        loop = asyncio.get_running_loop()
                         await loop.run_in_executor(None, self.producer.publish_raw_event, line, request.match_id)
                     except Exception as mq_ex:
                         logger.warning(f"RabbitMQ publish warning: {mq_ex}")
 
-                    # Stream to direct gRPC caller (Pipeline B)
-                    yield simulation_pb2.MatchEventRaw(
-                        match_id=request.match_id,
-                        event_index=event_index,
-                        raw_event_text=line,
-                        timestamp_utc=int(time.time() * 1000),
-                        is_end_of_match=is_end
-                    )
-            else:
-                # Fallback mock for testing
+                # Stream to direct gRPC caller (Pipeline B)
                 yield simulation_pb2.MatchEventRaw(
                     match_id=request.match_id,
-                    event_index=2,
-                    raw_event_text=f"00:00 - {request.home_team_name} - pass by Player at (50.0, 30.0), outcome: Complete",
+                    event_index=event_index,
+                    raw_event_text=line,
                     timestamp_utc=int(time.time() * 1000),
-                    is_end_of_match=False
-                )
-                yield simulation_pb2.MatchEventRaw(
-                    match_id=request.match_id,
-                    event_index=3,
-                    raw_event_text="[MATCH END]",
-                    timestamp_utc=int(time.time() * 1000),
-                    is_end_of_match=True
+                    is_end_of_match=is_end
                 )
 
+                if is_end:
+                    break
+
         except Exception as ex:
+            cancel_event.set()
             logger.error(f"[gRPC] Error in StartMatchSimulationStream: {ex}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(ex))
+        finally:
+            cancel_event.set()
+            if gen_task:
+                try:
+                    await gen_task
+                except Exception as e:
+                    logger.debug(f"Generator task completed/canceled: {e}")
 
     async def GetHealth(self, request, context):
         model_loaded = False
