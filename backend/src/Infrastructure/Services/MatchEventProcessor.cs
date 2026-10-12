@@ -188,12 +188,13 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
     public async Task FlushAndPersistMatchAsync(string matchId, bool isNormalEnd = true, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        var saved = false;
         try
         {
             List<FootballMatchEvent>? events;
             lock (_matchEventsCacheLock)
             {
-                _matchEventsCache.Remove(matchId, out events);
+                events = _matchEventsCache.TryGetValue(matchId, out var cached) ? [.. cached] : null;
             }
 
             if (!int.TryParse(matchId, out var parsedMatchId))
@@ -216,13 +217,8 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
 
             if (matchToUpdate == null)
             {
-                _logger.LogWarning("Match {Id} not found for saving events.", matchId);
-                ClearMatch(matchId);
-                return;
+                throw new InvalidOperationException($"Match {matchId} not found for saving events.");
             }
-
-            matchToUpdate.IsLive = false;
-            matchToUpdate.MatchStatus = isNormalEnd ? "Completed" : "Truncated";
 
             if (events != null && events.Count > 0)
             {
@@ -239,7 +235,7 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
                     matchToUpdate.MatchEvents = matchEventsEntity;
                 }
 
-                foreach (var ev in events.OrderBy(e => e.time_seconds))
+                foreach (var ev in events.OrderBy(e => e.time_seconds).ThenBy(e => e.event_index))
                 {
                     await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
                 }
@@ -256,8 +252,14 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
                 matchEventsEntity.LastUpdated = DateTime.UtcNow;
             }
 
+            // Event analysis handles match-start/halftime markers; terminal state
+            // must be assigned after replay so those markers cannot reopen a match.
+            matchToUpdate.IsLive = false;
+            matchToUpdate.MatchStatus = isNormalEnd ? "Completed" : "Truncated";
+            matchToUpdate.UpdatedAt = DateTime.UtcNow;
             var saveStopwatch = Stopwatch.StartNew();
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            saved = true;
             saveStopwatch.Stop();
             _performanceMonitoringService.RecordDatabaseCall(
                 "SaveChanges_MatchEvents",
@@ -275,12 +277,17 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving events for match {Id}", matchId);
+            throw;
         }
         finally
         {
             stopwatch.Stop();
-            ClearMatch(matchId);
-            _broadcaster?.ClearReplayBuffer(matchId);
+            if (saved)
+            {
+                ClearMatch(matchId);
+                _liveMatchStatisticsService.RemoveFromLiveCache(matchId);
+                _broadcaster?.ClearReplayBuffer(matchId);
+            }
         }
     }
 

@@ -94,18 +94,17 @@ public sealed class MatchEventBroadcaster : IMatchEventBroadcaster
 
         // Replay recent buffered events to late-connecting subscribers
         var lastReplayedIndex = 0;
-        if (_recentMessages.TryGetValue(matchId, out var recentBuffer))
-        {
-            var replaySnapshot = recentBuffer.ToArray();
-            foreach (var replayMsg in replaySnapshot)
-            {
-                lastReplayedIndex = Math.Max(lastReplayedIndex, replayMsg.EventIndex);
-                yield return replayMsg;
-            }
-        }
-
         try
         {
+            if (_recentMessages.TryGetValue(matchId, out var recentBuffer))
+            {
+                foreach (var replayMsg in recentBuffer.ToArray())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    lastReplayedIndex = Math.Max(lastReplayedIndex, replayMsg.EventIndex);
+                    yield return replayMsg;
+                }
+            }
             while (!cancellationToken.IsCancellationRequested)
             {
                 var waitTask = channel.Reader.WaitToReadAsync(cancellationToken).AsTask();

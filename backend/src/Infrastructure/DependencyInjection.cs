@@ -158,6 +158,7 @@ public static class DependencyInjection
         services.AddSingleton<IMatchEventProcessor, MatchEventProcessor>();
         services.AddSingleton<IMatchEventGrpcStreamConsumer, MatchEventGrpcStreamConsumer>();
         services.AddSingleton<IMatchStreamingQueue, MatchStreamingQueue>();
+        services.AddSingleton<IMatchStreamLifecycle, MatchStreamLifecycle>();
         services.AddHostedService<MatchStreamWorker>();
 
         // Register EventAnalysis service

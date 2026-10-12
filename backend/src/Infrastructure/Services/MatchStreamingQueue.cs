@@ -8,6 +8,9 @@ namespace Infrastructure.Services;
 /// </summary>
 public interface IMatchStreamingQueue
 {
+    bool TryEnqueue(SimulateMatchRequest request);
+    void Complete();
+    bool TryRead(out SimulateMatchRequest? request);
     ValueTask EnqueueAsync(SimulateMatchRequest request, CancellationToken cancellationToken = default);
     IAsyncEnumerable<SimulateMatchRequest> ReadAllAsync(CancellationToken cancellationToken = default);
 }
@@ -34,6 +37,10 @@ public sealed class MatchStreamingQueue : IMatchStreamingQueue
     {
         return _channel.Writer.WriteAsync(request, cancellationToken);
     }
+
+    public bool TryEnqueue(SimulateMatchRequest request) => _channel.Writer.TryWrite(request);
+    public void Complete() => _channel.Writer.TryComplete();
+    public bool TryRead(out SimulateMatchRequest? request) => _channel.Reader.TryRead(out request);
 
     public IAsyncEnumerable<SimulateMatchRequest> ReadAllAsync(CancellationToken cancellationToken = default)
     {

@@ -89,7 +89,7 @@ service SimulationService {
 
 ### RPC Methods
 * **`StartMatchSimulation`** (Unary): Asynchronously starts a match simulation in background tasks and returns an initial `StartMatchResponse` containing `simulation_id` and status.
-* **`StartMatchSimulationStream`** (Server-Streaming): Streams match events in real time as `MatchEventRaw` messages (Pipeline B) while simultaneously publishing each event to RabbitMQ (Pipeline A).
+* **`StartMatchSimulationStream`** (Server-Streaming): Streams generated event lines as `MatchEventRaw` messages (Pipeline B). Set `publish_to_rabbitmq=true` to additionally publish to RabbitMQ; backend Pipeline B requests use `false` to avoid duplicate ingestion. Cancellation releases bounded queue writes and stops inference at its next generation step. UTF-8 bytes are assembled before line decoding.
 * **`GetHealth`** (Unary): Returns engine health status, including whether the PyTorch/ONNX model and XGBoost model weights are loaded.
 
 ---

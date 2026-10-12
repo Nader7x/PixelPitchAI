@@ -26,6 +26,17 @@ from fastapi import HTTPException
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, BatchEncoding, StoppingCriteria, StoppingCriteriaList
 from typing import Optional, List, Tuple, Dict, Any
 from xgboost import XGBRegressor
+from api.services.streaming import StreamFailure, TokenLineBuffer, put_from_thread
+
+
+class CancellationStoppingCriteria(StoppingCriteria):
+    """Stop inference at the next generation step after the client disconnects."""
+
+    def __init__(self, cancel_event):
+        self.cancel_event = cancel_event
+
+    def __call__(self, input_ids, scores, **kwargs):
+        return self.cancel_event.is_set()
 
 # Advanced optimization imports
 try:
@@ -1349,10 +1360,7 @@ class UltraOptimizedSimulationService:
         match_id = getattr(request, "match_id", None) or int(time.time() * 1000)
 
         def emit_line(line: Optional[str]):
-            if cancel_event.is_set():
-                return
-            future = asyncio.run_coroutine_threadsafe(line_queue.put(line), loop)
-            future.result()
+            return put_from_thread(line_queue, line, loop, cancel_event)
 
         def generate_and_stream_worker():
             try:
@@ -1365,11 +1373,11 @@ class UltraOptimizedSimulationService:
                     time.sleep(0.02)
                     emit_line(f"34:12 - {request.away_team_name} - shot by Striker at (85.0, 40.0), outcome: Goal")
                     time.sleep(0.02)
-                    emit_line("45:00 - [END OF FIRST HALF]")
+                    emit_line("[END OF FIRST HALF]")
                     time.sleep(0.02)
                     emit_line("[SECOND HALF START]")
                     time.sleep(0.02)
-                    emit_line("90:00 - [MATCH END]")
+                    emit_line("[MATCH END]")
                     emit_line(None)
                     return
 
@@ -1412,7 +1420,7 @@ class UltraOptimizedSimulationService:
                     second_half_kickoff_inserted = False
                     first_half_kickoff_team = None
 
-                    pending_token_ids: List[int] = []
+                    line_buffer = TokenLineBuffer(tokenizer)
 
                     with torch.amp.autocast('cuda', enabled=torch.cuda.is_available(), dtype=torch.float16):
                         with torch.inference_mode():
@@ -1443,7 +1451,8 @@ class UltraOptimizedSimulationService:
                                     do_sample=True,
                                     pad_token_id=tokenizer.eos_token_id,
                                     bad_words_ids=bad_words_ids,
-                                    use_cache=True
+                                    use_cache=True,
+                                    stopping_criteria=StoppingCriteriaList([CancellationStoppingCriteria(cancel_event)])
                                 )
 
                                 new_tokens = output[:, current_input.shape[1]:]
@@ -1451,9 +1460,9 @@ class UltraOptimizedSimulationService:
                                 num_generated += len(new_tokens[0])
 
                                 new_token_ids = new_tokens[0].tolist()
-                                pending_token_ids.extend(new_token_ids)
-
-                                decoded_chunk = tokenizer.decode(pending_token_ids, skip_special_tokens=False)
+                                line_buffer.append(new_token_ids)
+                                # Inspect ASCII markers without decoding incomplete UTF-8.
+                                decoded_chunk = bytes(line_buffer.pending).decode("utf-8", errors="ignore")
 
                                 if not first_half_kickoff_detected:
                                     kickoff_match = self.model_resources.kickoff_pattern.search(decoded_chunk)
@@ -1462,47 +1471,38 @@ class UltraOptimizedSimulationService:
                                         first_half_kickoff_detected = True
 
                                 if "[SECOND HALF START]" in decoded_chunk and not second_half_kickoff_inserted and first_half_kickoff_team:
+                                    prefix, _, _ = bytes(line_buffer.pending).partition(b"[SECOND HALF START]")
+                                    for line in prefix.decode("utf-8", errors="strict").splitlines():
+                                        if line.strip():
+                                            emit_line(line.strip())
                                     second_half_kickoff_team = away_team_name if first_half_kickoff_team in home_team_name else home_team_name
                                     kickoff_event = f"45:00 - {second_half_kickoff_team}  - pass by"
                                     emit_line("[SECOND HALF START]")
-                                    emit_line(kickoff_event)
 
                                     injected_text = "[SECOND HALF START]\n" + kickoff_event.strip()
                                     injected_tokens = tokenizer.encode(injected_text, return_tensors="pt").to(device)
                                     generated_tokens = torch.cat((frozen_prefix, injected_tokens), dim=1)
                                     second_half_kickoff_inserted = True
-                                    pending_token_ids = []
+                                    line_buffer.pending = bytearray(kickoff_event.encode("utf-8"))
                                     continue
 
-                                if "\n" in decoded_chunk:
-                                    lines = decoded_chunk.split("\n")
-                                    for complete_line in lines[:-1]:
-                                        complete_line = complete_line.strip()
-                                        if complete_line:
-                                            emit_line(complete_line)
-
-                                    remainder = lines[-1]
-                                    if remainder:
-                                        pending_token_ids = tokenizer.encode(remainder, add_special_tokens=False)
-                                    else:
-                                        pending_token_ids = []
+                                for complete_line in line_buffer.lines():
+                                    if complete_line:
+                                        emit_line(complete_line)
 
                                 if "[MATCH END]" in decoded_chunk:
                                     break
 
-                    if pending_token_ids and not cancel_event.is_set():
-                        final_line = tokenizer.decode(pending_token_ids, skip_special_tokens=False).strip()
-                        if final_line:
-                            emit_line(final_line)
+                    if not cancel_event.is_set():
+                        for final_line in line_buffer.lines(final=True):
+                            if final_line:
+                                emit_line(final_line)
 
                     emit_line(None)
 
             except Exception as ex:
                 logger.error(f"Error in incremental streaming worker: {ex}")
-                try:
-                    emit_line(None)
-                except Exception:
-                    pass
+                put_from_thread(line_queue, StreamFailure(ex), loop, cancel_event)
 
         await loop.run_in_executor(self.generation_pool, generate_and_stream_worker)
 

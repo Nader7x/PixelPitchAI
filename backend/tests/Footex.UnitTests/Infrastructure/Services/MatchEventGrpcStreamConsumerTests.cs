@@ -76,7 +76,7 @@ public class MatchEventGrpcStreamConsumerTests
         await _consumer.StartConsumingMatchStreamAsync(request, CancellationToken.None);
 
         _mockProcessor.Verify(p => p.ProcessEventAsync(It.IsAny<FootballMatchEvent>(), match, It.IsAny<CancellationToken>()), Times.AtLeast(2));
-        _mockProcessor.Verify(p => p.FlushAndPersistMatchAsync("100", true, CancellationToken.None), Times.Once);
+        _mockProcessor.Verify(p => p.FlushAndPersistMatchAsync("100", true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -115,6 +115,24 @@ public class MatchEventGrpcStreamConsumerTests
 
         await _consumer.StartConsumingMatchStreamAsync(request, cts.Token);
 
-        _mockProcessor.Verify(p => p.FlushAndPersistMatchAsync("101", false, CancellationToken.None), Times.Once);
+        _mockProcessor.Verify(p => p.FlushAndPersistMatchAsync("101", false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("90:00 - [MATCH END]")]
+    public async Task TerminalFlagIsAuthoritativeEvenWhenTextCannotBeParsed(string text)
+    {
+        var request = new SimulateMatchRequest { MatchId = "42" };
+        var match = new Match { Id = 42, CreatorId = "user" };
+        _mockProcessor.Setup(p => p.GetOrLoadMatchEntityAsync("42")).ReturnsAsync(match);
+        async IAsyncEnumerable<MatchEventRaw> Stream()
+        {
+            yield return new MatchEventRaw { MatchId = "42", RawEventText = text, IsEndOfMatch = true };
+            await Task.CompletedTask;
+        }
+        _mockGrpcClient.Setup(c => c.StreamMatchEventsAsync(request, It.IsAny<CancellationToken>())).Returns(Stream());
+        await _consumer.StartConsumingMatchStreamAsync(request, default);
+        _mockProcessor.Verify(p => p.FlushAndPersistMatchAsync("42", true, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

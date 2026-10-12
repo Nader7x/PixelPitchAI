@@ -4,6 +4,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using Domain.Repositories;
 using Infrastructure.Services;
+using Infrastructure.Services.EventProcessors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -151,5 +152,40 @@ public class MatchEventProcessorTests
         Assert.False(match.IsLive);
         Assert.Equal("Truncated", match.MatchStatus);
         _mockUnitOfWork.Verify(u => u.SaveChangesAsync(default), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false, "Truncated")]
+    [InlineData(true, "Completed")]
+    public async Task FinalStateSurvivesRealStatusEventReplay(bool normalEnd, string expected)
+    {
+        _mockServiceProvider.Setup(p => p.GetService(typeof(IEventAnalysisService)))
+            .Returns(new EventAnalysisService([new MatchStatusEventProcessor()]));
+        var live = new Match { Id = 42, CreatorId = "user" };
+        var persisted = new Match { Id = 42, CreatorId = "user", IsLive = true };
+        _mockMatchRepo.Setup(r => r.GetByIdWithDetailsAsync(42)).ReturnsAsync(persisted);
+        await _processor.ProcessEventAsync(new FootballMatchEvent
+        { match_id = "42", action = "match_start", event_type = "match_start", event_index = 1 }, live);
+        await _processor.ProcessEventAsync(new FootballMatchEvent
+        { match_id = "42", action = "pass", event_index = 2, time_seconds = 10, Score = new Score { Home = 2, Away = 1 } }, live);
+        await _processor.FlushAndPersistMatchAsync("42", normalEnd);
+        Assert.False(persisted.IsLive);
+        Assert.Equal(expected, persisted.MatchStatus);
+        Assert.Equal(2, persisted.HomeTeamScore);
+        Assert.Equal(2, persisted.MatchEvents!.TotalEvents);
+        _mockLiveMatchStatistics.Verify(l => l.RemoveFromLiveCache("42"), Times.Once);
+    }
+
+    [Fact]
+    public async Task FailedPersistencePropagatesAndRetainsEventsForRetry()
+    {
+        var match = new Match { Id = 42, CreatorId = "user" };
+        _mockMatchRepo.Setup(r => r.GetByIdWithDetailsAsync(42)).ReturnsAsync(match);
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Database unavailable"));
+        await _processor.ProcessEventAsync(new FootballMatchEvent { match_id = "42", action = "pass", event_index = 1 }, match);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _processor.FlushAndPersistMatchAsync("42", false));
+        Assert.Single(_processor.GetCachedEvents("42"));
+        _mockBroadcaster.Verify(b => b.ClearReplayBuffer("42"), Times.Never);
     }
 }

@@ -35,16 +35,19 @@ public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
     {
         _logger.LogInformation("Starting direct gRPC event stream consumer for match {MatchId}", request.MatchId);
 
-        var matchEntity = await _matchEventProcessor.GetOrLoadMatchEntityAsync(request.MatchId);
-        var (homeScore, awayScore) = _matchEventProcessor.GetOrInitMatchScore(request.MatchId, matchEntity);
         var eventIndex = 0;
         var isNormalEnd = false;
 
         try
         {
+            var matchEntity = await _matchEventProcessor.GetOrLoadMatchEntityAsync(request.MatchId)
+                ?? throw new InvalidOperationException($"Match {request.MatchId} could not be loaded.");
+            var (homeScore, awayScore) = _matchEventProcessor.GetOrInitMatchScore(request.MatchId, matchEntity);
             await foreach (var rawEvent in _grpcClient.StreamMatchEventsAsync(request, cancellationToken))
             {
-                if (string.IsNullOrWhiteSpace(rawEvent.RawEventText))
+                if (rawEvent.MatchId != request.MatchId)
+                    throw new InvalidOperationException("Stream returned an event for a different match.");
+                if (string.IsNullOrWhiteSpace(rawEvent.RawEventText) && !rawEvent.IsEndOfMatch)
                     continue;
 
                 eventIndex = rawEvent.EventIndex > 0 ? rawEvent.EventIndex : eventIndex + 1;
@@ -53,7 +56,7 @@ public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
                 var awayName = matchEntity?.AwayTeam?.Name ?? matchEntity?.AwayTeamInMatchName ?? request.AwayTeamName;
 
                 if (ZeroAllocationEventParser.TryParseEvent(
-                    rawEvent.RawEventText.AsSpan(),
+                    (rawEvent.IsEndOfMatch ? "[MATCH END]" : rawEvent.RawEventText).AsSpan(),
                     rawEvent.MatchId,
                     eventIndex,
                     ref homeScore,
@@ -71,12 +74,17 @@ public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
                         await _matchEventProcessor.ProcessEventAsync(matchEvent, matchEntity, cancellationToken);
                     }
 
-                    if (rawEvent.IsEndOfMatch || matchEvent.event_type == "match_end" || matchEvent.action == "match_end")
+                    if (matchEvent.event_type == "match_end" || matchEvent.action == "match_end")
                     {
                         isNormalEnd = true;
                         _logger.LogInformation("Direct gRPC stream match completed for match {MatchId}", rawEvent.MatchId);
                         break;
                     }
+                }
+                if (rawEvent.IsEndOfMatch)
+                {
+                    isNormalEnd = true;
+                    break;
                 }
             }
         }
@@ -92,15 +100,17 @@ public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
         {
             try
             {
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 await _matchEventProcessor.FlushAndPersistMatchAsync(
                     request.MatchId,
                     isNormalEnd: isNormalEnd,
-                    cancellationToken: CancellationToken.None
+                    cancellationToken: cleanup.Token
                 );
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error flushing and persisting match events to database for match {MatchId}", request.MatchId);
+                throw;
             }
         }
     }

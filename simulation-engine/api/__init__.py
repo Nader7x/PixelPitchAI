@@ -17,6 +17,11 @@ __title__ = "Football Match Simulation API"
 __description__ = "Advanced API for generating football match simulations"
 __author__ = "Football Simulation Team"
 
-from .main import app
+def __getattr__(name):
+    """Load the application only when requested, not when importing a utility."""
+    if name == "app":
+        from .main import app
+        return app
+    raise AttributeError(name)
 
 __all__ = ["app"]

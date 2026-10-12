@@ -16,6 +16,7 @@ if proto_dir not in sys.path:
 import simulation_pb2
 import simulation_pb2_grpc
 from api.core.parser import MatchEventProducer
+from api.services.streaming import StreamFailure
 
 logger = logging.getLogger("simulation_grpc")
 
@@ -59,42 +60,44 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
         cancel_event = threading.Event()
         loop = asyncio.get_running_loop()
 
-        # Yield MATCH START event immediately
-        event_index += 1
-        yield simulation_pb2.MatchEventRaw(
-            match_id=request.match_id,
-            event_index=event_index,
-            raw_event_text="[MATCH START]",
-            timestamp_utc=int(time.time() * 1000),
-            is_end_of_match=False
-        )
-
         gen_task = None
-        if self.simulation_service and hasattr(self.simulation_service, "stream_match_lines_direct"):
-            gen_task = asyncio.create_task(
-                self.simulation_service.stream_match_lines_direct(
-                    request, queue, loop, cancel_event
-                )
-            )
-        else:
-            async def mock_stream():
-                await asyncio.sleep(0.02)
-                await queue.put(f"00:00 - {request.home_team_name} - pass by Player at (50.0, 30.0), outcome: Complete")
-                await asyncio.sleep(0.02)
-                await queue.put("[MATCH END]")
-                await queue.put(None)
-
-            gen_task = asyncio.create_task(mock_stream())
-
+        read_task = None
+        context.add_done_callback(lambda _: cancel_event.set())
         try:
-            while True:
-                if context.is_active() is False:
-                    cancel_event.set()
-                    break
+            yield simulation_pb2.MatchEventRaw(
+                match_id=request.match_id, event_index=1, raw_event_text="[MATCH START]",
+                timestamp_utc=int(time.time() * 1000), is_end_of_match=False
+            )
+            event_index = 1
+            if self.simulation_service and hasattr(self.simulation_service, "stream_match_lines_direct"):
+                gen_task = asyncio.create_task(self.simulation_service.stream_match_lines_direct(
+                    request, queue, loop, cancel_event
+                ))
+            else:
+                async def mock_stream():
+                    await queue.put(f"00:00 - {request.home_team_name} - pass by Player at (50.0, 30.0), outcome: Complete")
+                    await queue.put("[MATCH END]")
+                    await queue.put(None)
+                gen_task = asyncio.create_task(mock_stream())
 
-                line = await queue.get()
+            while True:
+                if context.cancelled() or context.done():
+                    break
+                read_task = asyncio.create_task(queue.get())
+                done, _ = await asyncio.wait((read_task, gen_task), return_when=asyncio.FIRST_COMPLETED)
+                if read_task not in done and queue.empty():
+                    # Producer errors/completion must wake an empty queue reader.
+                    read_task.cancel()
+                    await asyncio.gather(read_task, return_exceptions=True)
+                    read_task = None
+                    await gen_task
+                    break
+                line = await read_task
+                read_task = None
                 if line is None:
                     break
+                if isinstance(line, StreamFailure):
+                    raise line.error
 
                 line = line.strip()
                 if not line or line == "[MATCH START]":
@@ -122,6 +125,9 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
                 if is_end:
                     break
 
+        except asyncio.CancelledError:
+            cancel_event.set()
+            raise
         except Exception as ex:
             cancel_event.set()
             logger.error(f"[gRPC] Error in StartMatchSimulationStream: {ex}")
@@ -129,9 +135,17 @@ class SimulationServiceServicer(simulation_pb2_grpc.SimulationServiceServicer):
             context.set_details(str(ex))
         finally:
             cancel_event.set()
+            if read_task:
+                read_task.cancel()
+                await asyncio.gather(read_task, return_exceptions=True)
             if gen_task:
                 try:
-                    await gen_task
+                    await asyncio.wait_for(asyncio.shield(gen_task), timeout=5)
+                except asyncio.TimeoutError:
+                    logger.warning("Generation cleanup timed out for match %s", request.match_id)
+                    # Observe eventual failure without pretending executor cancellation
+                    # can forcibly stop the underlying inference thread.
+                    gen_task.add_done_callback(lambda task: task.exception() if not task.cancelled() else None)
                 except Exception as e:
                     logger.debug(f"Generator task completed/canceled: {e}")
 

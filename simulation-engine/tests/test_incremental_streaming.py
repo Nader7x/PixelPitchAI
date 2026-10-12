@@ -98,8 +98,14 @@ class TestIncrementalStreaming(unittest.IsolatedAsyncioTestCase):
                 self.code = None
                 self.details = None
 
-            def is_active(self):
-                return self._active
+            def cancelled(self):
+                return not self._active
+
+            def done(self):
+                return not self._active
+
+            def add_done_callback(self, callback):
+                pass
 
             def set_code(self, code):
                 self.code = code
