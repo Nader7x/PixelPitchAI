@@ -21,6 +21,7 @@ message SimulateMatchRequest {
   float top_p = 10;
   int32 top_k = 11;
   int32 max_new_tokens = 12;
+  bool publish_to_rabbitmq = 13;
 }
 
 message StartMatchResponse {

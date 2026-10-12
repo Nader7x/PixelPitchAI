@@ -59,6 +59,20 @@ Pipeline A: Simulation Engine → RabbitMQ (match_events) → MatchEventRabbitMq
 Pipeline B: Simulation Engine → gRPC Stream (port 50051) → MatchEventGrpcStreamConsumer
 ```
 
+### Pipeline B lifecycle and API behavior
+
+Set `EventIngestion:Mode` to `GrpcStream` to use Pipeline B; `RabbitMQ` remains the default. The match-start endpoint creates a `Queued` live match and admits it to a bounded queue. A full or closed queue returns HTTP 503 and marks the unaccepted match `Failed` with `IsLive=false`. Notifications are best effort after admission. The worker records the actual start time, respects `MaxConcurrentStreams`, and rejects duplicate active dispatches.
+
+The Python generation worker retains GPT-2 bytes until complete event lines are available. Queue backpressure is cancellable, and client disconnects stop inference at the next generation step. RabbitMQ publication is controlled by `publish_to_rabbitmq`; Pipeline B requests set it to `false` to prevent duplicate ingestion.
+
+Finalization replays events before assigning terminal state. A valid end marker produces `Completed`; cancellation, transport failure, or generation ending without a marker produces `Truncated`. Both clear `IsLive` and persist partial events and scores. Event buffers are retained when persistence fails. Graceful shutdown closes admission, fails queued requests, and finalizes active streams. The queue is in memory and does not recover jobs after an abrupt process crash.
+
+For stored `grpc_{matchId}` simulation IDs, `GET /api/matches/simulation/{simulationId}/status` reads backend records and returns HTTP 200 with `pending`, `running`, `completed`, or `failed`. `Truncated` is exposed as `failed` with an explanation and partial results. `GET /api/matches/simulation/{simulationId}/result` returns HTTP 202 while pending/running and HTTP 200 for terminal jobs; unknown IDs return HTTP 404. These reads do not call the Python status API or trigger notifications. Completion estimates and raw-text artifact URLs are unavailable.
+
+Before enabling Pipeline B in a controlled environment, run the backend regression suite and Python streaming tests. Monitor match-correlated admission failures, stream cancellation/truncation, persistence errors, and generation cleanup timeouts.
+
+The opt-in `PipelineBWireSmokeTests` exercise controller admission, worker dispatch, the actual Python gRPC handler, EF persistence, and local result retrieval with a fake generator and an EF in-memory database. Set `PIXELPITCH_STREAM_TEST_PYTHON` to the engine's Python executable to enable this test; it is skipped when that runtime is not configured. PostgreSQL integration tests additionally require Docker.
+
 ### 2. Zero-Allocation Processing Pipeline
 
 ```

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10simulation.proto\x12\x11\x66ootex.simulation\"\xa3\x02\n\x14SimulateMatchRequest\x12\x10\n\x08match_id\x18\x01 \x01(\t\x12\x14\n\x0chome_team_id\x18\x02 \x01(\x05\x12\x14\n\x0c\x61way_team_id\x18\x03 \x01(\x05\x12\x16\n\x0ehome_team_name\x18\x04 \x01(\t\x12\x16\n\x0e\x61way_team_name\x18\x05 \x01(\t\x12\x18\n\x10home_team_season\x18\x06 \x01(\t\x12\x18\n\x10\x61way_team_season\x18\x07 \x01(\t\x12\x1e\n\x16num_tokens_to_generate\x18\x08 \x01(\x05\x12\x13\n\x0btemperature\x18\t \x01(\x02\x12\r\n\x05top_p\x18\n \x01(\x02\x12\r\n\x05top_k\x18\x0b \x01(\x05\x12\x16\n\x0emax_new_tokens\x18\x0c \x01(\x05\"^\n\x12StartMatchResponse\x12\x15\n\rsimulation_id\x18\x01 \x01(\t\x12\x10\n\x08match_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0f\n\x07message\x18\x04 \x01(\t\"~\n\rMatchEventRaw\x12\x10\n\x08match_id\x18\x01 \x01(\t\x12\x13\n\x0b\x65vent_index\x18\x02 \x01(\x05\x12\x16\n\x0eraw_event_text\x18\x03 \x01(\t\x12\x15\n\rtimestamp_utc\x18\x04 \x01(\x03\x12\x17\n\x0fis_end_of_match\x18\x05 \x01(\x08\"\"\n\rHealthRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\"_\n\x0eHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\x08\x12\x14\n\x0cmodel_loaded\x18\x02 \x01(\x08\x12\x16\n\x0exgboost_loaded\x18\x03 \x01(\x08\x12\x0f\n\x07message\x18\x04 \x01(\t2\xb8\x02\n\x11SimulationService\x12\x66\n\x14StartMatchSimulation\x12\'.footex.simulation.SimulateMatchRequest\x1a%.footex.simulation.StartMatchResponse\x12i\n\x1aStartMatchSimulationStream\x12\'.footex.simulation.SimulateMatchRequest\x1a .footex.simulation.MatchEventRaw0\x01\x12P\n\tGetHealth\x12 .footex.simulation.HealthRequest\x1a!.footex.simulation.HealthResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10simulation.proto\x12\x11\x66ootex.simulation\"\xc0\x02\n\x14SimulateMatchRequest\x12\x10\n\x08match_id\x18\x01 \x01(\t\x12\x14\n\x0chome_team_id\x18\x02 \x01(\x05\x12\x14\n\x0c\x61way_team_id\x18\x03 \x01(\x05\x12\x16\n\x0ehome_team_name\x18\x04 \x01(\t\x12\x16\n\x0e\x61way_team_name\x18\x05 \x01(\t\x12\x18\n\x10home_team_season\x18\x06 \x01(\t\x12\x18\n\x10\x61way_team_season\x18\x07 \x01(\t\x12\x1e\n\x16num_tokens_to_generate\x18\x08 \x01(\x05\x12\x13\n\x0btemperature\x18\t \x01(\x02\x12\r\n\x05top_p\x18\n \x01(\x02\x12\r\n\x05top_k\x18\x0b \x01(\x05\x12\x16\n\x0emax_new_tokens\x18\x0c \x01(\x05\x12\x1b\n\x13publish_to_rabbitmq\x18\r \x01(\x08\"^\n\x12StartMatchResponse\x12\x15\n\rsimulation_id\x18\x01 \x01(\t\x12\x10\n\x08match_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0f\n\x07message\x18\x04 \x01(\t\"~\n\rMatchEventRaw\x12\x10\n\x08match_id\x18\x01 \x01(\t\x12\x13\n\x0b\x65vent_index\x18\x02 \x01(\x05\x12\x16\n\x0eraw_event_text\x18\x03 \x01(\t\x12\x15\n\rtimestamp_utc\x18\x04 \x01(\x03\x12\x17\n\x0fis_end_of_match\x18\x05 \x01(\x08\"\"\n\rHealthRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\"_\n\x0eHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\x08\x12\x14\n\x0cmodel_loaded\x18\x02 \x01(\x08\x12\x16\n\x0exgboost_loaded\x18\x03 \x01(\x08\x12\x0f\n\x07message\x18\x04 \x01(\t2\xb8\x02\n\x11SimulationService\x12\x66\n\x14StartMatchSimulation\x12\'.footex.simulation.SimulateMatchRequest\x1a%.footex.simulation.StartMatchResponse\x12i\n\x1aStartMatchSimulationStream\x12\'.footex.simulation.SimulateMatchRequest\x1a .footex.simulation.MatchEventRaw0\x01\x12P\n\tGetHealth\x12 .footex.simulation.HealthRequest\x1a!.footex.simulation.HealthResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,15 +32,15 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'simulation_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_SIMULATEMATCHREQUEST']._serialized_start=40
-  _globals['_SIMULATEMATCHREQUEST']._serialized_end=331
-  _globals['_STARTMATCHRESPONSE']._serialized_start=333
-  _globals['_STARTMATCHRESPONSE']._serialized_end=427
-  _globals['_MATCHEVENTRAW']._serialized_start=429
-  _globals['_MATCHEVENTRAW']._serialized_end=555
-  _globals['_HEALTHREQUEST']._serialized_start=557
-  _globals['_HEALTHREQUEST']._serialized_end=591
-  _globals['_HEALTHRESPONSE']._serialized_start=593
-  _globals['_HEALTHRESPONSE']._serialized_end=688
-  _globals['_SIMULATIONSERVICE']._serialized_start=691
-  _globals['_SIMULATIONSERVICE']._serialized_end=1003
+  _globals['_SIMULATEMATCHREQUEST']._serialized_end=360
+  _globals['_STARTMATCHRESPONSE']._serialized_start=362
+  _globals['_STARTMATCHRESPONSE']._serialized_end=456
+  _globals['_MATCHEVENTRAW']._serialized_start=458
+  _globals['_MATCHEVENTRAW']._serialized_end=584
+  _globals['_HEALTHREQUEST']._serialized_start=586
+  _globals['_HEALTHREQUEST']._serialized_end=620
+  _globals['_HEALTHRESPONSE']._serialized_start=622
+  _globals['_HEALTHRESPONSE']._serialized_end=717
+  _globals['_SIMULATIONSERVICE']._serialized_start=720
+  _globals['_SIMULATIONSERVICE']._serialized_end=1032
 # @@protoc_insertion_point(module_scope)

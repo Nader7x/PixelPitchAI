@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Application.Interfaces;
 using Domain.Models;
 using Infrastructure.Protos;
 using Microsoft.Extensions.Logging;
@@ -13,25 +11,23 @@ public interface IMatchEventGrpcStreamConsumer
 
 /// <summary>
 ///     Pipeline B: Direct memory-to-memory gRPC server-streaming consumer.
-///     Consumes raw events directly from the Python simulation engine,
-///     parses them with ZeroAllocationEventParser, and dispatches to SSE clients and Redis.
+///     Consumes raw events directly from the Python simulation engine stream,
+///     parses them with ZeroAllocationEventParser, delegates processing to IMatchEventProcessor,
+///     and guarantees post-match PostgreSQL persistence mirroring Pipeline A.
 /// </summary>
 public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
 {
     private readonly ISimulationGrpcClient _grpcClient;
-    private readonly IMatchEventBroadcaster _broadcaster;
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
+    private readonly IMatchEventProcessor _matchEventProcessor;
     private readonly ILogger<MatchEventGrpcStreamConsumer> _logger;
 
     public MatchEventGrpcStreamConsumer(
         ISimulationGrpcClient grpcClient,
-        IMatchEventBroadcaster broadcaster,
-        ILiveMatchStatisticsService liveMatchStatisticsService,
+        IMatchEventProcessor matchEventProcessor,
         ILogger<MatchEventGrpcStreamConsumer> logger)
     {
         _grpcClient = grpcClient;
-        _broadcaster = broadcaster;
-        _liveMatchStatisticsService = liveMatchStatisticsService;
+        _matchEventProcessor = matchEventProcessor;
         _logger = logger;
     }
 
@@ -39,48 +35,83 @@ public sealed class MatchEventGrpcStreamConsumer : IMatchEventGrpcStreamConsumer
     {
         _logger.LogInformation("Starting direct gRPC event stream consumer for match {MatchId}", request.MatchId);
 
-        var homeScore = 0;
-        var awayScore = 0;
         var eventIndex = 0;
+        var isNormalEnd = false;
 
         try
         {
+            var matchEntity = await _matchEventProcessor.GetOrLoadMatchEntityAsync(request.MatchId)
+                ?? throw new InvalidOperationException($"Match {request.MatchId} could not be loaded.");
+            var (homeScore, awayScore) = _matchEventProcessor.GetOrInitMatchScore(request.MatchId, matchEntity);
             await foreach (var rawEvent in _grpcClient.StreamMatchEventsAsync(request, cancellationToken))
             {
-                if (string.IsNullOrWhiteSpace(rawEvent.RawEventText))
+                if (rawEvent.MatchId != request.MatchId)
+                    throw new InvalidOperationException("Stream returned an event for a different match.");
+                if (string.IsNullOrWhiteSpace(rawEvent.RawEventText) && !rawEvent.IsEndOfMatch)
                     continue;
 
                 eventIndex = rawEvent.EventIndex > 0 ? rawEvent.EventIndex : eventIndex + 1;
 
+                var homeName = matchEntity?.HomeTeam?.Name ?? matchEntity?.HomeTeamInMatchName ?? request.HomeTeamName;
+                var awayName = matchEntity?.AwayTeam?.Name ?? matchEntity?.AwayTeamInMatchName ?? request.AwayTeamName;
+
                 if (ZeroAllocationEventParser.TryParseEvent(
-                    rawEvent.RawEventText.AsSpan(),
+                    (rawEvent.IsEndOfMatch ? "[MATCH END]" : rawEvent.RawEventText).AsSpan(),
                     rawEvent.MatchId,
                     eventIndex,
                     ref homeScore,
                     ref awayScore,
-                    request.HomeTeamName,
-                    request.AwayTeamName,
+                    homeName,
+                    awayName,
                     out var matchEvent) && matchEvent != null)
                 {
-                    // Broadcast event to connected SSE clients
-                    await _broadcaster.BroadcastEventAsync(rawEvent.MatchId, matchEvent, cancellationToken);
+                    _matchEventProcessor.UpdateMatchScore(rawEvent.MatchId, homeScore, awayScore);
 
-                    // If match completed, log completion
-                    if (rawEvent.IsEndOfMatch || matchEvent.event_type == "match_end")
+                    if (matchEntity != null)
                     {
+                        matchEntity.HomeTeamScore = homeScore;
+                        matchEntity.AwayTeamScore = awayScore;
+                        await _matchEventProcessor.ProcessEventAsync(matchEvent, matchEntity, cancellationToken);
+                    }
+
+                    if (matchEvent.event_type == "match_end" || matchEvent.action == "match_end")
+                    {
+                        isNormalEnd = true;
                         _logger.LogInformation("Direct gRPC stream match completed for match {MatchId}", rawEvent.MatchId);
                         break;
                     }
                 }
+                if (rawEvent.IsEndOfMatch)
+                {
+                    isNormalEnd = true;
+                    break;
+                }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _logger.LogInformation("gRPC stream consumer canceled for match {MatchId}", request.MatchId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error consuming direct gRPC stream for match {MatchId}", request.MatchId);
+        }
+        finally
+        {
+            try
+            {
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await _matchEventProcessor.FlushAndPersistMatchAsync(
+                    request.MatchId,
+                    isNormalEnd: isNormalEnd,
+                    cancellationToken: cleanup.Token
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error flushing and persisting match events to database for match {MatchId}", request.MatchId);
+                throw;
+            }
         }
     }
 }

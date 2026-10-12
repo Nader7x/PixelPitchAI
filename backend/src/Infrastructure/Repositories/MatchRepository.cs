@@ -172,7 +172,7 @@ public class MatchRepository(FootballDbContext context)
     )
     {
         var match = await _context.Matches.FindAsync(
-            [matchId, cancellationToken],
+            [matchId],
             cancellationToken
         );
         if (match == null)
