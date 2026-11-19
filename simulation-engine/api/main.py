@@ -36,6 +36,7 @@ from api.config.settings import (
 )
 from .routes import auth, simulation, system
 from .services.optimized_simulation_service import get_optimized_simulation_service as get_simulation_service
+from .v2 import get_v2_router
 from .grpc_server import start_grpc_server, stop_grpc_server
 from .utils.directories import ensure_directories, cleanup_old_files
 from .utils.logging import setup_logging, get_logger
@@ -157,6 +158,7 @@ async def log_requests(request, call_next):
 app.include_router(system.router)
 app.include_router(auth.router)
 app.include_router(simulation.router)
+app.include_router(get_v2_router())
 
 
 # Global exception handler

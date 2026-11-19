@@ -84,4 +84,9 @@ feature-*/
 # AI Agent scratch & temporary directories
 .agents
 .agents/
-.agents*
+.agents*
+
+# Simulation engine v2 binary artifacts & generated spatial tracks
+simulation-engine/models_v2/
+simulation-engine/SpatialTracks/
+
