@@ -40,11 +40,15 @@ class NotificationService {
   private readonly baseUrl: string;
 
   constructor(config?: Partial<NotificationServiceConfig>) {
+    const derivedFromApiUrl =
+      process.env.NEXT_PUBLIC_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '')
+        : undefined;
     this.baseUrl =
-      config?.baseUrl ||
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
-      'http://localhost:5025';
+      config?.baseUrl ??
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      derivedFromApiUrl ??
+      '';
   }
 
   /**

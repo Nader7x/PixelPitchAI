@@ -643,7 +643,7 @@ class AuthenticationService {
       const { email, token, password, confirmPassword } = resetData;
       await apiService.postWithRetry(
         '/auth/reset-password',
-        { password, confirmPassword },
+        { newPassword: password, confirmPassword },
         {
           params: { email, token },
         }

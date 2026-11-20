@@ -49,8 +49,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set production environment for build
+ARG NEXT_PUBLIC_API_URL=/api
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build the application
 RUN pnpm build
