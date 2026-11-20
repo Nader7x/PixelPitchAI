@@ -6,7 +6,7 @@
 > **Downstream Consumers**:
 > - Module A & B (`02_tactical_state_and_experimentation.md`): `player_profiles_v2.parquet`, `tactical_manifold_v2.pkl`
 > - Module C & D (`03_hybrid_event_transformer_and_models.md`): `events_gold_v2.parquet`, `matches_meta_v2.parquet`, `hf_dataset_v2/` (`16,384`-step packed shards), and calibrated teacher datasets for `xG`/`PSxG`/`xPass`/`xT`/`VAEP`/`Turnover`
-> - Module E & .NET 10 Backend (`04_presentation_and_integration.md`): `Footex_Api` profile sync & canonical `[0, 120] × [0, 80]` event contract
+> - Module E & .NET 11 Backend (`04_presentation_and_integration.md`): `Footex_Api` profile sync & canonical `[0, 120] × [0, 80]` event contract
 
 ---
 
@@ -101,22 +101,30 @@ flowchart LR
     B_CW --> PG
 ```
 
-### 2.2 Ingestion & Storage Strategy (`statsbombapi` v2)
+### 2.2 Ingestion & Tiered Storage Strategy (`statsbombapi` v2 — Tier 1A Completed vs. Tier 1B Async)
+
+To keep downstream model training and Phase 4–5 backend/frontend integration completely unblocked while preserving a clean upgrade path, Pillar 1 separates its corpus into two operational tiers:
+
+- **Tier 1A — Locked Curated Baseline (Completed & Cached on Google Drive):**
+  - Built via `scripts/build_v2_lakehouse.py --preset mens_big5_and_top_360 --max-matches 800` over local shallow-cloned `hudl/open-data` (`--depth 1`): yields **800 high-signal men's Big-5 league & major tournament/360 matches (`2,074,045` receipt-folded events, `events_gold_v2.parquet` = `216.12 MB`)**, `player_profiles_v2.parquet`, `player_id_crosswalk.parquet`, `tactical_manifold_v2.pkl`, `xt_grid_24x16.npy`, and `lakehouse_manifest.json`.
+  - Filtering out youth/lower-tier/women's matches in Tier 1A prevents multi-tier `xG`/tempo dilution and is backed up directly to Google Drive (`PixelPitchAI-v2-lakehouse-mens800`) for `~18s` headless `gdown` pulls on Colab without re-cloning `hudl/open-data`.
+- **Tier 1B — Optional Async Corpus Expansion & Live Scraping (Decoupled from Phases 4–5):**
+  - Optional full `4,235`-match StatsBomb ingestion, Wyscout Open (`1,941` matches), and polite `2022–2026` web scraping refresh (`scrape_recent.py`) run asynchronously without gating Phase 4 (`.NET 11` gRPC/SSE) or Phase 5 (Next.js 16 pitch).
 
 Instead of calling `statsbombpy.sb.events()` match-by-match over HTTP (which took hours even for 6 La Liga seasons), `statsbombapi` v2 performs:
 
 1. **Zero-Throttle Local Mirror Ingestion**:
    - Shallow-clones `https://github.com/hudl/open-data.git` (`--depth 1`) onto fast NVMe scratch (Colab `/content/open-data` or local `data/raw/hudl-open-data`) and computes an incremental SHA manifest against `data/competitions.json`.
-   - Uses **DuckDB `read_json(..., union_by_name=true)`** with parallel worker threads (`PRAGMA threads=8`) to parse all `4,235` event files (`~9.2M` raw events), `4,235` lineup files, `80` competition-season match files, and `426` 360 freeze-frame files directly into **Hive-partitioned Zstd Parquet** (`compression='ZSTD', row_group_size=100_000`) in **under 3 minutes** on an 8-core CPU or Colab instance.
+   - Uses **DuckDB `read_json(..., union_by_name=true)`** with parallel worker threads (`PRAGMA threads=8`) to parse event files, lineup files, match metadata, and 360 freeze-frame files directly into **Hive-partitioned Zstd Parquet** (`compression='ZSTD', row_group_size=100_000`) in **under 3 minutes** on an 8-core CPU or Colab instance.
 2. **Verified StatsBomb Open Data Coverage (`hudl/open-data`)**:
    - **Total catalog**: `80` competition-season entries across `24` competitions; `4,235` matches with full event logs and lineups (`~3,400+` historical baseline expanded with 2022–2025 releases).
    - **StatsBomb 360 freeze-frame subset (`426` matches across `12` competition-seasons)**:
      * `1. Bundesliga` (`2023/2024`), `La Liga` (`2020/2021`), `Ligue 1` (`2021/2022`, `2022/2023`), `Major League Soccer` (`2023`), `FIFA World Cup` (`2022`), `UEFA Euro` (`2020`, `2024`), `African Cup of Nations` (`2023`), `Women's World Cup` (`2023`), and `UEFA Women's Euro` (`2022`, `2025`).
-   - **Important Licensing & Gender/Tier Metadata**: Every match stores `competition_gender` (`male` / `female`), `competition_youth`, `competition_international`, and `competition_tier` so Stage 2 calibration can weight or condition cleanly by competition tier without conflating men's club football, women's tournaments, and youth matches.
+   - **Important Licensing & Gender/Tier Metadata**: Every match stores `competition_gender` (`male` / `female`), `competition_youth`, `competition_international`, and `competition_tier` so curated presets (`mens_big5_and_top_360`, `mens_top_360_core`) and Stage 2 calibration weight or condition cleanly without conflating men's elite club football, women's tournaments, and youth matches.
 
-### 2.3 Locked Multi-Provider Schema Normalization (StatsBomb + Wyscout + Optional Opta/SkillCorner)
+### 2.3 Multi-Provider Schema Normalization (Tier 1A StatsBomb + Tier 1B Wyscout / Opta / SkillCorner)
 
-To expand pre-training volume beyond StatsBomb (`~7.5M` folded events across `4,235` matches) to **`~10.7M+` folded events (`~6,176` full matches)**, the v2 pre-training lakehouse locks in **both StatsBomb Open Data and Wyscout Open Data** as primary corpora, while maintaining optional adapters for Opta and SkillCorner tracking feeds:
+To expand pre-training volume beyond the **Tier 1A curated StatsBomb baseline (`800` matches, `2.07M` events)** up to the **Tier 1B optional full expansion (`~10.7M+` folded events across `~6,176` StatsBomb + Wyscout matches)**, the v2 schema supports **StatsBomb Open Data**, **Wyscout Open Data** (`Tier 1B`), and optional **Opta / SkillCorner** adapters:
 
 | Provider & Commitment | Expected Volume & Availability | Coordinate Transform to Canonical `[0, 120] × [0, 80]` | Key Taxonomy & Modifier Mapping | 360 / Tracking Compatibility Flag |
 | :--- | :--- | :--- | :--- | :--- |
@@ -135,11 +143,11 @@ The Gold Parquet store compiles directly into an Arrow-backed HuggingFace `Datas
 - **Sequence Packing for `PixelPitch-EventTF-112M`**:
   - Matches are stored both as **Match-Level Nested Arrow Rows** (1 row = 1 match, `events: list<struct>`, `lineup_snapshots`, `team_tactics`) and **Packed `16,384`-Step Fixed Blocks** (`packed_16k_blocks.parquet`) with `match_boundary_ids` / `cu_seqlens` arrays so Colab A100/L4 FlashAttention-2 `varlen` training runs with zero padding waste and zero cross-match attention leakage.
 
-### 2.5 Multi-Source Web Scraping & Recent Season Enrichment Pipeline (2022–2026)
+### 2.5 Tier 1B: Multi-Source Web Scraping & Recent Season Enrichment Pipeline (2022–2026 — Async / Non-Blocking)
 
 StatsBomb Open Data's league depth peaks prior to `2021/2022` (with targeted `2022–2025` additions such as `1. Bundesliga 2023/2024`, `Ligue 1 2022/2023`, `FIFA World Cup 2022`, `UEFA Euro 2024`, and `UEFA Women's Euro 2025`), while Wyscout Open Data covers `2017/2018`. Without fresh recent-season data, active `2025/2026` squads, newly emerged players (e.g., `2006–2008`-born breakthroughs), recent transfers, and modern tactical shifts (`3-2-4-1` box midfields, inverted fullbacks, extreme high lines) would be outdated or missing.
 
-To solve this, `statsbombapi_v2` adds a **Locked 2022–2026 Recent Season Enrichment Pipeline** (`scrape_recent.py`) built over `soccerdata` and modular polite scrapers:
+To provide those updates without blocking downstream Phase 3 calibration or Phase 4–5 `.NET 11` / Next.js integration on upstream anti-bot/Cloudflare gates, `statsbombapi_v2` isolates this workflow as **Tier 1B (`scrape_recent.py`)** built over `soccerdata` and modular polite scrapers:
 
 #### A. Multi-Source Scraper Matrix (`2022–2026` Big-5 Leagues + UCL/UEL + Major Tournaments)
 
@@ -382,14 +390,14 @@ We fit and serialize `tactical_manifold_v2.pkl` containing:
 
 ### 5.1 Automated Validation Gates (DuckDB / Pandera Suite)
 
-Every pipeline build (`uv run python -m statsbombapi_v2.validate`) enforces zero-tolerance data contracts before generating HuggingFace training shards:
+Every pipeline build (`uv run --no-sync python -m statsbombapi_v2.validate` or `.\.venv\Scripts\python.exe -m statsbombapi_v2.validate` — `--no-sync` prevents `pyproject.toml`'s `pytorch-cpu` index from overwriting local `torch+cu128`) enforces zero-tolerance data contracts before generating HuggingFace training shards:
 
 1. **Spatial Bounds & Normalization**: `0.0 <= x_canon, end_x_canon <= 120.0` (with controlled `[-1.5, 121.5]` out-of-bounds margin only when `outcome ∈ {OUT_TOUCHLINE, OUT_BYLINE, OFF_TARGET}`), `0.0 <= end_z_m <= 5.0`, zero NaNs in coordinates on spatial actions.
 2. **Temporal & FSM Invariants**: Monotonic `timestamp_ms` within every `period`; `sum(possession_time) ≈ active_match_time`; `active_slots_player_ids` always has exactly `11` valid slots per team (`sent_off` players strictly masked from on-ball events after red card); `score_home` / `score_away` matches official `matches.home_score / away_score` (`±0` discrepancy after accounting for own goals).
 3. **Analytics Calibration Sanity**: `0.0 <= xg_v2_pre_shot <= 1.0`, `0.0 <= xpass_prob <= 1.0`, `mean(xg_v2)` within `±0.005` of `mean(xg_statsbomb)` across held-out StatsBomb shots; `sum(vaep_value)` correlation with match goal difference `r > 0.65`.
 4. **Zero Leakage Gate**: Assert `set(train_match_ids).isdisjoint(val_calib_match_ids | test_eval_match_ids)` and confirm zero `Team_Year` strings or future match outcomes exist in model input tensors.
 
-### 5.2 Backward-Compatible PostgreSQL (`Footex_Api`) & .NET 10 Integration
+### 5.2 Backward-Compatible PostgreSQL (`Footex_Api`) & .NET 11 Integration (Tier 1B Sync)
 
 Rather than breaking existing IDs (`1..29` La Liga teams, `1,329` players, `79` coaches documented in `DataMigration/MIGRATION_README.md`), v2 provides an idempotent sync exporter (`sync_postgres_v2.py`) backed by `player_id_crosswalk.parquet`:
 - Preserves existing `Teams.Id`, `Players.Id`, `Coaches.Id` via deterministic external key mapping (`ExternalStatsBombId` + crosswalk IDs + normalized name/country matching), inserting new global teams/players (`4,235` SB + `1,941` Wyscout + `2022–2026` Transfermarkt/SofaScore squads -> `~35,000+` real players) with clean non-colliding IDs (`>= 10,000`).

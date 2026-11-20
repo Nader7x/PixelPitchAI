@@ -24,7 +24,7 @@ PixelPitchAI v1 proves out end-to-end streaming (FastAPI + gRPC → .NET 10 → 
 ```mermaid
 flowchart LR
     P1["Pillar 1: Historical Profiler\n(StatsBomb 3400+ Matches)"] -->|"Player Capabilities a_p, z_p, sigma_p\nTactical Density Support Model"| ModB
-    UI["User / Coach / .NET 10 API\n(MatchConfigV2 or ExperimentReq)"] --> ModA["Module A: Match Config\n& Validation Schema"]
+    UI["User / Coach / .NET 11 API\n(MatchConfigV2 or ExperimentReq)"] --> ModA["Module A: Match Config\n& Validation Schema"]
     ModA -->|"XI + Bench + Dual Formations\nRoles + Tactics + Sub Policies"| OOD["OOD & Compatibility\nGuardrail Gate"]
     OOD -->|"In-Support Flag +\nEpistemic Priors"| ModB["Module B: Tactical State\n& Spatial Capabilities Engine"]
     ModB -->|"M_t [B,28,768] + s_t [B,64] +\nAction/Target Masks + Spatial Prior"| ModC["Module C: Hybrid Event\nTransformer (~112M Params)"]
@@ -38,7 +38,7 @@ flowchart LR
 
 ## 2. Module A: Match Configuration Schema
 
-Module A defines the single, strongly-typed contract for configuring either a **single live match** or a **batch counterfactual experiment**. Every field is representable identically in Python (Pydantic v2) and C# (.NET 10 Native AOT `System.Text.Json` source-generated DTOs).
+Module A defines the single, strongly-typed contract for configuring either a **single live match** or a **batch counterfactual experiment**. Every field is representable identically in Python (Pydantic v2) and C# (.NET 11 Native AOT `System.Text.Json` source-generated DTOs).
 
 ### 2.1 Canonical Pitch Coordinate & Slot Standard
 
@@ -154,7 +154,7 @@ Substitutions are modeled via `SubstitutionPolicy` containing:
      - *Lead Protection Override:* `score_diff > 0 and minute >= 75` → prioritizes fresh `DestroyerDM` / `DefensiveFullback` + lowers `defensive_line_height` by `0.10`.
   3. `auto_coach`: Learned hazard model $P(\text{sub}_{i,t} \mid \text{minute}, \text{score\_diff}, \text{stamina}_i, \text{card}_i, \text{bench\_quality})$ calibrated on historical StatsBomb substitution timings (used when `mode == "auto_coach"`).
 
-### 2.7 Full Pydantic v2 Reference Schema & .NET 10 Native AOT Contract
+### 2.7 Full Pydantic v2 Reference Schema & .NET 11 Native AOT Contract
 
 ```python
 from enum import Enum
@@ -346,7 +346,7 @@ class MatchConfigurationV2(BaseModel):
     allow_ood_extrapolation: bool = False
 ```
 
-**Backward-Compatibility & .NET 10 Native AOT Alignment:**
+**Backward-Compatibility & .NET 11 Native AOT Alignment:**
 - `backend/src/Footex` uses Native AOT with source-generated JSON (`MatchEventJsonContext.cs`) and zero reflection. All C# equivalents (`MatchConfigurationV2Dto`, `TeamMatchConfigDto`, `LineupSlotDto`, `TacticalInstructionsDto`) must use flat `sealed record` / `sealed class` types registered on a `[JsonSerializable]` `JsonSerializerContext`, using `string` enum converters (`JsonStringEnumConverter<PlayerRole>`) rather than runtime reflection.
 - Legacy `SimulateMatchDto` (`HomeTeamId`, `AwayTeamId`, `HomeTeamSeason`, `AwayTeamSeason`) remains supported via a `ConfigurationHydrator` endpoint that fills `MatchConfigurationV2` from PostgreSQL `Teams`, `Coaches` (`PreferredFormation`, `CoachingStyle`), `Players`, and historical StatsBomb lineups.
 
@@ -668,7 +668,9 @@ Executed statically before GPU batch launch (and monitored during runtime for su
 
 ## 5. Cross-Module Interfaces & Backend Integration Checklist
 
-To coordinate cleanly with `@worktree-data` (Pillar 1), `@event-transformer` (Modules C & D), and `@engine-integration` (Module E & .NET 10 backend):
+To coordinate cleanly with `@worktree-data` (Pillar 1), `@event-transformer` (Modules C & D), and `@engine-integration` (Module E & .NET 11 backend):
+
+> **Implementation Status (Python Modules A & B Complete):** `simulation-engine/api/v2/tactical/` (`config_schema.py`, `state_engine.py`, `spatial_solver.py` with trained `SpatialPredictor` `val_rmse=3.1762 yd`, and `ood_and_diagnostics.py`) are implemented and verified by `tests/test_tactical_state_v2.py`.
 
 1. **From Pillar 1 (`01_data_and_feature_pipeline.md`) → Module B:**
    - Artifact: `player_profiles_v2.parquet` (or DuckDB table) keyed by `(player_id, season_id)` containing `attributes_24d`, `sigma_24d`, `minutes_played`, `latent_style_64d`, `natural_roles`, and `role_suitability_scores`.
@@ -683,7 +685,7 @@ To coordinate cleanly with `@worktree-data` (Pillar 1), `@event-transformer` (Mo
    - Live Stream Spatial Frame (`PitchSpatialFrameV2` at `5–10 Hz` via Hermite/kinematic sub-step interpolation between events): `22` slot coordinates `(slot 1..22, x, y, vx, vy, stamina, is_sent_off)`, 3D ball `(x, y, z)`, active `TacticalPhase`, and `home_voronoi_control` / `24×16` Pitch Control overlay.
    - Live Tactical Override Hook (`ApplyLiveTacticalOverride` / `POST /api/v2/matches/{id}/tactics`): updates `TacticalInstructions`, formations, or substitution rules mid-match.
    - Batch Experiment Payload: `MonteCarloExperimentResponse` containing per-arm `outcome_probs`, `expected_points`, `delta_vs_baseline`, `explainable_diagnostics`, `ood_guardrail`, and `representative_match_seeds`.
-5. **.NET 10 / PostgreSQL Migration Extensions (Future Implementation Phase):**
+5. **.NET 11 / PostgreSQL Migration Extensions (Phase 4 Implementation):**
    - Extend `Player` (`backend/src/Domain/Models/Player.cs`) or add `PlayerTacticalProfile` table (JSONB `Attributes24d`, `StyleEmbedding64d`, `PreferredRoles`, `MinutesSampled`).
    - Add `MatchTacticalConfigJson` (JSONB) on `Match` (`Match.cs`) storing `MatchConfigurationV2` alongside existing `MatchEvents.EventsJson` (and `TacticalExperiments` table for saved Monte Carlo studies), with Native AOT `JsonSerializerContext` serialization in `MatchEventJsonContext`.
-   - Deploy `footex.simulation.v2.SimulationService` (`simulation.proto` V2) and fix `frontend/app/Components/FootballPitch/FootballPitch.tsx` (lines 252–253) from `/ 100` to canonical `120 × 80` normalization (`x / 120`, `y / 80`) alongside 22-player frame rendering.
+   - Deploy `footex.simulation.v2.SimulationService` (`simulation_v2.proto`) for exclusive live match streaming and fix `frontend/app/Components/FootballPitch/FootballPitch.tsx` (lines 252–253) from `/ 100` to canonical `120 × 80` normalization (`x / 120`, `y / 80`) alongside 22-player frame rendering.

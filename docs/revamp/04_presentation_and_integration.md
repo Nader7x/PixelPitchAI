@@ -2,7 +2,7 @@
 
 **Document Owner:** `@engine-integration`  
 **Worktree Target:** `D:\programming\GitHub\PixelPitchAI-v2-revamp` (branch `feat/v2-hybrid-simulation-revamp`)  
-**Scope:** End-to-end integration spanning `simulation-engine` (Python 3.12 / FastAPI / `sse-starlette` / gRPC), RabbitMQ & Redis, `backend` (.NET 10 / EF Core 10 / SSE), Caddy reverse proxy, and `frontend` (Next.js 16 / React 19 / React Three Fiber).
+**Scope:** End-to-end integration spanning `simulation-engine` (Python 3.12 / FastAPI / `sse-starlette` / gRPC), RabbitMQ & Redis, `backend` (.NET 11 Native AOT / EF Core / SSE), Caddy reverse proxy, and `frontend` (Next.js 16 / React 19 / React Three Fiber).
 
 ---
 
@@ -14,8 +14,8 @@ In PixelPitchAI v1, the presentation and transport stack was built around a raw-
 | :--- | :--- | :--- | :--- |
 | **gRPC Contract** (`simulation.proto`) | `StartMatchSimulationStream` yields `MatchEventRaw { match_id, event_index, raw_event_text, timestamp_utc, is_end_of_match }`. `SimulateMatchRequest` carries only team IDs/names/seasons + GPT-2 sampling knobs (`temperature`, `top_p`, `top_k`, `num_tokens_to_generate`). | Text serialization in Python followed by `ZeroAllocationEventParser.TryParseEvent` string slicing in .NET; zero support for formations, lineups, tactical sliders, `xG`/`xT`/`xPass`, or 22-player coordinates. | Versioned `footex.simulation.v2.SimulationServiceV2` streaming typed Protobuf `MatchStreamFrameV2` (`StructuredEventV2`, `SpatialFrameV2` for 22 players + 3D ball, `TelemetrySnapshotV2`, `CommentaryCueV2`) and accepting full `MatchConfigV2` + `MonteCarloExperimentRequest`. |
 | **Python API** (`simulation-engine/api/`) | `routes/simulation.py` (`/startMatch`, `/simulationStatus/{id}`, `/simulationResult/{id}/stream` SSE status-only via `sse-starlette`) + `services/optimized_simulation_service.py` (single-match GPT-2 loop). | No live event/spatial SSE streaming endpoint; no GPU-batched counterfactual Monte Carlo endpoint; `config/settings.py` relies on hardcoded `SPECIAL_LIST` (`Team_Year`). | FastAPI + `sse-starlette` `/v2/simulate/stream` (real-time SSE event/spatial/telemetry stream), `/v2/experiments/monte-carlo` (GPU-batched simulation + diagnostic aggregation), `/v2/experiments/{id}/stream` (SSE progress), `/v2/commentary/narrate`, keeping V1 routes as a deprecated bridge. |
-| **RabbitMQ Ingestion** (`MatchEventRabbitMqClient.cs`) | Polls `match_events_queue` on topic exchange `match_events` (`match.events`) using `BasicGetAsync` in a `700ms` loop (`ExecuteAsync` lines 523–559). | Artificial up-to-700ms polling latency jitter, single-message `BasicQosAsync(0, 1, false)` throughput ceiling, no dead-letter queue (DLQ), and raw text lines as primary payload. | Push-based `AsyncEventingBasicConsumer` with prefetch QoS, separate routing keys (`match.events.v2`, `match.spatial.v2`, `match.commentary.v2`, `experiment.completed.v2`), DLX/DLQ, and Protobuf/compact-JSON payloads. |
-| **.NET 10 Backend Fan-Out** (`MatchEventProcessor.cs`, `MatchEventBroadcaster.cs`, `MatchHub.cs`, `NotificationService.cs`) | Dual ingestion (Pipeline A RabbitMQ + Pipeline B gRPC) converging on `MatchEventProcessor`. Broadcasts `match_event` & `match_statistics` over SSE (`MatchStreamController`) **and** still emits legacy SignalR `MatchHub` (`/matchSimulationHub`) plus SignalR `NotificationService` (`/Notify`). | `BroadcastStatisticsAsync` serializes an anonymous object via reflection-based `JsonSerializer.Serialize(statistics)` (breaks Native AOT trimming/compilation); SignalR hubs (`/matchSimulationHub`, `/Notify`) retain WebSocket/hub state and client packages. | 100% compile-time source-generated serialization in `MatchEventJsonContext` (`[JsonSerializable]`) for all V2 DTOs; **100% SSE** (`GET /api/v2/matches/{id}/stream`, `GET /api/v2/experiments/{id}/stream`, `GET /api/v2/notifications/stream`) for all live match, spatial, telemetry, commentary, experiment, and notification streams; **complete removal of SignalR** from backend & frontend. |
+| **RabbitMQ Ingestion** (`MatchEventRabbitMqClient.cs`) | Polls `match_events_queue` on topic exchange `match_events` (`match.events`) using `BasicGetAsync` in a `700ms` loop (`ExecuteAsync` lines 523–559). | Artificial up-to-700ms polling latency jitter, single-message `BasicQosAsync(0, 1, false)` throughput ceiling, no dead-letter queue (DLQ), and raw text lines as primary payload. | Push-based `AsyncEventingBasicConsumer` with prefetch QoS scoped strictly to **async `experiment.completed.v2` job notifications** (+ DLX/DLQ); live match streams (`events`, `spatial`, `telemetry`, `commentary`) run exclusively over gRPC `SimulationServiceV2` (drop `match.spatial.v2` over RabbitMQ). |
+| **.NET 11 Backend Fan-Out** (`MatchEventProcessor.cs`, `MatchEventBroadcaster.cs`, `MatchHub.cs`, `NotificationService.cs`) | Dual ingestion (Pipeline A RabbitMQ + Pipeline B gRPC on `.NET 10`) converging on `MatchEventProcessor`. Broadcasts `match_event` & `match_statistics` over SSE (`MatchStreamController`) **and** still emits legacy SignalR `MatchHub` (`/matchSimulationHub`) plus SignalR `NotificationService` (`/Notify`). | `BroadcastStatisticsAsync` serializes an anonymous object via reflection-based `JsonSerializer.Serialize(statistics)` (breaks Native AOT trimming/compilation); SignalR hubs (`/matchSimulationHub`, `/Notify`) retain WebSocket/hub state and client packages. | 100% compile-time source-generated serialization in `.NET 11` `MatchEventJsonContext` (`[JsonSerializable]`) for all V2 DTOs; **100% SSE** (`GET /api/v2/matches/{id}/stream`, `GET /api/v2/experiments/{id}/stream`, `GET /api/v2/notifications/stream`) for all live match, spatial, telemetry, commentary, experiment, and notification streams; **complete removal of SignalR** from backend & frontend. |
 | **Domain & Analytics Storage** (`FootballMatchEvent.cs`, `MatchStatistics.cs`, `MatchEvents.cs`) | `FootballMatchEvent` holds basic coordinates (`position`, `pass_target`, `shot_target`) and string attributes; `MatchStatistics` tracks shots, possession %, passes, corners, cards; `MatchEvents.EventsJson` capped at `[MaxLength(1000000)]`. | Missing `xG`, `post_shot_xG`, `xPass`, `xT`, `VAEP`, `under_pressure`, `possession_phase_id`, `actor_slot`, 22-player spatial snapshots, `PPDA`, `field_tilt`, and `TacticalExperiment` persistence. | Extended V2 domain models (`FootballMatchEventV2`, `MatchAnalyticsTotals`, `MatchTacticalSnapshot`, `TacticalExperimentRecord`); Zstd-compressed 22-player spatial tracks offloaded to **Cloudflare R2 / Azure Blob** behind `ISpatialTrackStorageService` (with only object key + metadata in PostgreSQL). |
 | **Frontend Pitch & UI** (`EventPlotter.tsx`, `FootballPitch.tsx`, `useSignalREventStream.ts`, `NotificationService.ts`) | `useSignalREventStream` opens **both** SSE (`MatchStreamService`) and SignalR (`MatchHub`) simultaneously; `NotificationService.ts` uses `@microsoft/signalr` (`/Notify`); `EventPlotter` renders only the last 5 events (`slice(-5)`); `FootballPitch.tsx` divides coordinates by `100` instead of `120x80`. | SignalR WebSocket dependencies (`@microsoft/signalr`) add unnecessary bundle/state overhead; only 1–5 historical event ghosts visible instead of 22 live players; 2D SVG pitch coordinate mismatch (`100` vs `120x80`); no live `xG` race chart, pitch control, passing lanes, or counterfactual comparison UI. | **100% SSE** hooks (`useMatchStreamV2` + `useNotificationsSse`) with `@microsoft/signalr` completely removed; `requestAnimationFrame` interpolation ring buffer driving R3F `InstancedMesh` 22-player + 3D ball renderer at 60 FPS; fixed `120x80` 2D SVG tactical board with `xG`/`xT`/`xPass` overlays; stateless REST `POST` for live tactical tweaks; Monte Carlo Counterfactual Dashboard. |
 
@@ -36,12 +36,12 @@ flowchart TB
         LLMCommentator["Supporting CommentaryProvider\n(Templates + Local 3B / Flash API + A/B Telemetry)"]
     end
 
-    subgraph Transport["Dual Transport Plane"]
-        GrpcV2["Pipeline B: gRPC Server Stream\nfootex.simulation.v2.SimulationServiceV2\nPort 50051 (Protobuf Binary Frames)"]
-        RMQV2["Pipeline A: RabbitMQ Topic Bus\nExchange: match_events_v2\nKeys: match.events.v2 / experiment.*"]
+    subgraph Transport["Simplified Dual Transport Plane"]
+        GrpcV2["Pipeline B (Exclusive Live Stream): gRPC Server Stream\nfootex.simulation.v2.SimulationServiceV2\nPort 50051 (Events, 5 Hz Spatial, Telemetry, Commentary)"]
+        RMQV2["Async Notification Bus: RabbitMQ Topic\nExchange: match_events_v2\nKey: experiment.completed.v2 (+ DLQ)"]
     end
 
-    subgraph Backend["Footex .NET 10 Backend (Native AOT Safe, Zero SignalR)"]
+    subgraph Backend["Footex .NET 11 Backend (Native AOT Safe, Zero SignalR)"]
         Ingest["Unified Event & Frame Processor\n(MatchEventProcessorV2)"]
         RedisHot[("Redis Hot State\nLive xG/xT/PPDA & Spatial Keyframes")]
         PgCold[("PostgreSQL 15\nMatches, Events, Experiments, Track Keys")]
@@ -65,7 +65,7 @@ flowchart TB
     HybridSim --> GrpcV2
     SpatialInterp --> GrpcV2
     LLMCommentator -->|"CommentaryCueV2 (Async)"| GrpcV2
-    HybridSim -.->|"Decoupled / Replay / Batch"| RMQV2
+    HybridSim -.->|"Async Monte Carlo Completion"| RMQV2
 
     GrpcV2 --> Ingest
     RMQV2 -->|"AsyncEventingBasicConsumer"| Ingest
@@ -230,18 +230,16 @@ A raw 25 Hz stream of 22 full player objects over JSON SSE would consume excessi
 3. **Ball 3D Parabolic Arcs**:
    - Using `pass_height` (`Ground`, `Low`, `High`) and `end_z` on shots/crosses/saves, the frontend computes realistic Z-axis parabolic arcs $z(\tau) = 4 h_{\text{peak}} \tau (1 - \tau) + \tau \cdot \text{end\_z}$ synchronized to ball flight duration, replacing V1's static `StraightArrow`/`CurvedArrow` props on `EventPlotter.tsx`.
 
-### 2.4 RabbitMQ, Redis & .NET 10 Native AOT Backend Pipeline
+### 2.4 RabbitMQ, Redis & .NET 11 Native AOT Backend Pipeline
 
-1. **Upgrading RabbitMQ (`MatchEventRabbitMqClient`)**:
+1. **Simplified Transport Boundary (gRPC Live Streams + RabbitMQ Experiment Jobs Only):**
    - Replace the V1 `700ms` `BasicGetAsync` polling loop in `backend/src/Infrastructure/Services/MatchEventRabbitMqClient.cs` with event-driven `AsyncEventingBasicConsumer` (`BasicQosAsync(0, 32, false)`).
-   - Declare a V2 topic topology on exchange `match_events_v2`:
-     - `match.events.v2` → `match_events_v2_queue` (event + telemetry persistence & fanout)
-     - `match.spatial.v2` → optional transient stream queue (`x-message-ttl: 30000`, `x-max-length: 5000`) when Pipeline A is used instead of gRPC Pipeline B
-     - `experiment.completed.v2` → `experiment_results_v2_queue` (notifies backend when long-running Monte Carlo GPU jobs finish)
+   - Standardize **live single-match streaming (`StructuredEventV2`, `PitchSpatialFrameV2` at 5 Hz, `TelemetrySnapshotV2`, `CommentaryCueV2`) exclusively on Pipeline B (gRPC `footex.simulation.v2.SimulationServiceV2`)**, eliminating duplicate `match.spatial.v2` RabbitMQ queueing, serialization overhead, and dual-path error handling.
+   - Scope RabbitMQ exchange `match_events_v2` strictly to async batch completion and failure isolation:
+     - `experiment.completed.v2` → `experiment_results_v2_queue` (notifies `.NET 11` when async Monte Carlo GPU jobs finish)
      - `match_events_dlx` → dead-letter queue for malformed messages (NACK without requeue)
-   - Note on Pipeline Selection: **Pipeline B (gRPC `SimulationServiceV2`) is the recommended default for live single-match streaming** because it eliminates serialization hops and delivers `PitchSpatialFrameV2` + `StructuredEventV2` directly into `.NET` memory (`MatchEventGrpcStreamConsumerV2`). Pipeline A (RabbitMQ) remains supported for horizontally scaled multi-worker async simulation and replay ingestion.
-2. **.NET 10 Native AOT & Zero-Allocation Compliance**:
-   - V1 `MatchEventBroadcaster.BroadcastStatisticsAsync` currently calls `JsonSerializer.Serialize(statistics)` on an anonymous type, which relies on runtime reflection and breaks Native AOT.
+2. **.NET 11 Native AOT & Zero-Allocation Compliance:**
+   - V1 `MatchEventBroadcaster.BroadcastStatisticsAsync` calls `JsonSerializer.Serialize(statistics)` on an anonymous type, which relies on runtime reflection and breaks Native AOT.
    - In V2, **every** SSE and API payload is a `sealed record` or `readonly struct` registered on `MatchEventJsonContext` (`[JsonSerializable(typeof(MatchEventV2Dto))]`, `[JsonSerializable(typeof(SpatialFrameV2Dto))]`, `[JsonSerializable(typeof(TelemetrySnapshotV2Dto))]`, `[JsonSerializable(typeof(CommentaryCueV2Dto))]`, `[JsonSerializable(typeof(MonteCarloExperimentResultDto))]`) using `System.Text.Json` source generation (`JsonSerializer.Serialize(dto, MatchEventJsonContext.Default.SpatialFrameV2Dto)`).
    - On the SSE broadcaster hot path, serialize each frame **once** into a `ReadOnlyMemory<byte>` / `string` before writing to subscriber `Channel<SseMessage>` instances (`IMatchEventBroadcaster`), avoiding $O(N_{\text{subscribers}})$ repeated JSON serializations.
 3. **Redis Hot State, PostgreSQL Persistence & Object Storage (`ISpatialTrackStorageService`)**:
@@ -252,7 +250,7 @@ A raw 25 Hz stream of 22 full player objects over JSON SSE would consume excessi
      - `MatchEvents`: removes `[MaxLength(1000000)]` text cap by migrating `EventsJson` to PostgreSQL `jsonb` for structured event querying without storing raw spatial frame arrays inside relational rows.
      - `TacticalExperiments`: durable table storing counterfactual experiment inputs, status, Monte Carlo summary JSONB, `CommentaryProvider` A/B telemetry, and representative replay seeds.
 4. **Caddy Reverse Proxy & 100% Pure SSE Transport (Zero SignalR)**:
-   - **Why 100% SSE Replaces SignalR Across All Streams**: Both live match playback (`match_event`, `spatial_frame`, `match_telemetry`, `commentary`, `match_lifecycle`), Monte Carlo experiment progress, and user notifications (`/Notify` alerts) are strictly unidirectional server-to-client push. Standardizing 100% on **Server-Sent Events (SSE)**—via `sse-starlette` (`EventSourceResponse`) on Python FastAPI and `System.Threading.Channels.Channel<SseMessage>` on .NET 10—eliminates WebSocket handshake/negotiation overhead, removes all SignalR connection state and backplane complexity, gives native browser `EventSource` automatic reconnection (`Last-Event-ID`), and stays 100% Native AOT reflection-free.
+   - **Why 100% SSE Replaces SignalR Across All Streams**: Both live match playback (`match_event`, `spatial_frame`, `match_telemetry`, `commentary`, `match_lifecycle`), Monte Carlo experiment progress, and user notifications (`/Notify` alerts) are strictly unidirectional server-to-client push. Standardizing 100% on **Server-Sent Events (SSE)**—via `sse-starlette` (`EventSourceResponse`) on Python FastAPI and `System.Threading.Channels.Channel<SseMessage>` on **.NET 11**—eliminates WebSocket handshake/negotiation overhead, removes all SignalR connection state and backplane complexity, gives native browser `EventSource` automatic reconnection (`Last-Event-ID`), and stays 100% Native AOT reflection-free.
    - `MatchStreamV2Controller` (`GET /api/v2/matches/{id}/stream`) and `NotificationsStreamController` (`GET /api/v2/notifications/stream`) retain `X-Accel-Buffering: no`, `Cache-Control: no-cache`, and SSE `id: <sequence_no>` + `Last-Event-ID` resume support backed by bounded `Channel<SseMessage>` replay ring buffers (100 messages for matches, 25 for user notifications).
    - `Program.cs` `JwtBearerEvents.OnMessageReceived` extracts `?access_token=` for `/api/v2/matches`, `/api/v2/experiments`, and `/api/v2/notifications/stream`.
    - In `caddy/api_upstream.conf` & `caddy/Caddyfile`, all SSE routes (`/api/v2/matches/*/stream`, `/api/v2/experiments/*/stream`, `/api/v2/notifications/stream`, and `/ai/v2/*`) configure `flush_interval -1` so frames flush immediately without reverse-proxy buffering.
@@ -357,9 +355,9 @@ To run smoothly across local developer laptops, CUDA workstations, and Colab/Clo
 
 | Compute Tier | Runtime Stack & Model Format | Supported Workloads & Expected Throughput | Selection Rule (`compute_target`) |
 | :--- | :--- | :--- | :--- |
-| **`remote_gpu` (Colab / Cloud A100/L4)** | PyTorch `bf16` + `torch.compile` / CUDA Graphs (`Base-112M` + GPU Module D MLPs) | Model training + large Monte Carlo experiments (`N = 100–1,000` paired CRN sims: `~10–18s` per `100` on A100, `~20–30s` on L4). | Auto-selected when `n_simulations > 100` (or `> 25` if no local CUDA) and `REMOTE_GPU_WORKER_URL` is configured. |
-| **`local_cuda` (Local NVIDIA GPU)** | PyTorch FP16/`bf16` `torch.compile` + GPU Module D MLPs | Local GPU live match streaming (`< 1.2 ms/event`) + medium counterfactual batches (`N = 25–100` sims). | Auto-selected when local `torch.cuda.is_available()` and `n_simulations <= 100`. |
-| **`local_cpu_onnx` (Local CPU)** | ONNX Runtime opset 19 **INT8 KV-cache** + CatBoost/ONNX Module D | Default single live match streaming (`~4–6 ms/event`, `~10–12s` full match) + small exploratory batches (`N = 10–25` sims async). | Default when no GPU is attached or explicitly requested (`compute_target: "local_cpu_onnx"`). |
+| **`remote_gpu` (Colab / Cloud A100/L4)** | PyTorch `bf16` + `StaticBackboneCUDAGraphRunner` & fused RMSNorm (`~610 MB` VRAM at `B=8`; scaling toward `B=32–64`) | Model training + large Monte Carlo experiments (`N = 100–1,000` paired CRN sims) driven via vectorized Python step loop & GPU CUDA Graphs. | Auto-selected when `n_simulations > 100` (or `> 25` if no local CUDA) and `REMOTE_GPU_WORKER_URL` is configured. |
+| **`local_cuda` (Local NVIDIA GPU)** | PyTorch `bf16`/FP16 `StaticBackboneCUDAGraphRunner` + GPU Module D MLPs | Local GPU live match streaming + medium counterfactual batches (`N = 25–100` sims). | Auto-selected when local `torch.cuda.is_available()` and `n_simulations <= 100`. |
+| **`local_cpu_onnx` (Local CPU Fallback)** | **PyTorch CPU fallback** now (**ONNX INT8 KV-cache export deferred Post-Phase 5** once E2E stack is live) | Non-GPU local development streaming & small exploratory batches (`N = 1–25` async). | Default when no GPU is attached or explicitly requested (`compute_target: "local_cpu_onnx"`). |
 
 Every `/v2/simulate/stream` and `/v2/experiments/monte-carlo` request accepts an optional `compute_target: "auto" | "local_cpu_onnx" | "local_cuda" | "remote_gpu"`, and responses echo `execution_tier` so the UI displays hardware provenance.
 
@@ -581,13 +579,13 @@ Executes $N$ paired simulations across a **Baseline Arm** and one or more **Coun
 
 ---
 
-### 4.2 .NET 10 Backend V2 API & Persistence Evolution (`backend/`)
+### 4.2 .NET 11 Backend V2 API & Persistence Evolution (`backend/`)
 
-The .NET 10 `Footex` API remains the authoritative gateway for auth (JWT), match/team/player persistence, user quotas, object storage (`ISpatialTrackStorageService`), and **100% SSE streaming** (with SignalR removed entirely):
+The **.NET 11** `Footex` API remains the authoritative gateway for auth (JWT), match/team/player persistence, user quotas, object storage (`ISpatialTrackStorageService`), and **100% SSE streaming** (with SignalR removed entirely):
 
 1. **New V2 Controllers (`backend/src/Footex/Controllers/V2/`)**:
    - `MatchesV2Controller` (`api/v2/matches`):
-     - `POST simulate/{userId}`: Accepts `SimulateMatchV2Dto` (carrying `MatchConfigV2`, `compute_target`, tactical overrides, player IDs/roles, formation choices), validates player/team ownership, persists `Match` + `MatchTacticalSnapshot`, and dispatches via `ComputeBackendRouter` to `SimulationServiceV2.StreamMatchV2` (gRPC Pipeline B) or RabbitMQ `match_events_v2` (Pipeline A).
+     - `POST simulate/{userId}`: Accepts `SimulateMatchV2Dto` (carrying `MatchConfigV2`, `compute_target`, tactical overrides, player IDs/roles, formation choices), validates player/team ownership, persists `Match` + `MatchTacticalSnapshot`, and dispatches via `ComputeBackendRouter` **exclusively over gRPC `SimulationServiceV2.StreamMatchV2`**.
      - `GET {id:int}/stream`: Native-AOT SSE endpoint (`text/event-stream` via `Channel<SseMessage>`) streaming `match_event`, `spatial_frame`, `match_telemetry`, `commentary`, and `match_lifecycle` directly from `IMatchEventBroadcasterV2` with `Last-Event-ID` replay support.
      - `POST {id:int}/tactics`: Stateless HTTP command endpoint allowing an authenticated user during live playback to push an in-match tactical tweak (formation shift, line height, substitution) via gRPC `ApplyLiveTacticalOverride` to the running Hybrid State Machine (whose resulting state events return over the active SSE stream).
      - `GET {id:int}/replay`: Returns persisted `StructuredEventV2[]`, signed/proxied Zstd 22-player spatial track stream from `ISpatialTrackStorageService` (Cloudflare R2 / Azure Blob), and analytics summary for post-match scrubbing or re-watching representative Monte Carlo seeds.
@@ -612,5 +610,5 @@ The .NET 10 `Footex` API remains the authoritative gateway for auth (JWT), match
 | `PlayerProfileVector` & Event Schema alignment | `@worktree-data` (`01_data_and_feature_pipeline.md`) | Exact field parity between Parquet/DuckDB training schema (`xG`, `xT`, `xPass`, `VAEP`, `under_pressure`, `360 freeze frame`) and `StructuredEventV2` / PostgreSQL columns. |
 | `MatchConfigV2`, Voronoi Pitch Control & Monte Carlo Diagnostic Payload | `@tactical-state` (`02_tactical_state_and_experimentation.md`) | Exact alignment between Module A/B tactical inputs, 22-player off-ball spatial model (`5–10 Hz` output), and `/v2/experiments/monte-carlo` diagnostic JSON + OOD fields. |
 | Factored Event Token Decoding & Module D Sub-Model Outputs | `@event-transformer` (`03_hybrid_event_transformer_and_models.md`) | Streaming step-by-step latency (`< 25ms/event` single stream, `>= 100x` batched Monte Carlo GPU throughput) and deterministic mapping from factored tokens + state machine to `MatchStreamFrameV2`. |
-| .NET 10 Native AOT Build & Zero-Allocation Hot Path | Backend (`Footex.sln`) | `dotnet build ./backend/Footex.sln` passes with zero reflection-based JSON serialization on SSE/gRPC/RabbitMQ hot paths; `MatchEventRabbitMqClient` switched from `BasicGetAsync` polling to push consumer. |
+| .NET 11 Native AOT Build & Zero-Allocation Hot Path | Backend (`Footex.sln`) | `dotnet build ./backend/Footex.sln` passes on `.NET 11` with zero reflection-based JSON serialization on SSE/gRPC/RabbitMQ hot paths; `MatchEventRabbitMqClient` switched from `BasicGetAsync` polling to push consumer (`experiment.completed.v2`). |
 | Frontend 22-Player Virtual Pitch & Coordinate Alignment | Frontend (`frontend/`) | `EventPlotter` renders 22 `InstancedMesh` players at 60 FPS via `InterpBuffer`; `FootballPitch.tsx` corrected from `/ 100` to `120 x 80` StatsBomb coordinates. |

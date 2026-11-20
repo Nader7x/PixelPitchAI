@@ -20,7 +20,7 @@ PixelPitchAI v1 demonstrated end-to-end play-by-play simulation using a fine-tun
 | **Conditioning Inputs** | `MatchStatProcessor` (`api/core/xgboost_class.py`) runs `XGBRegressor` on `[teamA_id, teamB_id, seasonA, seasonB]` -> 22 match averages discretized into vague text (`"dominant possession"`, `"low pressing"`). | Continuous conditioning at every step: **22 player capability vectors**, **in/out-of-possession formations & roles**, **team tactical sliders** (line height, PPDA/pressing, tempo, directness, width), **live off-ball positions**, **fatigue**, and **cards**. |
 | **Analytics & Calibration** | **No `xG`**, no `PSxG`, no `xPass`, no `xT`, no `VAEP` in generation or training data. | **Module D** runs calibrated `xG`, `PSxG`, `xPass`, `xT`, `VAEP`, and `Pressure Turnover` models (CatBoost/LightGBM teachers + GPU-resident distilled MLP heads for zero-sync batch Monte Carlo). |
 | **Coordinate System** | Raw StatsBomb per-team attacking flip (`(116.5, 34.1)` shot vs `(2.3, 42.6)` save on consecutive lines), causing spatial discontinuities across possession changes. | **Canonical Global Pitch Frame** (`Home attacks +x: 0→120`, `Away attacks -x: 120→0`, `y ∈ [0, 80]`) plus ego-centric goal-relative auxiliary features. |
-| **Simulation Speed** | ~33.1s–47.6s for 1,000 BPE tokens on 8-core CPU (`performance_comparison_results.json`); ~45+ min for 150k tokens on CPU. | **`< 5 ms/event`** on CPU INT8 ONNX (`~9s` full match); **`B = 128–256` parallel full matches in seconds** on Colab L4/A100 (`26.4 MB` KV cache per match). |
+| **Simulation Speed** | ~33.1s–47.6s for 1,000 BPE tokens on 8-core CPU (`performance_comparison_results.json`); ~45+ min for 150k tokens on CPU. | **`StaticBackboneCUDAGraphRunner`** (`bf16` + fused RMSNorm, flat `~610 MB` VRAM at `B=8`); scaling to `B=32–64` via Python step-loop vectorization; **PyTorch CPU fallback** now (**ONNX INT8 KV-cache deferred post-Phase 5**). |
 
 ---
 
@@ -261,9 +261,15 @@ For example, on a shot:
 
 ## 4. Modern Training & Calibration Pipeline on Google Colab (A100 / L4 GPU)
 
-Building on the existing Colab workflow (`simulation-engine/colab_simulation_engine.ipynb` using `uv pip install --system -r pyproject.toml --no-sources` to preserve Colab's native CUDA PyTorch), the training and export pipeline executes in **four structured stages**.
+Building on the existing Colab workflow (`simulation-engine/colab_simulation_engine.ipynb` preserving Colab's native CUDA PyTorch, plus headless Drive-first `gdown` pulls from `PixelPitchAI-v2-lakehouse-mens800` with `<15 min` kernel heartbeats and immediate runtime cleanup), the training and export pipeline executes in **four structured stages**.
 
-### 4.1 Stage 1: Multi-Dataset Pre-Training (`3,400+` StatsBomb Matches + Wyscout/Opta)
+### 4.0 Verified Curated Baseline Benchmark (`mens_big5_and_top_360` — Trained on Colab L4)
+
+To calibrate match physics cleanly before optional full-corpus expansion, `PixelPitch-EventTF-112M` (`112,855,134` params, `bf16`, `215.37 MB` saved weights), `SpatialPredictor` (`val_rmse = 3.1762 yd`), and `ModuleDOutcomeSuite` were trained and validated on the **`mens_big5_and_top_360` (`800` matches, `2,074,045` events)** Tier 1A lakehouse:
+- **Stage 1 / Stage 2 Losses:** Stage 1 `val_loss = 8.3381` (`734.65s`), Stage 2 `val_loss = 8.2687` (`150.96s`), `temperature = 1.05`.
+- **Module D Calibration:** `20,552` shots (`xG_ECE = 0.0168`, `Brier = 0.0818`); `12,000` passes (`xPass_ECE = 0.0143`, `Brier = 0.0748`); open-play `xg_prior_logit` tuned to `-1.30` (`outcome_models.py`), yielding **`0.129` xG/shot** and **`2.75` total goals/match** (`1.75 H - 1.00 A`) on balanced 24-match Colab L4 Monte Carlo runs.
+
+### 4.1 Stage 1: Multi-Dataset Pre-Training (`mens_big5_and_top_360` Baseline -> Optional SB+Wyscout Tier 1B)
 
 - **Training Corpus**:
   - **StatsBomb Open Data (`3,400+` matches)** from Pillar 1 DuckDB/Parquet store (~`7.5M` structured events after receipt-folding, including 360 freeze-frame matches across Euros, World Cup, Bundesliga, etc.).
@@ -310,18 +316,16 @@ Before promoting any checkpoint (`Base-112M` + `Module D v2`), an automated eval
 | **Spatial & Pass Networks** | 2D Wasserstein distance on pass start/end heatmaps; Pass length & completion % by zone; Center-vs-Wing progression ratio | Pass completion within `±1.5%`; `ECE < 0.015` across all Module D heads |
 | **OOD & Extreme-Slider Guardrails** | Clamp extreme user slider combos (e.g., `pressing=1.0` + `line_height=0.05` triggers physiological fatigue multiplier + UI warning); entropy floor/ceiling (`H ∈ [0.6·H_val, 1.3·H_val]`) | **0** illegal FSM transitions; **0** NaNs/out-of-bounds coordinates across `10,000` simulated matches |
 
-### 4.4 Stage 4: Inference Export & Serving Optimization (Dual Runtime Profiles)
+### 4.4 Stage 4: Inference Export & Serving Optimization (CUDA Graphs First; ONNX Deferred Post-Phase 5)
 
-To replace v1's slow CPU/GPU loops (`33s/1k tokens` on CPU), the trained weights export into two optimized runtime targets via `simulation-engine/scripts/`:
+To replace v1's slow CPU/GPU loops (`33s/1k tokens` on CPU), v2 splits inference optimization cleanly around real observed bottlenecks:
 
-1. **Profile A — Real-Time Single-Match Streaming (gRPC / FastAPI / Local Dev CPU & GPU)**:
-   - **GPU Path**: `torch.compile(model, mode="reduce-overhead", fullgraph=True)` + static KV-cache pre-allocated to `max_seq_len=4096` (`48 MB` static buffer), yielding **`< 1.2 ms / event`** (`~2.5s` for an entire 2,100-event match if unthrottled, or smooth real-time pacing at `1x–20x` broadcast speed).
-   - **CPU / Edge Path**: Export Backbone + Intra-Event Micro-Decoder + Distilled Module D heads to **ONNX opset 19** with `KV-cache past_key_values` IO-binding and **INT8 per-channel dynamic quantization** (`ORTModel` / `onnxruntime` AVX2/AVX-512), yielding **`~4–6 ms / event`** (`~10–12 seconds` per full match on standard 8-core CPU—a **>200x match-level speedup** over v1's ~45-minute CPU run for 150k BPE tokens!).
-2. **Profile B — 100x–500x Batch Monte Carlo Counterfactual Engine (Colab A100 / L4 GPU)**:
-   - Runs `B = 128` (L4 24GB) or `B = 256` (A100 40GB/80GB) independent seeded match timelines **in a single lockstep batched forward pass** per event step (`~2,200` steps total), with **CUDA Graphs + TensorRT FP16/BF16 (or `torch.compile`) + Tier-2 GPU-Resident Distilled Module D MLPs** and vectorized FSM transition kernels in PyTorch/Numba/C++.
-   - **Throughput Estimate (`B = 128` parallel matches, `Base-112M` `bf16` on A100/L4)**:
-     - Step latency for `B = 128` batched decode + micro-decoder + GPU Module D heads: `~4–8 ms` per batch step.
-     - **100 full 90-minute matches (`~2,200` events each) complete in `~10–18 seconds` on an A100 (or `~20–30 seconds` on an L4)**—making interactive counterfactual coaching experiments (*"Compare 4-3-3 High Press vs 4-2-3-1 Mid-Block across 100 Monte Carlo seeds"*) genuinely real-time!
+1. **Profile A — Real-Time Single-Match Streaming (`remote_gpu` / `local_cuda` + PyTorch CPU Fallback):**
+   - **GPU Path (`StaticBackboneCUDAGraphRunner`)**: Pre-allocated static KV-cache with CUDA Graph capture for the `12`-layer `bf16` backbone + fused RMSNorm (`event_transformer.py`) + incremental micro-decoder KV-cache, holding GPU VRAM flat at **`~610 MB`** (`B=8`, `~32s/match` unthrottled on Colab L4) with zero graph reallocation overhead.
+   - **CPU / Edge Fallback (ONNX INT8 Export Deferred to Post-Phase 5)**: Exporting a custom `112M` GQA + Gated Cross-Attention + AdaLN-Zero + `2L` Intra-Event Micro-Decoder with dynamic KV-cache to ONNX Runtime opset 19 INT8 (`~4–6 ms/event` target) is high-effort and brittle. To keep Phases 4–5 unblocked, **`local_cpu_onnx` runs a PyTorch CPU fallback** now while full ONNX INT8 KV-cache graph export is **deferred to Post-Phase 5**.
+2. **Profile B — Batched Monte Carlo Counterfactual Engine (Colab L4 / A100 GPU):**
+   - Because `StaticBackboneCUDAGraphRunner` (`bf16`) uses only `~610 MB` VRAM at `B=8`, Colab L4 (`24 GB`) and A100 (`40/80 GB`) are **not** constrained by GPU transformer FLOPs or VRAM—**the primary latency bottleneck is Python per-step orchestration overhead** in `rollout_engine.py`, `fsm.py`, and `state_engine.py`.
+   - **Active Optimization Priority**: Focus on **raising GPU batch sizes (`B = 32–64+`)** and **vectorizing/culling Python tensor-indexing loops inside the step loop** (`cuda`/`no_grad`/`StaticBackboneCUDAGraphRunner`), unlocking fast `N=100` counterfactual batches on L4/A100 ahead of any ONNX export work.
 
 ---
 
@@ -350,7 +354,7 @@ class MatchInitContext(BaseModel):
 
 ### 5.2 Downstream Emission (To Module E: `04_presentation_and_integration.md`)
 
-At every committed event step $t$, the Hybrid Simulator emits typed `MatchStreamFrameV2` messages (`StructuredEventV2`, `PitchSpatialFrameV2` at 5–10 Hz + event keyframes, and `TelemetrySnapshotV2`) over gRPC `footex.simulation.v2.SimulationServiceV2` or RabbitMQ `match_events_v2` for SSE delivery (`GET /api/v2/matches/{id}/stream`) and downstream LLM commentary:
+At every committed event step $t$, the Hybrid Simulator emits typed `MatchStreamFrameV2` messages (`StructuredEventV2`, `PitchSpatialFrameV2` at 5–10 Hz + event keyframes, and `TelemetrySnapshotV2`) exclusively over **gRPC `footex.simulation.v2.SimulationServiceV2`** (while RabbitMQ is scoped strictly to async `experiment.completed.v2` completion notifications) for SSE delivery (`GET /api/v2/matches/{id}/stream`) and downstream LLM commentary:
 
 ```json
 {
