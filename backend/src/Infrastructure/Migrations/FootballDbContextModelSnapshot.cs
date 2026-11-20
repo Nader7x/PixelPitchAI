@@ -17,7 +17,7 @@ namespace Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -261,6 +261,12 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("AwayTeamSeasonId")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("AwayXG")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AwayXT")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -287,6 +293,12 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("HomeTeamSeasonId")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("HomeXG")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("HomeXT")
+                        .HasColumnType("double precision");
+
                     b.Property<bool?>("IsDraw")
                         .HasColumnType("boolean");
 
@@ -306,6 +318,10 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("ModelSimulationStartTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ModelVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTime>("ScheduledDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -316,8 +332,19 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("SpatialTrackCodec")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SpatialTrackObjectKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<int?>("StadiumId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TacticalConfigJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -390,7 +417,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("EventsJson")
                         .IsRequired()
-                        .HasMaxLength(1000000)
                         .HasColumnType("jsonb");
 
                     b.Property<int>("GoalsAwayTeam")
@@ -534,6 +560,9 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("AwayTeamDuelsWon")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("AwayTeamFieldTilt")
+                        .HasColumnType("double precision");
+
                     b.Property<int?>("AwayTeamFouls")
                         .HasColumnType("integer");
 
@@ -548,6 +577,12 @@ namespace Infrastructure.Migrations
 
                     b.Property<int?>("AwayTeamOffsides")
                         .HasColumnType("integer");
+
+                    b.Property<double?>("AwayTeamPPDA")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AwayTeamPSXG")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("AwayTeamPassAccuracy")
                         .HasColumnType("double precision");
@@ -585,6 +620,12 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("AwayTeamShotsOnTarget")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("AwayTeamXG")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("AwayTeamXT")
+                        .HasColumnType("double precision");
+
                     b.Property<int?>("AwayTeamYellowCards")
                         .HasColumnType("integer");
 
@@ -609,6 +650,9 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("HomeTeamDuelsWon")
                         .HasColumnType("integer");
 
+                    b.Property<double?>("HomeTeamFieldTilt")
+                        .HasColumnType("double precision");
+
                     b.Property<int?>("HomeTeamFouls")
                         .HasColumnType("integer");
 
@@ -623,6 +667,12 @@ namespace Infrastructure.Migrations
 
                     b.Property<int?>("HomeTeamOffsides")
                         .HasColumnType("integer");
+
+                    b.Property<double?>("HomeTeamPPDA")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("HomeTeamPSXG")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("HomeTeamPassAccuracy")
                         .HasColumnType("double precision");
@@ -659,6 +709,12 @@ namespace Infrastructure.Migrations
 
                     b.Property<int?>("HomeTeamShotsOnTarget")
                         .HasColumnType("integer");
+
+                    b.Property<double?>("HomeTeamXG")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("HomeTeamXT")
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("HomeTeamYellowCards")
                         .HasColumnType("integer");
@@ -1050,6 +1106,70 @@ namespace Infrastructure.Migrations
                         {
                             t.HasComment("Stadium information");
                         });
+                });
+
+            modelBuilder.Entity("Domain.Models.TacticalExperimentRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("BaseSeed")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CommentaryTelemetryJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ExecutionTier")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("NSimulations")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("RepresentativeSeedsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("RequestJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TacticalExperiments");
                 });
 
             modelBuilder.Entity("Domain.Models.Team", b =>

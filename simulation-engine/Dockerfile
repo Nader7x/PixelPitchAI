@@ -28,8 +28,8 @@ ENV PATH="/app/.venv/bin:$PATH" \
 # 6. Copy python package definitions with instant ownership
 COPY --chown=appuser:appuser pyproject.toml uv.lock ./
 
-# 7. Compile virtual environment (runs as appuser, so no chown needed later!)
-RUN uv sync --frozen --no-install-project -v
+# 7. Compile virtual environment with V2 extras (pyarrow, duckdb, zstandard)
+RUN uv sync --frozen --extra v2 --no-install-project -v
 
 # 8. Copy application code with instant ownership
 COPY --chown=appuser:appuser . .
