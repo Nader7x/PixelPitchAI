@@ -5,7 +5,6 @@ using Application.Interfaces;
 using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +23,7 @@ public interface IMatchEventProcessor
 
 /// <summary>
 ///     Unified match event processing layer shared between Pipeline A (RabbitMQ) and Pipeline B (direct gRPC).
-///     Encapsulates entity caching, score tracking, statistics calculations, SSE/SignalR broadcasting,
+///     Encapsulates entity caching, score tracking, statistics calculations, SSE broadcasting,
 ///     and batch database persistence.
 /// </summary>
 public sealed class MatchEventProcessor : IMatchEventProcessor
@@ -38,7 +37,6 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
     private readonly IPerformanceMonitoringService _performanceMonitoringService;
     private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
     private readonly IMatchEventBroadcaster? _broadcaster;
-    private readonly IHubContext<MatchHub, IMatchHub>? _hubContext;
     private readonly ILogger<MatchEventProcessor> _logger;
 
     public MatchEventProcessor(
@@ -46,15 +44,13 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
         IPerformanceMonitoringService performanceMonitoringService,
         ILiveMatchStatisticsService liveMatchStatisticsService,
         ILogger<MatchEventProcessor> logger,
-        IMatchEventBroadcaster? broadcaster = null,
-        IHubContext<MatchHub, IMatchHub>? hubContext = null)
+        IMatchEventBroadcaster? broadcaster = null)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _performanceMonitoringService = performanceMonitoringService;
         _liveMatchStatisticsService = liveMatchStatisticsService;
         _logger = logger;
         _broadcaster = broadcaster;
-        _hubContext = hubContext;
     }
 
     public async Task<Match?> GetOrLoadMatchEntityAsync(string matchId)
@@ -159,18 +155,11 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
             eventsList.Add(matchEvent);
         }
 
-        // 3. Broadcast event to SSE and SignalR
+        // 3. Broadcast event to SSE
         try
         {
             if (_broadcaster != null)
                 await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent, cancellationToken);
-
-            if (_hubContext != null && int.TryParse(matchEvent.match_id, out var parsedId))
-            {
-                await _hubContext
-                    .Clients.Group(matchEvent.match_id)
-                    .SendMatchEventAsync("match_event", parsedId, matchEvent);
-            }
         }
         catch (Exception ex)
         {
@@ -318,65 +307,50 @@ public sealed class MatchEventProcessor : IMatchEventProcessor
             if (matchEntity.MatchStatistics == null)
                 return;
 
-            var matchStatistics = new
-            {
-                matchId = matchEntity.Id,
-                timeStamp = matchEvent.timestamp,
-                homeTeam = new
-                {
-                    name = matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
-                    score = matchEntity.HomeTeamScore ?? 0,
-                    shots = matchEntity.MatchStatistics.HomeTeamShots ?? 0,
-                    shotsOnTarget = matchEntity.MatchStatistics.HomeTeamShotsOnTarget ?? 0,
-                    possession = matchEntity.MatchStatistics.HomeTeamPossession ?? 0,
-                    passes = matchEntity.MatchStatistics.HomeTeamPasses ?? 0,
-                    passAccuracy = matchEntity.MatchStatistics.HomeTeamPassAccuracy ?? 0,
-                    corners = matchEntity.MatchStatistics.HomeTeamCorners ?? 0,
-                    fouls = matchEntity.MatchStatistics.HomeTeamFouls ?? 0,
-                    yellowCards = matchEntity.MatchStatistics.HomeTeamYellowCards ?? 0,
-                    redCards = matchEntity.MatchStatistics.HomeTeamRedCards ?? 0,
-                    offsides = matchEntity.MatchStatistics.HomeTeamOffsides ?? 0,
-                },
-                awayTeam = new
-                {
-                    name = matchEntity.AwayTeam?.Name ?? matchEntity.AwayTeamInMatchName,
-                    score = matchEntity.AwayTeamScore ?? 0,
-                    shots = matchEntity.MatchStatistics.AwayTeamShots ?? 0,
-                    shotsOnTarget = matchEntity.MatchStatistics.AwayTeamShotsOnTarget ?? 0,
-                    possession = matchEntity.MatchStatistics.AwayTeamPossession ?? 0,
-                    passes = matchEntity.MatchStatistics.AwayTeamPasses ?? 0,
-                    passAccuracy = matchEntity.MatchStatistics.AwayTeamPassAccuracy ?? 0,
-                    corners = matchEntity.MatchStatistics.AwayTeamCorners ?? 0,
-                    fouls = matchEntity.MatchStatistics.AwayTeamFouls ?? 0,
-                    yellowCards = matchEntity.MatchStatistics.AwayTeamYellowCards ?? 0,
-                    redCards = matchEntity.MatchStatistics.AwayTeamRedCards ?? 0,
-                    offsides = matchEntity.MatchStatistics.AwayTeamOffsides ?? 0,
-                },
-                matchInfo = new
-                {
-                    status = matchEntity.MatchStatus,
-                    isLive = matchEntity.IsLive,
-                    currentMinute = matchEvent.minute,
-                    lastEventTime = matchEvent.time_seconds,
-                    eventType = matchEvent.action,
-                    eventTeam = matchEvent.team,
-                },
-                lastUpdated = DateTime.UtcNow,
-            };
+            var matchStatistics = new V1MatchStatisticsUpdateDto(
+                matchEntity.Id,
+                matchEvent.timestamp,
+                new V1TeamStatisticsDto(
+                    matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
+                    matchEntity.HomeTeamScore ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamShots ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamShotsOnTarget ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamPossession ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamPasses ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamPassAccuracy ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamCorners ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamFouls ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamYellowCards ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamRedCards ?? 0,
+                    matchEntity.MatchStatistics.HomeTeamOffsides ?? 0
+                ),
+                new V1TeamStatisticsDto(
+                    matchEntity.AwayTeam?.Name ?? matchEntity.AwayTeamInMatchName,
+                    matchEntity.AwayTeamScore ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamShots ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamShotsOnTarget ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamPossession ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamPasses ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamPassAccuracy ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamCorners ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamFouls ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamYellowCards ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamRedCards ?? 0,
+                    matchEntity.MatchStatistics.AwayTeamOffsides ?? 0
+                ),
+                new V1MatchInfoDto(
+                    matchEntity.MatchStatus,
+                    matchEntity.IsLive,
+                    matchEvent.minute,
+                    matchEvent.time_seconds,
+                    matchEvent.action,
+                    matchEvent.team
+                ),
+                DateTime.UtcNow
+            );
 
             if (_broadcaster != null)
                 await _broadcaster.BroadcastStatisticsAsync(matchEntity.Id.ToString(), matchStatistics, cancellationToken);
-
-            if (_hubContext != null)
-            {
-                await _hubContext
-                    .Clients.Group($"MatchStatistics-{matchEntity.Id}")
-                    .SendMatchStatisticsAsync(
-                        "match_statistics_update",
-                        matchEntity.Id,
-                        matchStatistics
-                    );
-            }
         }
         catch (Exception ex)
         {

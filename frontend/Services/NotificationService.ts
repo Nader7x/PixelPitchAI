@@ -1,5 +1,4 @@
-// NotificationService - Simplified API-only service for notifications
-// SignalR real-time notifications are now handled by useSignalRNotifications hook
+// NotificationService - API & SSE notification types and REST helpers
 import axios from 'axios';
 import authService from './AuthenticationService';
 
@@ -15,6 +14,8 @@ export interface Notification {
   matchId?: number; // For match-related notifications
   simulationId?: string; // For simulation-related notifications (from backend SimulationId)
 }
+
+export type NotificationData = Notification;
 
 export enum NotificationType {
   MatchStart = 'MatchStart',

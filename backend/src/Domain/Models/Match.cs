@@ -57,6 +57,23 @@ public sealed class Match
     [MaxLength(255)]
     public string? SimulationId { get; set; }
 
+    // V2 Hybrid Simulation & Spatial Track Persistence
+    public string? TacticalConfigJson { get; set; }
+
+    [MaxLength(512)]
+    public string? SpatialTrackObjectKey { get; set; }
+
+    [MaxLength(64)]
+    public string? SpatialTrackCodec { get; set; }
+
+    public double? HomeXG { get; set; }
+    public double? AwayXG { get; set; }
+    public double? HomeXT { get; set; }
+    public double? AwayXT { get; set; }
+
+    [MaxLength(64)]
+    public string? ModelVersion { get; set; }
+
     public ApplicationUser? Creator { get; init; }
     public MatchEvents? MatchEvents { get; set; }
     public MatchStatistics? MatchStatistics { get; set; }

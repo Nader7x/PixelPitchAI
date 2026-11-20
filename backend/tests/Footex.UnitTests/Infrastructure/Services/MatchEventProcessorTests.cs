@@ -54,8 +54,7 @@ public class MatchEventProcessorTests
             _mockPerformanceMonitoring.Object,
             _mockLiveMatchStatistics.Object,
             _mockLogger.Object,
-            _mockBroadcaster.Object,
-            hubContext: null
+            _mockBroadcaster.Object
         );
     }
 

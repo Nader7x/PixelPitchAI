@@ -12,7 +12,6 @@ using Infrastructure;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -94,7 +93,6 @@ try
                     .WithOrigins(
                         "http://localhost:3000",
                         "https://localhost:3000",
-                        "https://gourav-d.github.io/SignalR-Web-Client",
                         "https://localhost:7082",
                         "http://localhost:5025", // HTTP API
                         "http://localhost:5025/swagger", // Swagger UI HTTP
@@ -212,8 +210,9 @@ try
                     if (
                         !string.IsNullOrEmpty(accessToken)
                         && (
-                            path.StartsWithSegments("/Notify")
-                            || path.StartsWithSegments("/matchSimulationHub")
+                            path.StartsWithSegments("/api/v2/matches")
+                            || path.StartsWithSegments("/api/v2/experiments")
+                            || path.StartsWithSegments("/api/v2/notifications/stream")
                             || path.StartsWithSegments("/api/matches")
                         )
                     )
@@ -242,13 +241,6 @@ try
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
-    builder
-        .Services.AddSignalR(options =>
-        {
-            options.EnableDetailedErrors = true;
-            options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
-        })
-        .AddJsonProtocol(options => options.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
     builder.Services.AddOutputCache();
 
@@ -282,7 +274,6 @@ try
 
     // Add authentication and authorization middleware
     app.UseAuthentication();
-    app.UseWebSockets();
     app.UseCors("AllowSomeOrigins");
     app.UseAuthorization();
 
@@ -350,20 +341,6 @@ try
         }
     }
 
-    app.MapHub<NotificationService>(
-        "/Notify",
-        options =>
-        {
-            options.Transports = HttpTransportType.WebSockets;
-        }
-    );
-    app.MapHub<MatchHub>(
-        "/matchSimulationHub",
-        options =>
-        {
-            options.Transports = HttpTransportType.WebSockets;
-        }
-    );
     app.Run();
 }
 catch (Exception ex)

@@ -7,10 +7,10 @@ import toast from 'react-hot-toast';
 import authService from '@/Services/AuthenticationService';
 import notificationService, {
   Notification,
+  NotificationData,
   NotificationType,
 } from '@/Services/NotificationService';
-import useSignalRNotifications from '@/app/hooks/useSignalRNotifications';
-import { NotificationData } from '@/Services/SignalRService';
+import useNotificationsSse from '@/app/hooks/useNotificationsSse';
 import { SearchAutocomplete } from '@/app/Components/Search';
 import { useSettings } from '../../contexts/EnhancedSettingsContext';
 
@@ -113,9 +113,9 @@ export default function Navbar() {
     []
   );
 
-  // Use the SignalR notifications hook with memoized callbacks
+  // Use the SSE notifications hook with memoized callbacks
   const { isConnected: signalRConnected, connectionStats } =
-    useSignalRNotifications({
+    useNotificationsSse({
       autoConnect: true, // Enable auto-connect
       showToasts: true,
       autoRedirectOnMatchStart: false, // Let user decide

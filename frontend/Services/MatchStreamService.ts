@@ -3,6 +3,48 @@
  * Replaces SignalR WebSockets for unidirectional server-to-client match event broadcasts.
  */
 
+export interface MatchStatistics {
+  matchId: number;
+  timeStamp: string;
+  homeTeam: {
+    name: string;
+    score: number;
+    shots: number;
+    shotsOnTarget: number;
+    possession: number;
+    passes: number;
+    passAccuracy: number;
+    corners: number;
+    fouls: number;
+    yellowCards: number;
+    redCards: number;
+    offsides: number;
+  };
+  awayTeam: {
+    name: string;
+    score: number;
+    shots: number;
+    shotsOnTarget: number;
+    possession: number;
+    passes: number;
+    passAccuracy: number;
+    corners: number;
+    fouls: number;
+    yellowCards: number;
+    redCards: number;
+    offsides: number;
+  };
+  matchInfo: {
+    status: string;
+    isLive: boolean;
+    currentMinute: number;
+    lastEventTime: number;
+    eventType: string;
+    eventTeam: string;
+  };
+  lastUpdated: string;
+}
+
 export interface MatchStreamCallbacks {
   onEvent?: (eventData: any) => void;
   onStatistics?: (statsData: any) => void;

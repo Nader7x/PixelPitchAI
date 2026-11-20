@@ -1,12 +1,10 @@
 using Application.CQRS;
 using Application.CQRS.Notifications.Queries;
 using Application.Interfaces;
-using Application.Services;
 using Domain.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 
 namespace Footex.Controllers;
 
@@ -14,14 +12,10 @@ namespace Footex.Controllers;
 [Route("api/[controller]")]
 public class NotificationsController(
     IUnitOfWork unitOfWork,
-    IHubContext<NotificationService, INotificationService> hubContext,
     ICacheService cacheService
 ) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
-
-    private readonly IHubContext<NotificationService, INotificationService> _hubContext =
-        hubContext;
 
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 

@@ -1,0 +1,209 @@
+syntax = "proto3";
+
+package footex.simulation.v2;
+option csharp_namespace = "Infrastructure.Protos.V2";
+
+service SimulationServiceV2 {
+  // Single live match: server-stream with live tactical intervention handle
+  rpc StreamMatchV2 (SimulateMatchV2Request) returns (stream MatchStreamFrameV2);
+  rpc ApplyLiveTacticalOverride (LiveTacticalOverrideRequest) returns (LiveTacticalOverrideAck);
+
+  // Batch Counterfactual Experimentation (100 - 1,000 matches on GPU)
+  rpc RunMonteCarloExperiment (MonteCarloExperimentRequest) returns (stream MonteCarloProgressFrame);
+
+  rpc GetHealthV2 (HealthV2Request) returns (HealthV2Response);
+}
+
+enum FrameKind {
+  FRAME_KIND_UNSPECIFIED = 0;
+  LIFECYCLE = 1;
+  EVENT = 2;
+  SPATIAL = 3;
+  TELEMETRY = 4;
+  COMMENTARY = 5;
+}
+
+message SimulateMatchV2Request {
+  string match_id = 1;
+  string stream_mode = 2;             // "broadcast" | "instant" | "compact"
+  string compute_target = 3;          // "auto" | "local_cpu_onnx" | "local_cuda" | "remote_gpu"
+  float playback_speed = 4;
+  uint32 spatial_hz = 5;
+  uint32 max_events = 6;
+  string match_config_json = 7;       // Serialized MatchConfigurationV2 JSON
+  bool commentary_enabled = 8;
+  string commentary_provider = 9;     // "template_only" | "local_3b" | "flash_api" | "ab_split"
+  string commentary_language = 10;    // "en" | "es" | "fr"
+  float commentary_salience_threshold = 11;
+  uint32 commentary_timeout_ms = 12;
+}
+
+message MatchStreamFrameV2 {
+  string match_id = 1;
+  uint32 sequence_no = 2;
+  uint32 match_clock_seconds = 3;   // Canonical clock from Hybrid State Machine
+  uint32 period = 4;                // 1=1H, 2=2H, 3=ET1, 4=ET2, 5=FT
+  FrameKind kind = 5;
+
+  oneof payload {
+    StructuredEventV2 event = 10;
+    PitchSpatialFrameV2 spatial = 11;
+    TelemetrySnapshotV2 telemetry = 12;
+    CommentaryCueV2 commentary = 13;
+    MatchLifecycleV2 lifecycle = 14;
+  }
+}
+
+message StructuredEventV2 {
+  uint32 event_index = 1;
+  uint32 possession_phase_id = 2;
+  uint32 possessing_team_side = 3;  // 0=none, 1=home, 2=away
+  uint32 actor_slot = 4;            // 1..11 home, 12..22 away
+  uint32 recipient_slot = 5;        // 0 if none
+  uint32 player_id = 6;
+  string player_name = 7;
+  string action_type = 8;           // pass, carry, shot, duel, pressure, interception, substitution, ...
+  string sub_type = 9;              // ThroughBall, Switch, Cross, Corner, FreeKick, GoalKick, ThrowIn, Penalty
+  string outcome = 10;              // Complete, Incomplete, Goal, Saved, OffTarget, Blocked, Won, Lost
+  float start_x = 11;               // StatsBomb canonical 0..120
+  float start_y = 12;               // StatsBomb canonical 0..80
+  float end_x = 13;
+  float end_y = 14;
+  float end_z = 15;                 // Goal-mouth / aerial height (meters)
+  bool under_pressure = 16;
+  string body_part = 17;
+  string pass_height = 18;          // Ground, Low, High
+  string card = 19;                 // Yellow, SecondYellow, Red
+  uint32 home_score = 20;
+  uint32 away_score = 21;
+
+  // Module D Calibrated Per-Event Analytics
+  float xg = 22;
+  float post_shot_xg = 23;
+  float xpass = 24;
+  float xt_delta = 25;
+  float vaep_value = 26;
+  float turnover_risk = 27;
+}
+
+message PlayerSpatialStateV2 {
+  uint32 slot = 1;                  // 1..22 matching lineup slot
+  uint32 player_id = 2;
+  float x = 3;                      // Canonical pitch yards [0, 120]
+  float y = 4;                      // Canonical pitch yards [0, 80]
+  float vx = 5;                     // Canonical yards/s
+  float vy = 6;                     // Canonical yards/s
+  float facing_rad = 7;
+  float stamina = 8;                // 0..1 remaining physical capacity
+  bool has_ball = 9;
+  bool is_sent_off = 10;
+}
+
+message PitchSpatialFrameV2 {
+  uint64 sim_timestamp_ms = 1;      // Smooth playback clock relative to kickoff
+  float ball_x = 2;
+  float ball_y = 3;
+  float ball_z = 4;
+  repeated PlayerSpatialStateV2 players = 5; // Always <= 22 active slots
+  float home_voronoi_control = 6;   // % pitch control in attacking third / overall
+}
+
+message TelemetrySnapshotV2 {
+  float home_xg = 1;
+  float away_xg = 2;
+  float home_psxg = 3;
+  float away_psxg = 4;
+  float home_xt = 5;
+  float away_xt = 6;
+  float home_possession_pct = 7;
+  float home_ppda = 8;
+  float away_ppda = 9;
+  float home_field_tilt_pct = 10;   // Final-third passes share
+  float momentum_index = 11;        // [-1.0 away .. +1.0 home] rolling 3-min xT/xG swing
+  uint32 home_shots = 12;
+  uint32 away_shots = 13;
+  uint32 home_shots_on_target = 14;
+  uint32 away_shots_on_target = 15;
+  uint32 home_passes = 16;
+  uint32 away_passes = 17;
+  float home_pass_accuracy = 18;
+  float away_pass_accuracy = 19;
+  float home_avg_xpass = 20;
+  float away_avg_xpass = 21;
+  uint32 home_high_turnovers = 22;
+  uint32 away_high_turnovers = 23;
+}
+
+message CommentaryCueV2 {
+  uint32 anchor_event_index = 1;
+  string tier = 2;                  // "template" | "llm_broadcast" | "tactical_insight"
+  string headline = 3;              // Short ticker text
+  string body = 4;                  // Natural-language commentary / tactical note
+  float salience_score = 5;         // 0..1 importance for UI highlighting / TTS
+  string language = 6;              // "en" | "es" | "fr"
+  string provider_id = 7;           // "template" | "local_3b" | "flash_api"
+  string model_version = 8;
+  uint32 latency_ms = 9;
+  bool verifier_passed = 10;
+  bool fallback_used = 11;
+}
+
+message MatchLifecycleV2 {
+  string status = 1;                // match_start, first_half_end, second_half_start, substitution, red_card, tactical_override, match_end, error
+  string message = 2;
+  uint32 home_score = 3;
+  uint32 away_score = 4;
+  string execution_tier = 5;
+  string spatial_track_object_key = 6;
+  string spatial_track_codec = 7;
+}
+
+message LiveTacticalOverrideRequest {
+  string match_id = 1;
+  string team_side = 2;             // "home" | "away"
+  string tactical_instructions_patch_json = 3;
+  string formation_base_name = 4;
+  string substitution_json = 5;
+  optional float playback_speed = 6;
+}
+
+message LiveTacticalOverrideAck {
+  string match_id = 1;
+  bool applied = 2;
+  uint32 sequence_no = 3;
+  string message = 4;
+  string active_tactics_json = 5;
+}
+
+message MonteCarloExperimentRequest {
+  string experiment_id = 1;
+  uint32 n_simulations = 2;
+  uint64 base_seed = 3;
+  string compute_target = 4;
+  string baseline_config_json = 5;
+  string interventions_json = 6;
+  bool allow_ood_extrapolation = 7;
+}
+
+message MonteCarloProgressFrame {
+  string experiment_id = 1;
+  uint32 completed = 2;
+  uint32 total = 3;
+  string stage = 4;                 // "ood_check" | "simulating" | "aggregating" | "completed" | "error"
+  bool is_final = 5;
+  string results_json = 6;
+  string ood_warning_level = 7;
+  string error_message = 8;
+}
+
+message HealthV2Request {
+  bool include_checkpoints = 1;
+}
+
+message HealthV2Response {
+  bool healthy = 1;
+  string version = 2;
+  repeated string available_tiers = 3;
+  bool checkpoints_ready = 4;
+  string details_json = 5;
+}

@@ -6,10 +6,10 @@ import toast from 'react-hot-toast';
 import authService from '@/Services/AuthenticationService';
 import notificationService, {
   Notification,
+  NotificationData,
   NotificationType,
 } from '@/Services/NotificationService';
-import { NotificationData } from '@/Services/SignalRService';
-import useSignalRNotifications from '@/app/hooks/useSignalRNotifications';
+import useNotificationsSse from '@/app/hooks/useNotificationsSse';
 
 interface UseNotificationsReturn {
   notifications: Notification[];
@@ -47,8 +47,8 @@ export const useNotifications = (): UseNotificationsReturn => {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // Setup SignalR notifications with custom handling
-  const { isConnected, connectionStats } = useSignalRNotifications({
+  // Setup SSE notifications with custom handling
+  const { isConnected, connectionStats } = useNotificationsSse({
     autoConnect: true,
     showToasts: true,
     autoRedirect: false,

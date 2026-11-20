@@ -12,7 +12,6 @@ using Footex.UnitTests.Common;
 using Application.CQRS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Xunit;
 
@@ -23,23 +22,17 @@ public class NotificationsControllerTests
     private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly NotificationsController _controller;
     private readonly NoRecursionFixture _fixture;
-    private readonly Mock<IHubContext<NotificationService, INotificationService>> _hubContextMock;
-    private readonly Mock<INotificationService> _notificationServiceMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
 
     public NotificationsControllerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
-        _hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
-        _notificationServiceMock = new Mock<INotificationService>();
-        _hubContextMock.Setup(h => h.Clients.All).Returns(_notificationServiceMock.Object);
         _cacheServiceMock = new Mock<ICacheService>();
 
         _fixture = new NoRecursionFixture();
 
         _controller = new NotificationsController(
             _unitOfWorkMock.Object,
-            _hubContextMock.Object,
             _cacheServiceMock.Object
         );
 

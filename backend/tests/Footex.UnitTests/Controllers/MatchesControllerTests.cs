@@ -14,7 +14,6 @@ using Footex.UnitTests.Common;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -39,7 +38,6 @@ public class MatchesControllerTests
         var serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
         var unitOfWorkMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<MatchesController>>();
-        var hubContextMock = new Mock<IHubContext<NotificationService, INotificationService>>();
         _cacheServiceMock = new Mock<ICacheService>();
         var performanceMonitoring = new Mock<IPerformanceMonitoringService>();
 
@@ -62,7 +60,6 @@ public class MatchesControllerTests
             performanceMonitoring.Object,
             liveMatchService.Object,
             loggerMock.Object,
-            hubContextMock.Object,
             _cacheServiceMock.Object
         );
 

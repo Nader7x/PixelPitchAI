@@ -9,8 +9,7 @@ public sealed class MatchEvents
     public int MatchId { get; set; }
     public DateTime LastUpdated { get; set; }
 
-    [MaxLength(1000000)]
-    public string EventsJson { get; set; } = "[]"; // JSON string containing all match events
+    public string EventsJson { get; set; } = "[]"; // JSONB string containing all match events
 
     // Individual event detail fields for queries without deserializing the whole JSON
     public int GoalsHomeTeam { get; set; }

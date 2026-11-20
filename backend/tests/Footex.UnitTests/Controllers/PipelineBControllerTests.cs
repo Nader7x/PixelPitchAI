@@ -14,7 +14,6 @@ using Footex.Controllers;
 using Infrastructure.Configuration;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -63,7 +62,7 @@ public class PipelineBControllerTests : IDisposable
         _controller = new MatchesController(_http.Object, Mock.Of<IMatchMapper>(),
             Options.Create(new SimulationServiceOptions()), scopeFactory, _unit.Object,
             Mock.Of<IPerformanceMonitoringService>(), Mock.Of<ILiveMatchStatisticsService>(),
-            NullLogger<MatchesController>.Instance, Mock.Of<IHubContext<NotificationService, INotificationService>>(),
+            NullLogger<MatchesController>.Instance,
             Mock.Of<ICacheService>(), Options.Create(new EventIngestionOptions { Mode = "GrpcStream" }), _queue, grpc.Object);
     }
 

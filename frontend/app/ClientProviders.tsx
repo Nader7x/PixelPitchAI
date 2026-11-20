@@ -10,8 +10,6 @@ import { SettingsProvider } from './contexts/EnhancedSettingsContext';
 import enMessages from '../messages/en.json';
 import esMessages from '../messages/es.json';
 import frMessages from '../messages/fr.json';
-import { EmergencySignalRFix } from './Components/EmergencySignalRFix';
-import { InstantSignalRConnector } from './Components/InstantSignalRConnector';
 
 // Get locale data from localStorage
 function getClientSideLocaleData() {
@@ -120,8 +118,6 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         disableTransitionOnChange={false}
       >
         <SettingsProvider>
-          <EmergencySignalRFix />
-          <InstantSignalRConnector />
           {children}
           <Toaster
             position="top-right"

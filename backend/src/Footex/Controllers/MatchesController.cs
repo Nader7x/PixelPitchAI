@@ -15,9 +15,9 @@ using Footex.Configuration;
 using Infrastructure.Configuration;
 using Infrastructure.Services;
 using Application.CQRS;
+using Application.Dtos.V2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
 namespace Footex.Controllers;
@@ -33,18 +33,16 @@ public class MatchesController(
     IPerformanceMonitoringService performanceMonitoringService,
     ILiveMatchStatisticsService liveMatchService,
     ILogger<MatchesController> logger,
-    IHubContext<NotificationService, INotificationService> hubContext,
     ICacheService cacheService,
     IOptions<EventIngestionOptions>? eventIngestionOptions = null,
     IMatchStreamingQueue? streamingQueue = null,
     ISimulationGrpcClient? grpcClient = null,
-    IMatchStreamLifecycle? streamLifecycle = null
+    IMatchStreamLifecycle? streamLifecycle = null,
+    INotificationsBroadcaster? notificationsBroadcaster = null
 ) : ControllerBase
 {
     private readonly ICacheService _cacheService = cacheService;
-
-    private readonly IHubContext<NotificationService, INotificationService> _hubContext =
-        hubContext;
+    private readonly INotificationsBroadcaster? _notificationsBroadcaster = notificationsBroadcaster;
 
     private readonly ILogger<MatchesController> _logger = logger;
     private readonly IMatchMapper _matchMapper = matchMapper;
@@ -517,23 +515,22 @@ public class MatchesController(
                 : $"{Request.Scheme}://{Request.Host}";
 
             // Prepare request for simulation service with atomic webhook payload
-            var simulationPayload = new
-            {
-                match_id = result.Id,
-                home_team_id = simulationDto.HomeTeamId,
-                away_team_id = simulationDto.AwayTeamId,
-                home_team_name = simulationDto.HomeTeamName,
-                away_team_name = simulationDto.AwayTeamName,
-                home_team_season = simulationDto.HomeTeamSeason,
-                away_team_season = simulationDto.AwayTeamSeason,
-                num_tokens_to_generate = simulationDto.NumTokensToGenerate ?? 2000,
-                temperature = 0.7,
-                top_p = 0.9,
-                top_k = 50,
-                max_new_tokens = 1024,
-                webhook_url = $"{callbackBase}/api/matches/webhookNotification",
-                webhook_secret = _simulationOptions.ApiKey,
-            };
+            var simulationPayload = new V1StartMatchRequestPayload(
+                result.Id,
+                simulationDto.HomeTeamId,
+                simulationDto.AwayTeamId,
+                simulationDto.HomeTeamName,
+                simulationDto.AwayTeamName,
+                simulationDto.HomeTeamSeason,
+                simulationDto.AwayTeamSeason,
+                simulationDto.NumTokensToGenerate ?? 2000,
+                0.7,
+                0.9,
+                50,
+                1024,
+                $"{callbackBase}/api/matches/webhookNotification",
+                _simulationOptions.ApiKey
+            );
 
             using var requestMessage = new HttpRequestMessage(
                 HttpMethod.Post,
@@ -541,7 +538,7 @@ public class MatchesController(
             )
             {
                 Content = new StringContent(
-                    JsonSerializer.Serialize(simulationPayload),
+                    JsonSerializer.Serialize(simulationPayload, MatchEventJsonContext.Default.V1StartMatchRequestPayload),
                     Encoding.UTF8,
                     "application/json"
                 ),
@@ -666,11 +663,11 @@ public class MatchesController(
                 // Prepare the request content
                 var content = new StringContent(
                     JsonSerializer.Serialize(
-                        new
-                        {
-                            webhook_url = webhookRequest.WebhookUrl,
-                            webhook_secret = webhookRequest.WebhookSecret,
-                        }
+                        new V1RegisterWebhookPayload(
+                            webhookRequest.WebhookUrl,
+                            webhookRequest.WebhookSecret
+                        ),
+                        MatchEventJsonContext.Default.V1RegisterWebhookPayload
                     ),
                     Encoding.UTF8,
                     "application/json"
@@ -1095,10 +1092,23 @@ public class MatchesController(
                 Title = "Match Simulation Completed",
             };
 
-            // Send notification via SignalR
-            await _hubContext
-                .Clients.User(match.CreatorId)
-                .SendMatchEndNotificationAsync(notification, payload.SimulationId);
+            // Send notification via SSE
+            if (_notificationsBroadcaster != null)
+            {
+                await _notificationsBroadcaster.BroadcastNotificationAsync(
+                    match.CreatorId,
+                    new NotificationV2Dto(
+                        notification.Id,
+                        match.CreatorId,
+                        "match_completed",
+                        notification.Title ?? "Match Simulation Completed",
+                        notification.Content,
+                        notification.Time,
+                        MatchId: match.Id.ToString()
+                    ),
+                    cancellationToken
+                );
+            }
 
             _logger.LogInformation(
                 "Successfully processed simulation completion for match {MatchId}",
@@ -1150,8 +1160,23 @@ public class MatchesController(
                 Title = "Match Simulation Failed",
             };
 
-            // Send notification via SignalR
-            await _hubContext.Clients.User(match.CreatorId).SendNotificationAsync(notification);
+            // Send notification via SSE
+            if (_notificationsBroadcaster != null)
+            {
+                await _notificationsBroadcaster.BroadcastNotificationAsync(
+                    match.CreatorId,
+                    new NotificationV2Dto(
+                        notification.Id,
+                        match.CreatorId,
+                        "notification",
+                        notification.Title ?? "Match Simulation Failed",
+                        notification.Content,
+                        notification.Time,
+                        MatchId: match.Id.ToString()
+                    ),
+                    cancellationToken
+                );
+            }
 
             _logger.LogInformation(
                 "Successfully processed simulation failure for match {MatchId}",
@@ -1310,14 +1335,22 @@ public class MatchesController(
                         notificationResult.Error
                     );
 
-                if (notificationResult.Notification != null)
-                    if (match.SimulationId != null)
-                        await _hubContext
-                            .Clients.User(match.CreatorId)
-                            .SendMatchStartNotificationAsync(
-                                notificationResult.Notification,
-                                match.SimulationId
-                            );
+                if (notificationResult.Notification != null && _notificationsBroadcaster != null)
+                {
+                    await _notificationsBroadcaster.BroadcastNotificationAsync(
+                        match.CreatorId,
+                        new NotificationV2Dto(
+                            notificationResult.Notification.Id,
+                            match.CreatorId,
+                            "simulation_started",
+                            notificationResult.Notification.Title ?? "Match Simulation Started",
+                            notificationResult.Notification.Content,
+                            notificationResult.Notification.Time,
+                            MatchId: match.Id.ToString()
+                        ),
+                        cancellationToken
+                    );
+                }
                 await UpdateMatchWithSimulationResult(match.Id, resultResponse, cancellationToken, updateMatchHandler);
             }
 

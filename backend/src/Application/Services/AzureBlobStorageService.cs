@@ -6,8 +6,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace Application.Services;
 
-public class AzureBlobStorageService : IFileStorageService
+public class AzureBlobStorageService : IFileStorageService, ISpatialTrackStorageService
 {
+    private const string SpatialTracksContainerName = "spatial-tracks";
     private readonly BlobServiceClient? _blobServiceClient;
 
     public AzureBlobStorageService(IConfiguration configuration)
@@ -78,5 +79,59 @@ public class AzureBlobStorageService : IFileStorageService
         {
             // Log the exception but don't rethrow
         }
+    }
+
+    public async Task<string> UploadSpatialTrackAsync(
+        string objectKey,
+        Stream zstdStream,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_blobServiceClient == null)
+            throw new InvalidOperationException("Azure Blob Storage connection string is not configured.");
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        ArgumentNullException.ThrowIfNull(zstdStream);
+
+        var containerClient = _blobServiceClient.GetBlobContainerClient(SpatialTracksContainerName);
+        await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+
+        var blobClient = containerClient.GetBlobClient(objectKey);
+        await blobClient.UploadAsync(
+            zstdStream,
+            new BlobHttpHeaders { ContentType = "application/zstd" },
+            cancellationToken: cancellationToken
+        );
+
+        return objectKey;
+    }
+
+    public async Task<Stream?> OpenSpatialTrackReadStreamAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_blobServiceClient == null || string.IsNullOrWhiteSpace(objectKey))
+            return null;
+
+        var containerClient = _blobServiceClient.GetBlobContainerClient(SpatialTracksContainerName);
+        var blobClient = containerClient.GetBlobClient(objectKey);
+        if (!await blobClient.ExistsAsync(cancellationToken))
+            return null;
+
+        return await blobClient.OpenReadAsync(cancellationToken: cancellationToken);
+    }
+
+    public async Task DeleteSpatialTrackAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_blobServiceClient == null || string.IsNullOrWhiteSpace(objectKey))
+            return;
+
+        var containerClient = _blobServiceClient.GetBlobContainerClient(SpatialTracksContainerName);
+        var blobClient = containerClient.GetBlobClient(objectKey);
+        await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
     }
 }

@@ -8,7 +8,7 @@ import matchService, {
   LiveMatch,
   LiveMatchResponse,
 } from '@/Services/MatchService';
-import signalRService, { MatchStatistics } from '@/Services/SignalRService';
+import matchStreamService, { MatchStatistics } from '@/Services/MatchStreamService';
 import authService from '@/Services/AuthenticationService';
 import liveMatchStorageService from '@/Services/LiveMatchStorageService';
 
@@ -313,24 +313,12 @@ export default function LiveMatchPanel({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // SignalR connection effect
+  // SSE match statistics connection effect
   useEffect(() => {
     let isSubscribed = true;
+    let cleanupSse: (() => void) | null = null;
 
-    const initSignalR = async () => {
-      try {
-        if (!authService.isAuthenticated()) return;
-        const connected = await signalRService.ensurePageConnection();
-        if (isSubscribed) setSignalRConnected(connected);
-      } catch (error) {
-        console.error('Failed to connect SignalR:', error);
-        if (isSubscribed) setSignalRConnected(false);
-      }
-    };
     const handleVisibilityChange = () => {
-      if (!document.hidden && signalRConnected && liveMatchData?.id) {
-        signalRService.joinMatchStatistics(liveMatchData.id);
-      }
       if (!document.hidden && liveMatchData?.id) {
         const { statistics, updateTime } =
           liveMatchStorageService.getRealtimeStatistics();
@@ -343,7 +331,6 @@ export default function LiveMatchPanel({
             setRealtimeStatistics(statistics);
             setLastUpdateTime(updateTime);
 
-            // Set base time from restored statistics
             let restoredTimeSeconds = 0;
             if (statistics.timeStamp && statistics.timeStamp.includes(':')) {
               const [minutes, seconds] = statistics.timeStamp
@@ -354,89 +341,76 @@ export default function LiveMatchPanel({
               restoredTimeSeconds = statistics.matchInfo.currentMinute * 60;
             }
             setBaseMatchTime(restoredTimeSeconds);
-            console.log(
-              `🔄 Restored statistics on tab focus: Match time ${statistics.timeStamp || statistics.matchInfo.currentMinute} = ${restoredTimeSeconds} seconds`
-            );
           }
         }
       }
     };
 
-    initSignalR();
+    const token =
+      typeof window !== 'undefined'
+        ? (authService as unknown as { getToken?: () => string }).getToken?.() ||
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('token') ||
+          ''
+        : '';
+
+    if (authService.isAuthenticated() && liveMatchData?.id && token) {
+      cleanupSse = matchStreamService.connectToMatchStream(
+        liveMatchData.id,
+        token,
+        {
+          onConnected: () => {
+            if (isSubscribed) setSignalRConnected(true);
+          },
+          onStatistics: (statistics: MatchStatistics) => {
+            if (!isSubscribed || !liveMatchData?.id) return;
+            setPendingStatisticsUpdate(statistics);
+            const now = new Date();
+
+            let currentTimeSeconds = 0;
+            let lasttimeevent = 0;
+            if (statistics.timeStamp && statistics.timeStamp.includes(':')) {
+              const [minutes, seconds] = statistics.timeStamp
+                .split(':')
+                .map(Number);
+              currentTimeSeconds = minutes * 60 + (seconds || 0);
+            } else if (typeof statistics.matchInfo?.currentMinute === 'number') {
+              currentTimeSeconds = statistics.matchInfo.currentMinute * 60;
+              lasttimeevent = statistics.matchInfo.lastEventTime ?? currentTimeSeconds;
+            }
+
+            setBaseMatchTime(lasttimeevent || currentTimeSeconds);
+            setRealtimeStatistics(statistics);
+            setLastUpdateTime(now);
+
+            liveMatchStorageService.setRealtimeStatistics(statistics, now);
+            liveMatchStorageService.setLiveMatchData({
+              matchId: liveMatchData.id,
+              simulationId: undefined,
+              homeTeam: statistics.homeTeam.name,
+              awayTeam: statistics.awayTeam.name,
+              homeScore: statistics.homeTeam.score,
+              awayScore: statistics.awayTeam.score,
+              status: statistics.matchInfo.status,
+            });
+
+            setTimeout(() => setPendingStatisticsUpdate(null), 100);
+          },
+          onError: () => {
+            if (isSubscribed) setSignalRConnected(false);
+          },
+        }
+      );
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       isSubscribed = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (signalRConnected && liveMatchData?.id) {
-        signalRService.leaveMatchStatistics(liveMatchData.id);
-      }
+      if (cleanupSse) cleanupSse();
     };
-  }, [signalRConnected, liveMatchData?.id]);
-
-  // SignalR statistics listener effect
-  useEffect(() => {
-    if (!signalRConnected || !liveMatchData?.id) return;
-
-    signalRService.joinMatchStatistics(liveMatchData.id); // INSTANT STATISTICS UPDATE LISTENER
-    signalRService.onMatchStatisticsUpdate(
-      (method: string, matchId: number, statistics: MatchStatistics) => {
-        if (matchId === liveMatchData.id) {
-          // INSTANT UPDATE - Set pending for immediate visual feedback
-          setPendingStatisticsUpdate(statistics);
-
-          const now = new Date();
-
-          // Process match time for auto-increment - START FROM LATEST TIMESTAMP
-          let currentTimeSeconds = 0;
-          let lasttimeevent = 0;
-
-          // Priority 1: Use timeStamp if available (most accurate)
-          if (statistics.timeStamp && statistics.timeStamp.includes(':')) {
-            const [minutes, seconds] = statistics.timeStamp
-              .split(':')
-              .map(Number);
-            currentTimeSeconds = minutes * 60 + (seconds || 0);
-            console.log(
-              `📊 Statistics update: Match time ${statistics.timeStamp} = ${currentTimeSeconds} seconds`
-            );
-          }
-          // Priority 2: Use currentMinute if available
-          else if (typeof statistics.matchInfo.currentMinute === 'number') {
-            currentTimeSeconds = statistics.matchInfo.currentMinute * 60;
-            lasttimeevent = statistics.matchInfo.lastEventTime;
-            console.log(
-              `📊 Statistics update: Match minute ${statistics.matchInfo.currentMinute} = ${currentTimeSeconds} seconds`
-            );
-          }
-
-          // Update base time to start from the latest received timestamp
-          setBaseMatchTime(lasttimeevent);
-          setRealtimeStatistics(statistics);
-          setLastUpdateTime(now);
-
-          // Store data
-          liveMatchStorageService.setRealtimeStatistics(statistics, now);
-          liveMatchStorageService.setLiveMatchData({
-            matchId: matchId,
-            simulationId: undefined,
-            homeTeam: statistics.homeTeam.name,
-            awayTeam: statistics.awayTeam.name,
-            homeScore: statistics.homeTeam.score,
-            awayScore: statistics.awayTeam.score,
-            status: statistics.matchInfo.status,
-          });
-
-          // Clear pending update after brief display
-          setTimeout(() => setPendingStatisticsUpdate(null), 100);
-        }
-      }
-    );
-
-    return () => {
-      signalRService.leaveMatchStatistics(liveMatchData.id);
-    };
-  }, [signalRConnected, liveMatchData?.id]);
+  }, [liveMatchData?.id]);
   // Auto-incrementing timestamp effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;

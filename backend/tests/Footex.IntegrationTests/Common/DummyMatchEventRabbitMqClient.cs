@@ -1,8 +1,5 @@
-using Application.Interfaces;
-using Application.Services;
 using Infrastructure.Configuration;
 using Infrastructure.Services;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,20 +7,14 @@ using Microsoft.Extensions.Options;
 namespace Footex.IntegrationTests.Common;
 
 public class DummyMatchEventRabbitMqClient(
-    IHubContext<MatchHub, IMatchHub> hubContext,
     ILogger<MatchEventRabbitMqClient> logger,
     IOptions<RabbitMqOptions> rabbitMqOptions,
-    IServiceScopeFactory serviceScopeFactory,
-    IPerformanceMonitoringService performanceMonitoringService,
-    ILiveMatchStatisticsService liveMatchStatisticsService
+    IServiceScopeFactory serviceScopeFactory
 )
     : MatchEventRabbitMqClient(
         logger,
-        hubContext,
         serviceScopeFactory,
-        performanceMonitoringService,
-        rabbitMqOptions,
-        liveMatchStatisticsService
+        rabbitMqOptions
     )
 {
     public override Task StartAsync(CancellationToken cancellationToken)
@@ -51,19 +42,4 @@ public class DummyMatchEventRabbitMqClient(
         new Logger<DummyMatchEventRabbitMqClient>(new LoggerFactory()).LogInformation(
             "DummyMatchEventRabbitMqClient disposing for tests."
         );
-
-    protected override Task CloseChannelAndConnectionAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    protected override Task CloseConnectionAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    protected override Task CloseChannelAsync()
-    {
-        return Task.CompletedTask;
-    }
 }

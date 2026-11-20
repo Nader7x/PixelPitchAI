@@ -154,12 +154,18 @@ public static class DependencyInjection
         // Configure Simulation gRPC options & services
         services.Configure<SimulationGrpcOptions>(configuration.GetSection(SimulationGrpcOptions.SectionName));
         services.AddSingleton<ISimulationGrpcClient, SimulationGrpcClient>();
+        services.AddSingleton<ISimulationGrpcClientV2, SimulationGrpcClientV2>();
         services.AddSingleton<IMatchEventBroadcaster, MatchEventBroadcaster>();
+        services.AddSingleton<INotificationsBroadcaster, NotificationsBroadcaster>();
+        services.AddSingleton<IExperimentBroadcaster, ExperimentBroadcaster>();
         services.AddSingleton<IMatchEventProcessor, MatchEventProcessor>();
         services.AddSingleton<IMatchEventGrpcStreamConsumer, MatchEventGrpcStreamConsumer>();
+        services.AddSingleton<IMatchEventGrpcStreamConsumerV2, MatchEventGrpcStreamConsumerV2>();
         services.AddSingleton<IMatchStreamingQueue, MatchStreamingQueue>();
         services.AddSingleton<IMatchStreamLifecycle, MatchStreamLifecycle>();
         services.AddHostedService<MatchStreamWorker>();
+        services.AddHttpClient("R2SpatialStorage");
+        services.AddScoped<ISpatialTrackStorageService, CloudflareR2SpatialTrackStorageService>();
 
         // Register EventAnalysis service
         services.AddSingleton<IEventAnalysisService, EventAnalysisService>();

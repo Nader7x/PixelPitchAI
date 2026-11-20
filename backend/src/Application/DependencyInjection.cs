@@ -43,9 +43,8 @@ public static class DependencyInjection
         services.AddSingleton<IPlayerMapper, PlayerMapper>();
         services.AddSingleton<ICoachMapper, CoachMapper>();
 
-        services.AddScoped<IFileStorageService, AzureBlobStorageService>();
-        services.AddSingleton<NotificationService>();
-        services.AddSingleton<MatchHub>();
+        services.AddScoped<AzureBlobStorageService>();
+        services.AddScoped<IFileStorageService>(sp => sp.GetRequiredService<AzureBlobStorageService>());
         services.AddHttpClient();
 
         // Auth handlers

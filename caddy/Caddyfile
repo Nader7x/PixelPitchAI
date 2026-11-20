@@ -1,9 +1,30 @@
 {$DOMAIN} {
 	# Automatic Let's Encrypt / ZeroSSL setup
 
+	# SSE streams on Footex .NET 11 API — disable reverse-proxy buffering
+	@api_sse {
+		path /api/v2/matches/*/stream
+		path /api/v2/experiments/*/stream
+		path /api/v2/notifications/stream
+		path /api/matches/*/events/stream
+	}
+	handle @api_sse {
+		reverse_proxy footex-api-blue:8080 {
+			flush_interval -1
+		}
+	}
+
 	# Reverse proxy backend API calls (preserve /api prefix for ASP.NET Core)
 	handle /api/* {
 		import api_upstream.conf
+	}
+
+	# SSE streams on Python Simulation Engine V2 — strip /ai prefix and flush immediately
+	handle_path /ai/v2/* {
+		rewrite * /v2{path}
+		reverse_proxy simulation-engine:8000 {
+			flush_interval -1
+		}
 	}
 
 	# Reverse proxy AI simulation API calls and strip /ai prefix

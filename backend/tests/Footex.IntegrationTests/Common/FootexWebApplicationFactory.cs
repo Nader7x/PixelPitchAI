@@ -11,7 +11,6 @@ using Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -140,22 +139,14 @@ public class FootexWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
             services.AddSingleton<IHostedService, DummyMatchEventRabbitMqClient>(sp =>
             {
-                var hubContext = sp.GetRequiredService<IHubContext<MatchHub, IMatchHub>>();
                 var logger = sp.GetRequiredService<ILogger<MatchEventRabbitMqClient>>();
                 var rabbitMqOptions = sp.GetRequiredService<IOptions<RabbitMqOptions>>();
                 var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
-                var performanceMonitoringService =
-                    sp.GetRequiredService<IPerformanceMonitoringService>();
-                var liveMatchStatisticsService =
-                    sp.GetRequiredService<ILiveMatchStatisticsService>();
 
                 return new DummyMatchEventRabbitMqClient(
-                    hubContext,
                     logger,
                     rabbitMqOptions,
-                    serviceScopeFactory,
-                    performanceMonitoringService,
-                    liveMatchStatisticsService
+                    serviceScopeFactory
                 );
             });
 

@@ -16,7 +16,6 @@ using global::Infrastructure.Repositories;
 using global::Infrastructure.Services;
 using global::Infrastructure.Services.EventProcessors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -106,7 +105,7 @@ public class PipelineBWireSmokeTests
             var update = Mock.Of<IRequestHandler<UpdateMatchStatusCommand, UpdateMatchStatusCommandResponse>>();
             var controller = new MatchesController(Mock.Of<IHttpClientFactory>(), Mock.Of<IMatchMapper>(), Options.Create(new SimulationServiceOptions()), scopes,
                 requestScope.ServiceProvider.GetRequiredService<IUnitOfWork>(), performance, live, NullLogger<MatchesController>.Instance,
-                Mock.Of<IHubContext<NotificationService, INotificationService>>(), Mock.Of<ICacheService>(),
+                Mock.Of<ICacheService>(),
                 Options.Create(new EventIngestionOptions { Mode = "GrpcStream" }), queue, grpc, lifecycle);
             await worker.StartAsync(default);
             var accepted = await controller.SimulateMatch("user", new SimulateMatchDto { HomeTeamId = 1, AwayTeamId = 2, HomeTeamName = "Home", AwayTeamName = "Away",

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import Field from '@/components/Field';
-import useSignalREventStream from '@/hooks/useSignalREventStream';
-import EventPlotter from '@/components/EventPlotter';
-import signalRService from '@/Services/SignalRService';
+import PitchPlayersLayer from '@/components/PitchPlayersLayer';
+import FootballPitch from '@/app/Components/FootballPitch/FootballPitch';
+import LiveAnalyticsPanel from '@/app/Components/LiveAnalytics/LiveAnalyticsPanel';
+import useMatchStreamV2 from '@/app/hooks/useMatchStreamV2';
+import { PlaybackSpeed } from '@/types/MatchV2';
 import { useRouter } from 'next/navigation';
 import './simulationView.css'; // Ensure this file exists for styling
 
@@ -14,6 +16,7 @@ export default function SimulationView() {
   const [timer, setTimer] = useState(0);
   const [matchId, setMatchId] = useState<number>(0);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const router = useRouter();
   // Get matchId and check if match has already started from localStorage - CLIENT SIDE ONLY
   useEffect(() => {
@@ -41,45 +44,49 @@ export default function SimulationView() {
     }
   }, []);
 
-  const { events, isConnected, retryCount } = useSignalREventStream(matchId);
+  const {
+    events,
+    telemetry,
+    telemetryHistory,
+    commentary,
+    lifecycle,
+    keyMoments,
+    isConnected,
+    interpBufferRef,
+    streamMode,
+    setStreamMode,
+    playbackSpeed,
+    setPlaybackSpeed,
+    isPaused,
+    setIsPaused,
+    jumpToMoment,
+    applyTacticalOverride,
+  } = useMatchStreamV2(matchId);
 
-  console.log(
-    `[SimulationView] Current state - events: ${events.length}, isConnected: ${isConnected}, retries: ${retryCount}`
-  ); // Debug effect to track events changes in SimulationView
+  const homeTeamName =
+    (typeof window !== 'undefined' && localStorage.getItem('homeTeamName')) ||
+    'Home Team';
+  const awayTeamName =
+    (typeof window !== 'undefined' && localStorage.getItem('awayTeamName')) ||
+    'Away Team';
+
+  const latestFrameSnapshot = useMemo(
+    () => interpBufferRef.current.sample(performance.now()),
+    // Re-evaluate lightweight 2D snapshot only when events/timer tick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events.length, timer]
+  );
+
   useEffect(() => {
-    console.log(
-      `🎪🎪🎪 [SimulationView] EVENTS ARRAY CHANGED - Count: ${events.length}`
-    );
-    if (events.length > 0) {
-      console.log(
-        `🎪 [SimulationView] Latest event in view:`,
-        events[events.length - 1]
-      );
-      console.log(`🎪 [SimulationView] All events in view:`, events);
-
-      // Check for match_start event
-      const hasMatchStartEvent = events.some(
-        (event) => event.event_type === 'match_start'
-      );
-      if (hasMatchStartEvent && !matchStarted) {
-        console.log(
-          '🎯 [SimulationView] Match started! Enabling navigation controls.'
-        );
+    if (events.length > 0 || lifecycle) {
+      if (!matchStarted) {
         setMatchStarted(true);
-
-        // Store match started status in localStorage for this specific match
         if (typeof window !== 'undefined' && matchId > 0) {
-          const matchStartedKey = `match_started_${matchId}`;
-          localStorage.setItem(matchStartedKey, 'true');
-          console.log(
-            `[SimulationView] Stored match started status for match ${matchId}`
-          );
+          localStorage.setItem(`match_started_${matchId}`, 'true');
         }
       }
-    } else {
-      console.log(`🎪 [SimulationView] No events yet in view`);
     }
-  }, [events, matchStarted, matchId]);
+  }, [events.length, lifecycle, matchStarted, matchId]);
   // Prevent browser back navigation until match starts
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -467,18 +474,128 @@ export default function SimulationView() {
           zIndex: 1,
         }}
       />
-      <Canvas
-        shadows
-        camera={{ position: [0, 45, 115], fov: 50, near: 0.1, far: 1000 }}
-        style={{ zIndex: 2 }}
-      >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 20, 10]} intensity={1} castShadow />
-        <OrbitControls />
-        <Field />
-        <EventPlotter events={events} timer={timer} />{' '}
-        {/* ✅ Pass the SignalR events */}
-      </Canvas>{' '}
+      {viewMode === '3d' ? (
+        <Canvas
+          shadows
+          camera={{ position: [0, 45, 115], fov: 50, near: 0.1, far: 1000 }}
+          style={{ zIndex: 2 }}
+        >
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[10, 20, 10]} intensity={1} castShadow />
+          <OrbitControls />
+          <Field />
+          <PitchPlayersLayer interpBufferRef={interpBufferRef} />
+        </Canvas>
+      ) : (
+        <div className="relative z-[2] h-full w-full p-16 pr-[360px]">
+          <FootballPitch
+            events={[]}
+            currentEventIndex={-1}
+            homeTeam={homeTeamName}
+            awayTeam={awayTeamName}
+            homeScore={lifecycle?.home_score ?? 0}
+            awayScore={lifecycle?.away_score ?? 0}
+            currentMinute={Math.floor(
+              (lifecycle?.match_clock_seconds ?? timer) / 60
+            )}
+            players={latestFrameSnapshot.players.map((p) => ({
+              slot: p.slot,
+              player_id: 0,
+              x: p.x,
+              y: p.y,
+              vx: 0,
+              vy: 0,
+              facing_rad: p.facingRad,
+              stamina: p.stamina,
+              has_ball: p.hasBall,
+              is_sent_off: p.isSentOff,
+            }))}
+            ballPosition={[
+              latestFrameSnapshot.ballX,
+              latestFrameSnapshot.ballY,
+            ]}
+            v2Events={events}
+          />
+        </div>
+      )}
+
+      {/* Playback Controls & Key-Moment Jumps */}
+      <div className="fixed bottom-4 left-4 z-20 flex max-w-2xl flex-wrap items-center gap-2 rounded-xl border border-white/15 bg-slate-950/90 px-3 py-2 text-xs text-white backdrop-blur-md">
+        <span
+          className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}
+        />
+        <button
+          type="button"
+          onClick={() => setViewMode((m) => (m === '3d' ? '2d' : '3d'))}
+          className="rounded-lg bg-white/10 px-2.5 py-1 font-semibold hover:bg-white/20"
+        >
+          {viewMode === '3d' ? 'Switch to 2D' : 'Switch to 3D'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsPaused(!isPaused)}
+          className="rounded-lg bg-emerald-500 px-2.5 py-1 font-bold text-black"
+        >
+          {isPaused ? 'Resume' : 'Pause'}
+        </button>
+        {([1, 2, 4] as PlaybackSpeed[]).map((spd) => (
+          <button
+            key={spd}
+            type="button"
+            onClick={() => setPlaybackSpeed(spd)}
+            className={`rounded-lg px-2 py-1 font-mono ${
+              playbackSpeed === spd
+                ? 'bg-blue-500 text-white'
+                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
+          >
+            {spd}x
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            setStreamMode(streamMode === 'broadcast' ? 'instant' : 'broadcast')
+          }
+          className="rounded-lg bg-white/10 px-2.5 py-1 text-gray-200 hover:bg-white/20"
+        >
+          {streamMode === 'broadcast' ? 'Broadcast (1.5s)' : 'Instant (150ms)'}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            applyTacticalOverride({
+              team_side: 1,
+              pressing_intensity: 0.88,
+              defensive_line_height: 0.82,
+            })
+          }
+          className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-amber-300 hover:bg-amber-500/25"
+        >
+          High Press
+        </button>
+        {keyMoments.slice(-4).map((km) => (
+          <button
+            key={km.event_index}
+            type="button"
+            onClick={() => jumpToMoment(km.sim_timestamp_ms)}
+            className="rounded-lg border border-emerald-500/30 bg-emerald-950/60 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-900/60"
+          >
+            {Math.floor(km.match_clock_seconds / 60)}&apos; {km.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Live Analytics & Commentary Sidebar */}
+      <div className="fixed top-20 right-4 z-20 w-80">
+        <LiveAnalyticsPanel
+          homeTeam={homeTeamName}
+          awayTeam={awayTeamName}
+          telemetry={telemetry}
+          history={telemetryHistory}
+          commentary={commentary}
+        />
+      </div>
       {/* Navigation Status Indicator */}
       {!matchStarted && (
         <div

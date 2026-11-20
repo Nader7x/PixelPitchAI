@@ -63,5 +63,17 @@ public class MatchStatistics
     public int? AwayTeamShotsOffTarget { get; set; }
     public int? HomeTeamShotsOffTarget { get; set; }
 
+    // V2 Calibrated Analytics
+    public double? HomeTeamXG { get; set; }
+    public double? AwayTeamXG { get; set; }
+    public double? HomeTeamPSXG { get; set; }
+    public double? AwayTeamPSXG { get; set; }
+    public double? HomeTeamXT { get; set; }
+    public double? AwayTeamXT { get; set; }
+    public double? HomeTeamPPDA { get; set; }
+    public double? AwayTeamPPDA { get; set; }
+    public double? HomeTeamFieldTilt { get; set; }
+    public double? AwayTeamFieldTilt { get; set; }
+
     public Match? Match { get; set; }
 }

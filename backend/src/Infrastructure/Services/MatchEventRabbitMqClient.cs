@@ -1,87 +1,206 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using Application.Interfaces;
-using Application.Services;
-using Domain.Interfaces;
-using Domain.Models;
+using Application.Dtos.V2;
 using Infrastructure.Configuration;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
 
 namespace Infrastructure.Services;
 
+/// <summary>
+///     Event-driven RabbitMQ consumer scoped strictly to async experiment.completed.v2
+///     notifications with Dead-Letter Exchange (DLX) / DLQ handling.
+///     Live match streams run exclusively over gRPC SimulationServiceV2.
+/// </summary>
 public class MatchEventRabbitMqClient : BackgroundService
 {
-    private readonly AsyncEventHandler<CallbackExceptionEventArgs> _callbackExceptionHandler;
-    private readonly AsyncEventHandler<CallbackExceptionEventArgs> _channelCallbackExceptionHandler;
-    private readonly AsyncEventHandler<ConnectionRecoveryErrorEventArgs> _connectionRecoveryErrorHandler;
-    private readonly AsyncEventHandler<ShutdownEventArgs> _connectionShutdownHandler;
-    private readonly IHubContext<MatchHub, IMatchHub> _hubContext;
+    public const string ExchangeName = "match_events_v2";
+    public const string DeadLetterExchangeName = "match_events_dlx";
+    public const string ExperimentQueueName = "experiment_results_v2_queue";
+    public const string ExperimentDlqName = "experiment_results_v2_dlq";
+    public const string ExperimentRoutingKey = "experiment.completed.v2";
+
     private readonly IConnectionFactory? _injectedConnectionFactory;
-    private readonly ILiveMatchStatisticsService _liveMatchStatisticsService;
-    private readonly ConcurrentDictionary<string, Match> _loadedMatches = new();
-    private readonly ConcurrentDictionary<string, (int Home, int Away)> _matchScores = new();
     private readonly ILogger<MatchEventRabbitMqClient> _logger;
-
-    private readonly ConcurrentDictionary<string, List<FootballMatchEvent>?> _matchEventsCache =
-        new();
-
-    private readonly object _matchEventsCacheLock = new();
-
-    private readonly IPerformanceMonitoringService _performanceMonitoringService;
     private readonly RabbitMqOptions _rabbitMqSettings;
-    private readonly AsyncEventHandler<AsyncEventArgs> _recoverySucceededHandler;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly IMatchEventBroadcaster? _broadcaster;
-    private readonly IMatchEventProcessor? _matchEventProcessor;
-
-    private IChannel? _channel;
+    private readonly IExperimentBroadcaster? _experimentBroadcaster;
+    private readonly INotificationsBroadcaster? _notificationsBroadcaster;
 
     private IConnection? _connection;
+    private IChannel? _channel;
     private string? _consumerTag;
-    private int _eventSequence;
 
     public MatchEventRabbitMqClient(
         ILogger<MatchEventRabbitMqClient> logger,
-        IHubContext<MatchHub, IMatchHub> hubContext,
         IServiceScopeFactory serviceScopeFactory,
-        IPerformanceMonitoringService performanceMonitoringService,
         IOptions<RabbitMqOptions> rabbitMqOptions,
-        ILiveMatchStatisticsService liveMatchStatisticsService,
         IConnectionFactory? injectedConnectionFactory = null,
-        IMatchEventBroadcaster? broadcaster = null,
-        IMatchEventProcessor? matchEventProcessor = null
+        IExperimentBroadcaster? experimentBroadcaster = null,
+        INotificationsBroadcaster? notificationsBroadcaster = null
     )
     {
         _logger = logger;
-        _hubContext = hubContext;
         _serviceScopeFactory = serviceScopeFactory;
-        _performanceMonitoringService = performanceMonitoringService;
-        _liveMatchStatisticsService = liveMatchStatisticsService;
-        _broadcaster = broadcaster;
-        _matchEventProcessor = matchEventProcessor;
         _rabbitMqSettings = rabbitMqOptions.Value;
         _injectedConnectionFactory = injectedConnectionFactory;
-
-        _connectionShutdownHandler = OnConnectionShutdownAsync;
-        _callbackExceptionHandler = OnCallbackExceptionAsync;
-        _connectionRecoveryErrorHandler = OnConnectionRecoveryErrorAsync;
-        _recoverySucceededHandler = OnRecoverySucceededAsync;
-        _channelCallbackExceptionHandler = OnChannelCallbackExceptionAsync;
+        _experimentBroadcaster = experimentBroadcaster;
+        _notificationsBroadcaster = notificationsBroadcaster;
     }
 
-    private async Task<bool> TryInitializeRabbitMq(CancellationToken stoppingToken)
+    public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        var factory = new ConnectionFactory
+        await TryInitializeRabbitMqAsync(cancellationToken);
+        await base.StartAsync(cancellationToken);
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        if (_channel is not { IsOpen: true })
+        {
+            _logger.LogWarning("RabbitMQ channel unavailable at ExecuteAsync. Async experiment consumer idle.");
+            return;
+        }
+
+        await _channel.BasicQosAsync(0, 32, false, stoppingToken);
+
+        var consumer = new AsyncEventingBasicConsumer(_channel);
+        consumer.ReceivedAsync += async (_, ea) =>
+        {
+            await HandleReceivedMessageAsync(ea, stoppingToken);
+        };
+
+        _consumerTag = await _channel.BasicConsumeAsync(
+            queue: ExperimentQueueName,
+            autoAck: false,
+            consumer: consumer,
+            cancellationToken: stoppingToken
+        );
+
+        _logger.LogInformation(
+            "MatchEventRabbitMqClient started push consumer on {QueueName} ({RoutingKey})",
+            ExperimentQueueName,
+            ExperimentRoutingKey
+        );
+
+        try
+        {
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("MatchEventRabbitMqClient stopping.");
+        }
+    }
+
+    public async Task HandleReceivedMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+    {
+        if (_channel is null)
+            return;
+
+        try
+        {
+            var payloadJson = Encoding.UTF8.GetString(ea.Body.Span);
+            var evt = JsonSerializer.Deserialize(
+                payloadJson,
+                MatchEventJsonContext.Default.ExperimentCompletedRabbitMqEventDto
+            );
+
+            if (evt is null || string.IsNullOrWhiteSpace(evt.ExperimentId))
+            {
+                _logger.LogWarning("Malformed experiment.completed.v2 payload; routing to DLQ.");
+                await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken);
+                return;
+            }
+
+            await ProcessExperimentCompletedAsync(evt, cancellationToken);
+            await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in experiment.completed.v2; sending to DLQ.");
+            await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing experiment.completed.v2 message {DeliveryTag}; sending to DLQ.", ea.DeliveryTag);
+            await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, cancellationToken);
+        }
+    }
+
+    private async Task ProcessExperimentCompletedAsync(
+        ExperimentCompletedRabbitMqEventDto evt,
+        CancellationToken cancellationToken
+    )
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FootballDbContext>();
+        var record = await db.TacticalExperiments.FirstOrDefaultAsync(
+            e => e.Id == evt.ExperimentId,
+            cancellationToken
+        );
+
+        if (record != null)
+        {
+            record.Status = string.IsNullOrWhiteSpace(evt.Status) ? "completed" : evt.Status;
+            record.ExecutionTier = evt.ExecutionTier;
+            record.ResultJson = evt.ResultJson;
+            record.CommentaryTelemetryJson = evt.CommentaryTelemetryJson;
+            record.RepresentativeSeedsJson = evt.RepresentativeSeedsJson;
+            record.ErrorMessage = evt.ErrorMessage;
+            record.CompletedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        if (_experimentBroadcaster != null)
+        {
+            if (evt.Status == "failed")
+            {
+                await _experimentBroadcaster.BroadcastFailedAsync(
+                    evt.ExperimentId,
+                    new ExperimentProgressDto(evt.ExperimentId, "failed", 0, 0, 0, evt.ExecutionTier, evt.ErrorMessage),
+                    cancellationToken
+                );
+            }
+            else if (!string.IsNullOrWhiteSpace(evt.ResultJson))
+            {
+                var parsed = JsonSerializer.Deserialize(
+                    evt.ResultJson,
+                    MatchEventJsonContext.Default.MonteCarloExperimentResponseDto
+                );
+                if (parsed != null)
+                {
+                    await _experimentBroadcaster.BroadcastCompletedAsync(evt.ExperimentId, parsed, cancellationToken);
+                }
+            }
+        }
+
+        if (_notificationsBroadcaster != null && !string.IsNullOrWhiteSpace(evt.UserId))
+        {
+            await _notificationsBroadcaster.BroadcastNotificationAsync(
+                evt.UserId,
+                new NotificationV2Dto(
+                    Guid.NewGuid().ToString(),
+                    evt.UserId,
+                    "experiment_completed",
+                    "Counterfactual Experiment Completed",
+                    $"Experiment {evt.ExperimentId} finished ({evt.Status}).",
+                    DateTime.UtcNow,
+                    ExperimentId: evt.ExperimentId
+                ),
+                cancellationToken
+            );
+        }
+    }
+
+    private async Task<bool> TryInitializeRabbitMqAsync(CancellationToken cancellationToken)
+    {
+        var factory = _injectedConnectionFactory ?? new ConnectionFactory
         {
             HostName = _rabbitMqSettings.HostName,
             UserName = _rabbitMqSettings.UserName,
@@ -90,947 +209,91 @@ public class MatchEventRabbitMqClient : BackgroundService
             Port = _rabbitMqSettings.Port,
             AutomaticRecoveryEnabled = true,
             NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
-            ContinuationTimeout = TimeSpan.FromSeconds(10),
-            RequestedConnectionTimeout = TimeSpan.FromMilliseconds(15000),
         };
 
-        var connectionFactory = _injectedConnectionFactory ?? factory;
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                _logger.LogInformation(
-                    "Attempting to connect to RabbitMQ at {Host}:{Port}/{VHost}...",
-                    _rabbitMqSettings.HostName,
-                    _rabbitMqSettings.Port,
-                    _rabbitMqSettings.VirtualHost
-                );
-
-                await CloseChannelAndConnectionAsync();
-                _connection = await connectionFactory.CreateConnectionAsync(stoppingToken);
-                _logger.LogInformation("Connection to RabbitMQ established.");
-
-                if (_connection != null)
-                {
-                    _connection.ConnectionShutdownAsync += _connectionShutdownHandler;
-                    _connection.CallbackExceptionAsync += _callbackExceptionHandler;
-                    _connection.ConnectionRecoveryErrorAsync += _connectionRecoveryErrorHandler;
-                    _connection.RecoverySucceededAsync += _recoverySucceededHandler;
-                }
-
-                if (_connection == null)
-                {
-                    _logger.LogError("Connection is null after creation attempt.");
-                    continue;
-                }
-
-                _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
-                if (_channel is not { IsOpen: true })
-                {
-                    _logger.LogError(
-                        "Failed to create or open a channel after connecting to RabbitMQ."
-                    );
-                    await CloseConnectionAsync();
-                    await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-                    continue;
-                }
-
-                _channel.CallbackExceptionAsync += _channelCallbackExceptionHandler;
-                _logger.LogInformation("Channel created successfully.");
-
-                var arguments = new Dictionary<string, object?> { { "x-message-ttl", 86400000 } }; // 24 hours
-
-                await _channel.ExchangeDeclareAsync(
-                    "match_events",
-                    ExchangeType.Topic,
-                    true,
-                    false,
-                    cancellationToken: stoppingToken
-                );
-                await _channel.QueueDeclareAsync(
-                    _rabbitMqSettings.QueueName,
-                    true,
-                    false,
-                    false,
-                    arguments,
-                    cancellationToken: stoppingToken
-                );
-                await _channel.QueueBindAsync(
-                    _rabbitMqSettings.QueueName,
-                    "match_events",
-                    "match.events",
-                    cancellationToken: stoppingToken
-                );
-                await _channel.BasicQosAsync(0, 1, false, stoppingToken);
-
-                _logger.LogInformation(
-                    "Successfully connected to RabbitMQ and declared topology at {Host}:{Port}/{VHost}",
-                    _rabbitMqSettings.HostName,
-                    _rabbitMqSettings.Port,
-                    _rabbitMqSettings.VirtualHost
-                );
-                return true;
-            }
-            catch (BrokerUnreachableException ex)
-            {
-                _logger.LogWarning(ex, "RabbitMQ broker unreachable. Retrying in 15 seconds...");
-            }
-            catch (SocketException ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "Socket error connecting to RabbitMQ. Retrying in 15 seconds..."
-                );
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("RabbitMQ initialization cancelled as service is stopping.");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Unexpected error during RabbitMQ initialization. Retrying in 15 seconds..."
-                );
-            }
-            finally
-            {
-                if (_connection is not { IsOpen: true })
-                    await CloseChannelAndConnectionAsync();
-            }
-
-            if (!stoppingToken.IsCancellationRequested)
-                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-        }
-
-        return false;
-    }
-
-    public override async Task StartAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("MatchEventRabbitMqClient starting...");
-        if (await TryInitializeRabbitMq(cancellationToken))
-        {
-            await base.StartAsync(cancellationToken);
-            _logger.LogInformation(
-                "MatchEventRabbitMqClient started successfully and RabbitMQ connection established."
-            );
-        }
-        else
-        {
-            _logger.LogError(
-                "MatchEventRabbitMqClient failed to initialize RabbitMQ. Service will not process events."
-            );
-        }
-    }
-
-    private async Task HandleReceivedMessageAsync(
-        BasicDeliverEventArgs ea,
-        CancellationToken stoppingToken
-    )
-    {
         try
         {
-            FootballMatchEvent? matchEvent = null;
+            _connection = await factory.CreateConnectionAsync(cancellationToken);
+            _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-            // Extract match_id from RabbitMQ message headers if available
-            string rawMatchId = "0";
-            if (ea.BasicProperties?.Headers != null && ea.BasicProperties.Headers.TryGetValue("match_id", out var matchIdObj))
-            {
-                if (matchIdObj is byte[] matchIdBytes)
-                    rawMatchId = Encoding.UTF8.GetString(matchIdBytes);
-                else if (matchIdObj != null)
-                    rawMatchId = matchIdObj.ToString() ?? "0";
-            }
-
-            // Pre-load match entity so team names and current scores are available for parsing and scoring
-            Match? matchEntity = null;
-            if (rawMatchId != "0" && int.TryParse(rawMatchId, out var matchIdVal) && matchIdVal > 0)
-            {
-                matchEntity = _matchEventProcessor != null
-                    ? await _matchEventProcessor.GetOrLoadMatchEntityAsync(rawMatchId)
-                    : await GetOrLoadMatchEntity(rawMatchId);
-            }
-
-            var bodyMemory = ea.Body;
-
-            // Check if message is a raw simulation text line (Pipeline A raw stream)
-            if (!bodyMemory.IsEmpty && bodyMemory.Span[0] != '{')
-            {
-                var bodySpan = bodyMemory.Span;
-                var charCount = Encoding.UTF8.GetCharCount(bodySpan);
-                Span<char> chars = charCount <= 2048 ? stackalloc char[charCount] : new char[charCount];
-                Encoding.UTF8.GetChars(bodySpan, chars);
-
-                var (currentHome, currentAway) = _matchEventProcessor != null
-                    ? _matchEventProcessor.GetOrInitMatchScore(rawMatchId, matchEntity)
-                    : _matchScores.GetOrAdd(
-                        rawMatchId,
-                        _ => (matchEntity?.HomeTeamScore ?? 0, matchEntity?.AwayTeamScore ?? 0)
-                    );
-                var homeScore = currentHome;
-                var awayScore = currentAway;
-
-                ZeroAllocationEventParser.TryParseEvent(
-                    chars,
-                    matchId: rawMatchId,
-                    eventIndex: ++_eventSequence,
-                    ref homeScore,
-                    ref awayScore,
-                    matchEntity?.HomeTeam?.Name ?? matchEntity?.HomeTeamInMatchName,
-                    matchEntity?.AwayTeam?.Name ?? matchEntity?.AwayTeamInMatchName,
-                    out matchEvent
-                );
-
-                if (homeScore != currentHome || awayScore != currentAway)
-                {
-                    if (_matchEventProcessor != null)
-                        _matchEventProcessor.UpdateMatchScore(rawMatchId, homeScore, awayScore);
-                    else
-                        _matchScores[rawMatchId] = (homeScore, awayScore);
-                }
-            }
-
-            if (matchEvent == null)
-            {
-                var message = Encoding.UTF8.GetString(bodyMemory.Span);
-                _logger.LogInformation("Received match event: {Message}", message);
-                matchEvent = JsonSerializer.Deserialize(
-                    message,
-                    MatchEventJsonContext.Default.FootballMatchEvent
-                );
-            }
-            if (matchEvent?.match_id != null)
-            {
-                if (_matchEventProcessor != null)
-                {
-                    matchEntity ??= await _matchEventProcessor.GetOrLoadMatchEntityAsync(matchEvent.match_id);
-                    if (matchEntity != null)
-                    {
-                        await _matchEventProcessor.ProcessEventAsync(matchEvent, matchEntity, stoppingToken);
-                    }
-                    if (matchEvent is { event_type: "match_end", action: "match_end" })
-                    {
-                        await _matchEventProcessor.FlushAndPersistMatchAsync(matchEvent.match_id, isNormalEnd: true, cancellationToken: stoppingToken);
-                        _logger.LogInformation(
-                            "Removed match {MatchId} from cache after match end",
-                            matchEvent.match_id
-                        );
-                    }
-                }
-                else
-                {
-                    matchEntity ??= await GetOrLoadMatchEntity(matchEvent.match_id);
-                    if (matchEntity != null)
-                    {
-                        if (matchEvent.Score != null)
-                        {
-                            matchEntity.HomeTeamScore = matchEvent.Score.Home;
-                            matchEntity.AwayTeamScore = matchEvent.Score.Away;
-                        }
-                        await ProcessMatchEventWithEntity(matchEvent, matchEntity);
-                    }
-                    await CacheMatchEvent(matchEvent);
-                    if (matchEvent is { event_type: "match_end", action: "match_end" })
-                    {
-                        if (matchEntity != null)
-                        {
-                            matchEntity.IsLive = false;
-                            if (matchEvent.Score != null)
-                            {
-                                matchEntity.HomeTeamScore = matchEvent.Score.Home;
-                                matchEntity.AwayTeamScore = matchEvent.Score.Away;
-                            }
-                        }
-                        await SaveMatchEventsToDatabase(matchEvent.match_id);
-                        _loadedMatches.TryRemove(matchEvent.match_id, out _);
-                        _matchScores.TryRemove(matchEvent.match_id, out _);
-                        _logger.LogInformation(
-                            "Removed match {MatchId} from cache after match end",
-                            matchEvent.match_id
-                        );
-                    }
-
-                    await BroadcastEventToClients(matchEvent);
-
-                    if (IsSignificantEvent(matchEvent))
-                        if (matchEntity != null)
-                        {
-                            await BroadcastMatchStatistics(matchEvent, matchEntity);
-                            await _liveMatchStatisticsService.AddMatchToLiveStatistics(matchEntity);
-                        }
-                }
-            }
-
-            if (_channel is { IsOpen: true })
-                await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-            else
-                _logger.LogWarning(
-                    "Channel closed or null before acknowledgment of delivery tag {DeliveryTag}. Message might be redelivered.",
-                    ea.DeliveryTag
-                );
-        }
-        catch (JsonException jsonEx)
-        {
-            _logger.LogError(
-                jsonEx,
-                "Failed to deserialize RabbitMQ message. Delivery Tag: {DeliveryTag}. NACKing without requeue.",
-                ea.DeliveryTag
+            await _channel.ExchangeDeclareAsync(
+                DeadLetterExchangeName,
+                ExchangeType.Direct,
+                durable: true,
+                autoDelete: false,
+                cancellationToken: cancellationToken
             );
-            if (_channel is { IsOpen: true })
-                await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
-        }
-        catch (AlreadyClosedException closedEx)
-        {
-            _logger.LogWarning(
-                closedEx,
-                "Attempted to operate on a closed channel/connection while processing message for delivery tag {DeliveryTag}. Message may be redelivered.",
-                ea.DeliveryTag
+            await _channel.QueueDeclareAsync(
+                ExperimentDlqName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                cancellationToken: cancellationToken
             );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error processing received RabbitMQ message. Delivery Tag: {DeliveryTag}. NACKing without requeue.",
-                ea.DeliveryTag
-            );
-            if (_channel is { IsOpen: true })
-                try
-                {
-                    await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
-                }
-                catch (Exception nackEx)
-                {
-                    _logger.LogError(
-                        nackEx,
-                        "Error sending NACK for delivery tag {DeliveryTag} after processing error.",
-                        ea.DeliveryTag
-                    );
-                }
-        }
-    }
-
-    /// <summary>
-    ///     Determines if a match event is significant enough to warrant broadcasting updated statistics.
-    ///     Only significant events like goals, cards, substitutions, and period changes trigger statistics updates.
-    /// </summary>
-    /// <param name="matchEvent">The football match event to analyze</param>
-    /// <returns>True if the event should trigger a statistics broadcast, false otherwise</returns>
-    private static bool IsSignificantEvent(FootballMatchEvent? matchEvent)
-    {
-        if (matchEvent is null)
-            return false;
-        var action = matchEvent.action.ToLowerInvariant();
-        var eventType = matchEvent.event_type?.ToLowerInvariant();
-        var type = matchEvent.type?.ToLowerInvariant();
-
-        if (type is "kick off" or "free kick" or "corner")
-            return true;
-
-        if (
-            action.Contains("card")
-            || action.Contains("yellow")
-            || action.Contains("red")
-            || eventType == "card"
-            || eventType == "yellow_card"
-            || eventType == "red_card"
-        )
-            return true;
-        if (matchEvent is { long_pass: not null and true })
-            return true;
-
-        if (
-            action.Contains("substitution")
-            || action.Contains("sub")
-            || eventType == "substitution"
-        )
-            return true;
-
-        if (
-            action
-            is "match_start"
-                or "match_end"
-                or "first_half_end"
-                or "second_half_start"
-                or "stoppage_time_start"
-        )
-            return true;
-
-        if (
-            action.Contains("penalty")
-            || eventType == "penalty"
-            || matchEvent.outcome?.ToLowerInvariant() == "penalty"
-        )
-            return true;
-
-        if (action.Contains("own") && action.Contains("goal"))
-            return true;
-
-        return eventType switch
-        {
-            "shot"
-            or "duel"
-            or "foul committed"
-            or "foul won"
-            or "dribble"
-            or "interception"
-            or "clearance"
-            or "block"
-            or "carry"
-            or "ball_recovery"
-            or "ball recovery" => true,
-            _ => false,
-        };
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (_channel is not { IsOpen: true })
-        {
-            _logger.LogWarning(
-                "RabbitMQ channel unavailable at ExecuteAsync. Client will not consume events."
-            );
-            return;
-        }
-
-        _logger.LogInformation(
-            "MatchEventRabbitMqClient ExecuteAsync started. Consuming from queue: {QueueName} with 1-second intervals",
-            _rabbitMqSettings.QueueName
-        );
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            if (_channel is not { IsOpen: true })
-            {
-                _logger.LogWarning(
-                    "Channel found closed in ExecuteAsync loop. Attempting re-initialization."
-                );
-                if (!await TryInitializeRabbitMq(stoppingToken))
-                {
-                    _logger.LogError(
-                        "Failed to re-initialize RabbitMQ in ExecuteAsync. Stopping event processing."
-                    );
-                    break;
-                }
-            }
-
-            if (_channel is { IsOpen: true })
-                try
-                {
-                    var result = await _channel.BasicGetAsync(
-                        _rabbitMqSettings.QueueName,
-                        false,
-                        stoppingToken
-                    );
-                    if (result != null)
-                    {
-                        var deliverEventArgs = new BasicDeliverEventArgs(
-                            "",
-                            result.DeliveryTag,
-                            result.Redelivered,
-                            result.Exchange,
-                            result.RoutingKey,
-                            result.BasicProperties,
-                            result.Body,
-                            stoppingToken
-                        );
-
-                        await HandleReceivedMessageAsync(deliverEventArgs, stoppingToken);
-
-                        _logger.LogDebug(
-                            "Processed message with delivery tag {DeliveryTag}",
-                            result.DeliveryTag
-                        );
-                    }
-                    else
-                    {
-                        _logger.LogDebug("No messages available in queue, waiting...");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error during manual message consumption");
-                }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(700), stoppingToken);
-        }
-
-        _logger.LogInformation("ExecuteAsync stopping.");
-    }
-
-    private Task OnRecoverySucceededAsync(object? sender, AsyncEventArgs e)
-    {
-        _logger.LogInformation("RabbitMQ connection recovered successfully.");
-        return Task.CompletedTask;
-    }
-
-    private Task OnConnectionRecoveryErrorAsync(object? sender, ConnectionRecoveryErrorEventArgs e)
-    {
-        _logger.LogError(e.Exception, "RabbitMQ connection recovery failed.");
-        return Task.CompletedTask;
-    }
-
-    private Task OnCallbackExceptionAsync(object? sender, CallbackExceptionEventArgs e)
-    {
-        _logger.LogError(e.Exception, "RabbitMQ connection callback exception: {Detail}", e.Detail);
-        return Task.CompletedTask;
-    }
-
-    private Task OnConnectionShutdownAsync(object? sender, ShutdownEventArgs e)
-    {
-        _logger.LogWarning(
-            "RabbitMQ connection shut down. Initiator: {Initiator}, Cause: {Cause}, Reply Code: {ReplyCode}, Reply Text: {ReplyText}",
-            e.Initiator,
-            e.Cause?.ToString() ?? "N/A",
-            e.ReplyCode,
-            e.ReplyText
-        );
-        return Task.CompletedTask;
-    }
-
-    private Task OnChannelCallbackExceptionAsync(object? sender, CallbackExceptionEventArgs e)
-    {
-        _logger.LogError(
-            e.Exception,
-            "RabbitMQ channel callback exception. Channel: {ChannelNum}, Detail: {Detail}",
-            (sender as IChannel)?.ChannelNumber,
-            e.Detail
-        );
-        return Task.CompletedTask;
-    }
-
-    protected virtual async Task CloseChannelAsync()
-    {
-        var channelToClose = Interlocked.Exchange(ref _channel, null);        
-        if (channelToClose is { IsOpen: true })
-        {
-            channelToClose.CallbackExceptionAsync -= _channelCallbackExceptionHandler;
-            if (!string.IsNullOrEmpty(_consumerTag))
-            {
-                try
-                {
-                    await channelToClose.BasicCancelAsync(_consumerTag);
-                    _logger.LogInformation("Consumer '{Tag}' cancelled.", _consumerTag);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Exception cancelling consumer '{Tag}'.", _consumerTag);
-                }
-
-                _consumerTag = null;
-            }
-
-            try
-            {
-                await channelToClose.CloseAsync();
-                _logger.LogInformation("RabbitMQ channel closed.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Exception during channel close.");
-            }
-
-            channelToClose.Dispose();
-            _channel = null;
-        }
-    }
-
-    protected virtual async Task CloseConnectionAsync()
-    {
-        if (_connection is { IsOpen: true })
-        {
-            _connection.ConnectionShutdownAsync -= _connectionShutdownHandler;
-            _connection.CallbackExceptionAsync -= _callbackExceptionHandler;
-            _connection.ConnectionRecoveryErrorAsync -= _connectionRecoveryErrorHandler;
-            _connection.RecoverySucceededAsync -= _recoverySucceededHandler;
-
-            try
-            {
-                await _connection.CloseAsync();
-                _logger.LogInformation("RabbitMQ connection closed.");
-            }
-            catch (AlreadyClosedException ex)
-            {
-                _logger.LogWarning(ex, "RabbitMQ connection already closed during explicit close attempt. This is expected during some shutdown scenarios.");
-            }
-            catch (ObjectDisposedException ex) // Catches if the object itself was already disposed
-            {
-                _logger.LogWarning(ex, "RabbitMQ connection object already disposed during explicit close attempt.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Unexpected exception during connection close.");
-            }
-
-            // After the try-catch, ensure _connection is robustly disposed and nulled
-            if (_connection != null)
-            {
-                _connection.Dispose(); // This might still throw if it was already disposed by another mechanism
-                _connection = null;
-            }
-        }
-
-        _connection = null;
-    }
-
-    protected virtual async Task CloseChannelAndConnectionAsync()
-    {
-        if (_channel is null || _connection is null)
-        {
-            _logger.LogWarning("Attempted to close channel/connection, but they are already null.");
-            return;
-        }
-
-        if (_channel is { IsOpen: true } && _connection is { IsOpen: true })
-        {
-            await CloseChannelAsync();
-            await CloseConnectionAsync();
-            _logger.LogInformation("Closing RabbitMQ channel and connection gracefully.");
-        }
-        else
-        {
-            _logger.LogWarning(
-                "Channel or connection already closed or null. Skipping close operations."
-            );
-        }
-    }
-
-    private async Task BroadcastEventToClients(FootballMatchEvent matchEvent)
-    {
-        try
-        {
-            if (matchEvent.match_id != null)
-            {
-                // Primary high-performance SSE stream delivery (Pipeline A)
-                if (_broadcaster != null)
-                    await _broadcaster.BroadcastEventAsync(matchEvent.match_id, matchEvent);
-
-                // Legacy SignalR delivery (intentional compatibility path for existing UI clients)
-                await _hubContext
-                    .Clients.Group(matchEvent.match_id)
-                    .SendMatchEventAsync("match_event", int.Parse(matchEvent.match_id), matchEvent);
-                _logger.LogInformation(
-                    "Broadcasted match event {Index} for match {Id} to clients",
-                    matchEvent.event_index,
-                    matchEvent.match_id
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error broadcasting event for match {Id}", matchEvent.match_id);
-        }
-    }
-
-    private async Task<Match?> GetOrLoadMatchEntity(string matchId)
-    {
-        if (_loadedMatches.TryGetValue(matchId, out var cachedMatch))
-            return cachedMatch;
-
-        try
-        {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-            var stopwatch = Stopwatch.StartNew();
-            var match = await unitOfWork.Matches.GetByIdWithDetailsAsync(int.Parse(matchId));
-            stopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall(
-                "LoadMatchEntity",
-                stopwatch.Elapsed.TotalMilliseconds
-            );
-            if (match != null)
-            {
-                _loadedMatches.TryAdd(matchId, match);
-                return match;
-            }
-
-            _logger.LogWarning("Match with ID {Id} not found", matchId);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading match entity for match {Id}", matchId);
-            return null;
-        }
-    }
-
-    private async Task ProcessMatchEventWithEntity(FootballMatchEvent matchEvent, Match matchEntity)
-    {
-        try
-        {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
-            if (matchEvent.match_id != null)
-            {
-                var matchEventsEntity =
-                    matchEntity.MatchEvents
-                    ?? new MatchEvents
-                    {
-                        MatchId = int.Parse(matchEvent.match_id),
-                        EventsJson = "[]",
-                        LastUpdated = DateTime.UtcNow,
-                        TotalEvents = 0,
-                    };
-
-                matchEntity.MatchEvents ??= matchEventsEntity;
-
-                await eventAnalysis.UpdateMatchStatistics(
-                    matchEvent,
-                    matchEventsEntity,
-                    matchEntity,
-                    false
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error processing match event {Index} for match {Id}",
-                matchEvent.event_index,
-                matchEvent.match_id
-            );
-        }
-    }
-
-    private async Task BroadcastMatchStatistics(FootballMatchEvent matchEvent, Match matchEntity)
-    {
-        try
-        {
-            if (matchEntity.MatchStatistics != null)
-            {
-                var matchStatistics = new
-                {
-                    matchId = matchEntity.Id,
-                    timeStamp = matchEvent.timestamp,
-                    homeTeam = new
-                    {
-                        name = matchEntity.HomeTeam?.Name ?? matchEntity.HomeTeamInMatchName,
-                        score = matchEntity.HomeTeamScore ?? 0,
-                        shots = matchEntity.MatchStatistics.HomeTeamShots ?? 0,
-                        shotsOnTarget = matchEntity.MatchStatistics.HomeTeamShotsOnTarget ?? 0,
-                        possession = matchEntity.MatchStatistics.HomeTeamPossession ?? 0,
-                        passes = matchEntity.MatchStatistics.HomeTeamPasses ?? 0,
-                        passAccuracy = matchEntity.MatchStatistics.HomeTeamPassAccuracy ?? 0,
-                        corners = matchEntity.MatchStatistics.HomeTeamCorners ?? 0,
-                        fouls = matchEntity.MatchStatistics.HomeTeamFouls ?? 0,
-                        yellowCards = matchEntity.MatchStatistics.HomeTeamYellowCards ?? 0,
-                        redCards = matchEntity.MatchStatistics.HomeTeamRedCards ?? 0,
-                        offsides = matchEntity.MatchStatistics.HomeTeamOffsides ?? 0,
-                    },
-                    awayTeam = new
-                    {
-                        name = matchEntity.AwayTeam?.Name ?? matchEntity.AwayTeamInMatchName,
-                        score = matchEntity.AwayTeamScore ?? 0,
-                        shots = matchEntity.MatchStatistics.AwayTeamShots ?? 0,
-                        shotsOnTarget = matchEntity.MatchStatistics.AwayTeamShotsOnTarget ?? 0,
-                        possession = matchEntity.MatchStatistics.AwayTeamPossession ?? 0,
-                        passes = matchEntity.MatchStatistics.AwayTeamPasses ?? 0,
-                        passAccuracy = matchEntity.MatchStatistics.AwayTeamPassAccuracy ?? 0,
-                        corners = matchEntity.MatchStatistics.AwayTeamCorners ?? 0,
-                        fouls = matchEntity.MatchStatistics.AwayTeamFouls ?? 0,
-                        yellowCards = matchEntity.MatchStatistics.AwayTeamYellowCards ?? 0,
-                        redCards = matchEntity.MatchStatistics.AwayTeamRedCards ?? 0,
-                        offsides = matchEntity.MatchStatistics.AwayTeamOffsides ?? 0,
-                    },
-                    matchInfo = new
-                    {
-                        status = matchEntity.MatchStatus,
-                        isLive = matchEntity.IsLive,
-                        currentMinute = matchEvent.minute,
-                        lastEventTime = matchEvent.time_seconds,
-                        eventType = matchEvent.action,
-                        eventTeam = matchEvent.team,
-                    },
-                    lastUpdated = DateTime.UtcNow,
-                };
-                if (_broadcaster != null)
-                    await _broadcaster.BroadcastStatisticsAsync(matchEntity.Id.ToString(), matchStatistics);
-
-                await _hubContext
-                    .Clients.Group($"MatchStatistics-{matchEntity.Id.ToString()}")
-                    .SendMatchStatisticsAsync(
-                        "match_statistics_update",
-                        matchEntity.Id,
-                        matchStatistics
-                    );
-                _logger.LogInformation(
-                    "Broadcasted match statistics for match {Id} at {Time}",
-                    matchEntity.Id,
-                    DateTime.UtcNow
-                );
-                _logger.LogInformation(
-                    "Match statistics: {Statistics}",
-                    JsonSerializer.Serialize(matchStatistics)
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error broadcasting match stats for match {Id}", matchEntity.Id);
-        }
-    }
-
-    private Task CacheMatchEvent(FootballMatchEvent matchEvent)
-    {
-        try
-        {
-            lock (_matchEventsCacheLock)
-            {
-                if (!_matchEventsCache.TryGetValue(matchEvent.match_id!, out var eventsList))
-                {
-                    eventsList = [];
-                    if (matchEvent.match_id != null)
-                        _matchEventsCache[matchEvent.match_id] = eventsList;
-                }
-
-                eventsList?.Add(matchEvent);
-                _eventSequence = Math.Max(_eventSequence, matchEvent.event_index + 1);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error caching event {Index} for match {Id}",
-                matchEvent.event_index,
-                matchEvent.match_id
-            );
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private async Task SaveMatchEventsToDatabase(string matchId)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            List<FootballMatchEvent>? events;
-
-            lock (_matchEventsCacheLock)
-            {
-                if (
-                    !_matchEventsCache.Remove(matchId, out events)
-                    || events == null
-                    || events.Count == 0
-                )
-                {
-                    _logger.LogInformation(
-                        "No cached events to save for match {MatchId}, or cache already cleared.",
-                        matchId
-                    );
-                    return;
-                }
-            }
-
-            _logger.LogInformation(
-                "Attempting to save {EventCount} events for match {MatchId}",
-                events.Count,
-                matchId
+            await _channel.QueueBindAsync(
+                ExperimentDlqName,
+                DeadLetterExchangeName,
+                ExperimentRoutingKey,
+                cancellationToken: cancellationToken
             );
 
-            using var scope = _serviceScopeFactory.CreateScope();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-            var eventAnalysis = scope.ServiceProvider.GetRequiredService<IEventAnalysisService>();
-
-            var dbStopwatch = Stopwatch.StartNew();
-            var matchToUpdate = await unitOfWork.Matches.GetByIdWithDetailsAsync(
-                int.Parse(matchId)
+            await _channel.ExchangeDeclareAsync(
+                ExchangeName,
+                ExchangeType.Topic,
+                durable: true,
+                autoDelete: false,
+                cancellationToken: cancellationToken
             );
-            dbStopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall(
-                "GetMatchWithDetails_SaveEvents",
-                dbStopwatch.Elapsed.TotalMilliseconds
-            );
-            if (matchToUpdate == null)
-            {
-                _logger.LogWarning("Match {Id} not found for saving events.", matchId);
-                return;
-            }
 
-            var matchEventsEntity = new MatchEvents
+            var queueArgs = new Dictionary<string, object?>
             {
-                MatchId = int.Parse(matchId),
-                EventsJson = "[]",
-                LastUpdated = DateTime.UtcNow,
+                ["x-dead-letter-exchange"] = DeadLetterExchangeName,
+                ["x-dead-letter-routing-key"] = ExperimentRoutingKey,
             };
 
-            await unitOfWork.MatchEvents.AddAsync(matchEventsEntity);
-            matchToUpdate.MatchEvents = matchEventsEntity;
-
-            _logger.LogInformation(
-                "Processing {EventCount} events for statistics updates for match {MatchId}",
-                events.Count,
-                matchId
+            await _channel.QueueDeclareAsync(
+                ExperimentQueueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: queueArgs,
+                cancellationToken: cancellationToken
             );
-            foreach (var ev in events.OrderBy(e => e.time_seconds))
-                await eventAnalysis.UpdateMatchStatistics(ev, matchEventsEntity, matchToUpdate);
-
-            if (events.Any(e => e is { event_type: "match_end", action: "match_end" }))
-            {
-                matchToUpdate.IsLive = false;
-                matchToUpdate.MatchStatus = "Completed";
-                _logger.LogInformation(
-                    "Match {MatchId} completed, updated status accordingly",
-                    matchId
-                );
-            }
-
-            matchEventsEntity.SetEvents(events);
-            matchEventsEntity.TotalEvents = events.Count;
-            matchEventsEntity.LastUpdated = DateTime.UtcNow;
-
-            var saveStopwatch = Stopwatch.StartNew();
-            await unitOfWork.SaveChangesAsync();
-            saveStopwatch.Stop();
-            _performanceMonitoringService.RecordDatabaseCall(
-                "SaveChanges_MatchEvents",
-                saveStopwatch.Elapsed.TotalMilliseconds
+            await _channel.QueueBindAsync(
+                ExperimentQueueName,
+                ExchangeName,
+                ExperimentRoutingKey,
+                cancellationToken: cancellationToken
             );
 
-            _logger.LogInformation(
-                "Saved {Count} events for match {Id} to DB in {Ms}ms (Source: {Src})",
-                events.Count,
-                matchId,
-                stopwatch.Elapsed.TotalMilliseconds,
-                "db_loaded"
-            );
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving events for match {Id}", matchId);
-        }
-        finally
-        {
-            stopwatch.Stop();
+            _logger.LogWarning(ex, "Could not initialize RabbitMQ for experiment.completed.v2; running without RabbitMQ.");
+            return false;
         }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("MatchEventRabbitMqClient StopAsync called.");
+        if (_channel is { IsOpen: true } && !string.IsNullOrEmpty(_consumerTag))
+        {
+            try
+            {
+                await _channel.BasicCancelAsync(_consumerTag, cancellationToken: cancellationToken);
+            }
+            catch
+            {
+                // Ignore shutdown race
+            }
+        }
 
-        _loadedMatches.Clear();
-        _logger.LogInformation("Cleared match entity cache.");
+        if (_channel != null)
+            await _channel.DisposeAsync();
+        if (_connection != null)
+            await _connection.DisposeAsync();
 
-        await CloseChannelAndConnectionAsync();
         await base.StopAsync(cancellationToken);
-        _logger.LogInformation("MatchEventRabbitMqClient stopped.");
-    }
-
-    public override void Dispose()
-    {
-        _logger.LogInformation("MatchEventRabbitMqClient disposing.");
-        _channel?.Dispose();
-        _connection?.Dispose();
-        _channel = null;
-        _connection = null;
-        base.Dispose();
-        GC.SuppressFinalize(this);
-        _logger.LogInformation("MatchEventRabbitMqClient disposed.");
     }
 }

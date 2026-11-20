@@ -21,12 +21,32 @@ public class FootballDbContext(DbContextOptions<FootballDbContext> options)
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<MatchStatistics> MatchStatistics { get; set; }
+    public virtual DbSet<TacticalExperimentRecord> TacticalExperiments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.Entity<Match>()
+                .Property(m => m.TacticalConfigJson)
+                .HasColumnType("jsonb");
+
+            modelBuilder.Entity<MatchEvents>()
+                .Property(e => e.EventsJson)
+                .HasColumnType("jsonb");
+
+            modelBuilder.Entity<TacticalExperimentRecord>(entity =>
+            {
+                entity.Property(e => e.RequestJson).HasColumnType("jsonb");
+                entity.Property(e => e.ResultJson).HasColumnType("jsonb");
+                entity.Property(e => e.CommentaryTelemetryJson).HasColumnType("jsonb");
+                entity.Property(e => e.RepresentativeSeedsJson).HasColumnType("jsonb");
+            });
+        }
 
         modelBuilder.Entity<ApplicationUser>().ToTable("Users");
         modelBuilder.Entity<IdentityRole>().ToTable("Roles");
