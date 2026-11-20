@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Event } from '@/types/Event';
@@ -11,9 +11,9 @@ type Props = {
   endY?: number; // Optional: allow explicit override
 };
 
+const CURVE_SEGMENTS = 20;
+
 const CurvedArrow = ({ event, moveBall, endY }: Props) => {
-  const lineRef = useRef<THREE.Line>(null);
-  const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const progress = useRef(0);
 
   // Use pass_target for passes, shot_target for shots
@@ -29,58 +29,79 @@ const CurvedArrow = ({ event, moveBall, endY }: Props) => {
   const startY =
     typeof (event as any).startY === 'number' ? (event as any).startY : 0.0;
 
-  const start = new THREE.Vector3(
-    event.position[0] - 60,
-    startY,
-    event.position[1] - 40
-  );
-  const end = target
-    ? new THREE.Vector3(target[0] - 60, targetY, target[1] - 40)
-    : start;
+  const { curve, totalLength, scratchPoint, positions, positionAttr, geometry, lineObject } =
+    useMemo(() => {
+      const start = new THREE.Vector3(
+        event.position[0] - 60,
+        startY,
+        event.position[1] - 40
+      );
+      const end = target
+        ? new THREE.Vector3(target[0] - 60, targetY, target[1] - 40)
+        : start.clone();
 
-  // Control point: halfway between start and end, higher on y axis for the arc
-  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-  mid.y += 10; // Adjust this value for arc height
+      // Control point: halfway between start and end, higher on y axis for the arc
+      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+      mid.y += 10;
 
-  // Quadratic Bezier curve
-  const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const bezier = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const posArray = new Float32Array((CURVE_SEGMENTS + 1) * 3);
+      const attr = new THREE.BufferAttribute(posArray, 3);
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', attr);
+      geom.setDrawRange(0, 0);
+
+      const mat = new THREE.LineBasicMaterial({ color: 'white', linewidth: 2 });
+      const line = new THREE.Line(geom, mat);
+
+      return {
+        curve: bezier,
+        totalLength: bezier.getLength(),
+        scratchPoint: new THREE.Vector3(),
+        positions: posArray,
+        positionAttr: attr,
+        geometry: geom,
+        lineObject: line,
+      };
+    }, [event.position, startY, target, targetY]);
+
+  useEffect(() => {
+    progress.current = 0;
+    return () => {
+      geometry.dispose();
+      (lineObject.material as THREE.Material).dispose();
+    };
+  }, [geometry, lineObject]);
 
   useFrame((_, delta) => {
-    const totalLength = curve.getLength();
+    if (totalLength <= 0) return;
+
     const speed = totalLength / 0.8; // reach the end in 0.8 seconds
     progress.current += delta * speed;
 
-    let t = Math.min(progress.current / totalLength, 1);
+    const t = Math.min(progress.current / totalLength, 1);
 
-    // Ball position on curve
-    const currentPoint = curve.getPoint(t);
+    // Ball position on curve (zero per-frame allocation)
+    curve.getPoint(t, scratchPoint);
 
-    // Move the global ball
     if (moveBall) {
-      moveBall([currentPoint.x, currentPoint.y, currentPoint.z]);
+      moveBall([scratchPoint.x, scratchPoint.y, scratchPoint.z]);
     }
 
-    // Line points from start to current
-    const curvePoints = [];
-    for (let i = 0; i <= 20 * t; i++) {
-      curvePoints.push(curve.getPoint(i / 20));
+    // Update line vertices in-place
+    const count = Math.floor(CURVE_SEGMENTS * t) + 1;
+    for (let i = 0; i < count; i++) {
+      curve.getPoint(i / CURVE_SEGMENTS, scratchPoint);
+      const idx = i * 3;
+      positions[idx] = scratchPoint.x;
+      positions[idx + 1] = scratchPoint.y;
+      positions[idx + 2] = scratchPoint.z;
     }
-    setPoints(curvePoints);
+    positionAttr.needsUpdate = true;
+    geometry.setDrawRange(0, count >= 2 ? count : 0);
   });
 
-  useEffect(() => {
-    if (lineRef.current && points.length >= 2) {
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      lineRef.current.geometry = geometry;
-    }
-  }, [points]);
-
-  return lineRef.current ? (
-    <primitive object={lineRef.current} ref={lineRef}>
-      <bufferGeometry />
-      <lineBasicMaterial color="white" linewidth={2} />
-    </primitive>
-  ) : null;
+  return <primitive object={lineObject} />;
 };
 
 export default CurvedArrow;

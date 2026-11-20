@@ -268,20 +268,24 @@ function GoalAnimation({ event }: { event: Event }) {
   const trailRef = useRef<THREE.Group>(null);
   const [animationPhase, setAnimationPhase] = useState(0);
   const [showExplosion, setShowExplosion] = useState(false);
-  const [ballScale, setBallScale] = useState(1);
 
   useEffect(() => {
     // Phase 1: Ball appears and starts flying (immediate)
     setAnimationPhase(1);
 
     // Phase 2: Ball hits goal and explodes (after 1.5 seconds)
-    setTimeout(() => {
+    const explosionTimer = setTimeout(() => {
       setShowExplosion(true);
       setAnimationPhase(2);
     }, 1500);
 
     // Phase 3: Fade out (after 4 seconds)
-    setTimeout(() => setAnimationPhase(3), 4000);
+    const fadeTimer = setTimeout(() => setAnimationPhase(3), 4000);
+
+    return () => {
+      clearTimeout(explosionTimer);
+      clearTimeout(fadeTimer);
+    };
   }, []);
 
   // Epic ball flight animation with trail
@@ -321,7 +325,6 @@ function GoalAnimation({ event }: { event: Event }) {
 
       // Scale effect - ball appears to get closer
       const scaleEffect = 0.8 + progress * 0.4;
-      setBallScale(scaleEffect);
       ballRef.current.scale.setScalar(scaleEffect);
 
       // Create dynamic trail effect
@@ -406,7 +409,6 @@ function GoalAnimation({ event }: { event: Event }) {
       <mesh
         ref={ballRef}
         position={[-35, 5, -30]}
-        scale={[ballScale, ballScale, ballScale]}
       >
         <sphereGeometry args={[2, 32, 32]} />
         <meshStandardMaterial

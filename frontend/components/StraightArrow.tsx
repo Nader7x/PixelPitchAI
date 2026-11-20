@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Event } from '@/types/Event';
@@ -13,8 +13,6 @@ type Props = {
 };
 
 const StraightArrow = ({ event, moveBall, startY, endY }: Props) => {
-  const lineRef = useRef<THREE.Line>(null);
-  const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const progress = useRef(0);
 
   // Use startY/endY from props, or from event, or fallback to 0.07
@@ -31,57 +29,89 @@ const StraightArrow = ({ event, moveBall, startY, endY }: Props) => {
         ? (event as any).endY
         : 0.07;
 
-  const start = new THREE.Vector3(
-    event.position[0] - 60,
-    actualStartY,
-    event.position[1] - 40
-  );
   // Use pass_target for passes, shot_target for shots
   const target = event.pass_target ?? event.shot_target;
-  const end = target
-    ? new THREE.Vector3(target[0] - 60, actualEndY, target[1] - 40)
-    : start;
 
-  const direction = new THREE.Vector3().subVectors(end, start).normalize();
-  const totalLength = new THREE.Vector3().subVectors(end, start).length();
+  const {
+    start,
+    end,
+    direction,
+    totalLength,
+    scratchPoint,
+    positions,
+    positionAttr,
+    geometry,
+    lineObject,
+  } = useMemo(() => {
+    const s = new THREE.Vector3(
+      event.position[0] - 60,
+      actualStartY,
+      event.position[1] - 40
+    );
+    const e = target
+      ? new THREE.Vector3(target[0] - 60, actualEndY, target[1] - 40)
+      : s.clone();
+    const diff = new THREE.Vector3().subVectors(e, s);
+    const len = diff.length();
+    const dir = len > 0 ? diff.normalize() : new THREE.Vector3();
+
+    const posArray = new Float32Array([s.x, s.y, s.z, s.x, s.y, s.z]);
+    const attr = new THREE.BufferAttribute(posArray, 3);
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', attr);
+
+    const mat = new THREE.LineBasicMaterial({ color: 'white', linewidth: 2 });
+    const line = new THREE.Line(geom, mat);
+
+    return {
+      start: s,
+      end: e,
+      direction: dir,
+      totalLength: len,
+      scratchPoint: new THREE.Vector3(),
+      positions: posArray,
+      positionAttr: attr,
+      geometry: geom,
+      lineObject: line,
+    };
+  }, [event.position, actualStartY, actualEndY, target]);
+
+  useEffect(() => {
+    progress.current = 0;
+    return () => {
+      geometry.dispose();
+      (lineObject.material as THREE.Material).dispose();
+    };
+  }, [geometry, lineObject]);
 
   useFrame((_, delta) => {
+    if (totalLength <= 0) return;
+
     const speed = totalLength / 0.8; // reach the end in 0.8 seconds
     progress.current += delta * speed;
 
     if (progress.current < totalLength) {
-      const currentPoint = new THREE.Vector3().addVectors(
-        start,
-        direction.clone().multiplyScalar(progress.current)
-      );
+      scratchPoint
+        .copy(start)
+        .addScaledVector(direction, progress.current);
 
-      // Update ball position
       if (moveBall) {
-        moveBall([currentPoint.x, currentPoint.y, currentPoint.z]);
+        moveBall([scratchPoint.x, scratchPoint.y, scratchPoint.z]);
       }
 
-      // Grow the line by adding the new point
-      setPoints([start.clone(), currentPoint.clone()]);
+      positions[3] = scratchPoint.x;
+      positions[4] = scratchPoint.y;
+      positions[5] = scratchPoint.z;
     } else {
-      // Snap ball to final position
       if (moveBall) moveBall([end.x, end.y, end.z]);
-      setPoints([start.clone(), end.clone()]);
+      positions[3] = end.x;
+      positions[4] = end.y;
+      positions[5] = end.z;
     }
+    positionAttr.needsUpdate = true;
   });
 
-  useEffect(() => {
-    if (lineRef.current && points.length >= 2) {
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      lineRef.current.geometry = geometry;
-    }
-  }, [points]);
-
-  return (
-    <primitive object={new THREE.Line()} ref={lineRef}>
-      <bufferGeometry />
-      <lineBasicMaterial color="white" linewidth={2} />
-    </primitive>
-  );
+  return <primitive object={lineObject} />;
 };
 
 export default StraightArrow;

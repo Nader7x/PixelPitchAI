@@ -129,6 +129,17 @@ class MatchStreamServiceV2 {
         const id = trackId(e);
         const data = JSON.parse(e.data) as MatchLifecycleV2;
         callbacks.onLifecycle?.(data, id);
+        const status = data.status?.toLowerCase();
+        if (
+          status === 'completed' ||
+          status === 'finished' ||
+          status === 'failed' ||
+          status === 'cancelled' ||
+          status === 'aborted' ||
+          status === 'error'
+        ) {
+          this.disconnect();
+        }
       } catch (err) {
         console.error('[SSE V2] Failed to parse match_lifecycle:', err);
       }
