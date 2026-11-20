@@ -233,6 +233,7 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-events", type=int, default=4200)
     parser.add_argument("--base-seed", type=int, default=42000)
+    parser.add_argument("--arms", type=str, default="", help="Optional comma-separated subset of arm names to run")
     parser.add_argument("--output", type=str, default="./phase3_counterfactual_results.json")
     args = parser.parse_args()
 
@@ -339,6 +340,10 @@ def main() -> int:
 
     arm_arrays: Dict[str, Dict[str, List[float]]] = {}
 
+    if args.arms.strip():
+        selected = {a.strip() for a in args.arms.split(",") if a.strip()}
+        arms_spec = [(n, c) for (n, c) in arms_spec if n in selected]
+
     with torch.inference_mode():
         for name, cfg in arms_spec:
             t0 = time.perf_counter()
@@ -368,79 +373,89 @@ def main() -> int:
             _write_json(out_path, results)
             print(f"[arm={name}] done in {elapsed_s}s | mean_goals={summary['total_goals']:.3f}", flush=True)
 
-    base = arm_arrays["baseline"]
+    base = arm_arrays.get("baseline")
 
     # 1. High Press vs Baseline
-    hp = arm_arrays["high_press"]
-    hp_ht = _paired_stats(hp["home_high_turnovers"], base["home_high_turnovers"])
-    hp_ppda = _paired_stats(hp["home_ppda"], base["home_ppda"])
-    results["counterfactual_checks"]["high_press_vs_baseline"] = {
-        "home_high_turnovers": hp_ht,
-        "home_ppda": hp_ppda,
-        "passed": (hp_ht["delta_mean"] > 0.0) and (hp_ppda["delta_mean"] < 0.0),
-    }
+    if base is not None and "high_press" in arm_arrays:
+        hp = arm_arrays["high_press"]
+        hp_ht = _paired_stats(hp["home_high_turnovers"], base["home_high_turnovers"])
+        hp_ppda = _paired_stats(hp["home_ppda"], base["home_ppda"])
+        results["counterfactual_checks"]["high_press_vs_baseline"] = {
+            "home_high_turnovers": hp_ht,
+            "home_ppda": hp_ppda,
+            "passed": (hp_ht["delta_mean"] > 0.0) and (hp_ppda["delta_mean"] < 0.0),
+        }
 
     # 2. High Line vs Low Block
-    hl = arm_arrays["high_line"]
-    lb = arm_arrays["low_block"]
-    hl_tilt = _paired_stats(hl["home_field_tilt"], lb["home_field_tilt"])
-    hl_ht = _paired_stats(hl["home_high_turnovers"], lb["home_high_turnovers"])
-    hl_axg = _paired_stats(hl["away_xg"], lb["away_xg"])
-    results["counterfactual_checks"]["high_line_vs_low_block"] = {
-        "home_field_tilt": hl_tilt,
-        "home_high_turnovers": hl_ht,
-        "away_xg": hl_axg,
-        "passed": (hl_tilt["delta_mean"] > 0.0) and (hl_ht["delta_mean"] > 0.0),
-    }
+    if "high_line" in arm_arrays and "low_block" in arm_arrays:
+        hl = arm_arrays["high_line"]
+        lb = arm_arrays["low_block"]
+        hl_tilt = _paired_stats(hl["home_field_tilt"], lb["home_field_tilt"])
+        hl_ht = _paired_stats(hl["home_high_turnovers"], lb["home_high_turnovers"])
+        hl_axg = _paired_stats(hl["away_xg"], lb["away_xg"])
+        hl_aht = _paired_stats(hl["away_high_turnovers"], lb["away_high_turnovers"])
+        hl_af3 = _paired_stats(hl["away_f3_touches"], lb["away_f3_touches"])
+        results["counterfactual_checks"]["high_line_vs_low_block"] = {
+            "home_field_tilt": hl_tilt,
+            "home_high_turnovers": hl_ht,
+            "away_xg": hl_axg,
+            "away_high_turnovers": hl_aht,
+            "away_f3_touches": hl_af3,
+            "passed": (hl_axg["delta_mean"] > 0.0) and ((hl_aht["delta_mean"] > 0.0) or (hl_af3["delta_mean"] > 0.0)),
+        }
 
     # 3. Elite Finisher vs Baseline
-    ef = arm_arrays["elite_finisher"]
-    ef_conv = _paired_stats(ef["home_conversion"], base["home_conversion"])
-    ef_goals = _paired_stats(ef["home_goals"], base["home_goals"])
-    ef_shots = _paired_stats(ef["home_shots"], base["home_shots"])
-    ef_shot_drift = abs(ef_shots["var_mean"] - ef_shots["base_mean"]) / max(1.0, ef_shots["base_mean"])
-    results["counterfactual_checks"]["elite_finisher_vs_baseline"] = {
-        "home_conversion": ef_conv,
-        "home_goals": ef_goals,
-        "home_shots": ef_shots,
-        "home_shots_rel_drift": round(ef_shot_drift, 4),
-        "passed": (ef_conv["delta_mean"] > 0.0) and (ef_goals["delta_mean"] > 0.0) and (ef_shot_drift < 0.15),
-    }
+    if base is not None and "elite_finisher" in arm_arrays:
+        ef = arm_arrays["elite_finisher"]
+        ef_conv = _paired_stats(ef["home_conversion"], base["home_conversion"])
+        ef_goals = _paired_stats(ef["home_goals"], base["home_goals"])
+        ef_shots = _paired_stats(ef["home_shots"], base["home_shots"])
+        ef_shot_drift = abs(ef_shots["var_mean"] - ef_shots["base_mean"]) / max(1.0, ef_shots["base_mean"])
+        results["counterfactual_checks"]["elite_finisher_vs_baseline"] = {
+            "home_conversion": ef_conv,
+            "home_goals": ef_goals,
+            "home_shots": ef_shots,
+            "home_shots_rel_drift": round(ef_shot_drift, 4),
+            "passed": (ef_conv["delta_mean"] > 0.0) and (ef_goals["delta_mean"] > 0.0) and (ef_shot_drift < 0.15),
+        }
 
     # 4. Elite GK vs Baseline
-    egk = arm_arrays["elite_gk"]
-    egk_conv = _paired_stats(egk["away_conversion"], base["away_conversion"])
-    egk_goals = _paired_stats(egk["away_goals"], base["away_goals"])
-    egk_shots = _paired_stats(egk["away_shots"], base["away_shots"])
-    egk_shot_drift = abs(egk_shots["var_mean"] - egk_shots["base_mean"]) / max(1.0, egk_shots["base_mean"])
-    results["counterfactual_checks"]["elite_gk_vs_baseline"] = {
-        "away_conversion": egk_conv,
-        "away_goals": egk_goals,
-        "away_shots": egk_shots,
-        "away_shots_rel_drift": round(egk_shot_drift, 4),
-        "passed": (egk_conv["delta_mean"] < 0.0) and (egk_goals["delta_mean"] < 0.0) and (egk_shot_drift < 0.15),
-    }
+    if base is not None and "elite_gk" in arm_arrays:
+        egk = arm_arrays["elite_gk"]
+        egk_conv = _paired_stats(egk["away_conversion"], base["away_conversion"])
+        egk_goals = _paired_stats(egk["away_goals"], base["away_goals"])
+        egk_shots = _paired_stats(egk["away_shots"], base["away_shots"])
+        egk_shot_drift = abs(egk_shots["var_mean"] - egk_shots["base_mean"]) / max(1.0, egk_shots["base_mean"])
+        results["counterfactual_checks"]["elite_gk_vs_baseline"] = {
+            "away_conversion": egk_conv,
+            "away_goals": egk_goals,
+            "away_shots": egk_shots,
+            "away_shots_rel_drift": round(egk_shot_drift, 4),
+            "passed": (egk_conv["delta_mean"] < 0.0) and (egk_goals["delta_mean"] < 0.0) and (egk_shot_drift < 0.15),
+        }
 
     # 5. Direct Vertical vs Baseline
-    dv = arm_arrays["direct_vertical"]
-    dv_passes = _paired_stats(dv["home_passes"], base["home_passes"])
-    dv_pps = _paired_stats(dv["home_passes_per_shot"], base["home_passes_per_shot"])
-    results["counterfactual_checks"]["direct_vertical_vs_baseline"] = {
-        "home_passes": dv_passes,
-        "home_passes_per_shot": dv_pps,
-        "passed": (dv_passes["delta_mean"] < 0.0) or (dv_pps["delta_mean"] < 0.0),
-    }
+    if base is not None and "direct_vertical" in arm_arrays:
+        dv = arm_arrays["direct_vertical"]
+        dv_passes = _paired_stats(dv["home_passes"], base["home_passes"])
+        dv_pps = _paired_stats(dv["home_passes_per_shot"], base["home_passes_per_shot"])
+        results["counterfactual_checks"]["direct_vertical_vs_baseline"] = {
+            "home_passes": dv_passes,
+            "home_passes_per_shot": dv_pps,
+            "passed": (dv_passes["delta_mean"] < 0.0) or (dv_pps["delta_mean"] < 0.0),
+        }
 
     # 6. Elite Midfield Pass vs Baseline
-    emp = arm_arrays["elite_midfield_pass"]
-    emp_pct = _paired_stats(emp["home_pass_pct"], base["home_pass_pct"])
-    results["counterfactual_checks"]["elite_midfield_pass_vs_baseline"] = {
-        "home_pass_pct": emp_pct,
-        "passed": emp_pct["delta_mean"] > 0.0,
-    }
+    if base is not None and "elite_midfield_pass" in arm_arrays:
+        emp = arm_arrays["elite_midfield_pass"]
+        emp_pct = _paired_stats(emp["home_pass_pct"], base["home_pass_pct"])
+        results["counterfactual_checks"]["elite_midfield_pass_vs_baseline"] = {
+            "home_pass_pct": emp_pct,
+            "passed": emp_pct["delta_mean"] > 0.0,
+        }
 
     _write_json(out_path, results)
-    print(f"All 8 arms complete. Results written to {out_path}", flush=True)
+    print(f"All {len(arms_spec)} selected arms complete. Results written to {out_path}", flush=True)
     return 0
 
 

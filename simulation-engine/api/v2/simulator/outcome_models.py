@@ -490,6 +490,9 @@ class ModuleDOutcomeSuite(nn.Module):
             torch.stack([f["corner_precision"], f["gk_reach_dist"] / 4.0, on_t], dim=-1),
         ], dim=-1)
         shot_logits_6 = torch.log(probs_6.clamp(min=1e-6)) + self.psxg_head(psxg_feats)
+        # Calibrate open-play realized goal probability to pre-shot xG (leaving penalties untouched)
+        shot_logits_6 = shot_logits_6.clone()
+        shot_logits_6[:, 0] = shot_logits_6[:, 0] - 0.72 * (1.0 - is_pen)
 
         return {
             "xg": xg,
