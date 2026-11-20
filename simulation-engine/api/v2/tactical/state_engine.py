@@ -1107,17 +1107,19 @@ class TacticalStateEngine(nn.Module):
             state.score = score.to(device=device, dtype=torch.int64)
         if period is not None:
             new_period = period.to(device=device, dtype=torch.int64)
-            # Apply halftime physiological recovery (+0.16) once upon entering 2nd half (period==3)
+            # Apply halftime physiological recovery (+0.16) once upon entering 2nd half (period==3), branchless
             just_2h = (new_period == 3) & (~state.halftime_recovered)
-            if just_2h.any():
-                state.stamina[just_2h] = (state.stamina[just_2h] + 0.16).clamp(max=1.0)
-                state.halftime_recovered = state.halftime_recovered | just_2h
+            state.stamina = torch.where(
+                just_2h.unsqueeze(-1),
+                (state.stamina + 0.16).clamp(max=1.0),
+                state.stamina,
+            )
+            state.halftime_recovered = state.halftime_recovered | just_2h
             state.period = new_period
 
         # Stamina drain per step
         is_home_poss = (state.possessing_team == 0).unsqueeze(-1)
-        is_home_slot = torch.zeros((bsz, 22), device=device, dtype=torch.bool)
-        is_home_slot[:, :11] = True
+        is_home_slot = self.spatial_solver.is_home_22.expand(bsz, 22)
         is_oop = torch.where(is_home_poss, ~is_home_slot, is_home_slot)
         press_slot = torch.cat(
             [

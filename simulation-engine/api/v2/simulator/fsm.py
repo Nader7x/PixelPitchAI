@@ -306,6 +306,32 @@ class FootballFSM:
             (gx + 0.5) * (PITCH_LENGTH / GRID_X),
             (gy + 0.5) * (PITCH_WIDTH / GRID_Y),
         ], dim=-1)
+        self._device_cache: Dict[torch.device, Dict[str, Any]] = {}
+
+    def _get_dev_cache(self, dev: torch.device) -> Dict[str, Any]:
+        """Return cached device-resident constant tensors to avoid per-step H2D copies and allocations."""
+        cache = self._device_cache.get(dev)
+        if cache is None:
+            centers = self._cell_centers.to(dev)
+            home_slots = torch.zeros((1, 22), dtype=torch.bool, device=dev)
+            home_slots[:, :11] = True
+            outfield_mask = torch.ones((1, 22), dtype=torch.bool, device=dev)
+            outfield_mask[:, 0] = False
+            outfield_mask[:, 11] = False
+            cache = {
+                "legal_actions": self._LEGAL_ACTIONS_TABLE.to(dev),
+                "legal_outcomes": self._LEGAL_OUTCOMES_TABLE.to(dev),
+                "restart_map": self._RESTART_MAP.to(dev),
+                "cell_centers": centers,
+                "ko_xy": torch.tensor([60.0, 40.0], dtype=torch.float32, device=dev),
+                "home_slots": home_slots,
+                "away_slots": ~home_slots,
+                "outfield_mask": outfield_mask,
+                "own_half_home": (centers[:, 0] <= 60.0).unsqueeze(0),
+                "own_half_away": (centers[:, 0] >= 60.0).unsqueeze(0),
+            }
+            self._device_cache[dev] = cache
+        return cache
 
     @staticmethod
     def _build_legal_actions_table() -> BoolTensor:
@@ -436,8 +462,9 @@ class FootballFSM:
         """Compute hard legality masks over actors, actions, spatial cells, body parts, and targets."""
         B = state.batch_size
         dev = state.device
-        legal_table = self._LEGAL_ACTIONS_TABLE.to(dev)
-        centers = self._cell_centers.to(dev)  # [600, 2]
+        dc = self._get_dev_cache(dev)
+        legal_table = dc["legal_actions"]
+        centers = dc["cell_centers"]  # [600, 2]
 
         # Check period expiration (end half/match once clock >= threshold and ball not mid-penalty)
         period_limit = self._period_duration_ms(state)
@@ -484,10 +511,9 @@ class FootballFSM:
 
         if tactical_action_mask is not None:
             action_mask &= tactical_action_mask.to(dev)
-        # Ensure at least one legal action per batch item
+        # Ensure at least one legal action per batch item (branchless, no host sync)
         no_action = ~action_mask.any(dim=-1)
-        if no_action.any():
-            action_mask[no_action, ActionType.PASS] = True
+        action_mask[:, ActionType.PASS] = action_mask[:, ActionType.PASS] | no_action
 
         # 2. Actor mask [B, 22] and [B, 23]
         actor_mask = state.active_mask.clone()
@@ -501,19 +527,16 @@ class FootballFSM:
             | (state.ball_state == BallState.FREE_KICK_INDIRECT)
             | (state.ball_state == BallState.PENALTY)
         )
-        home_slots = torch.zeros((B, 22), dtype=torch.bool, device=dev)
-        home_slots[:, :11] = True
-        away_slots = ~home_slots
+        home_slots = dc["home_slots"].expand(B, 22)
+        away_slots = dc["away_slots"].expand(B, 22)
         poss_team_mask = torch.where(
             (state.poss_team == 1).unsqueeze(-1),
             home_slots,
-            torch.where((state.poss_team == 2).unsqueeze(-1), away_slots, torch.ones_like(home_slots)),
+            torch.where((state.poss_team == 2).unsqueeze(-1), away_slots, True),
         )
         actor_mask = torch.where(is_fixed_restart.unsqueeze(-1), actor_mask & poss_team_mask, actor_mask)
         # Kick-off, corners, and penalties use outfielders (not GK) when available
-        outfield_mask = torch.ones((B, 22), dtype=torch.bool, device=dev)
-        outfield_mask[:, 0] = False
-        outfield_mask[:, 11] = False
+        outfield_mask = dc["outfield_mask"].expand(B, 22)
         outfield_restart = (
             (state.ball_state == BallState.KICK_OFF)
             | (state.ball_state == BallState.CORNER_KICK)
@@ -557,25 +580,25 @@ class FootballFSM:
         start_cell_mask[force_boundary, :] = False
         start_cell_mask[force_boundary, CELL_SYSTEM] = True
 
-        # Fixed restart exact start clamps
+        # Fixed restart exact start clamps (branchless, no host sync)
         fixed_start = is_fixed_restart & (~force_boundary)
-        if fixed_start.any():
-            exact_mask = torch.zeros((B, NUM_CELL_TOKENS), dtype=torch.bool, device=dev)
-            exact_mask.scatter_(1, nearest_cell.unsqueeze(-1), True)
-            start_cell_mask = torch.where(fixed_start.unsqueeze(-1), exact_mask, start_cell_mask)
+        exact_mask = torch.zeros_like(start_cell_mask)
+        exact_mask.scatter_(1, nearest_cell.unsqueeze(-1), True)
+        start_cell_mask = torch.where(fixed_start.unsqueeze(-1), exact_mask, start_cell_mask)
 
         # End cell mask: all in-pitch cells + out-of-bounds token for open play;
         # Kick-off restricted to possessing team's own half (02 §3.5)
         end_cell_mask[:, :NUM_PITCH_CELLS] = True
         end_cell_mask[:, CELL_OUT_OF_BOUNDS] = state.ball_state == BallState.IN_PLAY
         is_ko = (state.ball_state == BallState.KICK_OFF) & (~force_boundary)
-        if is_ko.any():
-            own_half_home = (centers[:, 0] <= 60.0).unsqueeze(0).expand(B, -1)
-            own_half_away = (centers[:, 0] >= 60.0).unsqueeze(0).expand(B, -1)
-            own_half = torch.where((state.poss_team == 1).unsqueeze(-1), own_half_home, own_half_away)
-            ko_end = torch.zeros_like(end_cell_mask)
-            ko_end[:, :NUM_PITCH_CELLS] = own_half
-            end_cell_mask = torch.where(is_ko.unsqueeze(-1), ko_end, end_cell_mask)
+        own_half = torch.where(
+            (state.poss_team == 1).unsqueeze(-1),
+            dc["own_half_home"].expand(B, -1),
+            dc["own_half_away"].expand(B, -1),
+        )
+        ko_end = torch.zeros_like(end_cell_mask)
+        ko_end[:, :NUM_PITCH_CELLS] = own_half
+        end_cell_mask = torch.where(is_ko.unsqueeze(-1), ko_end, end_cell_mask)
         end_cell_mask[force_boundary, :] = False
         end_cell_mask[force_boundary, CELL_SYSTEM] = True
 
@@ -588,7 +611,7 @@ class FootballFSM:
         )
         body_part_mask[:, BodyPart.KEEPER_HANDS] = (state.ball_state == BallState.IN_PLAY) & in_own_box
 
-        restart_type_forced = self._RESTART_MAP.to(dev)[state.ball_state]
+        restart_type_forced = dc["restart_map"][state.ball_state]
         spatial_prior = torch.zeros((B, NUM_ACTIONS + 11), dtype=torch.float32, device=dev)
         if tactical_spatial_prior is not None:
             tp = tactical_spatial_prior.to(dev)
@@ -614,7 +637,7 @@ class FootballFSM:
 
     def outcome_mask_for_action(self, action_type: LongTensor) -> BoolTensor:
         """Return legal outcome mask [B, NUM_OUTCOMES] given sampled action_type [B]."""
-        table = self._LEGAL_OUTCOMES_TABLE.to(action_type.device)
+        table = self._get_dev_cache(action_type.device)["legal_outcomes"]
         return table[action_type.clamp(0, NUM_ACTIONS - 1)]
 
     def step(
@@ -632,6 +655,7 @@ class FootballFSM:
         nxt = state.clone()
         B = state.batch_size
         dev = state.device
+        dc = self._get_dev_cache(dev)
 
         # 1. Advance monotonic clock
         dt_ms = torch.clamp((dt_seconds * 1000.0).round().long(), min=0)
@@ -645,38 +669,26 @@ class FootballFSM:
         # Determine actor team (0=system, 1=home, 2=away)
         actor_team = torch.where(
             actor_slot == 0,
-            torch.zeros_like(actor_slot),
-            torch.where(actor_slot <= 11, torch.ones_like(actor_slot), torch.full_like(actor_slot, 2)),
+            0,
+            torch.where(actor_slot <= 11, 1, 2),
         )
         other_team = torch.where(actor_team == 1, 2, 1)
 
-        # 2. Cards & Red-Card removals
+        # 2. Cards & Red-Card removals (branchless, no host sync)
         is_yellow = (outcome == EventOutcome.YELLOW_CARD) & (actor_slot > 0)
         is_red = ((outcome == EventOutcome.RED_CARD) | (outcome == EventOutcome.SECOND_YELLOW)) & (actor_slot > 0)
-        if is_yellow.any():
-            idx = (actor_slot[is_yellow] - 1).clamp(0, 21)
-            b_idx = torch.nonzero(is_yellow, as_tuple=False).squeeze(-1)
-            # Second yellow escalates to red automatically if already booked
-            already_yellow = nxt.yellow_cards[b_idx, idx]
-            nxt.yellow_cards[b_idx, idx] = True
-            escalate = b_idx[already_yellow]
-            escalate_idx = idx[already_yellow]
-            if escalate.numel() > 0:
-                nxt.red_cards[escalate, escalate_idx] = True
-                nxt.active_mask[escalate, escalate_idx] = False
-        if is_red.any():
-            idx = (actor_slot[is_red] - 1).clamp(0, 21)
-            b_idx = torch.nonzero(is_red, as_tuple=False).squeeze(-1)
-            nxt.red_cards[b_idx, idx] = True
-            nxt.active_mask[b_idx, idx] = False
+        safe_card_idx = (actor_slot - 1).clamp(0, 21)
+        b_arange = torch.arange(B, device=dev)
+        was_yellow = nxt.yellow_cards[b_arange, safe_card_idx]
+        nxt.yellow_cards[b_arange, safe_card_idx] = was_yellow | is_yellow
+        make_red = is_red | (is_yellow & was_yellow)
+        nxt.red_cards[b_arange, safe_card_idx] = nxt.red_cards[b_arange, safe_card_idx] | make_red
+        nxt.active_mask[b_arange, safe_card_idx] = nxt.active_mask[b_arange, safe_card_idx] & (~make_red)
 
         # 3. Goals -> score update + KICK_OFF by conceding team at (60, 40)
         is_goal = (action_type == ActionType.SHOT) & (outcome == EventOutcome.GOAL) & not_done
-        if is_goal.any():
-            home_scored = is_goal & (actor_team == 1)
-            away_scored = is_goal & (actor_team == 2)
-            nxt.home_score = nxt.home_score + home_scored.long()
-            nxt.away_score = nxt.away_score + away_scored.long()
+        nxt.home_score = nxt.home_score + (is_goal & (actor_team == 1)).long()
+        nxt.away_score = nxt.away_score + (is_goal & (actor_team == 2)).long()
 
         # 4. Clip end_xy for in-bounds ball updates and handle restarts
         clamped_end = torch.stack([
@@ -691,79 +703,71 @@ class FootballFSM:
         new_poss_team = torch.where(actor_team > 0, actor_team, nxt.poss_team)
 
         # Goal -> Kick-Off by conceding team
-        ko_xy = torch.tensor([60.0, 40.0], device=dev).unsqueeze(0).expand(B, 2)
+        ko_xy = dc["ko_xy"].unsqueeze(0).expand(B, 2)
         new_ball_state = torch.where(is_goal, BallState.KICK_OFF, new_ball_state)
         new_poss_team = torch.where(is_goal, other_team, new_poss_team)
         nxt.ball_xy = torch.where(is_goal.unsqueeze(-1), ko_xy, nxt.ball_xy)
-        nxt.ball_z = torch.where(is_goal, torch.zeros_like(nxt.ball_z), nxt.ball_z)
+        nxt.ball_z = torch.where(is_goal, 0.0, nxt.ball_z)
 
         # Touchline out -> THROW_IN to opposite team at nearest touchline
         is_touch = (outcome == EventOutcome.OUT_TOUCHLINE) & not_done
-        if is_touch.any():
-            throw_y = torch.where(clamped_end[:, 1] >= 40.0, PITCH_WIDTH, 0.0)
-            throw_xy = torch.stack([clamped_end[:, 0].clamp(1.0, PITCH_LENGTH - 1.0), throw_y], dim=-1)
-            new_ball_state = torch.where(is_touch, BallState.THROW_IN, new_ball_state)
-            new_poss_team = torch.where(is_touch, other_team, new_poss_team)
-            nxt.ball_xy = torch.where(is_touch.unsqueeze(-1), throw_xy, nxt.ball_xy)
+        throw_y = torch.where(clamped_end[:, 1] >= 40.0, PITCH_WIDTH, 0.0)
+        throw_xy = torch.stack([clamped_end[:, 0].clamp(1.0, PITCH_LENGTH - 1.0), throw_y], dim=-1)
+        new_ball_state = torch.where(is_touch, BallState.THROW_IN, new_ball_state)
+        new_poss_team = torch.where(is_touch, other_team, new_poss_team)
+        nxt.ball_xy = torch.where(is_touch.unsqueeze(-1), throw_xy, nxt.ball_xy)
 
         # Byline / Off-target shot -> CORNER_KICK or GOAL_KICK
         is_byline_or_miss = (
             (outcome == EventOutcome.OUT_BYLINE)
             | ((action_type == ActionType.SHOT) & ((outcome == EventOutcome.OFF_TARGET) | (outcome == EventOutcome.POST)))
         ) & not_done
-        if is_byline_or_miss.any():
-            # If defender/GK touched/saved out over own goal line -> Corner for attacking team; else Goal Kick
-            was_defensive_touch = (
-                (action_type == ActionType.CLEARANCE)
-                | (action_type == ActionType.SAVE)
-                | (action_type == ActionType.BLOCK)
-                | (action_type == ActionType.INTERCEPTION)
-            )
-            corner_mask = is_byline_or_miss & was_defensive_touch
-            gk_mask = is_byline_or_miss & (~was_defensive_touch)
+        was_defensive_touch = (
+            (action_type == ActionType.CLEARANCE)
+            | (action_type == ActionType.SAVE)
+            | (action_type == ActionType.BLOCK)
+            | (action_type == ActionType.INTERCEPTION)
+        )
+        corner_mask = is_byline_or_miss & was_defensive_touch
+        gk_mask = is_byline_or_miss & (~was_defensive_touch)
 
-            # Corner coordinates: Home attacks x=120, Away attacks x=0
-            att_team_c = torch.where(was_defensive_touch, other_team, actor_team)
-            c_x = torch.where(att_team_c == 1, PITCH_LENGTH, 0.0)
-            c_y = torch.where(clamped_end[:, 1] >= 40.0, PITCH_WIDTH, 0.0)
-            corner_xy = torch.stack([c_x, c_y], dim=-1)
+        att_team_c = torch.where(was_defensive_touch, other_team, actor_team)
+        c_x = torch.where(att_team_c == 1, PITCH_LENGTH, 0.0)
+        c_y = torch.where(clamped_end[:, 1] >= 40.0, PITCH_WIDTH, 0.0)
+        corner_xy = torch.stack([c_x, c_y], dim=-1)
+        new_ball_state = torch.where(corner_mask, BallState.CORNER_KICK, new_ball_state)
+        new_poss_team = torch.where(corner_mask, att_team_c, new_poss_team)
+        nxt.ball_xy = torch.where(corner_mask.unsqueeze(-1), corner_xy, nxt.ball_xy)
 
-            new_ball_state = torch.where(corner_mask, BallState.CORNER_KICK, new_ball_state)
-            new_poss_team = torch.where(corner_mask, att_team_c, new_poss_team)
-            nxt.ball_xy = torch.where(corner_mask.unsqueeze(-1), corner_xy, nxt.ball_xy)
-
-            # Goal Kick coordinates: defending team takes at 6-yd box (x=6 Home / x=114 Away)
-            gk_x = torch.where(other_team == 1, 6.0, PITCH_LENGTH - 6.0)
-            gk_xy = torch.stack([gk_x, torch.full((B,), 40.0, device=dev)], dim=-1)
-            new_ball_state = torch.where(gk_mask, BallState.GOAL_KICK, new_ball_state)
-            new_poss_team = torch.where(gk_mask, other_team, new_poss_team)
-            nxt.ball_xy = torch.where(gk_mask.unsqueeze(-1), gk_xy, nxt.ball_xy)
+        gk_x = torch.where(other_team == 1, 6.0, PITCH_LENGTH - 6.0)
+        gk_xy = torch.stack([gk_x, torch.full_like(gk_x, 40.0)], dim=-1)
+        new_ball_state = torch.where(gk_mask, BallState.GOAL_KICK, new_ball_state)
+        new_poss_team = torch.where(gk_mask, other_team, new_poss_team)
+        nxt.ball_xy = torch.where(gk_mask.unsqueeze(-1), gk_xy, nxt.ball_xy)
 
         # Offside -> Indirect Free Kick for defending team
         is_offside = ((outcome == EventOutcome.OFFSIDE) | (action_type == ActionType.OFFSIDE)) & not_done
-        if is_offside.any():
-            new_ball_state = torch.where(is_offside, BallState.FREE_KICK_INDIRECT, new_ball_state)
-            new_poss_team = torch.where(is_offside, other_team, new_poss_team)
+        new_ball_state = torch.where(is_offside, BallState.FREE_KICK_INDIRECT, new_ball_state)
+        new_poss_team = torch.where(is_offside, other_team, new_poss_team)
 
         # Foul committed -> Penalty strictly when defending team commits FOUL_COMMITTED inside own penalty box
         is_foul = ((action_type == ActionType.FOUL_COMMITTED) | (outcome == EventOutcome.FOUL_CONCEDED)) & not_done
-        if is_foul.any():
-            in_home_box = (start_xy[:, 0] <= 16.5) & (start_xy[:, 1] >= 20.0) & (start_xy[:, 1] <= 60.0)
-            in_away_box = (start_xy[:, 0] >= 103.5) & (start_xy[:, 1] >= 20.0) & (start_xy[:, 1] <= 60.0)
-            defending_foul = (action_type == ActionType.FOUL_COMMITTED) & (actor_team != state.poss_team)
-            foul_in_own_box = torch.where(actor_team == 1, in_home_box, in_away_box) & defending_foul
-            pen_mask = is_foul & foul_in_own_box
-            fk_mask = is_foul & (~foul_in_own_box)
+        in_home_box = (start_xy[:, 0] <= 16.5) & (start_xy[:, 1] >= 20.0) & (start_xy[:, 1] <= 60.0)
+        in_away_box = (start_xy[:, 0] >= 103.5) & (start_xy[:, 1] >= 20.0) & (start_xy[:, 1] <= 60.0)
+        defending_foul = (action_type == ActionType.FOUL_COMMITTED) & (actor_team != state.poss_team)
+        foul_in_own_box = torch.where(actor_team == 1, in_home_box, in_away_box) & defending_foul
+        pen_mask = is_foul & foul_in_own_box
+        fk_mask = is_foul & (~foul_in_own_box)
 
-            pen_x = torch.where(other_team == 1, 108.0, 12.0)
-            pen_xy = torch.stack([pen_x, torch.full((B,), 40.0, device=dev)], dim=-1)
-            new_ball_state = torch.where(pen_mask, BallState.PENALTY, new_ball_state)
-            new_poss_team = torch.where(pen_mask, other_team, new_poss_team)
-            nxt.ball_xy = torch.where(pen_mask.unsqueeze(-1), pen_xy, nxt.ball_xy)
+        pen_x = torch.where(other_team == 1, 108.0, 12.0)
+        pen_xy = torch.stack([pen_x, torch.full_like(pen_x, 40.0)], dim=-1)
+        new_ball_state = torch.where(pen_mask, BallState.PENALTY, new_ball_state)
+        new_poss_team = torch.where(pen_mask, other_team, new_poss_team)
+        nxt.ball_xy = torch.where(pen_mask.unsqueeze(-1), pen_xy, nxt.ball_xy)
 
-            new_ball_state = torch.where(fk_mask, BallState.FREE_KICK_DIRECT, new_ball_state)
-            new_poss_team = torch.where(fk_mask, other_team, new_poss_team)
-            nxt.ball_xy = torch.where(fk_mask.unsqueeze(-1), start_xy.clamp(0.0, PITCH_LENGTH), nxt.ball_xy)
+        new_ball_state = torch.where(fk_mask, BallState.FREE_KICK_DIRECT, new_ball_state)
+        new_poss_team = torch.where(fk_mask, other_team, new_poss_team)
+        nxt.ball_xy = torch.where(fk_mask.unsqueeze(-1), start_xy.clamp(0.0, PITCH_LENGTH), nxt.ball_xy)
 
         # Incomplete pass / lost duel / saved shot held by GK -> possession flips
         is_turnover = (
@@ -777,62 +781,39 @@ class FootballFSM:
 
         # Substitutions & pure cards preserve dead-ball restart state and ball position
         is_sub = (action_type == ActionType.SUBSTITUTION) & not_done
-        if is_sub.any():
-            sub_home = is_sub & (actor_team == 1)
-            sub_away = is_sub & (actor_team == 2)
-            nxt.subs_used[:, 0] = nxt.subs_used[:, 0] + sub_home.long()
-            nxt.subs_used[:, 1] = nxt.subs_used[:, 1] + sub_away.long()
+        nxt.subs_used[:, 0] = nxt.subs_used[:, 0] + (is_sub & (actor_team == 1)).long()
+        nxt.subs_used[:, 1] = nxt.subs_used[:, 1] + (is_sub & (actor_team == 2)).long()
         preserve_restart = ((action_type == ActionType.SUBSTITUTION) | (action_type == ActionType.CARD)) & not_done
-        if preserve_restart.any():
-            new_ball_state = torch.where(preserve_restart, state.ball_state, new_ball_state)
-            new_poss_team = torch.where(preserve_restart, state.poss_team, new_poss_team)
-            nxt.ball_xy = torch.where(preserve_restart.unsqueeze(-1), state.ball_xy, nxt.ball_xy)
-            nxt.ball_z = torch.where(preserve_restart, state.ball_z, nxt.ball_z)
+        new_ball_state = torch.where(preserve_restart, state.ball_state, new_ball_state)
+        new_poss_team = torch.where(preserve_restart, state.poss_team, new_poss_team)
+        nxt.ball_xy = torch.where(preserve_restart.unsqueeze(-1), state.ball_xy, nxt.ball_xy)
+        nxt.ball_z = torch.where(preserve_restart, state.ball_z, nxt.ball_z)
 
-        # 5. Period boundary transitions (1H -> 2H Kick-Off -> FT)
+        # 5. Period boundary transitions (1H -> 2H Kick-Off -> FT), branchless without host sync
         is_boundary = (action_type == ActionType.PERIOD_BOUNDARY) & not_done
-        if is_boundary.any():
-            end_1h = is_boundary & (nxt.period == Period.FIRST_HALF)
-            end_2h = is_boundary & (nxt.period == Period.SECOND_HALF)
+        end_1h = is_boundary & (nxt.period == Period.FIRST_HALF)
+        end_2h = is_boundary & (nxt.period == Period.SECOND_HALF)
+        go_et = end_2h & nxt.extra_time_enabled & (nxt.home_score == nxt.away_score)
+        go_ft = end_2h & (~go_et)
+        end_et1 = is_boundary & (nxt.period == Period.ET1)
+        end_et2 = is_boundary & (nxt.period == Period.ET2)
 
-            # 1H -> 2H immediate Kick-Off by opposite of 1H kickoff team (keep clock_ms monotonic!)
-            if end_1h.any():
-                nxt.period = torch.where(end_1h, Period.SECOND_HALF, nxt.period)
-                nxt.period_elapsed_ms = torch.where(end_1h, torch.zeros_like(nxt.period_elapsed_ms), nxt.period_elapsed_ms)
-                second_half_ko = torch.where(nxt.first_half_kickoff_team == 1, 2, 1)
-                new_ball_state = torch.where(end_1h, BallState.KICK_OFF, new_ball_state)
-                new_poss_team = torch.where(end_1h, second_half_ko, new_poss_team)
-                nxt.ball_xy = torch.where(end_1h.unsqueeze(-1), ko_xy, nxt.ball_xy)
+        # Apply 1H -> 2H, 2H -> ET1, ET1 -> ET2, 2H/ET2 -> FT
+        nxt.period = torch.where(end_1h, Period.SECOND_HALF, nxt.period)
+        nxt.period = torch.where(go_et, Period.ET1, nxt.period)
+        nxt.period = torch.where(end_et1, Period.ET2, nxt.period)
+        nxt.period = torch.where(go_ft | end_et2, Period.FULLTIME, nxt.period)
 
-            # 2H -> FULLTIME (or ET1 if tied & extra_time_enabled)
-            if end_2h.any():
-                go_et = end_2h & nxt.extra_time_enabled & (nxt.home_score == nxt.away_score)
-                go_ft = end_2h & (~go_et)
-                if go_et.any():
-                    nxt.period = torch.where(go_et, Period.ET1, nxt.period)
-                    nxt.period_elapsed_ms = torch.where(go_et, torch.zeros_like(nxt.period_elapsed_ms), nxt.period_elapsed_ms)
-                    new_ball_state = torch.where(go_et, BallState.KICK_OFF, new_ball_state)
-                    new_poss_team = torch.where(go_et, nxt.first_half_kickoff_team, new_poss_team)
-                    nxt.ball_xy = torch.where(go_et.unsqueeze(-1), ko_xy, nxt.ball_xy)
-                if go_ft.any():
-                    nxt.period = torch.where(go_ft, Period.FULLTIME, nxt.period)
-                    new_ball_state = torch.where(go_ft, BallState.FULLTIME, new_ball_state)
-                    nxt.finished = nxt.finished | go_ft
+        reset_elapsed = end_1h | go_et | end_et1
+        nxt.period_elapsed_ms = torch.where(reset_elapsed, 0, nxt.period_elapsed_ms)
 
-            end_et1 = is_boundary & (nxt.period == Period.ET1)
-            if end_et1.any():
-                nxt.period = torch.where(end_et1, Period.ET2, nxt.period)
-                nxt.period_elapsed_ms = torch.where(end_et1, torch.zeros_like(nxt.period_elapsed_ms), nxt.period_elapsed_ms)
-                et2_ko = torch.where(nxt.first_half_kickoff_team == 1, 2, 1)
-                new_ball_state = torch.where(end_et1, BallState.KICK_OFF, new_ball_state)
-                new_poss_team = torch.where(end_et1, et2_ko, new_poss_team)
-                nxt.ball_xy = torch.where(end_et1.unsqueeze(-1), ko_xy, nxt.ball_xy)
-
-            end_et2 = is_boundary & (nxt.period == Period.ET2)
-            if end_et2.any():
-                nxt.period = torch.where(end_et2, Period.FULLTIME, nxt.period)
-                new_ball_state = torch.where(end_et2, BallState.FULLTIME, new_ball_state)
-                nxt.finished = nxt.finished | end_et2
+        second_half_ko = torch.where(nxt.first_half_kickoff_team == 1, 2, 1)
+        new_ball_state = torch.where(reset_elapsed, BallState.KICK_OFF, new_ball_state)
+        new_ball_state = torch.where(go_ft | end_et2, BallState.FULLTIME, new_ball_state)
+        new_poss_team = torch.where(end_1h | end_et1, second_half_ko, new_poss_team)
+        new_poss_team = torch.where(go_et, nxt.first_half_kickoff_team, new_poss_team)
+        nxt.ball_xy = torch.where(reset_elapsed.unsqueeze(-1), ko_xy, nxt.ball_xy)
+        nxt.finished = nxt.finished | go_ft | end_et2
 
         # 6. Update possession phase & increment possession_phase_id on turnovers/restarts
         poss_changed = (new_poss_team != state.poss_team) | (new_ball_state != BallState.IN_PLAY)

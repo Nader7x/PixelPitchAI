@@ -411,10 +411,14 @@ class UltraOptimizedModelResources:
         self.enable_streaming = True
         self.enable_quantization = True
 
-        # Initialize models with advanced optimizations
+        # Initialize models with advanced optimizations (V1 weights optional in V2-only mode)
         self.bad_words = []
         self.bad_words_ids = None
-        self.xgboost_model = XGBRegressor()
+        self.model = None
+        self.tokenizer = None
+        self.advanced_tokenizer = None
+        self.xgboost_model = None
+        self.match_stat = None
 
         self._load_and_optimize_models()
 
@@ -423,26 +427,29 @@ class UltraOptimizedModelResources:
         self.dynamic_batcher = DynamicBatcher(max_batch_size=4, max_wait_time=0.05)
 
         # Start background optimization tasks
-        self._start_background_tasks()        
-        logger.info("Ultra-optimized models loaded successfully with advanced features")
+        self._start_background_tasks()
+        if self.model is not None and self.xgboost_model is not None:
+            logger.info("Ultra-optimized V1 models loaded successfully with advanced features")
+        else:
+            logger.warning("V1 model weights absent or incomplete; continuing in V2-only mode")
 
     def _load_and_optimize_models(self):
-        """Load and apply ultra-advanced optimizations to models"""
+        """Load and apply ultra-advanced optimizations to V1 models if present."""
+        # Check if ONNX model actually exists in ONNX paths
+        is_cpu = self.device.type == "cpu"
+        use_onnx = False
+        model_load_path = MODEL_PATH
+
+        if is_cpu:
+            for candidate in [ONNX_MODEL_PATH, ONNX_MODEL_PATH.replace("-int8", "")]:
+                if os.path.isdir(candidate):
+                    onnx_file = "model_quantized.onnx" if os.path.exists(os.path.join(candidate, "model_quantized.onnx")) else "model.onnx"
+                    if os.path.exists(os.path.join(candidate, onnx_file)):
+                        model_load_path = candidate
+                        use_onnx = True
+                        break
+
         try:
-            # Check if ONNX model actually exists in ONNX paths
-            is_cpu = self.device.type == "cpu"
-            use_onnx = False
-            model_load_path = MODEL_PATH
-
-            if is_cpu:
-                for candidate in [ONNX_MODEL_PATH, ONNX_MODEL_PATH.replace("-int8", "")]:
-                    if os.path.isdir(candidate):
-                        onnx_file = "model_quantized.onnx" if os.path.exists(os.path.join(candidate, "model_quantized.onnx")) else "model.onnx"
-                        if os.path.exists(os.path.join(candidate, onnx_file)):
-                            model_load_path = candidate
-                            use_onnx = True
-                            break
-
             # Always load tokenizer from MODEL_PATH which contains vocab.json & merges.txt
             tokenizer_path = MODEL_PATH if os.path.exists(os.path.join(MODEL_PATH, "vocab.json")) else model_load_path
             self.tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_path)
@@ -480,23 +487,30 @@ class UltraOptimizedModelResources:
                 if torch.cuda.is_available():
                     self._apply_ultra_optimizations()
                 self.model.to(self.device)
+        except Exception as e:
+            self.model = None
+            self.tokenizer = None
+            self.advanced_tokenizer = None
+            logger.warning(f"V1 GPT-2/ONNX model unavailable at {MODEL_PATH}; V2-only mode active: {str(e)}")
 
-            # Load XGBoost model
+        # Load XGBoost model (optional in V2-only deployments)
+        try:
             booster = xgb.Booster()
             booster.load_model(XGB_MODEL_PATH)
-            self.xgboost_model._Booster = booster
+            xgb_model = XGBRegressor()
+            xgb_model._Booster = booster
+            self.xgboost_model = xgb_model
             self.match_stat = MatchStatProcessor(self.xgboost_model, tokenizer_path=MODEL_PATH, special_tokens=SPECIAL_LIST)
-
-            logger.info(f"Ultra-optimized models loaded successfully")
-
+            logger.info("Ultra-optimized XGBoost model loaded successfully")
         except Exception as e:
-            logger.error(f"Failed to load ultra-optimized models: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Failed to load models: {str(e)}")
+            self.xgboost_model = None
+            self.match_stat = None
+            logger.warning(f"V1 XGBoost model unavailable at {XGB_MODEL_PATH}; V2-only mode active: {str(e)}")
 
     def is_healthy(self) -> tuple[bool, bool]:
         """Check if models are loaded and healthy"""
         model_loaded = self.model is not None and self.tokenizer is not None
-        xgboost_loaded = self.xgboost_model is not None
+        xgboost_loaded = self.xgboost_model is not None and self.match_stat is not None
         return model_loaded, xgboost_loaded
 
     def _apply_ultra_optimizations(self):

@@ -616,8 +616,19 @@ class HybridRolloutEngine:
         prev_yellow_idx = torch.full((batch_size,), -1, dtype=torch.long, device=dev)
         prev_red_idx = torch.full((batch_size,), -1, dtype=torch.long, device=dev)
 
+        # Pre-allocated scratch constants/buffers to avoid per-step allocations
+        _default_voronoi = torch.tensor(0.50, dtype=torch.float32, device=dev)
+        _zero_b = torch.zeros(batch_size, dtype=torch.float32, device=dev)
+        b_idx = torch.arange(batch_size, device=dev)
+        cont_vec_buf = torch.empty((batch_size, 10), dtype=torch.float32, device=dev)
+        team_tactics_buf = torch.zeros((batch_size, 2, cfg.team_tactics_dim), dtype=torch.float32, device=dev)
+        finished_i = 0
+
         for step_idx in range(max_events):
-            if bool(state.finished.all().item()):
+            if collect_events and batch_size == 1:
+                if finished_i:
+                    break
+            elif (step_idx & 15) == 15 and bool(state.finished.all().item()):
                 break
 
             # Optional live tactical override injection (single-match stream mode)
@@ -641,7 +652,7 @@ class HybridRolloutEngine:
                             team_tactics[:, side_idx, 0] = float(patch["defensive_line_height"])
 
             not_done = ~state.finished
-            home_voronoi_tensor = torch.tensor(0.50, dtype=torch.float32, device=dev)
+            home_voronoi_tensor = _default_voronoi
 
             if tac_engine is not None and tac_state is not None:
                 is_dead_ball = state.ball_state != BallState.IN_PLAY
@@ -669,8 +680,9 @@ class HybridRolloutEngine:
                 freeze_frame = tac_res.spatial.freeze_frame_360
                 player_cond = tac_res.player_cond
                 s_t = self._build_state_vector_s_t(state, stamina)
-                # Populate 18-dim Team Tactical & GK summary tokens [B, 2, 18]
-                team_tactics = torch.zeros((batch_size, 2, cfg.team_tactics_dim), dtype=torch.float32, device=dev)
+                # Populate 18-dim Team Tactical & GK summary tokens [B, 2, 18] in-place
+                team_tactics = team_tactics_buf
+                team_tactics.zero_()
                 team_tactics[:, :, :10] = tac_state.effective_tactics_10d
                 team_tactics[:, 0, 10] = tac_state.red_cards[:, :11].float().sum(dim=-1) / 3.0
                 team_tactics[:, 1, 10] = tac_state.red_cards[:, 11:].float().sum(dim=-1) / 3.0
@@ -707,7 +719,6 @@ class HybridRolloutEngine:
             def _module_d_override(proposed: Dict[str, Tensor], raw_logits: Tensor) -> Tensor:
                 actor_s = proposed["actor_slot"]
                 slot_idx = (actor_s - 1).clamp(0, 21)
-                b_idx = torch.arange(batch_size, device=dev)
                 def_gk_idx = torch.where(state.poss_team == 1, 11, 0)
 
                 act_fin = finishing_residuals[b_idx, slot_idx] if finishing_residuals is not None else None
@@ -834,31 +845,27 @@ class HybridRolloutEngine:
             )
 
             # Drain stamina when running standalone without TacticalStateEngine state
+            dt_s = sampled["dt_seconds"]
+            just_ht = (prev_period == Period.FIRST_HALF) & (state.period == Period.SECOND_HALF)
             if tac_engine is None or tac_state is None:
-                dt_s = sampled["dt_seconds"]
                 drain_home = dt_s * (1.1e-4 + 1.3e-4 * press_int_2[:, 0])
                 drain_away = dt_s * (1.1e-4 + 1.3e-4 * press_int_2[:, 1])
                 stamina[:, :11] = (stamina[:, :11] - drain_home.unsqueeze(-1)).clamp(0.20, 1.0)
                 stamina[:, 11:] = (stamina[:, 11:] - drain_away.unsqueeze(-1)).clamp(0.20, 1.0)
-                just_ht = (prev_period == Period.FIRST_HALF) & (state.period == Period.SECOND_HALF)
-                if just_ht.any():
-                    stamina[just_ht] = (stamina[just_ht] + 0.16).clamp(max=1.0)
-            else:
-                dt_s = sampled["dt_seconds"]
-                just_ht = (prev_period == Period.FIRST_HALF) & (state.period == Period.SECOND_HALF)
+                stamina = torch.where(just_ht.unsqueeze(-1), (stamina + 0.16).clamp(max=1.0), stamina)
 
             # Update telemetry accumulators for active (not previously finished) matches
             act_slot = sampled["actor_slot"]
             is_home_act = (act_slot >= 1) & (act_slot <= 11) & not_done
             is_away_act = (act_slot >= 12) & (act_slot <= 22) & not_done
-            event_counts = event_counts + not_done.long()
+            event_counts += not_done.long()
 
-            xg = step_analytics.get("xg", torch.zeros(batch_size, device=dev))
-            psxg = step_analytics.get("psxg", torch.zeros(batch_size, device=dev))
-            xpass = step_analytics.get("xpass", torch.zeros(batch_size, device=dev))
-            xt_d = step_analytics.get("xt_delta", torch.zeros(batch_size, device=dev))
-            vaep = step_analytics.get("vaep_value", torch.zeros(batch_size, device=dev))
-            turn_risk = step_analytics.get("turnover_risk", torch.zeros(batch_size, device=dev))
+            xg = step_analytics.get("xg", _zero_b)
+            psxg = step_analytics.get("psxg", _zero_b)
+            xpass = step_analytics.get("xpass", _zero_b)
+            xt_d = step_analytics.get("xt_delta", _zero_b)
+            vaep = step_analytics.get("vaep_value", _zero_b)
+            turn_risk = step_analytics.get("turnover_risk", _zero_b)
 
             is_shot = sampled["action_type"] == ActionType.SHOT
             is_pass = sampled["action_type"] == ActionType.PASS
@@ -876,30 +883,30 @@ class HybridRolloutEngine:
             )
             poss_flipped = (state.poss_team != pre_poss_team) & not_done
 
-            home_xg_tot = home_xg_tot + torch.where(is_home_act & is_shot, xg, 0.0)
-            away_xg_tot = away_xg_tot + torch.where(is_away_act & is_shot, xg, 0.0)
-            home_psxg_tot = home_psxg_tot + torch.where(is_home_act & is_shot, psxg, 0.0)
-            away_psxg_tot = away_psxg_tot + torch.where(is_away_act & is_shot, psxg, 0.0)
-            home_xt_tot = home_xt_tot + torch.where(is_home_act & (xt_d > 0), xt_d, 0.0)
-            away_xt_tot = away_xt_tot + torch.where(is_away_act & (xt_d > 0), xt_d, 0.0)
-            home_shots = home_shots + (is_home_act & is_shot).long()
-            away_shots = away_shots + (is_away_act & is_shot).long()
-            home_shots_sot = home_shots_sot + (is_home_act & is_shot & is_sot).long()
-            away_shots_sot = away_shots_sot + (is_away_act & is_shot & is_sot).long()
-            home_passes = home_passes + (is_home_act & is_pass).long()
-            away_passes = away_passes + (is_away_act & is_pass).long()
-            home_passes_ok = home_passes_ok + (is_home_act & is_pass & is_complete).long()
-            away_passes_ok = away_passes_ok + (is_away_act & is_pass & is_complete).long()
-            home_xpass_tot = home_xpass_tot + torch.where(is_home_act & is_pass, xpass, 0.0)
-            away_xpass_tot = away_xpass_tot + torch.where(is_away_act & is_pass, xpass, 0.0)
-            home_poss_sec = home_poss_sec + torch.where((pre_poss_team == 1) & not_done, dt_s, 0.0)
-            away_poss_sec = away_poss_sec + torch.where((pre_poss_team == 2) & not_done, dt_s, 0.0)
-            home_build_passes = home_build_passes + (is_home_act & is_pass & (sx_t < 72.0)).long()
-            away_build_passes = away_build_passes + (is_away_act & is_pass & (sx_t > 48.0)).long()
-            home_def_act = home_def_act + (is_home_act & is_def_act & (sx_t > 48.0)).long()
-            away_def_act = away_def_act + (is_away_act & is_def_act & (sx_t < 72.0)).long()
-            home_f3_touches = home_f3_touches + (is_home_act & (sx_t >= 80.0)).long()
-            away_f3_touches = away_f3_touches + (is_away_act & (sx_t <= 40.0)).long()
+            home_xg_tot += torch.where(is_home_act & is_shot, xg, 0.0)
+            away_xg_tot += torch.where(is_away_act & is_shot, xg, 0.0)
+            home_psxg_tot += torch.where(is_home_act & is_shot, psxg, 0.0)
+            away_psxg_tot += torch.where(is_away_act & is_shot, psxg, 0.0)
+            home_xt_tot += torch.where(is_home_act & (xt_d > 0), xt_d, 0.0)
+            away_xt_tot += torch.where(is_away_act & (xt_d > 0), xt_d, 0.0)
+            home_shots += (is_home_act & is_shot).long()
+            away_shots += (is_away_act & is_shot).long()
+            home_shots_sot += (is_home_act & is_shot & is_sot).long()
+            away_shots_sot += (is_away_act & is_shot & is_sot).long()
+            home_passes += (is_home_act & is_pass).long()
+            away_passes += (is_away_act & is_pass).long()
+            home_passes_ok += (is_home_act & is_pass & is_complete).long()
+            away_passes_ok += (is_away_act & is_pass & is_complete).long()
+            home_xpass_tot += torch.where(is_home_act & is_pass, xpass, 0.0)
+            away_xpass_tot += torch.where(is_away_act & is_pass, xpass, 0.0)
+            home_poss_sec += torch.where((pre_poss_team == 1) & not_done, dt_s, 0.0)
+            away_poss_sec += torch.where((pre_poss_team == 2) & not_done, dt_s, 0.0)
+            home_build_passes += (is_home_act & is_pass & (sx_t < 72.0)).long()
+            away_build_passes += (is_away_act & is_pass & (sx_t > 48.0)).long()
+            home_def_act += (is_home_act & is_def_act & (sx_t > 48.0)).long()
+            away_def_act += (is_away_act & is_def_act & (sx_t < 72.0)).long()
+            home_f3_touches += (is_home_act & (sx_t >= 80.0)).long()
+            away_f3_touches += (is_away_act & (sx_t <= 40.0)).long()
             is_open_regain = (
                 (state.ball_state == BallState.IN_PLAY)
                 & (
@@ -910,8 +917,8 @@ class HybridRolloutEngine:
             )
             h_ht_hit = poss_flipped & is_open_regain & (state.poss_team == 1) & (sx_t >= 86.0) & ((state.clock_ms - home_last_ht_ms) >= 15_000)
             a_ht_hit = poss_flipped & is_open_regain & (state.poss_team == 2) & (sx_t <= 34.0) & ((state.clock_ms - away_last_ht_ms) >= 15_000)
-            home_high_turnovers = home_high_turnovers + h_ht_hit.long()
-            away_high_turnovers = away_high_turnovers + a_ht_hit.long()
+            home_high_turnovers += h_ht_hit.long()
+            away_high_turnovers += a_ht_hit.long()
             home_last_ht_ms = torch.where(h_ht_hit, state.clock_ms, home_last_ht_ms)
             away_last_ht_ms = torch.where(a_ht_hit, state.clock_ms, away_last_ht_ms)
             is_set_piece_shot = is_shot & (
@@ -919,15 +926,15 @@ class HybridRolloutEngine:
                 | (pre_poss_phase == PossPhase.SET_PIECE_ATTACK)
                 | (pre_poss_phase == PossPhase.SET_PIECE_DEFENSE)
             )
-            home_set_piece_xg = home_set_piece_xg + torch.where(is_home_act & is_set_piece_shot, xg, 0.0)
-            away_set_piece_xg = away_set_piece_xg + torch.where(is_away_act & is_set_piece_shot, xg, 0.0)
+            home_set_piece_xg += torch.where(is_home_act & is_set_piece_shot, xg, 0.0)
+            away_set_piece_xg += torch.where(is_away_act & is_set_piece_shot, xg, 0.0)
             is_goal = sampled["outcome"] == EventOutcome.GOAL
             is_late = state.clock_ms >= 4_500_000
-            home_goals_75_plus = home_goals_75_plus + (is_home_act & is_shot & is_goal & is_late).long()
-            away_goals_75_plus = away_goals_75_plus + (is_away_act & is_shot & is_goal & is_late).long()
+            home_goals_75_plus += (is_home_act & is_shot & is_goal & is_late).long()
+            away_goals_75_plus += (is_away_act & is_shot & is_goal & is_late).long()
 
-            # Prepare next-step prev_event with XG_XT_HEAD continuous feedback
-            cont_vec = torch.zeros((batch_size, 10), dtype=torch.float32, device=dev)
+            # Prepare next-step prev_event with XG_XT_HEAD continuous feedback (reusing pre-allocated buffer)
+            cont_vec = cont_vec_buf
             cont_vec[:, 0] = dt_s / 60.0
             cont_vec[:, 1] = sampled["start_xy"][:, 0] / PITCH_LENGTH
             cont_vec[:, 2] = sampled["start_xy"][:, 1] / PITCH_WIDTH
@@ -1001,48 +1008,54 @@ class HybridRolloutEngine:
                     period_i, clock_ms_i, just_ht_i, finished_i,
                 ) = int_vals
 
-                fl = sampled["flags"][0].float().tolist()
-                geom_vals = torch.cat([
-                    sampled["start_xy"][0].float(),      # 0..1
-                    sampled["end_xy"][0].float(),        # 2..3
-                    sampled["end_z"][0:1].float(),       # 4
-                    state.ball_xy[0].float(),            # 5..6
-                    state.ball_z[0:1].float(),           # 7
+                # Pack all float outputs into a single GPU->CPU transfer (2 packed syncs total per step)
+                fl_len = int(sampled["flags"].shape[1])
+                float_packed = torch.cat([
+                    sampled["flags"][0].float(),
+                    sampled["start_xy"][0].float(),
+                    sampled["end_xy"][0].float(),
+                    sampled["end_z"][0:1].float(),
+                    state.ball_xy[0].float(),
+                    state.ball_z[0:1].float(),
+                    torch.stack([
+                        xg[0].float(),
+                        psxg[0].float(),
+                        xpass[0].float(),
+                        xt_d[0].float(),
+                        vaep[0].float(),
+                        turn_risk[0].float(),
+                        home_xg_tot[0].float(),
+                        away_xg_tot[0].float(),
+                        home_psxg_tot[0].float(),
+                        away_psxg_tot[0].float(),
+                        home_xt_tot[0].float(),
+                        away_xt_tot[0].float(),
+                        home_xpass_tot[0].float(),
+                        away_xpass_tot[0].float(),
+                        home_poss_sec[0].float(),
+                        away_poss_sec[0].float(),
+                        home_voronoi_tensor.float(),
+                    ]),
+                    torch.cat([
+                        positions[0].float(),
+                        velocities[0].float(),
+                        stamina[0].float().unsqueeze(-1),
+                        (~state.active_mask[0]).float().unsqueeze(-1),
+                    ], dim=-1).reshape(-1),
                 ]).tolist()
-                sx, sy, ex, ey, ez, bx, by, bz = geom_vals
-
-                an_vals = torch.stack([
-                    xg[0].float(),
-                    psxg[0].float(),
-                    xpass[0].float(),
-                    xt_d[0].float(),
-                    vaep[0].float(),
-                    turn_risk[0].float(),
-                    home_xg_tot[0].float(),
-                    away_xg_tot[0].float(),
-                    home_psxg_tot[0].float(),
-                    away_psxg_tot[0].float(),
-                    home_xt_tot[0].float(),
-                    away_xt_tot[0].float(),
-                    home_xpass_tot[0].float(),
-                    away_xpass_tot[0].float(),
-                    home_poss_sec[0].float(),
-                    away_poss_sec[0].float(),
-                    home_voronoi_tensor.float(),
-                ]).tolist()
+                fl = float_packed[:fl_len]
+                g_off = fl_len
+                sx, sy, ex, ey, ez, bx, by, bz = float_packed[g_off:g_off + 8]
+                a_off = g_off + 8
                 (
                     xg_v, psxg_v, xpass_v, xt_v, vaep_v, turn_v,
                     h_xg_tot_v, a_xg_tot_v, h_psxg_tot_v, a_psxg_tot_v,
                     h_xt_tot_v, a_xt_tot_v, h_xpass_tot_v, a_xpass_tot_v,
                     h_poss_sec_v, a_poss_sec_v, home_voronoi_val,
-                ) = an_vals
-
-                spatial_packed = torch.cat([
-                    positions[0].float(),                # [22, 2]
-                    velocities[0].float(),               # [22, 2]
-                    stamina[0].float().unsqueeze(-1),    # [22, 1]
-                    (~state.active_mask[0]).float().unsqueeze(-1),  # [22, 1]
-                ], dim=-1).tolist()
+                ) = float_packed[a_off:a_off + 17]
+                s_off = a_off + 17
+                sp_flat = float_packed[s_off:]
+                spatial_packed = [sp_flat[i * 6:(i + 1) * 6] for i in range(22)]
 
                 card_str = ""
                 if out_i == EventOutcome.YELLOW_CARD:

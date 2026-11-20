@@ -40,14 +40,21 @@ class ModelResources:
         logger.info(f"Using device: {self.device}")
         self.bad_words = []
         self.bad_words_ids = None
-        self.xgboost_model = XGBRegressor()
-        # Load GPT-2 model and tokenizer
+        self.model = None
+        self.tokenizer = None
+        self.xgboost_model = None
+        self.match_stat = None
+
+        # Load GPT-2 model and tokenizer (optional in V2-only deployments)
         self._load_gpt2_model()
 
-        # Load XGBoost model
+        # Load XGBoost model (optional in V2-only deployments)
         self._load_xgboost_model()
 
-        logger.info("All models loaded successfully")
+        if self.model is not None and self.xgboost_model is not None:
+            logger.info("All V1 models loaded successfully")
+        else:
+            logger.warning("V1 model weights absent or incomplete; continuing in V2-only mode")
 
     def _load_gpt2_model(self):
         """Load GPT-2 model and tokenizer"""
@@ -63,26 +70,30 @@ class ModelResources:
 
             logger.info(f"GPT-2 model loaded from {MODEL_PATH}")
         except Exception as e:
-            logger.error(f"Failed to load GPT-2 model: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Failed to load GPT-2 model: {str(e)}")
+            self.model = None
+            self.tokenizer = None
+            logger.warning(f"V1 GPT-2 model unavailable at {MODEL_PATH}; V2-only mode active: {str(e)}")
 
     def _load_xgboost_model(self):
         """Load XGBoost model"""
         try:
             booster = xgb.Booster()
             booster.load_model(XGB_MODEL_PATH)
-            self.xgboost_model._Booster = booster
+            xgb_model = XGBRegressor()
+            xgb_model._Booster = booster
+            self.xgboost_model = xgb_model
             self.match_stat = MatchStatProcessor(self.xgboost_model, tokenizer_path=MODEL_PATH, special_tokens=SPECIAL_LIST)
 
             logger.info(f"XGBoost model loaded from {XGB_MODEL_PATH}")
         except Exception as e:
-            logger.error(f"Failed to load XGBoost model: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Failed to load XGBoost model: {str(e)}")
+            self.xgboost_model = None
+            self.match_stat = None
+            logger.warning(f"V1 XGBoost model unavailable at {XGB_MODEL_PATH}; V2-only mode active: {str(e)}")
 
     def is_healthy(self) -> tuple[bool, bool]:
         """Check if models are loaded and healthy"""
         model_loaded = self.model is not None and self.tokenizer is not None
-        xgboost_loaded = self.xgboost_model is not None
+        xgboost_loaded = self.xgboost_model is not None and self.match_stat is not None
         return model_loaded, xgboost_loaded
 
 

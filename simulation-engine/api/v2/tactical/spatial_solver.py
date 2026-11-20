@@ -117,6 +117,21 @@ class OffBallSpatialSolver(nn.Module):
         grid_centers = torch.stack([gx.reshape(-1), gy.reshape(-1)], dim=-1)  # [384, 2]
         self.register_buffer("grid_centers", grid_centers, persistent=False)
 
+        # Reusable constant masks/indices (eliminates per-step tensor allocations)
+        is_home_22 = torch.zeros((1, 22), dtype=torch.bool)
+        is_home_22[:, :11] = True
+        is_outfield_22 = torch.ones((1, 22), dtype=torch.bool)
+        is_outfield_22[:, 0] = False
+        is_outfield_22[:, 11] = False
+        is_gk_22 = (~is_outfield_22).to(torch.float32)
+        self.register_buffer("is_home_22", is_home_22, persistent=False)
+        self.register_buffer("is_outfield_22", is_outfield_22, persistent=False)
+        self.register_buffer("is_gk_22", is_gk_22, persistent=False)
+        self.register_buffer("eye_22", torch.eye(22, dtype=torch.bool).unsqueeze(0), persistent=False)
+        self.register_buffer("slot_ids_22", torch.arange(22, dtype=torch.long).unsqueeze(0), persistent=False)
+        self.register_buffer("slot_ids_11", torch.arange(11, dtype=torch.long).unsqueeze(0), persistent=False)
+        self.register_buffer("scale_xy", torch.tensor([PITCH_LENGTH_YD, PITCH_WIDTH_YD], dtype=torch.float32), persistent=False)
+
         if auto_load:
             base_dir = Path(models_dir or os.getenv("MODEL_V2_DIR", DEFAULT_MODEL_V2_DIR))
             ckpt_file = base_dir / SPATIAL_PREDICTOR_FILENAME
@@ -256,9 +271,7 @@ class OffBallSpatialSolver(nn.Module):
         att_width = slot_tactics[..., 4]
         def_compact = slot_tactics[..., 5]
 
-        is_outfield = torch.ones((bsz, 22), device=device, dtype=torch.bool)
-        is_outfield[:, 0] = False
-        is_outfield[:, 11] = False
+        is_outfield = self.is_outfield_22.expand(bsz, 22)
 
         is_oop_or_press = torch.cat(
             [
@@ -292,8 +305,7 @@ class OffBallSpatialSolver(nn.Module):
         ay_adj = 0.5 + (ay_rel - 0.5) * width_scale
 
         # Convert team-relative normalized coords to canonical [0,120]x[0,80]
-        is_home = torch.zeros((bsz, 22), device=device, dtype=torch.bool)
-        is_home[:, :11] = True
+        is_home = self.is_home_22.expand(bsz, 22)
 
         x_canon = torch.where(is_home, ax_adj * PITCH_LENGTH_YD, (1.0 - ax_adj) * PITCH_LENGTH_YD)
         y_canon = torch.where(is_home, ay_adj * PITCH_WIDTH_YD, (1.0 - ay_adj) * PITCH_WIDTH_YD)
@@ -347,16 +359,16 @@ class OffBallSpatialSolver(nn.Module):
 
         pos = prev_xy + diff * scale.unsqueeze(-1)
 
-        # Pin explicit actor / receiver coordinates when an on-ball event occurred
+        # Pin explicit actor / receiver coordinates when an on-ball event occurred (branchless, no host sync)
         batch_arange = torch.arange(bsz, device=pos.device)
         if actor_slot_idx is not None and actor_pin_xy is not None:
             valid_a = (actor_slot_idx >= 0) & (actor_slot_idx < 22)
-            if valid_a.any():
-                pos[batch_arange[valid_a], actor_slot_idx[valid_a]] = actor_pin_xy[valid_a]
+            safe_a = actor_slot_idx.clamp(0, 21)
+            pos[batch_arange, safe_a] = torch.where(valid_a.unsqueeze(-1), actor_pin_xy, pos[batch_arange, safe_a])
         if receiver_slot_idx is not None and receiver_pin_xy is not None:
             valid_r = (receiver_slot_idx >= 0) & (receiver_slot_idx < 22)
-            if valid_r.any():
-                pos[batch_arange[valid_r], receiver_slot_idx[valid_r]] = receiver_pin_xy[valid_r]
+            safe_r = receiver_slot_idx.clamp(0, 21)
+            pos[batch_arange, safe_r] = torch.where(valid_r.unsqueeze(-1), receiver_pin_xy, pos[batch_arange, safe_r])
 
         # Passive offside line awareness for non-ball attacking outfielders
         # Home defends x=0 (deepest = smallest x); Away defends x=120 (deepest = largest x)
@@ -391,10 +403,10 @@ class OffBallSpatialSolver(nn.Module):
         # Minimum separation soft repulsion (< 1.2 yd) across active players
         pair_diff = pos.unsqueeze(2) - pos.unsqueeze(1)  # [B, 22, 22, 2]
         pair_dist = torch.linalg.norm(pair_diff, dim=-1)  # [B, 22, 22]
-        eye = torch.eye(22, device=pos.device, dtype=torch.bool).unsqueeze(0)
+        eye = self.eye_22
         both_active = active_mask.unsqueeze(2) & active_mask.unsqueeze(1) & (~eye)
         too_close = both_active & (pair_dist < 1.2) & (pair_dist > 1e-4)
-        repulse_mag = torch.where(too_close, (1.2 - pair_dist) * 0.35, torch.zeros_like(pair_dist))
+        repulse_mag = torch.where(too_close, (1.2 - pair_dist) * 0.35, 0.0)
         unit_dir = pair_diff / pair_dist.clamp_min(1e-4).unsqueeze(-1)
         pos = pos + (repulse_mag.unsqueeze(-1) * unit_dir).sum(dim=2)
 
@@ -404,8 +416,8 @@ class OffBallSpatialSolver(nn.Module):
         pos[..., 1] = pos[..., 1].clamp(0.5, PITCH_WIDTH_YD - 0.5)
         if actor_slot_idx is not None and actor_pin_xy is not None:
             valid_a = (actor_slot_idx >= 0) & (actor_slot_idx < 22)
-            if valid_a.any():
-                pos[batch_arange[valid_a], actor_slot_idx[valid_a]] = actor_pin_xy[valid_a]
+            safe_a = actor_slot_idx.clamp(0, 21)
+            pos[batch_arange, safe_a] = torch.where(valid_a.unsqueeze(-1), actor_pin_xy, pos[batch_arange, safe_a])
 
         bound_clamped = (torch.linalg.norm(pos - pre_bound, dim=-1) > 1e-3) & active_mask
         clamp_hit_fraction = (speed_clamped_flag | bound_clamped).to(pos.dtype).mean(dim=1)
@@ -449,8 +461,7 @@ class OffBallSpatialSolver(nn.Module):
         cell_y = (positions[..., 1] / 5.0).long().clamp(0, NUM_PITCH_GRID_Y - 1)
         cell_flat_idx = cell_x * NUM_PITCH_GRID_Y + cell_y  # [B, 22]
         pc_home_at_player = torch.gather(pc_home_flat, dim=1, index=cell_flat_idx)
-        is_home_slot = torch.zeros((bsz, 22), device=device, dtype=torch.bool)
-        is_home_slot[:, :11] = True
+        is_home_slot = self.is_home_22.expand(bsz, 22)
         local_pc = torch.where(is_home_slot, pc_home_at_player, 1.0 - pc_home_at_player)
 
         # Continuous ball-carrier pressure score from defending team
@@ -464,9 +475,9 @@ class OffBallSpatialSolver(nn.Module):
 
         # Synthetic 360 freeze frame [B, 22, 7]: (x, y, vx, vy, is_teammate, is_actor, is_gk)
         is_teammate = torch.where(is_home_poss, is_home_slot, ~is_home_slot).to(dtype)
-        slot_ids = torch.arange(22, device=device).unsqueeze(0).expand(bsz, 22)
+        slot_ids = self.slot_ids_22.expand(bsz, 22)
         is_actor = (slot_ids == actor_slot_idx.unsqueeze(-1)).to(dtype)
-        is_gk = ((slot_ids == 0) | (slot_ids == 11)).to(dtype)
+        is_gk = self.is_gk_22.to(dtype).expand(bsz, 22)
         freeze_frame_360 = torch.cat(
             [
                 positions,
@@ -592,7 +603,7 @@ class OffBallSpatialSolver(nn.Module):
 
         feasibility = (0.55 * lane_clearance + 0.30 * team_pc + 0.15 * tactical_align) * offside_factor
         # Mask self-target and sent-off teammates
-        is_self = torch.arange(11, device=device).unsqueeze(0) == local_actor.unsqueeze(-1)
+        is_self = self.slot_ids_11 == local_actor.unsqueeze(-1)
         target_mask = team_active & (~is_self)
         feasibility = torch.where(target_mask, feasibility.clamp(1e-4, 1.0), torch.zeros_like(feasibility))
 
@@ -661,11 +672,8 @@ class OffBallSpatialSolver(nn.Module):
         )
 
         # Layer 2: Residual SpatialPredictor inputs [B, 22, 18]
-        is_home = torch.zeros((bsz, 22), device=device, dtype=dtype)
-        is_home[:, :11] = 1.0
-        is_gk = torch.zeros((bsz, 22), device=device, dtype=dtype)
-        is_gk[:, 0] = 1.0
-        is_gk[:, 11] = 1.0
+        is_home = self.is_home_22.to(dtype).expand(bsz, 22)
+        is_gk = self.is_gk_22.to(dtype).expand(bsz, 22)
         poss_flag = torch.where(
             (possessing_team == 0).unsqueeze(-1),
             is_home,
@@ -685,7 +693,7 @@ class OffBallSpatialSolver(nn.Module):
             ],
             dim=1,
         )
-        scale_xy = torch.tensor([PITCH_LENGTH_YD, PITCH_WIDTH_YD], device=device, dtype=dtype)
+        scale_xy = self.scale_xy.to(dtype)
         slot_feats = torch.cat(
             [
                 prev_positions / scale_xy,
