@@ -41,7 +41,9 @@ public sealed class SimulationGrpcClientV2 : ISimulationGrpcClientV2, IDisposabl
     )
     {
         _logger = logger;
-        var address = options.Value?.ServerUrl ?? "http://localhost:50051";
+        var address = !string.IsNullOrWhiteSpace(options.Value?.Address)
+            ? options.Value.Address
+            : options.Value?.ServerUrl ?? "http://localhost:50051";
         _channel = GrpcChannel.ForAddress(
             address,
             new GrpcChannelOptions

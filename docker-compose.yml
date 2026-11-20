@@ -63,7 +63,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # 4. Footex .NET 10 API Application Template
+  # 4. Footex .NET 11 API Application Template
   footex-api-template: &footex-api-template
     image: ghcr.io/nader7x/pixelpitchai/footex-api:${IMAGE_TAG:-main}
     build:
@@ -81,7 +81,13 @@ services:
       - RabbitMQ__Password=footex_password
       - RabbitMQ__VirtualHost=/
       - RabbitMQ__Port=5672
-      - RabbitMQ__QueueName=match_events_queue
+      - RabbitMQ__QueueName=experiment_results_v2_queue
+      - SimulationGrpc__Address=${SIMULATION_GRPC_ADDRESS:-http://simulation-engine:50051}
+      - SimulationGrpc__ServerUrl=${SIMULATION_GRPC_ADDRESS:-http://simulation-engine:50051}
+      - R2__Endpoint=${R2_ENDPOINT:-}
+      - R2__BucketName=${R2_BUCKET_NAME:-pixelpitch-spatial-tracks}
+      - R2__AccessKeyId=${R2_ACCESS_KEY_ID:-}
+      - R2__SecretAccessKey=${R2_SECRET_ACCESS_KEY:-}
       - RedisCache__ConnectionString=redis:6379,password=footex_redis_password
       - RedisCache__InstanceName=Footex_Prod_
       - RedisCache__DefaultExpirationMinutes=10
@@ -129,6 +135,7 @@ services:
     container_name: football-match-api
     environment:
       - MODEL_PATH=/app/gpt2-football-finetuned
+      - MODEL_V2_DIR=/app/models_v2
       - XGB_MODEL_PATH=/app/tuned_xgboost_model.json
       - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
       - API_KEY=football_simulation_production_key
@@ -136,6 +143,8 @@ services:
       - INPUTTOKENS_DIR=/app/InputTokens
       - SIMMATCHES_DIR=/app/SimulatedMatches
       - STATUS_DIR=/app/SimulationStatus
+    ports:
+      - "50051:50051"
     volumes:
       - ./simulation-engine/HeaderLines:/app/HeaderLines
       - ./simulation-engine/InputTokens:/app/InputTokens
@@ -162,7 +171,6 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=https://${DOMAIN:-localhost}/api
-      - NEXT_PUBLIC_SIGNALR_URL=https://${DOMAIN:-localhost}/api/hubs
     networks:
       - footex-monorepo-network
     restart: unless-stopped

@@ -62,15 +62,18 @@ public sealed class CloudflareR2SpatialTrackStorageService : ISpatialTrackStorag
 
         using var ms = new MemoryStream();
         await zstdStream.CopyToAsync(ms, cancellationToken);
-        var payload = ms.ToArray();
+        var hasBuffer = ms.TryGetBuffer(out var segment);
+        var payloadSpan = hasBuffer ? segment.AsSpan() : ms.ToArray().AsSpan();
 
         var uri = BuildObjectUri(objectKey);
         using var request = new HttpRequestMessage(HttpMethod.Put, uri)
         {
-            Content = new ByteArrayContent(payload),
+            Content = hasBuffer
+                ? new ByteArrayContent(segment.Array!, segment.Offset, segment.Count)
+                : new ByteArrayContent(payloadSpan.ToArray()),
         };
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zstd");
-        SignRequest(request, payload);
+        SignRequest(request, payloadSpan);
 
         var client = _httpClientFactory.CreateClient("R2SpatialStorage");
         using var response = await client.SendAsync(request, cancellationToken);
@@ -129,7 +132,7 @@ public sealed class CloudflareR2SpatialTrackStorageService : ISpatialTrackStorag
         return new Uri($"{_endpoint}/{_bucket}/{normalizedKey}");
     }
 
-    private void SignRequest(HttpRequestMessage request, byte[] payload)
+    private void SignRequest(HttpRequestMessage request, ReadOnlySpan<byte> payload)
     {
         var now = DateTime.UtcNow;
         var amzDate = now.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);

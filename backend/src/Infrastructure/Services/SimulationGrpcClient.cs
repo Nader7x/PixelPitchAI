@@ -10,6 +10,7 @@ public class SimulationGrpcOptions
 {
     public const string SectionName = "SimulationGrpc";
     public string ServerUrl { get; set; } = "http://localhost:50051";
+    public string? Address { get; set; }
 }
 
 public interface ISimulationGrpcClient
