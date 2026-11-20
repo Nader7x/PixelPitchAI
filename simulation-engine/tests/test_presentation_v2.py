@@ -711,3 +711,101 @@ def test_checkpoint_autoload_and_health_metrics(tmp_path: Path) -> None:
         asyncio.run(_run())
     finally:
         app.dependency_overrides.clear()
+
+
+def test_grpc_simulation_v2_servicer(tmp_path: Path) -> None:
+    """Verify SimulationServiceV2Servicer RPCs: GetHealthV2, StreamMatchV2, ApplyLiveTacticalOverride, RunMonteCarloExperiment."""
+    import os
+    import sys
+
+    proto_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "api", "protos"))
+    if proto_dir not in sys.path:
+        sys.path.insert(0, proto_dir)
+
+    import simulation_v2_pb2
+    from api.grpc.simulation_v2_servicer import SimulationServiceV2Servicer
+
+    class _DummyContext:
+        def cancelled(self) -> bool:
+            return False
+
+        async def abort(self, code: Any, details: str) -> None:
+            raise RuntimeError(f"gRPC abort {code}: {details}")
+
+    service = _build_mock_presentation_service(tmp_path)
+    servicer = SimulationServiceV2Servicer(presentation_service=service)
+    ctx = _DummyContext()
+
+    async def _run() -> None:
+        health = await servicer.GetHealthV2(
+            simulation_v2_pb2.HealthV2Request(include_checkpoints=True),
+            ctx,
+        )
+        assert health.healthy is True
+        assert health.version == "2.0.0"
+        assert "local_cpu_onnx" in list(health.available_tiers)
+
+        stream_req = simulation_v2_pb2.SimulateMatchV2Request(
+            match_id="grpc_m1",
+            stream_mode="broadcast",
+            compute_target="auto",
+            playback_speed=2.0,
+            spatial_hz=5,
+            max_events=200,
+            match_config_json=json.dumps(
+                {
+                    "match_id": "grpc_m1",
+                    "home_team": {"team_name": "Alpha FC"},
+                    "away_team": {"team_name": "Beta United"},
+                }
+            ),
+            commentary_enabled=True,
+            commentary_provider="template_only",
+            commentary_language="en",
+        )
+        frames = [f async for f in servicer.StreamMatchV2(stream_req, ctx)]
+        kinds = [f.kind for f in frames]
+        assert simulation_v2_pb2.FrameKind.LIFECYCLE in kinds
+        assert simulation_v2_pb2.FrameKind.EVENT in kinds
+        assert simulation_v2_pb2.FrameKind.SPATIAL in kinds
+        assert simulation_v2_pb2.FrameKind.TELEMETRY in kinds
+        assert simulation_v2_pb2.FrameKind.COMMENTARY in kinds
+        assert frames[0].lifecycle.status == "match_start"
+        assert frames[-1].lifecycle.status in ("match_end", "truncated_max_events")
+
+        # ApplyLiveTacticalOverride on active session vs missing session
+        ack_ok = await servicer.ApplyLiveTacticalOverride(
+            simulation_v2_pb2.LiveTacticalOverrideRequest(
+                match_id="grpc_m1",
+                team_side="home",
+                tactical_instructions_patch_json=json.dumps({"pressing_intensity": 0.9}),
+                formation_base_name="4-2-3-1",
+            ),
+            ctx,
+        )
+        assert ack_ok.applied is True
+        assert "pressing_intensity" in ack_ok.active_tactics_json
+
+        ack_missing = await servicer.ApplyLiveTacticalOverride(
+            simulation_v2_pb2.LiveTacticalOverrideRequest(match_id="missing_m99", team_side="home"),
+            ctx,
+        )
+        assert ack_missing.applied is False
+
+        mc_req = simulation_v2_pb2.MonteCarloExperimentRequest(
+            experiment_id="grpc_exp_1",
+            n_simulations=10,
+            base_seed=42,
+            compute_target="auto",
+            baseline_config_json=json.dumps({"home_team": {"team_name": "Alpha FC"}}),
+            interventions_json=json.dumps([{"arm_id": "v1", "label": "High Press"}]),
+        )
+        mc_frames = [f async for f in servicer.RunMonteCarloExperiment(mc_req, ctx)]
+        assert len(mc_frames) >= 2
+        assert mc_frames[-1].is_final is True
+        assert mc_frames[-1].stage == "completed"
+        res_payload = json.loads(mc_frames[-1].results_json)
+        assert res_payload["n_simulations"] == 10
+
+    asyncio.run(_run())
+

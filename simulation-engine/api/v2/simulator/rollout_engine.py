@@ -37,6 +37,7 @@ from api.v2.simulator.fsm import (
     PITCH_WIDTH,
     PassHeight,
     Period,
+    PossPhase,
     RestartType,
     xy_to_cell,
 )
@@ -589,6 +590,10 @@ class HybridRolloutEngine:
         away_f3_touches = torch.zeros(batch_size, dtype=torch.long, device=dev)
         home_high_turnovers = torch.zeros(batch_size, dtype=torch.long, device=dev)
         away_high_turnovers = torch.zeros(batch_size, dtype=torch.long, device=dev)
+        home_set_piece_xg = torch.zeros(batch_size, dtype=torch.float32, device=dev)
+        away_set_piece_xg = torch.zeros(batch_size, dtype=torch.float32, device=dev)
+        home_goals_75_plus = torch.zeros(batch_size, dtype=torch.long, device=dev)
+        away_goals_75_plus = torch.zeros(batch_size, dtype=torch.long, device=dev)
         home_last_ht_ms = torch.full((batch_size,), -60_000, dtype=torch.long, device=dev)
         away_last_ht_ms = torch.full((batch_size,), -60_000, dtype=torch.long, device=dev)
         event_counts = torch.zeros(batch_size, dtype=torch.long, device=dev)
@@ -793,6 +798,7 @@ class HybridRolloutEngine:
             # Advance FSM deterministically
             prev_period = state.period.clone()
             pre_poss_team = state.poss_team.clone()
+            pre_poss_phase = state.poss_phase.clone()
             state = self.fsm.step(
                 state=state,
                 dt_seconds=sampled["dt_seconds"],
@@ -908,6 +914,17 @@ class HybridRolloutEngine:
             away_high_turnovers = away_high_turnovers + a_ht_hit.long()
             home_last_ht_ms = torch.where(h_ht_hit, state.clock_ms, home_last_ht_ms)
             away_last_ht_ms = torch.where(a_ht_hit, state.clock_ms, away_last_ht_ms)
+            is_set_piece_shot = is_shot & (
+                (sampled["restart_type"] != RestartType.OPEN_PLAY)
+                | (pre_poss_phase == PossPhase.SET_PIECE_ATTACK)
+                | (pre_poss_phase == PossPhase.SET_PIECE_DEFENSE)
+            )
+            home_set_piece_xg = home_set_piece_xg + torch.where(is_home_act & is_set_piece_shot, xg, 0.0)
+            away_set_piece_xg = away_set_piece_xg + torch.where(is_away_act & is_set_piece_shot, xg, 0.0)
+            is_goal = sampled["outcome"] == EventOutcome.GOAL
+            is_late = state.clock_ms >= 4_500_000
+            home_goals_75_plus = home_goals_75_plus + (is_home_act & is_shot & is_goal & is_late).long()
+            away_goals_75_plus = away_goals_75_plus + (is_away_act & is_shot & is_goal & is_late).long()
 
             # Prepare next-step prev_event with XG_XT_HEAD continuous feedback
             cont_vec = torch.zeros((batch_size, 10), dtype=torch.float32, device=dev)
@@ -1155,6 +1172,18 @@ class HybridRolloutEngine:
             "away_f3_touches": away_f3_touches.cpu(),
             "home_high_turnovers": home_high_turnovers.cpu(),
             "away_high_turnovers": away_high_turnovers.cpu(),
+            "home_passes": home_passes.cpu(),
+            "away_passes": away_passes.cpu(),
+            "home_passes_ok": home_passes_ok.cpu(),
+            "away_passes_ok": away_passes_ok.cpu(),
+            "home_build_passes": home_build_passes.cpu(),
+            "away_build_passes": away_build_passes.cpu(),
+            "home_def_act": home_def_act.cpu(),
+            "away_def_act": away_def_act.cpu(),
+            "home_set_piece_xg": home_set_piece_xg.cpu(),
+            "away_set_piece_xg": away_set_piece_xg.cpu(),
+            "home_goals_75_plus": home_goals_75_plus.cpu(),
+            "away_goals_75_plus": away_goals_75_plus.cpu(),
             "event_counts": event_counts.cpu(),
             "frames": emitted_frames,
         }

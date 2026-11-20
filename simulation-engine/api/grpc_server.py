@@ -15,7 +15,9 @@ if proto_dir not in sys.path:
 
 import simulation_pb2
 import simulation_pb2_grpc
+import simulation_v2_pb2_grpc
 from api.core.parser import MatchEventProducer
+from api.grpc.simulation_v2_servicer import SimulationServiceV2Servicer
 from api.services.streaming import StreamFailure
 
 logger = logging.getLogger("simulation_grpc")
@@ -191,6 +193,8 @@ async def start_grpc_server(host: str = "0.0.0.0", port: int = 50051, simulation
     )
     servicer = SimulationServiceServicer(simulation_service=simulation_service)
     simulation_pb2_grpc.add_SimulationServiceServicer_to_server(servicer, server)
+    servicer_v2 = SimulationServiceV2Servicer()
+    simulation_v2_pb2_grpc.add_SimulationServiceV2Servicer_to_server(servicer_v2, server)
     listen_addr = f"{host}:{port}"
     bound_port = server.add_insecure_port(listen_addr)
     if bound_port == 0:
